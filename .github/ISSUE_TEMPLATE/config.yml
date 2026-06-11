@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/GCarin1/Doctrina/security/advisories/new
+    about: |
+      Use this channel for security issues. Do not file public
+      issues for vulnerabilities. See SECURITY.md.
+  - name: Documentation question
+    url: https://github.com/GCarin1/Doctrina/tree/main/docs
+    about: |
+      Most "how do I" questions are answered in docs/en or
+      docs/pt. Read getting-started, workflow, and cli-reference
+      first.

@@ -1,0 +1,40 @@
+# Bug spec — {{CAPABILITY}}
+
+**Capability:** {{CAPABILITY}}
+**Type:** bug
+**Status:** active
+**Last updated:** {{DATE}}
+**Version:** 0.1.0
+
+## Current behaviour
+
+<!--
+What the system does today, exactly. Reproduce the wrong path.
+Include input, observed output, and any error messages.
+-->
+
+## Expected behaviour
+
+<!--
+What it should do instead, exactly. Be specific about inputs and
+outputs that change.
+-->
+
+## Unchanged behaviour
+
+<!--
+What must keep working. The guard-rail that prevents "fix the bug,
+break two adjacent features". Reference the capabilities, flows,
+or files this bug fix must NOT alter.
+-->
+
+## Acceptance criteria
+
+<!-- Observable signals the bug is fixed and the guard-rails hold. -->
+
+1.
+2.
+
+## Out of scope
+
+<!-- Adjacent issues this fix deliberately does not address. -->

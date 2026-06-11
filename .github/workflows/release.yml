@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20.12
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.12"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Run CLI test suite (gate)
+        run: node --test
+        working-directory: packages/doctrina-cli
+
+      - name: Self-validate (gate)
+        run: node packages/doctrina-cli/src/index.js validate
+
+      - name: Publish doctrina-cli
+        working-directory: packages/doctrina-cli
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

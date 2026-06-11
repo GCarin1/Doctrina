@@ -1,0 +1,21 @@
+{
+  "name": "doctrina-example-express-retrofit",
+  "version": "0.1.0",
+  "description": "Doctrina example — Express service retrofitted with Doctrina (brownfield).",
+  "type": "module",
+  "scripts": {
+    "start": "ts-node src/server.ts"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}

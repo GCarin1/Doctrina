@@ -1,0 +1,91 @@
+{
+  "$schema_version": "0.1.0",
+  "project": "doctrina",
+  "framework_version": "0.1.0",
+  "last_updated": "2026-06-11",
+  "artifacts": {
+    "product": {
+      "path": ".doctrina/product.md",
+      "status": "active",
+      "version": "0.1.0",
+      "last_updated": "2026-06-03"
+    },
+    "specs": [
+      {
+        "id": "cli",
+        "path": ".doctrina/specs/cli/spec.md",
+        "status": "active",
+        "version": "0.13.0",
+        "last_updated": "2026-06-11"
+      },
+      {
+        "id": "core",
+        "path": ".doctrina/specs/core/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-06-03"
+      },
+      {
+        "id": "docs",
+        "path": ".doctrina/specs/docs/spec.md",
+        "status": "active",
+        "version": "0.2.0",
+        "last_updated": "2026-06-11"
+      },
+      {
+        "id": "skills",
+        "path": ".doctrina/specs/skills/spec.md",
+        "status": "active",
+        "version": "0.2.1",
+        "last_updated": "2026-06-11"
+      },
+      {
+        "id": "templates",
+        "path": ".doctrina/specs/templates/spec.md",
+        "status": "active",
+        "version": "0.7.0",
+        "last_updated": "2026-06-03"
+      },
+      {
+        "id": "validation",
+        "path": ".doctrina/specs/validation/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-06-03"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "0001",
+        "path": ".doctrina/decisions/0001-adopt-agents-md-standard.md",
+        "title": "Adopt the open AGENTS.md standard as the portable substrate",
+        "status": "accepted",
+        "date": "2026-06-03"
+      },
+      {
+        "id": "0002",
+        "path": ".doctrina/decisions/0002-reserved-number-never-published.md",
+        "title": "Reserved number, never published",
+        "status": "withdrawn",
+        "date": "2026-06-11"
+      },
+      {
+        "id": "0003",
+        "path": ".doctrina/decisions/0003-defer-memory-folder.md",
+        "title": "Defer the `memory/` folder to a post-v1 milestone",
+        "status": "accepted",
+        "date": "2026-06-03"
+      },
+      {
+        "id": "0004",
+        "path": ".doctrina/decisions/0004-single-linear-orchestrator.md",
+        "title": "Adopt a single linear orchestrator instead of role-based parallel agents",
+        "status": "accepted",
+        "date": "2026-06-03"
+      }
+    ],
+    "changes": [],
+    "changes_archive": [],
+    "skills": []
+  }
+}

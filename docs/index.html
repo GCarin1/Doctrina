@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctrina — spec-driven, AGENTS.md-native framework</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Spec-driven, AGENTS.md-native framework for multi-agent AI development. Zero dependencies, files in git, bilingual docs.">
+  <link rel="icon" type="image/svg+xml" href="assets/logo-monogram.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root {
+      --theme-color: #b8860b;
+      --sidebar-width: 18rem;
+    }
+    .app-name-link img { max-width: 44px; vertical-align: middle; }
+    .sidebar > h1 { margin: 0.5rem auto 0.5rem; }
+    .markdown-section code { color: #a3601e; }
+    .sidebar-nav li > p { font-weight: 700; margin: 12px 0 4px; }
+    .cover.show { background: linear-gradient(160deg, #232936 0%, #3b4252 100%) !important; }
+  </style>
+</head>
+<body>
+  <div id="app">Loading documentation…</div>
+  <script>
+    window.$docsify = {
+      name: 'Doctrina',
+      logo: 'assets/logo-monogram.svg',
+      repo: 'GCarin1/Doctrina',
+      loadSidebar: true,
+      subMaxLevel: 2,
+      auto2top: true,
+      relativePath: true,
+      notFoundPage: true,
+      search: {
+        paths: 'auto',
+        depth: 3,
+        placeholder: { '/pt/': 'Buscar…', '/': 'Search…' },
+        noData: { '/pt/': 'Nenhum resultado', '/': 'No results' },
+      },
+      alias: {
+        '/en/.*/_sidebar.md': '/en/_sidebar.md',
+        '/pt/.*/_sidebar.md': '/pt/_sidebar.md',
+      },
+      plugins: [
+        // Links that point outside docs/ (repo files like CONTRIBUTING.md or
+        // .doctrina/ artifacts) cannot be served by the site; route them to
+        // the GitHub blob view instead of 404ing.
+        function (hook) {
+          hook.doneEach(function () {
+            document.querySelectorAll('.markdown-section a[href]').forEach(function (a) {
+              var href = a.getAttribute('href');
+              if (href && href.indexOf('../../') !== -1) {
+                var clean = href.replace('#/', '').replace(/\.\.\//g, '');
+                a.setAttribute('href', 'https://github.com/GCarin1/Doctrina/blob/main/' + clean);
+                a.setAttribute('target', '_blank');
+                a.setAttribute('rel', 'noopener');
+              }
+            });
+          });
+        },
+      ],
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "$schema_version": "0.1.0",
+  "project": "doctrina-example-express-retrofit",
+  "framework_version": "0.1.0",
+  "last_updated": "2026-06-02",
+  "artifacts": {
+    "product": {
+      "path": ".doctrina/product.md",
+      "status": "active",
+      "version": "0.1.0",
+      "last_updated": "2026-06-02"
+    },
+    "specs": [
+      {
+        "id": "api-quota",
+        "path": ".doctrina/specs/api-quota/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-06-02"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "0001",
+        "path": ".doctrina/decisions/0001-retain-express.md",
+        "title": "Retain Express (discovered, not authored)",
+        "status": "accepted",
+        "date": "2026-06-02"
+      },
+      {
+        "id": "0002",
+        "path": ".doctrina/decisions/0002-in-memory-rate-limit-v0.md",
+        "title": "In-memory rate-limit for v0 (discovered)",
+        "status": "accepted",
+        "date": "2026-06-02"
+      }
+    ],
+    "changes": [],
+    "changes_archive": [
+      {
+        "id": "0001-fix-quota-bypass",
+        "title": "Fix quota bypass for keys shorter than 8 characters",
+        "path": ".doctrina/changes/archive/2026-06-02-0001-fix-quota-bypass",
+        "status": "applied",
+        "applied": "2026-06-02",
+        "specs_affected": [
+          {
+            "capability": "api-quota",
+            "operation": "ADDED"
+          }
+        ]
+      }
+    ]
+  }
+}

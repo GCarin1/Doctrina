@@ -1,0 +1,9 @@
+[project]
+name = "doctrina-example-urls"
+version = "0.1.0"
+description = "Doctrina example — minimal FastAPI URL shortener."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+]

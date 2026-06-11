@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Doctrina pre-commit hook.
+# Installed by `doctrina hooks install`. Runs validate and blocks the
+# commit if it exits non-zero. Edit freely after install; the CLI will
+# not overwrite without --force.
+
+doctrina validate

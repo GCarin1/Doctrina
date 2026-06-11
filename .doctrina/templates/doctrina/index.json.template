@@ -1,0 +1,19 @@
+{
+  "$schema_version": "0.1.0",
+  "project": "{{PROJECT_NAME}}",
+  "framework_version": "0.0.0",
+  "last_updated": "{{DATE}}",
+  "artifacts": {
+    "product": {
+      "path": ".doctrina/product.md",
+      "status": "active",
+      "version": "0.1.0",
+      "last_updated": "{{DATE}}"
+    },
+    "specs": [],
+    "decisions": [],
+    "changes": [],
+    "changes_archive": [],
+    "skills": []
+  }
+}

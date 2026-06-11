@@ -1,0 +1,11 @@
+# CONVENTIONS.md — {{PROJECT_NAME}}
+
+Aider reads this file as read-only context (CONVENTIONS.md is
+loaded automatically and cached). This project routes all
+operational rules through the open AGENTS.md standard.
+
+See `{{AGENTS_MD_PATH}}` for the canonical operational source of
+truth. The Doctrina framework artifacts (specs, decisions,
+changes) live under `.doctrina/`.
+
+Read order is documented in AGENTS.md.

@@ -1,0 +1,20 @@
+# Spec Delta — capability: {{CAPABILITY}}
+
+**Operation:** ADDED | MODIFIED | REMOVED
+**Target spec on apply:** `.doctrina/specs/{{CAPABILITY}}/spec.md`
+
+<!--
+For ADDED: include the full new spec body below. On apply, the body is
+written verbatim to the target path.
+
+For MODIFIED: include only the sections that change, with clear
+before/after markers. On apply, the maintainer merges the delta into the
+existing spec by hand or with the CLI.
+
+For REMOVED: the body may be empty; on apply, the target spec file is
+deleted and the capability is recorded in the change archive only.
+-->
+
+---
+
+<!-- delta body below -->

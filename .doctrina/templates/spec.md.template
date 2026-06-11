@@ -1,0 +1,52 @@
+# Spec — {{CAPABILITY}}
+
+**Capability:** {{CAPABILITY}}
+**Status:** active
+**Last updated:** {{DATE}}
+**Version:** 0.1.0
+
+## Purpose
+
+<!-- One paragraph: what this capability does and why it exists. -->
+
+## Requirements (EARS)
+
+<!--
+Easy Approach to Requirements Syntax. Use one of the five forms per item:
+
+- Ubiquitous:           The system shall <action>.
+- Event-driven:         When <trigger>, the system shall <action>.
+- State-driven:         While <state>, the system shall <action>.
+- Unwanted-behavior:    The system shall not <action> [when <trigger>].
+- Optional:             Where <feature available>, the system may <action>.
+-->
+
+### Ubiquitous
+
+-
+
+### Event-driven
+
+-
+
+### State-driven
+
+-
+
+### Unwanted-behavior (must-not)
+
+-
+
+### Optional
+
+-
+
+## Acceptance criteria
+
+<!-- Concrete, observable signals that the capability is correctly implemented. -->
+
+1.
+
+## Out of scope for this spec
+
+-

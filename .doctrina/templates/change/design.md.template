@@ -1,0 +1,24 @@
+# Design — Change {{CHANGE_ID}}
+
+<!--
+Optional, but recommended for any change with non-trivial design choices.
+If this change is mechanical (a renamed field, a typo fix), delete this
+file rather than leaving it empty.
+-->
+
+## Approach
+
+<!-- The chosen approach in one or two paragraphs. -->
+
+## Alternatives considered
+
+<!-- The shortlist of approaches you rejected and why. -->
+
+## Trade-offs and risks
+
+<!-- What this design costs and where it can break. -->
+
+## Decisions to record as ADRs
+
+<!-- List any architectural decisions surfaced by this change that should
+become their own ADR. Empty if none. -->
