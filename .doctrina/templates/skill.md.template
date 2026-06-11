@@ -1,0 +1,49 @@
+---
+name: {{SKILL_NAME}}
+description: <one-sentence summary of what this skill helps the agent do>
+when: <one-sentence trigger — when the agent should load this skill>
+---
+
+# Skill — {{SKILL_NAME}}
+
+## When to use this skill
+
+<!--
+Be specific about the trigger. Examples that DO work:
+- The agent is asked to add or modify a database migration.
+- The agent is reviewing a PR that touches public API surface.
+- The agent is investigating a production incident.
+
+Examples that DON'T work (too vague):
+- "Whenever the agent is coding."
+- "Anytime there is a problem."
+-->
+
+## Procedure
+
+<!--
+Step-by-step. Exact commands beat advice. Verifiable checks beat
+adjectives. Same rules as AGENTS.md.
+-->
+
+1.
+2.
+3.
+
+## Anti-patterns
+
+<!--
+Things this skill exists to prevent. Be concrete: a real failure
+mode you have seen.
+-->
+
+-
+
+## Related material
+
+<!--
+Cross-links to the spec, ADR, or other artifacts that this skill
+references or extends.
+-->
+
+- [Workflow](../../docs/en/workflow.md)

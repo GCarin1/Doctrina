@@ -1,0 +1,40 @@
+{
+  "name": "doctrina-cli",
+  "version": "0.1.1",
+  "description": "Doctrina CLI — spec-driven, AGENTS.md-native framework for multi-agent AI development.",
+  "license": "MIT",
+  "keywords": [
+    "agents-md",
+    "spec-driven-development",
+    "sdd",
+    "ai-coding-agents",
+    "claude-code",
+    "codex",
+    "cursor",
+    "adr"
+  ],
+  "type": "module",
+  "bin": {
+    "doctrina": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "prepack": "node scripts/copy-templates.js"
+  },
+  "files": [
+    "src",
+    "templates",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gcarin1/doctrina.git",
+    "directory": "packages/doctrina-cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

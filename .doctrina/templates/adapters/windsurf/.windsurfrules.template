@@ -1,0 +1,11 @@
+# Windsurf rules — {{PROJECT_NAME}}
+
+This project uses the open AGENTS.md standard as the single source of
+truth for agent-readable rules. Before answering or editing, read the
+canonical file at `{{AGENTS_MD_PATH}}`.
+
+The Doctrina framework artifacts (specs, decisions, changes) live
+under `.doctrina/`. Read order is documented in AGENTS.md.
+
+Do not duplicate rules in this file. If a rule belongs in AGENTS.md,
+put it there.

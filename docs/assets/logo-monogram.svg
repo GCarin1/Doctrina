@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Option B — "Monogram": {D} — doctrine meets code. The braces are
+       the developer's alphabet; the D is the doctrine inside them. -->
+  <rect x="8" y="8" width="240" height="240" rx="48" fill="#232936"/>
+  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle"
+        font-family="ui-monospace, 'Cascadia Code', 'JetBrains Mono', Menlo, monospace"
+        font-size="118" font-weight="600" fill="#E8E3D8">{<tspan fill="#D4A958">D</tspan>}</text>
+</svg>

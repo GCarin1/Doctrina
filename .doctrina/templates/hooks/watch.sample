@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+# Doctrina on-save watcher (sample).
+#
+# Re-runs `doctrina validate` whenever a Markdown file under
+# .doctrina/ or docs/ changes. Pair with `doctrina hooks install` for
+# pre-commit validation; this script gives you the on-save loop too.
+#
+# Requires a path watcher to be installed. Two common choices:
+#
+#   entr      (POSIX, portable)        https://github.com/eradman/entr
+#   fswatch   (macOS / Linux / BSD)    https://github.com/emcrisostomo/fswatch
+#
+# Edit the body below to match your watcher of choice. The CLI does
+# not install or run this script — wire it into your dev setup
+# (a Make target, an npm script, a tmux pane) by hand.
+
+# entr example (default):
+find .doctrina docs -name '*.md' 2>/dev/null | entr -c doctrina validate
+
+# fswatch example (uncomment to use):
+# fswatch -o .doctrina docs | xargs -n1 -I{} doctrina validate

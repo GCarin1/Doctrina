@@ -1,0 +1,26 @@
+# Change {{CHANGE_ID}} — {{CHANGE_TITLE}}
+
+- **Status:** proposed
+- **Date:** {{DATE}}
+- **Owner:**
+- **Affects specs:**
+
+## Why
+
+<!-- The user-visible or technical reason this change exists. -->
+
+## What
+
+<!-- The shape of the change: artifacts created or modified, specs affected. -->
+
+## Scope boundaries
+
+<!-- Anything adjacent that this change deliberately does NOT touch. -->
+
+## Verification
+
+<!-- How you will know the change is correctly applied. -->
+
+## Open questions
+
+<!-- List unresolved decisions. Empty if none. -->

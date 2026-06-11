@@ -1,0 +1,62 @@
+{
+  "$schema_version": "0.1.0",
+  "project": "doctrina-example-urls",
+  "framework_version": "0.1.0",
+  "last_updated": "2026-06-02",
+  "artifacts": {
+    "product": {
+      "path": ".doctrina/product.md",
+      "status": "active",
+      "version": "0.1.0",
+      "last_updated": "2026-06-01"
+    },
+    "specs": [
+      {
+        "id": "shorten",
+        "path": ".doctrina/specs/shorten/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-06-01"
+      },
+      {
+        "id": "redirect",
+        "path": ".doctrina/specs/redirect/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-06-02"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "0001",
+        "path": ".doctrina/decisions/0001-adopt-fastapi.md",
+        "title": "Adopt FastAPI for the v0",
+        "status": "accepted",
+        "date": "2026-06-01"
+      },
+      {
+        "id": "0002",
+        "path": ".doctrina/decisions/0002-use-sqlite-for-v0.md",
+        "title": "Use SQLite for v0 storage",
+        "status": "accepted",
+        "date": "2026-06-01"
+      }
+    ],
+    "changes": [],
+    "changes_archive": [
+      {
+        "id": "0001-add-redirect",
+        "title": "Add redirect capability",
+        "path": ".doctrina/changes/archive/2026-06-02-0001-add-redirect",
+        "status": "applied",
+        "applied": "2026-06-02",
+        "specs_affected": [
+          {
+            "capability": "redirect",
+            "operation": "ADDED"
+          }
+        ]
+      }
+    ]
+  }
+}

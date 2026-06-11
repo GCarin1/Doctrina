@@ -1,0 +1,56 @@
+# ADR {{DECISION_NUMBER}} — {{DECISION_TITLE}}
+
+- **Status:** proposed
+- **Date:** {{DATE}}
+- **Deciders:**
+- **Supersedes:** —
+- **Superseded by:** —
+
+## Context
+
+<!--
+The forces at play: business goals, technical constraints, prior
+decisions, options ruled out before deliberation. Reader should
+understand WHY this decision is being made now, not just what was
+chosen.
+-->
+
+## Decision
+
+<!--
+What was decided. Active voice. State the choice plainly. If the
+decision has scope limits, state them.
+-->
+
+## Alternatives considered
+
+<!--
+The shortlist of approaches that were on the table. For each, a sentence
+on why it was not chosen. Even rejected alternatives carry value: they
+prevent the next reader from re-running the same debate.
+-->
+
+1.
+2.
+
+## Consequences
+
+**Positive**
+
+-
+
+**Negative**
+
+-
+
+**Neutral**
+
+-
+
+<!--
+Once this ADR is accepted, do not edit it. To change the decision,
+create a new ADR that supersedes this one and update the "Superseded by"
+header above to point at the new ADR. Status transitions:
+proposed -> accepted | rejected
+accepted -> deprecated | superseded by NNNN
+-->

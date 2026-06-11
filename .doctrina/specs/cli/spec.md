@@ -1,0 +1,328 @@
+# Spec — Command-Line Interface
+
+**Capability:** cli
+**Status:** active
+**Last updated:** 2026-06-11
+**Version:** 0.13.0
+
+## Purpose
+
+Define the v0 command surface for the `doctrina` CLI, the contracts each
+command honours, the implementation constraints the package follows, and
+the exit-code conventions across the surface. The surface comprises
+`init` (with optional `--from <path>`), `spec new|list` (with
+optional `--bug`), `change new|apply|archive|diff`,
+`decision new|accept|supersede|list`, `skill new|list|sync`,
+`analyze`, `clarify` (with optional `--all`), `validate`,
+`templates list|check|update`, `hooks install`, `index rebuild`,
+`next`, `metrics`, `context`, `search`, `--help`, and `--version`.
+
+## Requirements (EARS)
+
+### Ubiquitous
+
+- The system shall expose the executable `doctrina` via the `bin` field
+  of `packages/doctrina-cli/package.json`.
+- The system shall implement every command using only the Node.js
+  standard library; the runtime dependency list shall remain empty.
+- The system shall print a usage summary when invoked with `--help`,
+  `-h`, or with no arguments.
+- The system shall print the package version when invoked with
+  `--version` or `-v`.
+- The system shall exit 0 on success and a non-zero code on error.
+- The system shall prefix every error line with `error:` and may
+  emit an optional `hint:` line with an actionable next step.
+
+### Event-driven
+
+- When the user invokes an unknown top-level command or
+  subcommand, the system shall suggest the closest match by edit
+  distance when one exists within a threshold of three.
+
+- When `doctrina init` runs in a directory that contains neither
+  `AGENTS.md` nor `.doctrina/`, the system shall scaffold the AGENTS.md
+  template at the project root and the .doctrina/ skeleton from the
+  templates directory.
+- When `doctrina init --agent <name>` runs, the system shall additionally
+  install the matching adapter from the templates inventory. The
+  recognised values are `claude`, `codex`, `cursor`, `copilot`,
+  `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`,
+  `factory`, `jules`, or `all` (install every adapter present
+  under `templates/adapters/`). The last four (amp / devin /
+  factory / jules) are AGENTS.md-native and install no files;
+  the directory exists so the templates inventory is symmetric
+  across supported agents.
+- When `doctrina spec new <capability>` runs, the system shall create
+  `.doctrina/specs/<capability>/spec.md` from `templates/spec.md.template`
+  and add the entry to `.doctrina/index.json`.
+- When `doctrina change new <id> "<title>"` runs, the system shall create
+  `.doctrina/changes/<id>/` populated with `proposal.md`, `tasks.md`,
+  and `design.md` from the change templates.
+- When `doctrina change apply <id>` runs, the system shall process every
+  spec delta under the change folder: ADDED writes the new spec, REMOVED
+  deletes the target spec, and MODIFIED prints a manual-merge pointer
+  without writing.
+- When `doctrina change archive <id>` runs, the system shall move the
+  change folder to `.doctrina/changes/archive/YYYY-MM-DD-<id>/` and
+  update `.doctrina/index.json`.
+- When `doctrina decision new "<title>"` runs, the system shall create
+  the next sequentially numbered ADR from the decision template.
+- When `doctrina decision supersede <number>` runs, the system shall
+  create a new ADR that supersedes the target, and update only the
+  `Status:` and `Superseded by:` headers of the target ADR.
+- When `doctrina validate` runs, the system shall print every error and
+  warning it finds and exit 0 only when zero errors are present.
+- When `doctrina validate` runs, the system shall emit a warning for
+  each capability spec over 400 lines and for each ADR over 300
+  lines (soft caps; warnings only).
+- When `doctrina validate` runs, the system shall walk
+  `.doctrina/specs/` and `.doctrina/decisions/` and emit a warning
+  for any file present on disk but not referenced in
+  `.doctrina/index.json` (orphan detection; warnings only).
+- When `doctrina hooks install` runs inside a git repository, the
+  system shall write `.git/hooks/pre-commit` from the hooks
+  template, mark it executable, and refuse to overwrite an
+  existing hook unless `--force` is supplied.
+- When `doctrina hooks install` runs outside a git repository
+  (no `.git/` in cwd), the system shall exit with a clear error
+  and shall not write any files.
+- When `doctrina analyze <change-id>` runs, the system shall
+  inspect the change folder at `.doctrina/changes/<change-id>/`
+  and report on: proposal.md presence and presence of a "## Why"
+  section; tasks.md presence and presence of at least one
+  unchecked `[ ]` task; design.md presence (informational); each
+  spec delta's Operation header validity and target spec path
+  resolution. Exit 0 when no `✗` lines, 1 otherwise. The command
+  does not modify any files.
+- When `doctrina spec new <capability> --bug` runs, the system
+  shall scaffold the capability spec from
+  `templates/spec-bug.md.template` instead of
+  `templates/spec.md.template`.
+- When `doctrina validate` runs, the system shall parse each
+  capability spec and ADR for Markdown link targets, and shall
+  emit a warning for any path token that looks like a
+  repository-relative file path and does not exist on disk.
+  URLs, anchors, wildcards, placeholder patterns, folder-style
+  paths (ending with `/`), and backtick spans are excluded.
+- When `doctrina clarify <path>` runs, the system shall read the
+  Markdown file at `<path>` and emit a per-line warning for each
+  occurrence of a weasel word, vague quantifier (not immediately
+  followed by a number), placeholder token (`TBD`/`TODO`/`FIXME`/`XXX`/`???`),
+  or empty `## Acceptance criteria` section. Matches inside fenced
+  code blocks, HTML comments, and inline backtick spans shall be
+  skipped. Exit 0 when no smells are found, 1 otherwise. The
+  command does not modify the file. The weasel-word set excludes
+  `may` because the EARS Optional grammar legitimately uses
+  "the system may ..." and an unfiltered match would render the
+  command unusable on EARS-formatted specs.
+- When `doctrina init --from <path>` runs and `<path>` resolves
+  to a directory, the system shall use `<path>/AGENTS.md` (if
+  present) as the base for the new project's root AGENTS.md and
+  shall fold `<path>/.doctrina/product.md` (if present) into the
+  new project's product.md before applying the standard
+  template scaffolding.
+- When `doctrina init --from <path>` runs and `<path>` does not
+  resolve to a directory, the system shall exit with a clear
+  error and shall not write any files. The `--from` flag accepts
+  only local filesystem paths; URLs, git references, and remote
+  sources are out of scope.
+- When `doctrina templates list` runs, the system shall walk the
+  framework-bundled template tree and print each template's
+  relative path and line count. The command is strictly
+  read-only and shall not modify any files.
+- When `doctrina templates check` runs, the system shall compare
+  the project's `AGENTS.md`, `.doctrina/product.md`, and
+  `.doctrina/index.json` against the recommended section
+  headings and schema fields shipped in the current CLI version
+  and report any recommended section that is missing. The
+  command is strictly read-only and shall not modify any files.
+  It exits 0 when no missing sections are found, 1 otherwise.
+- When `doctrina skill new <name>` runs, the system shall
+  scaffold `.doctrina/skills/<name>.md` from the skill template
+  and index the new artifact under `artifacts.skills` in
+  `.doctrina/index.json`.
+- When `doctrina skill list` runs, the system shall print one
+  line per skill containing the slug and the description from
+  frontmatter. The command is strictly read-only.
+- When `doctrina skill sync` runs, the system shall copy each
+  skill's frontmatter `description:` into the matching
+  `artifacts.skills` entry of `.doctrina/index.json`, indexing
+  any skill present on disk but absent from the index. Skills
+  without a `description:` field are reported and skipped. The
+  frontmatter is the source of truth; the command never edits
+  skill files.
+- When `doctrina validate` runs, the system shall compare the
+  `Version:` header of each capability spec against the version
+  recorded for it in `.doctrina/index.json` and emit a warning
+  on mismatch (warnings only).
+- When `doctrina validate` runs, the system shall compare each
+  skill's frontmatter `description:` against the description
+  recorded in `.doctrina/index.json` and emit a warning on
+  mismatch, pointing at `doctrina skill sync` (warnings only).
+- When `doctrina change diff <id>` runs, the system shall print,
+  for each spec delta in the change: for ADDED, the target path
+  and the delta body line count; for REMOVED, the target path to
+  be deleted; for MODIFIED, a line-level diff between the current
+  target spec and the delta body, with the caveat that the delta
+  body is a fragment to merge, so context lines absent from the
+  delta are not removals. The command is strictly read-only.
+- When `doctrina index rebuild` runs, the system shall regenerate
+  `.doctrina/index.json` from the artifacts on disk — spec
+  headers, ADR headers, change proposals, archive folder names,
+  and skill frontmatter — preserving `project`,
+  `framework_version`, `$schema_version`, and any field that has
+  no on-disk source (product metadata is carried over from the
+  existing index). The files are the source of truth; the index
+  is a derived artifact.
+- When `doctrina index rebuild --check` runs, the system shall
+  write nothing, print a drift summary per artifact category,
+  and exit 1 when the regenerated index differs from the one on
+  disk, 0 otherwise.
+- When `doctrina next` runs, the system shall inspect the
+  `.doctrina/` tree and print the recommended next workflow
+  actions in priority order: open changes (missing proposal,
+  unchecked tasks, deltas ready to apply, applied but not
+  archived), ADRs still in `proposed` status, and index drift.
+  When no work is open the system shall say so and point at
+  `change new` and `spec new`. The command is strictly read-only
+  and shall exit 0.
+- When `doctrina metrics` runs inside a git repository, the
+  system shall derive adoption metrics from local git history
+  only — commit count, revert count and rate, Conventional-Commit
+  fix share, top-churn files, and a 21-day re-edit proxy rate —
+  for the window given by `--since` (a day count or a
+  git-parseable date; default 90 days).
+- When `doctrina metrics --save` runs, the system shall write the
+  snapshot to `.doctrina/metrics/YYYY-MM-DD.json` and, when a
+  prior snapshot exists, print the deltas against the most recent
+  one.
+- When `doctrina metrics` runs outside a git repository, the
+  system shall exit with a clear error and shall not write any
+  files.
+- When `doctrina validate` runs against a capability spec that
+  declares a `## Requirements (EARS)` section, the system shall
+  emit a warning for each requirement whose shape does not match
+  its section's EARS grammar: Ubiquitous requirements carry
+  "shall" and no When/While/Where prefix, Event-driven start with
+  "When", State-driven start with "While", Unwanted-behavior
+  carry "shall" plus a negation, Optional start with "Where" and
+  use "may". Bug-shape and free-form specs are skipped
+  (warnings only).
+- When `doctrina validate` runs, the system shall apply the
+  AGENTS.md size caps (warning over 150 lines, error over 200)
+  to every nested AGENTS.md found below the project root,
+  skipping dependency, build, and VCS directories.
+- When `doctrina change archive <id>` runs, the system shall
+  append a one-line summary (date, id, title, affected specs) to
+  `.doctrina/changes/archive/LEDGER.md`, creating the ledger on
+  first use. The CLI only appends; it never rewrites existing
+  ledger lines.
+- When `doctrina templates update` runs, the system shall print
+  an additive-only update plan — recommended sections missing
+  from `AGENTS.md` and `.doctrina/product.md`, and missing
+  `index.json` schema fields or artifact categories — and shall
+  write nothing, exiting 1 while updates are pending and 0 when
+  the project already follows the current template shape.
+- When `doctrina templates update --write` runs, the system shall
+  apply the plan by appending stub sections and adding missing
+  fields; the system shall not rewrite or remove any existing
+  user content.
+- When `doctrina spec list` runs, the system shall print one line
+  per capability spec containing id, version, status, line count,
+  and last-updated date, read from the spec headers. The command
+  is strictly read-only.
+- When `doctrina decision accept <number>` runs against an ADR
+  whose status is `proposed`, the system shall rewrite only the
+  `Status:` header to `accepted` and update the index entry. Any
+  other current status shall produce a clear error and no writes.
+- When `doctrina decision list` runs, the system shall print one
+  line per ADR containing number, status, date, and title, read
+  from the ADR headers. The command is strictly read-only.
+- When `doctrina context [<capability>]` runs, the system shall
+  print the context pack in the documented read order — AGENTS.md,
+  `product.md`, the capability spec when given, open changes,
+  ADRs with status `accepted` — with per-file line counts, plus a
+  separate on-demand list of skills (name and description only,
+  never the body). The change archive and non-accepted ADRs shall
+  be excluded. With `--concat`, the system shall print the file
+  contents with path separators instead of the list. The command
+  is strictly read-only.
+- When `doctrina search <term> [...]` runs, the system shall
+  report lines where every term matches case-insensitively,
+  grouped by artifact category (specs, decisions, changes,
+  skills, product, AGENTS.md), excluding the change archive
+  unless `--archive` is supplied, and shall exit 0 when matches
+  exist and 1 otherwise. The command is strictly read-only.
+- When `doctrina clarify --all` runs, the system shall scan every
+  living document — `product.md`, capability specs, open changes,
+  and skills — in one pass and exit 1 when any smell is found.
+  ADRs and the change archive shall be excluded.
+- When `doctrina validate` runs, the system shall walk
+  `.doctrina/skills/` and emit a warning for any skill missing
+  one or more of the required frontmatter fields (`name`,
+  `description`, `when`), any skill over the 200-line cap, and
+  any skill whose `name:` field does not match its filename
+  slug.
+
+### State-driven
+
+- While a destination file already exists, the system shall refuse to
+  overwrite it unless `--force` is supplied.
+- While the current working directory does not contain `.doctrina/`,
+  every command except `init`, `--help`, and `--version` shall exit
+  with a clear error.
+
+### Unwanted-behavior (must-not)
+
+- The system shall not depend on any package outside the Node.js
+  standard library at runtime.
+- The system shall not mutate the body of an accepted ADR; only the
+  `Status:` and `Superseded by:` headers may be rewritten, and only by
+  the `decision accept` and `decision supersede` commands.
+- The system shall not auto-merge MODIFIED spec deltas; the user must
+  perform the merge.
+- The system shall not write outside the project working directory.
+- The system shall not emit telemetry or make network calls.
+- The hook installed by `doctrina hooks install` shall do no work
+  beyond invoking `doctrina validate`. Lint, tests, and
+  project-specific checks are out of scope for the shipped hook.
+
+### Optional
+
+- Where the output is connected to a TTY and `NO_COLOR` is not set, the
+  system may emit ANSI colour codes; otherwise output shall be plain
+  text.
+- Where the user supplies `--non-interactive`, the system may exit with
+  an error rather than prompting for missing required values.
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success, including validation with warnings only |
+| 1 | Validation errors, or a command-level failure |
+| 2 | Misuse: unknown command, missing required argument |
+
+## Acceptance criteria
+
+The CLI is v0 spec-compliant when:
+
+1. Every command listed under "Event-driven" runs and produces the
+   documented effect.
+2. `node --test packages/doctrina-cli/test/` exits 0.
+3. `doctrina validate` exits 0 against this repository's own
+   `.doctrina/` tree (self-check).
+4. `npm pack --dry-run` inside `packages/doctrina-cli/` lists only
+   `src/`, `templates/` (copied from `.doctrina/templates/` by the
+   `prepack` script), `README.md`, and `package.json` in the
+   published tarball.
+5. The runtime `dependencies` field of the package is absent or `{}`.
+
+## Out of scope for this spec
+
+- Remote operations, network calls, telemetry.
+- Auto-merging MODIFIED deltas.
+- A full EARS grammar parser inside `validate`; v0 ships
+  section-shape checks (When/While/Where/shall placement), not a
+  complete grammar.
+- An interactive TUI mode; v0 ships readline prompts only.

@@ -1,0 +1,68 @@
+# AGENTS.md — {{PROJECT_NAME}}
+
+Operational source of truth for AI coding agents working in this
+repository. Follows the open AGENTS.md standard.
+
+## What this repo is
+
+{{PROJECT_DESCRIPTION}}
+
+This repository uses the Doctrina framework for spec-driven, AGENTS.md
+native multi-agent development. The full framework artifacts live under
+`.doctrina/`.
+
+## Stack and tooling
+
+<!-- Replace with the project's actual stack. Keep this section short. -->
+- Runtime:
+- Package manager:
+- Test runner:
+- Linter / formatter:
+
+## Commands
+
+<!-- Use exact, copy-pasteable commands. Avoid prose. -->
+```
+# install
+# build
+# test
+# lint
+```
+
+## Repository structure
+
+<!-- Outline the top-level directories an agent needs to know about. -->
+
+## Conventions and boundaries
+
+- Specs in `.doctrina/specs/<capability>/spec.md` are the current truth.
+- ADRs in `.doctrina/decisions/` are immutable; supersede instead of edit.
+- Active change proposals live in `.doctrina/changes/<id>/`.
+- Archived changes in `.doctrina/changes/archive/` are out of the default
+  read path; consult only when explicitly debugging history.
+
+## How to read context efficiently
+
+1. Read this `AGENTS.md`.
+2. Read `.doctrina/product.md`.
+3. Read the relevant `.doctrina/specs/<capability>/spec.md`.
+4. Read any open `.doctrina/changes/<id>/`.
+5. Read `.doctrina/decisions/` filtered by `Status: accepted`.
+6. If the task matches a skill in `.doctrina/skills/`, load the
+   relevant skill on demand (read its `description:` / `when:`
+   frontmatter; load the full body only when the trigger fires).
+
+Keep this file under 150 lines. Density beats prose. Use exact commands.
+
+## Definition of done
+
+A change is done when:
+- All tasks in the change's `tasks.md` are checked.
+- Deltas have been merged into affected spec files.
+- The change folder has been moved to `.doctrina/changes/archive/`.
+- Any architectural decisions are recorded as ADRs with `Status: accepted`.
+- `.doctrina/index.json` has been updated.
+
+## What never goes in this file
+
+Tutorials, project history, secrets, generated content, session notes.
