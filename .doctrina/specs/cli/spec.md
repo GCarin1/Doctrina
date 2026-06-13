@@ -2,15 +2,17 @@
 
 **Capability:** cli
 **Status:** active
-**Last updated:** 2026-06-11
-**Version:** 0.13.0
+**Last updated:** 2026-06-13
+**Version:** 0.14.0
 
 ## Purpose
 
 Define the v0 command surface for the `doctrina` CLI, the contracts each
 command honours, the implementation constraints the package follows, and
 the exit-code conventions across the surface. The surface comprises
-`init` (with optional `--from <path>`), `spec new|list` (with
+`init` (with optional `--from <path>` and `--intake <file>`),
+`intake` (with optional `--text`), `work` (with optional
+`--capability`/`--id`), `spec new|list` (with
 optional `--bug`), `change new|apply|archive|diff`,
 `decision new|accept|supersede|list`, `skill new|list|sync`,
 `analyze`, `clarify` (with optional `--all`), `validate`,
@@ -52,6 +54,44 @@ optional `--bug`), `change new|apply|archive|diff`,
   factory / jules) are AGENTS.md-native and install no files;
   the directory exists so the templates inventory is symmetric
   across supported agents.
+- When `doctrina init --intake <file>` runs and `<file>` resolves to
+  a non-empty file, the system shall store the file content verbatim
+  at `.doctrina/intake.md` under a status header (`Status: pending`),
+  absent `--project-description` derive the one-line description from
+  the file's first non-empty line, and print the bootstrap playbook
+  inline (the same one `doctrina intake` prints) so the conversion is a
+  single command. A missing or empty `<file>` shall produce a clear
+  error and write no files.
+- When `doctrina init` scaffolds a project, the `AGENTS.md` it writes
+  shall instruct any AGENTS.md-aware agent to detect a pending
+  `.doctrina/intake.md` and execute the bootstrap playbook on its own
+  before other work, so a freshly initialised project converts from
+  intent to specs without per-step prompting.
+- When `doctrina intake <file>` (or `doctrina intake --text "<text>"`)
+  runs, the system shall store the description verbatim at
+  `.doctrina/intake.md` with `Status: pending` and print the
+  agent-executed bootstrap playbook (see ADR 0005): fill `product.md`,
+  derive capabilities, `spec new` plus EARS per capability, run the
+  quality gates, and flip the intake to `converted`. The CLI performs
+  no natural-language interpretation of the description.
+- When `doctrina intake` runs with no source and a pending
+  `.doctrina/intake.md` exists, the system shall reprint the bootstrap
+  playbook; when the intake is already `converted`, it shall say so and
+  point at `doctrina work`; when no intake exists, it shall exit with a
+  clear error.
+- When `doctrina work "<prompt>"` runs, the system shall derive a
+  sequential change id of the form `NNNN-<slug>` (the next number across
+  open and archived changes; the slug an ASCII-folded kebab-case of the
+  prompt), scaffold the change folder via the same path as
+  `change new`, record the prompt verbatim under the proposal's
+  `## Why`, rank existing specs by deterministic term overlap as a
+  capability hint, and print the agent-executed work playbook (context →
+  spec delta → tasks → implement → analyze → apply → archive →
+  validate). With `--capability <cap>` the system shall pin that
+  capability instead of ranking, and with `--id <id>` it shall use the
+  given id instead of deriving one. The CLI's language processing is
+  limited to slugging and case-insensitive term counting; all semantic
+  work is the executing agent's.
 - When `doctrina spec new <capability>` runs, the system shall create
   `.doctrina/specs/<capability>/spec.md` from `templates/spec.md.template`
   and add the entry to `.doctrina/index.json`.
@@ -180,7 +220,8 @@ optional `--bug`), `change new|apply|archive|diff`,
   disk, 0 otherwise.
 - When `doctrina next` runs, the system shall inspect the
   `.doctrina/` tree and print the recommended next workflow
-  actions in priority order: open changes (missing proposal,
+  actions in priority order: a pending `.doctrina/intake.md`
+  (not yet `converted`), open changes (missing proposal,
   unchecked tasks, deltas ready to apply, applied but not
   archived), ADRs still in `proposed` status, and index drift.
   When no work is open the system shall say so and point at

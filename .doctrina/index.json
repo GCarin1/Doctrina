@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "doctrina",
   "framework_version": "0.1.0",
-  "last_updated": "2026-06-11",
+  "last_updated": "2026-06-13",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,8 +15,8 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.13.0",
-        "last_updated": "2026-06-11"
+        "version": "0.14.0",
+        "last_updated": "2026-06-13"
       },
       {
         "id": "core",
@@ -82,6 +82,13 @@
         "title": "Adopt a single linear orchestrator instead of role-based parallel agents",
         "status": "accepted",
         "date": "2026-06-03"
+      },
+      {
+        "id": "0005",
+        "path": ".doctrina/decisions/0005-agent-executed-playbooks.md",
+        "title": "Agent-executed playbooks for `intake` and `work`",
+        "status": "accepted",
+        "date": "2026-06-12"
       }
     ],
     "changes": [],

@@ -22,10 +22,13 @@ import * as next from "./commands/next.js";
 import * as metrics from "./commands/metrics.js";
 import * as context from "./commands/context.js";
 import * as search from "./commands/search.js";
+import * as intake from "./commands/intake.js";
+import * as work from "./commands/work.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
   templates, skill, index: indexCmd, next, metrics, context, search,
+  intake, work,
 };
 
 const TOP_HELP = `
@@ -33,6 +36,8 @@ Usage: doctrina <command> [options]
 
 Commands:
   init                 Scaffold AGENTS.md and .doctrina/ in the current directory
+  intake               Store the full project description; print the bootstrap playbook
+  work                 Brief prompt -> scaffolded change + guided work playbook
   spec new             Create a new capability spec (--bug for bug-shape)
   spec list            List specs with version, status, and size
   change new           Open a change proposal

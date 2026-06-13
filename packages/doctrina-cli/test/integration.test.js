@@ -1111,3 +1111,199 @@ test("init --from with missing path errors out cleanly", () => {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test("intake <file> stores the description verbatim and prints the playbook", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    writeFileSync(path.join(tmp, "desc.md"), "Build a shop with login, catalog, and checkout.\n");
+    const r = runCli(["intake", "desc.md"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const intake = readFileSync(path.join(tmp, ".doctrina", "intake.md"), "utf8");
+    assert.match(intake, /\*\*Status:\*\*\s+pending/);
+    assert.match(intake, /Build a shop with login, catalog, and checkout\./);
+    assert.match(r.stdout, /Bootstrap playbook/);
+    assert.match(r.stdout, /doctrina spec new <capability>/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("intake --text stores an inline description", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["intake", "--text", "A CLI that tracks habits."], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const intake = readFileSync(path.join(tmp, ".doctrina", "intake.md"), "utf8");
+    assert.match(intake, /A CLI that tracks habits\./);
+    assert.match(intake, /Source:\*\*\s+inline/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("intake reprints the playbook when pending and errors when absent", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const noneYet = runCli(["intake"], { cwd: tmp });
+    assert.equal(noneYet.status, 1);
+    assert.match(noneYet.stderr, /no intake found/);
+
+    runCli(["intake", "--text", "thing"], { cwd: tmp });
+    const reprint = runCli(["intake"], { cwd: tmp });
+    assert.equal(reprint.status, 0, reprint.stderr || reprint.stdout);
+    assert.match(reprint.stdout, /Bootstrap playbook/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("intake refuses to overwrite an existing intake without --force", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["intake", "--text", "first"], { cwd: tmp });
+    const second = runCli(["intake", "--text", "second"], { cwd: tmp });
+    assert.equal(second.status, 1);
+    assert.match(second.stderr, /already exists/);
+    const forced = runCli(["intake", "--text", "second", "--force"], { cwd: tmp });
+    assert.equal(forced.status, 0, forced.stderr || forced.stdout);
+    assert.match(readFileSync(path.join(tmp, ".doctrina", "intake.md"), "utf8"), /second/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init --intake stores the intake and derives the one-line description", () => {
+  const tmp = makeTempProject();
+  try {
+    writeFileSync(path.join(tmp, "desc.md"), "# Habit tracker\n\nDaily habits with streaks and reminders.\n");
+    const r = runCli(
+      ["init", "--non-interactive", "--project-name", "Habits", "--intake", "desc.md"],
+      { cwd: tmp },
+    );
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "intake.md")));
+    // The heading mark is stripped; first non-empty line becomes the description.
+    const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.match(agents, /Habit tracker/);
+    // The bootstrap playbook prints inline — no second command needed.
+    assert.match(r.stdout, /Bootstrap playbook/);
+    assert.match(r.stdout, /doctrina spec new <capability>/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init scaffolds an AGENTS.md that tells the agent to auto-run the bootstrap", () => {
+  const tmp = makeTempProject();
+  try {
+    const r = runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.match(agents, /Working from intent/);
+    assert.match(agents, /intake\.md.*Status:.*pending|Status:.*pending.*intake\.md/s);
+    assert.match(agents, /doctrina intake/);
+    assert.match(agents, /doctrina work/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("work derives a sequential id, records the prompt as Why, and prints the playbook", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["work", "add login with email and password"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const id = "0001-add-login-with-email-and-password";
+    const proposalPath = path.join(tmp, ".doctrina", "changes", id, "proposal.md");
+    assert.ok(existsSync(proposalPath), "change folder should be scaffolded");
+    const proposal = readFileSync(proposalPath, "utf8");
+    assert.match(proposal, /## Why\r?\n\r?\nadd login with email and password/);
+    assert.match(r.stdout, /Work playbook — change 0001-add-login/);
+    assert.match(r.stdout, /doctrina change apply 0001-add-login/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("work --capability pins the capability and stamps Affects specs", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "auth"], { cwd: tmp });
+    const r = runCli(["work", "tighten password rules", "--capability", "auth"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /Capability \(pinned\): auth/);
+    const proposal = readFileSync(
+      path.join(tmp, ".doctrina", "changes", "0001-tighten-password-rules", "proposal.md"),
+      "utf8",
+    );
+    assert.match(proposal, /\*\*Affects specs:\*\*\s+auth/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("work increments the change number across existing changes", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["work", "first task"], { cwd: tmp });
+    const r = runCli(["work", "second task"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0002-second-task")));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("work ranks an existing spec by term overlap as a hint", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const specPath = path.join(tmp, ".doctrina", "specs", "billing", "spec.md");
+    writeFileSync(specPath, readFileSync(specPath, "utf8") + "\nThe system shall handle invoice generation.\n");
+    const r = runCli(["work", "fix invoice rounding"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /Likely capabilities/);
+    assert.match(r.stdout, /billing\s+score/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("work requires a prompt", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["work"], { cwd: tmp });
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /requires a prompt/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("next surfaces a pending intake before everything else", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["intake", "--text", "build the thing"], { cwd: tmp });
+    let r = runCli(["next"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /doctrina intake — a pending intake/);
+
+    // Flip to converted: the intake action disappears.
+    const intakePath = path.join(tmp, ".doctrina", "intake.md");
+    writeFileSync(intakePath, readFileSync(intakePath, "utf8").replace("**Status:** pending", "**Status:** converted"));
+    r = runCli(["next"], { cwd: tmp });
+    assert.ok(!/pending intake/.test(r.stdout), "converted intake must not be flagged");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

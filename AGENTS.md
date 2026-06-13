@@ -25,7 +25,9 @@ Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI develop
 ## Commands
 
 ```
-npx doctrina-cli init                       # scaffold .doctrina/ + AGENTS.md in a target repo
+npx doctrina-cli init                       # scaffold .doctrina/ + AGENTS.md (--intake <file> stores full intent)
+npx doctrina-cli intake <file>              # store full description verbatim; print bootstrap playbook
+npx doctrina-cli work "<prompt>"            # brief prompt -> scaffolded change + guided work playbook
 npx doctrina-cli spec new <cap>             # create a new capability spec (--bug for bug-shape)
 npx doctrina-cli spec list                  # list specs with version, status, size
 npx doctrina-cli change new <id> "<title>"  # open a change proposal

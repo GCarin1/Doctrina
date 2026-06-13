@@ -11,6 +11,21 @@ This repository uses the Doctrina framework for spec-driven, AGENTS.md
 native multi-agent development. The full framework artifacts live under
 `.doctrina/`.
 
+## Working from intent
+
+- **Bootstrap.** If `.doctrina/intake.md` exists with `Status: pending`,
+  the specs have not been written yet. Before anything else, run
+  `doctrina intake` and execute the printed bootstrap playbook in one
+  linear pass: fill `product.md`, derive capabilities, author one EARS
+  spec each, run the quality gates (`doctrina clarify --all`,
+  `doctrina validate`), then flip the intake to `Status: converted`. Ask
+  the user only when the intake is genuinely ambiguous. After conversion
+  the specs are the only source of truth — never edit `intake.md` to
+  change requirements.
+- **Day-to-day.** Turn a brief request into a scaffolded change with
+  `doctrina work "<prompt>"`, then follow the printed work playbook
+  (spec delta → tasks → implement → analyze → apply → archive → validate).
+
 ## Stack and tooling
 
 <!-- Replace with the project's actual stack. Keep this section short. -->
