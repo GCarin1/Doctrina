@@ -15,6 +15,16 @@ export async function run(_positional, _flags) {
 
   const actions = [];
 
+  // A pending intake is the very first thing to resolve: until it is
+  // converted, product.md and the specs are still empty scaffolding.
+  const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
+  if (isFile(intakePath)) {
+    const status = (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase();
+    if (status !== "converted") {
+      actions.push("doctrina intake — a pending intake awaits conversion into product.md and specs");
+    }
+  }
+
   // Open changes drive the loop: finish what is started before opening more.
   const changesDir = path.join(projectRoot, ".doctrina", "changes");
   if (isDir(changesDir)) {

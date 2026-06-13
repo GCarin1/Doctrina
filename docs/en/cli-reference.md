@@ -33,12 +33,64 @@ doctrina init [options]
 | `--project-description <text>` | empty (prompts) | One-sentence description. Omit `--non-interactive` to skip the prompt. |
 | `--agent <name>` | none | Install the adapter for one of the twelve supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or `all`. AGENTS.md-native agents (`codex`, `amp`, `devin`, `factory`, `jules`) install no file. |
 | `--from <path>` | none | Local conventions directory; folds its `AGENTS.md` and `.doctrina/product.md` (when present) into the new project before scaffolding. Filesystem paths only — no URLs. |
+| `--intake <file>` | none | Full project description; stored verbatim at `.doctrina/intake.md`, used to derive the one-line description when `--project-description` is absent, and the bootstrap playbook is printed inline — no second command needed. The scaffolded `AGENTS.md` also tells any agent to run that playbook on its own when it sees a pending intake. |
 | `--date <YYYY-MM-DD>` | system date | Override the date written into artifacts. |
 | `--force` | off | Overwrite existing files. |
 | `--non-interactive` | off | Fail instead of prompting for missing required values. |
 
 `init` refuses to run if `AGENTS.md` or `.doctrina/` already exist
 unless `--force` is supplied.
+
+## `doctrina intake [<file>]`
+
+Store the full project description verbatim at `.doctrina/intake.md`
+and print the **bootstrap playbook** — the ordered instruction
+sequence the host AI agent executes to turn that intent into
+`product.md` content and capability specs. The CLI itself performs no
+natural-language interpretation; the intelligence lives in the
+executing agent (see ADR 0005).
+
+```
+doctrina intake description.md
+doctrina intake --text "A shop with login, catalog, and checkout"
+doctrina intake                       # reprint the playbook for a pending intake
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--text "<description>"` | Inline description instead of a file. |
+| `--force` | Overwrite an existing `.doctrina/intake.md`. |
+
+The playbook steps: read the intake, fill every `product.md` section,
+derive the capability list and run `spec new` + author EARS per
+capability, record any forced ADRs, run `clarify --all` and `validate`,
+then flip the intake header to `Status: converted`. After conversion
+the specs are the only source of truth — the intake is never edited to
+change requirements. Exits 1 when no source is given and no intake
+exists.
+
+## `doctrina work "<prompt>"`
+
+Turn a brief prompt into a fully scaffolded change plus the **work
+playbook** the host agent executes. The CLI derives a sequential change
+id (`NNNN-<slug>`), opens the change folder via the same path as
+`change new`, records the prompt verbatim under the proposal's
+`## Why`, ranks existing specs by deterministic term overlap as a
+capability hint, and prints the ordered steps: context → spec delta →
+tasks → implement → analyze → apply → archive → validate. No
+natural-language interpretation happens in the CLI (see ADR 0005).
+
+```
+doctrina work "add login with email and password"
+doctrina work "tighten password rules" --capability auth
+doctrina work "rework billing" --id 0042-billing-overhaul
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--capability <cap>` | Pin the capability instead of ranking matches. |
+| `--id <id>` | Override the derived change id. |
+| `--force` | Overwrite an existing change folder. |
 
 ## `doctrina spec new <capability>`
 

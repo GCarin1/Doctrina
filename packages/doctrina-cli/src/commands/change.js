@@ -384,5 +384,6 @@ Options:
   --force                Overwrite existing files (where applicable)
 `;
 
-// Re-export parsers so scan.js (index rebuild) can reuse them.
-export { parseOperation, parseCapabilityFromDelta };
+// Re-export parsers so scan.js (index rebuild) can reuse them, and the
+// scaffold so `work` can open a change without duplicating the logic.
+export { parseOperation, parseCapabilityFromDelta, changeNew };

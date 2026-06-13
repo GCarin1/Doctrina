@@ -28,6 +28,40 @@ explore the codebase for context, but only one writer touches a given
 artifact at a time. See [multi-agent.md](multi-agent.md) for the
 operating model and ADR 0004 for the reasoning.
 
+## The guided fast path
+
+Driving the cycle by hand means many commands per feature. Two commands
+collapse the ceremony by handing the interpretation work to the AI agent
+that runs them, while keeping the CLI itself offline and deterministic
+(see ADR 0005):
+
+- **`doctrina intake <file>`** (or `doctrina init --intake <file>`)
+  stores your full project description verbatim at
+  `.doctrina/intake.md` and prints a **bootstrap playbook**: the ordered
+  steps the agent follows to fill `product.md`, derive the capability
+  list, and author one EARS spec per capability — then flip the intake
+  to `Status: converted`. You hand over the whole description once
+  instead of scaffolding each spec by hand.
+- **`doctrina work "<prompt>"`** turns a one-line prompt ("add login")
+  into a scaffolded change plus a **work playbook**: it derives the
+  change id, records your prompt as the proposal's `## Why`, hints at the
+  likely capability, and lists the steps from spec delta through
+  `apply`/`archive`/`validate`.
+
+The CLI does the deterministic half (scaffold, slug, index, term-match)
+and the agent does the semantic half (write product, specs, deltas,
+code). A playbook is consumed by one agent in one linear pass — the
+single-orchestrator discipline of ADR 0004 is unchanged. If a
+description or prompt is genuinely ambiguous, the agent asks before
+assuming.
+
+In practice the bootstrap is one command: run
+`doctrina init --intake <file>` (the playbook prints inline), then open
+your agent and tell it to start. The scaffolded `AGENTS.md` instructs
+any AGENTS.md-aware agent to detect the pending intake and execute the
+bootstrap on its own — so from your seat it is "describe once, then go,"
+not command-by-command document authoring.
+
 ## Lifecycle of a change
 
 ```

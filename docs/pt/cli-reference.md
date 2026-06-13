@@ -36,12 +36,65 @@ doctrina init [opções]
 | `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase. Omita `--non-interactive` para pular a pergunta. |
 | `--agent <nome>` | nenhum | Instala o adapter para um dos doze agentes suportados (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) ou `all`. Agentes AGENTS.md-native (`codex`, `amp`, `devin`, `factory`, `jules`) não instalam arquivo. |
 | `--from <path>` | nenhum | Diretório local de conventions; faz fold do `AGENTS.md` e do `.doctrina/product.md` (quando presentes) no novo projeto antes do scaffold. Só caminhos de filesystem — sem URLs. |
+| `--intake <file>` | nenhum | Descrição completa do projeto; armazenada literalmente em `.doctrina/intake.md`, usada para derivar a descrição de uma linha quando `--project-description` está ausente, e o playbook de bootstrap é impresso na hora — sem segundo comando. O `AGENTS.md` gerado também instrui qualquer agente a executar esse playbook sozinho ao ver um intake pendente. |
 | `--date <YYYY-MM-DD>` | data do sistema | Sobrescreve a data nos artefatos. |
 | `--force` | off | Sobrescreve arquivos existentes. |
 | `--non-interactive` | off | Falha em vez de perguntar. |
 
 `init` recusa se `AGENTS.md` ou `.doctrina/` já existem, a menos
 que `--force` seja passado.
+
+## `doctrina intake [<file>]`
+
+Armazena a descrição completa do projeto literalmente em
+`.doctrina/intake.md` e imprime o **playbook de bootstrap** — a
+sequência ordenada de instruções que o agente de IA hospedeiro executa
+para converter essa intenção no conteúdo de `product.md` e nas specs de
+capabilities. O próprio CLI não faz nenhuma interpretação de linguagem
+natural; a inteligência mora no agente executor (ver ADR 0005).
+
+```
+doctrina intake descricao.md
+doctrina intake --text "Uma loja com login, catálogo e checkout"
+doctrina intake                       # reimprime o playbook de um intake pendente
+```
+
+| Flag | Função |
+|------|--------|
+| `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
+| `--force` | Sobrescreve um `.doctrina/intake.md` existente. |
+
+Os passos do playbook: ler o intake, preencher cada seção de
+`product.md`, derivar a lista de capabilities e rodar `spec new` +
+escrever EARS por capability, registrar quaisquer ADRs forçados, rodar
+`clarify --all` e `validate`, e então virar o cabeçalho do intake para
+`Status: converted`. Após a conversão as specs são a única fonte de
+verdade — o intake nunca é editado para mudar requisitos. Sai com 1
+quando nenhuma fonte é dada e nenhum intake existe.
+
+## `doctrina work "<prompt>"`
+
+Transforma um prompt curto em um change totalmente esqueletizado mais o
+**playbook de trabalho** que o agente hospedeiro executa. O CLI deriva
+um id de change sequencial (`NNNN-<slug>`), abre a pasta do change pelo
+mesmo caminho de `change new`, registra o prompt literalmente sob o
+`## Why` da proposal, ranqueia as specs existentes por sobreposição
+determinística de termos como dica de capability, e imprime os passos
+ordenados: context → spec delta → tasks → implementar → analyze →
+apply → archive → validate. Nenhuma interpretação de linguagem natural
+acontece no CLI (ver ADR 0005).
+
+```
+doctrina work "adicione login com email e senha"
+doctrina work "endurecer regras de senha" --capability auth
+doctrina work "refazer billing" --id 0042-billing-overhaul
+```
+
+| Flag | Função |
+|------|--------|
+| `--capability <cap>` | Fixa a capability em vez de ranquear matches. |
+| `--id <id>` | Sobrescreve o id de change derivado. |
+| `--force` | Sobrescreve uma pasta de change existente. |
 
 ## `doctrina spec new <capability>`
 

@@ -34,6 +34,40 @@ podem explorar o codebase para contexto, mas só um escritor toca um
 dado artefato por vez. Veja [multi-agent.md](multi-agent.md) para o
 modelo operacional e o ADR 0004 para a justificativa.
 
+## O caminho guiado
+
+Dirigir o ciclo na mão significa muitos comandos por feature. Dois
+comandos colapsam a cerimônia entregando o trabalho de interpretação
+ao agente de IA que os executa, mantendo o CLI em si offline e
+determinístico (veja o ADR 0005):
+
+- **`doctrina intake <arquivo>`** (ou `doctrina init --intake <arquivo>`)
+  armazena a descrição completa do projeto verbatim em
+  `.doctrina/intake.md` e imprime um **playbook de bootstrap**: os passos
+  ordenados que o agente segue para preencher o `product.md`, derivar a
+  lista de capabilities e escrever uma spec EARS por capability — depois
+  vira o intake para `Status: converted`. Você entrega a descrição
+  inteira de uma vez em vez de montar cada spec na mão.
+- **`doctrina work "<prompt>"`** transforma um prompt de uma linha
+  ("adicionar login") num change montado mais um **playbook de trabalho**:
+  ele deriva o id do change, registra seu prompt como o `## Why` do
+  proposal, sugere a capability provável e lista os passos do delta de
+  spec até `apply`/`archive`/`validate`.
+
+O CLI faz a metade determinística (montar, sluggar, indexar, casar
+termos) e o agente faz a metade semântica (escrever product, specs,
+deltas, código). Um playbook é consumido por um agente num único passe
+linear — a disciplina de orquestrador único do ADR 0004 não muda. Se uma
+descrição ou prompt é genuinamente ambíguo, o agente pergunta antes de
+assumir.
+
+Na prática o bootstrap é um comando só: rode
+`doctrina init --intake <arquivo>` (o playbook é impresso na hora),
+depois abra seu agente e mande começar. O `AGENTS.md` gerado instrui
+qualquer agente que segue o padrão AGENTS.md a detectar o intake pendente
+e executar o bootstrap sozinho — então, do seu lado, é "descreva uma vez
+e mande ir", não escrever documento por documento na mão.
+
 ## Ciclo de vida de um change
 
 ```

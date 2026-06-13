@@ -6,6 +6,7 @@ import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { ask } from "../lib/prompt.js";
+import { writeIntakeFile, printBootstrapPlaybook } from "./intake.js";
 
 const SUPPORTED_AGENTS = [
   "claude",
@@ -29,7 +30,27 @@ export async function run(_positional, flags) {
   const projectName = flagString(flags, "project-name") ?? path.basename(projectRoot);
   const date = flagString(flags, "date") ?? today();
 
+  // --intake hands over the FULL description up front (ADR 0005); the
+  // one-line summary is then derived instead of prompted for.
+  const intakeFile = flagString(flags, "intake");
+  let intakeBody = null;
+  if (intakeFile) {
+    const intakeAbs = path.resolve(projectRoot, intakeFile);
+    if (!isFile(intakeAbs)) {
+      console.error(c.red("error:") + ` --intake file not found: ${intakeFile}`);
+      return 1;
+    }
+    intakeBody = read(intakeAbs);
+    if (intakeBody.trim().length === 0) {
+      console.error(c.red("error:") + ` --intake file is empty: ${intakeFile}`);
+      return 1;
+    }
+  }
+
   let description = flagString(flags, "project-description") ?? "";
+  if (!description && intakeBody) {
+    description = firstLineSummary(intakeBody);
+  }
   if (!description && !nonInteractive) {
     description = await ask("One-sentence project description:");
   }
@@ -115,10 +136,37 @@ export async function run(_positional, flags) {
     }
   }
 
+  if (intakeBody) {
+    const intakePath = writeIntakeFile(projectRoot, {
+      body: intakeBody,
+      source: relPath(projectRoot, path.resolve(projectRoot, intakeFile)),
+      projectName,
+      date,
+      force,
+    });
+    console.log(c.green("created") + ` ${relPath(projectRoot, intakePath)}`);
+  }
+
   console.log("");
   console.log(c.bold("Doctrina initialised."));
-  console.log(`Next: edit ${c.cyan("AGENTS.md")} and ${c.cyan(".doctrina/product.md")} for your project.`);
+  if (intakeBody) {
+    console.log(`Next: execute the bootstrap playbook below — it converts the intake into`);
+    console.log(`${c.cyan(".doctrina/product.md")} and capability specs. Any AGENTS.md-aware agent`);
+    console.log(`runs it on its own; reprint anytime with ${c.cyan("doctrina intake")}.`);
+    console.log("");
+    printBootstrapPlaybook(projectRoot);
+  } else {
+    console.log(`Next: edit ${c.cyan("AGENTS.md")} and ${c.cyan(".doctrina/product.md")} for your project.`);
+  }
   return 0;
+}
+
+// First non-empty line of the intake, stripped of Markdown heading marks
+// and clipped, as the one-line description token for the templates.
+function firstLineSummary(text) {
+  const line = text.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
+  const cleaned = line.replace(/^#+\s*/, "").trim();
+  return cleaned.length > 120 ? cleaned.slice(0, 117).trimEnd() + "..." : cleaned;
 }
 
 function installAdapter(templatesDir, projectRoot, agent, tokens, opts) {
@@ -150,6 +198,9 @@ Options:
   --project-description <text>   One-sentence description
   --agent <name>                 Install adapter for one agent
                                  (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|all)
+  --intake <file>                Full project description; stored verbatim at .doctrina/intake.md
+                                 and used to derive the one-line description when absent.
+                                 Follow up with \`doctrina intake\` for the bootstrap playbook
   --from <path>                  Local conventions directory; if it contains AGENTS.md and/or
                                  .doctrina/product.md, the content is folded into the new project
   --date <YYYY-MM-DD>            Override the system date

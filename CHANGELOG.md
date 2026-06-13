@@ -19,6 +19,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Agent-executed playbooks: `doctrina intake` and `doctrina work`**
+  (ADR 0005). Two commands collapse the per-feature ceremony by handing
+  the natural-language half to the AI agent that runs them, while the
+  CLI stays offline and zero-dependency. `intake <file>` (or
+  `init --intake <file>`) stores the full project description verbatim
+  at `.doctrina/intake.md` and prints the bootstrap playbook the agent
+  executes to fill `product.md`, derive capabilities, and author one
+  EARS spec each before flipping the intake to `converted`;
+  `init --intake` prints that playbook inline so the conversion is a
+  single command. `work "<prompt>"` turns a brief prompt into a
+  scaffolded change — a sequential `NNNN-slug` id, the prompt recorded
+  as the proposal's `## Why`, existing specs ranked by deterministic
+  term overlap as a capability hint — then prints the work playbook
+  (context → delta → tasks → implement → analyze → apply → archive →
+  validate). The scaffolded `AGENTS.md` now instructs any
+  AGENTS.md-aware agent to detect a pending intake and run the bootstrap
+  on its own, and `doctrina next` surfaces a pending intake ahead of all
+  other work. The CLI's own language processing is capped at slugging
+  and case-insensitive term counting; everything semantic is the
+  agent's. Bilingual docs (cli-reference, workflow) and integration
+  tests included — the suite is now 82.
 - **Documentation site.** Zero-build Docsify shell at
   `docs/index.html`, served straight from the `docs/` folder via
   GitHub Pages: bilingual EN/PT with per-language sidebars,
