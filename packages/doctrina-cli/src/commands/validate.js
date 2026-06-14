@@ -164,7 +164,7 @@ export async function run(_positional, _flags) {
 
   // 10. Orphan detection — files on disk not referenced in index.json.
   if (index?.artifacts) {
-    const indexedSpecIds = new Set((index.artifacts.specs ?? []).map((s) => s.id));
+    const indexedSpecIds = new Set((index.artifacts.specs ?? []).map((s) => s.id ?? s.capability));
     if (isDir(specsDir)) {
       const { readdirSync } = await import("node:fs");
       for (const cap of readdirSync(specsDir)) {
