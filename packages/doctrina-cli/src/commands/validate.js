@@ -67,7 +67,7 @@ export async function run(_positional, _flags) {
       for (const s of index.artifacts.specs ?? []) {
         const full = path.join(projectRoot, s.path);
         if (!isFile(full)) continue;
-        const m = read(full).match(/^\*\*Version:\*\*\s+(\S+)/m);
+        const m = read(full).match(/^(?:-\s+)?\*\*Version:\*\*\s+(\S+)/m);
         if (m && s.version && m[1] !== s.version) {
           warnings.push(`${s.path} declares version ${m[1]} but index.json records ${s.version} (sync the index)`);
         }
@@ -80,9 +80,24 @@ export async function run(_positional, _flags) {
   if (isDir(adrDir)) {
     for (const f of walk(adrDir)) {
       if (!f.endsWith(".md")) continue;
+      const base = path.basename(f);
+      // ADR filenames must be NNNN-slug.md (four digits). The entire ADR
+      // toolchain — decision new/accept/supersede, index derivation, and
+      // the orphan check below — keys off this shape; a file like
+      // "ADR-001-foo.md" is silently invisible to all of them.
+      if (base !== "README.md" && !/^\d{4}-.+\.md$/.test(base)) {
+        errors.push(
+          `${relPath(projectRoot, f)} has a non-canonical ADR filename ` +
+            `(expected four digits + slug, e.g. "0001-jwt-algorithm.md"; ` +
+            `the decision and index commands silently ignore other shapes)`,
+        );
+      }
       const text = read(f);
       if (!/^-\s+\*\*Status:\*\*\s+\S+/m.test(text)) {
-        errors.push(`${relPath(projectRoot, f)} missing or malformed Status: header`);
+        errors.push(
+          `${relPath(projectRoot, f)} missing or malformed Status: header ` +
+            `(expected a Markdown list item exactly like "- **Status:** accepted")`,
+        );
       }
     }
   }
@@ -105,7 +120,10 @@ export async function run(_positional, _flags) {
       if (entry === "archive" || entry.startsWith(".")) continue;
       const proposal = path.join(changesDir, entry, "proposal.md");
       if (!isFile(proposal)) {
-        errors.push(`open change "${entry}" missing proposal.md`);
+        errors.push(
+          `open change "${entry}" missing proposal.md ` +
+            `(every dir under .doctrina/changes/ needs a proposal.md — that exact filename)`,
+        );
       }
     }
   }

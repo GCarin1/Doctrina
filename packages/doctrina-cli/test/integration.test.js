@@ -245,6 +245,27 @@ test("validate warns on orphan spec (file present, not in index)", () => {
   }
 });
 
+test("validate errors on a non-canonical ADR filename", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // Hand-create an ADR with the wrong filename shape (ADR-001-... instead
+    // of 0001-...). The Status header is well-formed so only the filename
+    // is at fault — the rest of the toolchain would silently ignore it.
+    const dir = path.join(tmp, ".doctrina", "decisions");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "ADR-001-jwt.md"),
+      "# ADR-001 — JWT\n\n- **Status:** accepted\n- **Date:** 2026-06-13\n",
+    );
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /non-canonical ADR filename/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("analyze passes on a well-formed change", () => {
   const tmp = makeTempProject();
   try {

@@ -54,7 +54,10 @@ function skillNew(args, flags) {
   idx.addSkill(index, {
     id: name,
     path: `.doctrina/skills/${name}.md`,
-    description: "<edit me — one-sentence summary>",
+    // Seed the index from the scaffolded frontmatter so a fresh skill does
+    // not immediately trip validate's description-drift check. Matches how
+    // deriveIndex (index rebuild) reads the description.
+    description: parseFrontmatter(body, "description") ?? "<edit me — one-sentence summary>",
     last_updated: date,
   });
   idx.touch(index, date);
