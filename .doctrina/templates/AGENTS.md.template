@@ -56,6 +56,34 @@ native multi-agent development. The full framework artifacts live under
 - Archived changes in `.doctrina/changes/archive/` are out of the default
   read path; consult only when explicitly debugging history.
 
+## Artifact invariants (verbatim — `doctrina validate` enforces these)
+
+Scaffold artifacts with the CLI (`doctrina decision new`, `doctrina work`),
+which writes from the canonical templates. Do NOT hand-author these files
+from memory. If you must write one by hand, match these exactly:
+
+- **Metadata headers come in two forms — do not mix them up:**
+  - ADRs, change proposals, and the intake use **list items**:
+    `- **Status:** accepted`, `- **Date:** 2026-06-13`.
+  - Specs use **bare bold** (no leading `- `):
+    `**Status:** active`, `**Version:** 0.1.0`.
+  Match the template for the artifact you are writing.
+- **ADR filename** must be `NNNN-slug.md` — four digits, e.g.
+  `0001-jwt-algorithm.md`. `ADR-001-...md` or `1-...md` is invisible to
+  `doctrina decision accept`, the index, and the orphan check.
+- **Change folder** at `.doctrina/changes/<id>/` must contain a file named
+  exactly `proposal.md` (not `change.md`, not `README.md`). `tasks.md` and
+  `design.md` are optional siblings.
+- **Spec** lives at `.doctrina/specs/<capability>/spec.md` and its
+  `**Version:**` header must equal the `version` recorded for it in
+  `.doctrina/index.json`.
+- **Every artifact on disk** must be registered in `.doctrina/index.json`,
+  and every path in `index.json` must exist on disk. Update the index in
+  the same change that adds or moves a file.
+
+Always finish by running `doctrina validate` and resolving every `error:`
+before considering work done.
+
 ## How to read context efficiently
 
 1. Read this `AGENTS.md`.
