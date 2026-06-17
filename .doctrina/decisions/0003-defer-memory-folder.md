@@ -5,6 +5,7 @@
 - **Deciders:** project owner
 - **Supersedes:** —
 - **Superseded by:** —
+- **Evidence:** n/a — deferral decision; the deliberate absence of a `memory/` folder is the artifact
 
 ## Context
 

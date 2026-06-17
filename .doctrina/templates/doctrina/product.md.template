@@ -29,3 +29,15 @@ Out of scope (deferred or rejected):
 ## Success criteria
 
 <!-- How you will know this project is working. Prefer measurable signals. -->
+
+## Delivery order (walking skeleton)
+
+<!--
+Depth before breadth. Name the ONE end-to-end path that must work and be
+verified before any capability fans out — the walking skeleton (e.g.
+auth -> ingest -> ws -> ui). A spec'd capability with no working slice
+through it is breadth bought on credit: build and `doctrina verify` the
+skeleton first, then spec the next capability.
+-->
+
+1.

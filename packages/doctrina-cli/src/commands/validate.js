@@ -6,6 +6,7 @@ import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { parseFrontmatter } from "./skill.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
+import { specHeader, listHeader } from "../lib/scan.js";
 
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
@@ -57,6 +58,7 @@ export async function run(_positional, _flags) {
       for (const d of index.artifacts.decisions ?? []) allArtifactPaths.push(d.path);
       for (const ch of index.artifacts.changes ?? []) allArtifactPaths.push(ch.path);
       for (const ch of index.artifacts.changes_archive ?? []) allArtifactPaths.push(ch.path);
+      for (const ct of index.artifacts.contracts ?? []) allArtifactPaths.push(ct.path);
       for (const rel of allArtifactPaths) {
         const full = path.join(projectRoot, rel);
         if (!exists(full)) errors.push(`index.json references missing artifact: ${rel}`);
@@ -98,6 +100,37 @@ export async function run(_positional, _flags) {
           `${relPath(projectRoot, f)} missing or malformed Status: header ` +
             `(expected a Markdown list item exactly like "- **Status:** accepted")`,
         );
+      }
+
+      // 5b. ADR evidence drift. A decision is only true if reality reflects
+      //     it; an accepted ADR that points at nothing — or at a file that
+      //     no longer exists — is the classic "ADR decrees X, the code
+      //     never did X". Only ADRs that adopt the **Evidence:** header are
+      //     checked, so legacy/process ADRs that opt out stay quiet.
+      const evidence = listHeader(text, "Evidence");
+      if (evidence !== null) {
+        const adrStatus = (listHeader(text, "Status") ?? "").toLowerCase();
+        const trimmed = evidence.trim();
+        const bare = trimmed === "—" || trimmed === "-" || trimmed === "";
+        if (bare) {
+          if (adrStatus === "accepted") {
+            warnings.push(
+              `${relPath(projectRoot, f)}: accepted ADR cites no implementation evidence ` +
+                `(link the file(s) that prove it, or note "n/a — <why>"); a decision with ` +
+                `nothing behind it may be drift waiting to be superseded`,
+            );
+          }
+        } else {
+          for (const token of extractBacktickPaths(evidence)) {
+            const candidates = [path.resolve(path.dirname(f), token), path.resolve(projectRoot, token)];
+            if (!candidates.some(exists)) {
+              warnings.push(
+                `${relPath(projectRoot, f)}: Evidence cites \`${token}\` which is missing on disk — ` +
+                  `the decision may have drifted from the code (update the evidence or supersede the ADR)`,
+              );
+            }
+          }
+        }
       }
     }
   }
@@ -143,6 +176,30 @@ export async function run(_positional, _flags) {
         if (isEarsSpec(text)) {
           for (const f of checkEars(text)) {
             warnings.push(`${relPath(projectRoot, specPath)}:${f.line} ${f.message}`);
+          }
+        }
+
+        // 8c. Capability-state honesty (two-axis status). An "active"
+        //     document that records no built capability is an inventory
+        //     claim — the gap the framework is meant to make visible.
+        //     Warn when Status is active and Implementation is "planned"
+        //     with no explanatory note after the state word. A note
+        //     ("planned — deferred, see ADR 0007") is the deliberate-gap
+        //     escape hatch. Specs with no Implementation header are off
+        //     the axis and never warn.
+        const implRaw = specHeader(text, "Implementation");
+        if (implRaw) {
+          const docStatus = (specHeader(text, "Status") ?? "active").toLowerCase();
+          const implTokens = implRaw.trim().split(/\s+/);
+          const implWord = (implTokens[0] ?? "").replace(/[—-]+$/, "").toLowerCase();
+          const hasNote = implTokens.length > 1;
+          if (docStatus === "active" && implWord === "planned" && !hasNote) {
+            warnings.push(
+              `${relPath(projectRoot, specPath)}: Status is "active" but Implementation is ` +
+                `"planned" with no note — an active spec with no built capability is an ` +
+                `inventory claim (advance Implementation, set Status: draft, or add a note ` +
+                `after the value: "planned — <why deferred>")`,
+            );
           }
         }
       }
@@ -200,6 +257,44 @@ export async function run(_positional, _flags) {
         if (m && !indexedAdrIds.has(m[1])) {
           warnings.push(`orphan ADR ${relPath(projectRoot, f)} (id "${m[1]}" not in index.json)`);
         }
+      }
+    }
+    const indexedContractIds = new Set((index.artifacts.contracts ?? []).map((ct) => ct.id));
+    const contractsDir = path.join(projectRoot, ".doctrina", "contracts");
+    if (isDir(contractsDir)) {
+      for (const f of walk(contractsDir)) {
+        if (!f.endsWith(".md")) continue;
+        const id = path.basename(f, ".md");
+        if (!indexedContractIds.has(id)) {
+          warnings.push(`orphan contract ${relPath(projectRoot, f)} (id "${id}" not in index.json)`);
+        }
+      }
+    }
+  }
+
+  // 11. Archive ledger ↔ index cross-check. The history of archived
+  //     changes is recorded twice — once human-facing in
+  //     changes/archive/LEDGER.md, once machine-facing in
+  //     index.json.changes_archive. Two sources of truth that silently
+  //     disagree are worse than one: an incomplete ledger makes the
+  //     history look shorter than it is. When the ledger exists, every
+  //     archived change must appear in both, or validation fails.
+  const ledgerPath = path.join(changesDir, "archive", "LEDGER.md");
+  if (index?.artifacts && isFile(ledgerPath)) {
+    const ledgerIds = new Set();
+    for (const line of read(ledgerPath).split(/\r?\n/)) {
+      const m = line.match(/^-\s+\d{4}-\d{2}-\d{2}\s+[—-]\s+(\S+)\s+[—-]\s+/);
+      if (m) ledgerIds.add(m[1]);
+    }
+    const archiveIds = new Set((index.artifacts.changes_archive ?? []).map((ch) => ch.id));
+    for (const id of archiveIds) {
+      if (!ledgerIds.has(id)) {
+        errors.push(`archived change "${id}" is in index.json but missing from changes/archive/LEDGER.md (ledger and index disagree)`);
+      }
+    }
+    for (const id of ledgerIds) {
+      if (!archiveIds.has(id)) {
+        errors.push(`changes/archive/LEDGER.md lists "${id}" but index.json.changes_archive does not (ledger and index disagree)`);
       }
     }
   }
@@ -284,6 +379,17 @@ function findNestedAgentsMd(projectRoot) {
 function extractPathReferences(text) {
   const out = new Set();
   for (const m of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+    const token = m[1].trim();
+    if (isLikelyPath(token)) out.add(stripFragment(token));
+  }
+  return [...out];
+}
+
+// Path-like tokens inside backtick spans — the convention for citing
+// evidence (ADR **Evidence:**, acceptance-criteria links).
+function extractBacktickPaths(text) {
+  const out = new Set();
+  for (const m of text.matchAll(/`([^`]+)`/g)) {
     const token = m[1].trim();
     if (isLikelyPath(token)) out.add(stripFragment(token));
   }

@@ -2,6 +2,7 @@
 
 **Capability:** core
 **Status:** active
+**Implementation:** implemented
 **Last updated:** 2026-06-03
 **Version:** 0.1.0
 

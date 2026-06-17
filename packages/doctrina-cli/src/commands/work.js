@@ -9,9 +9,10 @@ import { changeNew } from "./change.js";
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
 // prompt ("add login") becomes a fully scaffolded change plus a playbook
 // the host agent executes — context, spec deltas, tasks, implementation,
-// then the analyze → apply → archive → validate close. The CLI's own
-// language processing stops at slugging and term counting; everything
-// semantic is the agent's job.
+// then the analyze → apply → verify → archive → validate close (verify =
+// `doctrina verify` + `doctrina coverage`, since archive now refuses
+// unproven verification). The CLI's own language processing stops at
+// slugging and term counting; everything semantic is the agent's job.
 
 export async function run(positional, flags) {
   const prompt = positional.join(" ").trim();
@@ -183,18 +184,27 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability })
   console.log(c.gray("       **Operation:** ADDED | MODIFIED | REMOVED"));
   console.log(c.gray("       **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`"));
   console.log(c.gray("       ---"));
-  console.log(c.gray("       <EARS requirements: full spec body for ADDED, fragment for MODIFIED>"));
+  console.log(c.gray("       <EARS body. Keep the two axes honest (Status vs Implementation),"));
+  console.log(c.gray("        keep aspiration under ## Maturity → Future, and cite the proof per"));
+  console.log(c.gray("        criterion: \"1. [unverified] <signal> — verified by `path/to/test`\">"));
   console.log("");
   console.log(`4. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
   console.log("   with small, checkable implementation tasks (a few hours each, max).");
   console.log("");
-  console.log("5. Implement task by task, checking each box as it lands. If the");
-  console.log("   prompt is genuinely ambiguous, ask the user before assuming.");
+  console.log("5. Implement task by task, checking each box as it lands. Advance the");
+  console.log("   spec's Implementation: planned → partial → implemented as code lands.");
+  console.log("   If the prompt is genuinely ambiguous, ask the user before assuming.");
   console.log("");
   console.log(`6. ${c.cyan(`doctrina analyze ${id}`)} — fix every ✗ before applying.`);
   console.log(`7. ${c.cyan(`doctrina change apply ${id}`)}   (MODIFIED deltas are merged by hand).`);
-  console.log(`8. ${c.cyan(`doctrina change archive ${id}`)}`);
-  console.log(`9. ${c.cyan("doctrina validate")}, then ${c.cyan("doctrina next")} for the follow-up.`);
+  console.log("8. Prove it before declaring done (archive refuses unchecked boxes):");
+  console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
+  console.log(`       ${c.cyan("doctrina coverage")}   — each acceptance criterion cites a real test`);
+  console.log("   Then check the proposal's ## Verification boxes and every task,");
+  console.log("   closing steps included, and bump Implementation to verified.");
+  console.log("");
+  console.log(`9. ${c.cyan(`doctrina change archive ${id}`)}`);
+  console.log(`10. ${c.cyan("doctrina validate")}, then ${c.cyan("doctrina next")} for the follow-up.`);
 }
 
 export const help = `
@@ -205,8 +215,9 @@ host AI agent executes (see ADR 0005). The CLI derives a sequential
 change id (NNNN-<slug>) from the prompt, opens the change folder,
 records the prompt under the proposal's "## Why", ranks existing specs
 by term overlap as a capability hint, and prints the ordered steps:
-context → spec delta → tasks → implement → analyze → apply → archive →
-validate. No natural-language interpretation happens in the CLI.
+context → spec delta → tasks → implement → analyze → apply → verify
+(verify + coverage) → archive → validate. No natural-language
+interpretation happens in the CLI.
 
 Options:
   --capability <cap>   Pin the capability instead of ranking matches

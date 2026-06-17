@@ -22,6 +22,16 @@ function makeTempProject() {
   return tmp;
 }
 
+// Check every GitHub-style checkbox in a change's tasks.md and proposal.md
+// so it clears the archive verification gate (3.3). Mirrors a real
+// operator finishing and verifying the work before archiving.
+function completeChange(tmp, id) {
+  for (const f of ["tasks.md", "proposal.md"]) {
+    const p = path.join(tmp, ".doctrina", "changes", id, f);
+    if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
+  }
+}
+
 test("init with --non-interactive creates AGENTS.md and .doctrina/", () => {
   const tmp = makeTempProject();
   try {
@@ -132,6 +142,7 @@ test("change new + apply + archive round-trip", () => {
     assert.match(proposalAfterApply, /\*\*Status:\*\*\s+applied/);
     assert.match(proposalAfterApply, /\*\*Applied:\*\*\s+\d{4}-\d{2}-\d{2}/);
 
+    completeChange(tmp, "0001"); // finish + verify before archiving (3.3 gate)
     const archive = runCli(["change", "archive", "0001"], { cwd: tmp });
     assert.equal(archive.status, 0, archive.stderr || archive.stdout);
     assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0001")));
@@ -140,6 +151,45 @@ test("change new + apply + archive round-trip", () => {
     assert.equal(index.artifacts.changes.length, 0);
     assert.equal(index.artifacts.changes_archive.length, 1);
     assert.ok(index.artifacts.specs.find((s) => s.id === "core"));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change archive refuses while tasks or verification are unchecked", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-undone", "do a thing"], { cwd: tmp });
+    runCli(["change", "apply", "0001-undone"], { cwd: tmp }); // zero deltas -> applied
+    // Archive WITHOUT finishing tasks or verification: the gate must refuse.
+    const r = runCli(["change", "archive", "0001-undone"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /refusing to archive .* verification incomplete/);
+    assert.match(r.stderr, /unchecked task/);
+    assert.match(r.stderr, /unmet verification item/);
+    assert.match(r.stderr, /--force/);
+    // The change folder is untouched — nothing was moved, the index is clean.
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0001-undone")));
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    assert.equal(index.artifacts.changes_archive.length, 0);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change archive --force archives an unverified change and warns", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-rush", "rush it"], { cwd: tmp });
+    runCli(["change", "apply", "0001-rush"], { cwd: tmp });
+    const r = runCli(["change", "archive", "0001-rush", "--force"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /verification incomplete \(--force\)/);
+    assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0001-rush")));
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    assert.equal(index.artifacts.changes_archive.length, 1);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -307,6 +357,78 @@ test("spec new --bug scaffolds the bug-shape template", () => {
     assert.match(body, /## Expected behaviour/);
     assert.match(body, /## Unchanged behaviour/);
     assert.match(body, /Type:\*\*\s+bug/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("spec new scaffolds the two-axis status and indexes the implementation state", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["spec", "new", "billing"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const spec = readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8");
+    // The document axis starts as a draft; the capability axis as planned.
+    assert.match(spec, /\*\*Status:\*\*\s+draft/);
+    assert.match(spec, /\*\*Implementation:\*\*\s+planned/);
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    const entry = index.artifacts.specs.find((s) => s.id === "billing");
+    assert.equal(entry.status, "draft");
+    assert.equal(entry.implementation, "planned");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("spec new scaffolds the MVP/Future maturity boundary and an unverified acceptance criterion", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const spec = readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8");
+    // The maturity boundary separates committed MVP from aspiration.
+    assert.match(spec, /## Maturity/);
+    assert.match(spec, /MVP \(committed\)/);
+    assert.match(spec, /Future \(aspirational/);
+    // Acceptance criteria default to explicit, unproven debt.
+    assert.match(spec, /\[unverified\]/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate warns when an active spec is still Implementation: planned (inventory claim)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const specPath = path.join(tmp, ".doctrina", "specs", "billing", "spec.md");
+    // Promote the document to active while the capability is still planned —
+    // exactly the divergence the framework must surface.
+    writeFileSync(specPath, readFileSync(specPath, "utf8").replace(/^\*\*Status:\*\*\s+draft/m, "**Status:** active"));
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0); // warning only
+    assert.match(r.stdout, /Status is "active" but Implementation is "planned"/);
+    assert.match(r.stdout, /inventory claim/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate stays quiet when an active+planned spec records an explicit gap note", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const specPath = path.join(tmp, ".doctrina", "specs", "billing", "spec.md");
+    let body = readFileSync(specPath, "utf8")
+      .replace(/^\*\*Status:\*\*\s+draft/m, "**Status:** active")
+      .replace(/^\*\*Implementation:\*\*\s+planned/m, "**Implementation:** planned — backend deferred to Q3, see ADR 0007");
+    writeFileSync(specPath, body);
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0);
+    assert.ok(!/inventory claim/.test(r.stdout), "an explicit note is the deliberate-gap escape hatch");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -692,6 +814,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     assert.match(r.stdout, /doctrina change archive 0001-x/);
 
     // Archived: clear again.
+    completeChange(tmp, "0001-x"); // clear the 3.3 verification gate
     runCli(["change", "archive", "0001-x"], { cwd: tmp });
     r = runCli(["next"], { cwd: tmp });
     assert.match(r.stdout, /no open work/);
@@ -869,6 +992,7 @@ test("change archive appends a one-line summary to the ledger", () => {
       "# Spec Delta — capability: core\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/core/spec.md`\n\n---\n\n# Spec — Core\n\nbody\n",
     );
     runCli(["change", "apply", "0001-a"], { cwd: tmp });
+    completeChange(tmp, "0001-a");
     runCli(["change", "archive", "0001-a"], { cwd: tmp });
 
     const ledgerPath = path.join(tmp, ".doctrina", "changes", "archive", "LEDGER.md");
@@ -878,6 +1002,7 @@ test("change archive appends a one-line summary to the ledger", () => {
 
     runCli(["change", "new", "0002-b", "second thing"], { cwd: tmp });
     runCli(["change", "apply", "0002-b"], { cwd: tmp });
+    completeChange(tmp, "0002-b");
     runCli(["change", "archive", "0002-b"], { cwd: tmp });
     ledger = readFileSync(ledgerPath, "utf8");
     assert.match(ledger, /0001-a — first thing/);
@@ -1007,7 +1132,9 @@ test("spec list and decision list enumerate artifacts", () => {
 
     const specs = runCli(["spec", "list"], { cwd: tmp });
     assert.equal(specs.status, 0, specs.stderr || specs.stdout);
-    assert.match(specs.stdout, /billing\s+0\.1\.0\s+active/);
+    // A fresh scaffold is an honest draft of a planned capability — the
+    // two axes (document status, implementation state) print side by side.
+    assert.match(specs.stdout, /billing\s+0\.1\.0\s+draft\s+planned/);
     assert.match(specs.stdout, /1 spec/);
 
     const decisions = runCli(["decision", "list"], { cwd: tmp });
@@ -1054,6 +1181,311 @@ test("clarify --all sweeps living documents in one pass", () => {
     assert.equal(dirty.status, 1);
     assert.match(dirty.stdout, /billing\/spec\.md:\d+: weasel "might"/);
     assert.match(dirty.stdout, /placeholder "TODO"/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("coverage reports criteria with linked evidence and --strict gates the gap", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // A real artifact a criterion can cite as evidence.
+    mkdirSync(path.join(tmp, "src"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "quota.js"), "export const limit = 100;\n");
+    const dir = path.join(tmp, ".doctrina", "specs", "billing");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "spec.md"),
+      [
+        "# Spec — billing",
+        "",
+        "**Capability:** billing",
+        "**Status:** active",
+        "**Implementation:** partial",
+        "",
+        "## Acceptance criteria",
+        "",
+        "1. Enforces the quota — implemented by `src/quota.js`.",
+        "2. Refunds are recorded somewhere.",
+        "3. Cites a file that is missing — see `src/ghost.js`.",
+        "",
+      ].join("\n"),
+    );
+
+    // Report mode: always exits 0, exposes the gap.
+    const report = runCli(["coverage"], { cwd: tmp });
+    assert.equal(report.status, 0, report.stderr || report.stdout);
+    assert.match(report.stdout, /billing\s+1\/3 criteria/);
+    assert.match(report.stdout, /#2  no evidence linked/);
+    assert.match(report.stdout, /#3  evidence not found on disk: `src\/ghost\.js`/);
+    assert.match(report.stdout, /1 of 3 acceptance criteria/);
+
+    // Gate mode: a bare or dangling criterion fails CI.
+    const strict = runCli(["coverage", "--strict"], { cwd: tmp });
+    assert.equal(strict.status, 1);
+    assert.match(strict.stdout, /fail/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("coverage exits 0 under --strict when every criterion cites a real file", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    writeFileSync(path.join(tmp, "app.js"), "ok\n");
+    const dir = path.join(tmp, ".doctrina", "specs", "auth");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "spec.md"),
+      ["# Spec — auth", "", "## Acceptance criteria", "", "1. Logs a user in — verified by `app.js`.", ""].join("\n"),
+    );
+    const r = runCli(["coverage", "--strict"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout);
+    assert.match(r.stdout, /1 of 1 acceptance criteria.*100%/s);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("contract new scaffolds and indexes, and check passes on a consistent contract", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "gateway"], { cwd: tmp }); // a spec the contract can reference
+    const n = runCli(["contract", "new", "system"], { cwd: tmp });
+    assert.equal(n.status, 0, n.stderr || n.stdout);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "contracts", "system.md")));
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    assert.ok(index.artifacts.contracts.find((ct) => ct.id === "system"));
+
+    writeFileSync(path.join(tmp, ".env.example"), "DATABASE_URL=postgres://localhost/app\n");
+    writeFileSync(
+      path.join(tmp, ".doctrina", "contracts", "system.md"),
+      [
+        "# Contract — system", "", "**Status:** active", "",
+        "## Ports", "",
+        "| Service | Port | Protocol |",
+        "|---------|------|----------|",
+        "| gateway | 8080 | http |",
+        "| feed    | 8081 | ws |", "",
+        "## Environment", "",
+        "| Variable     | Required | Example |",
+        "|--------------|----------|---------|",
+        "| DATABASE_URL | yes      | x |", "",
+        "## References", "",
+        "- `specs/gateway`", "",
+      ].join("\n"),
+    );
+    const chk = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(chk.status, 0, chk.stdout);
+    assert.match(chk.stdout, /1 contract consistent/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("contract check fails on a port collision and a missing referenced spec", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    mkdirSync(path.join(tmp, ".doctrina", "contracts"), { recursive: true });
+    writeFileSync(
+      path.join(tmp, ".doctrina", "contracts", "system.md"),
+      [
+        "# Contract — system", "",
+        "## Ports", "",
+        "| Service | Port | Protocol |",
+        "|---------|------|----------|",
+        "| gateway | 8080 | http |",
+        "| feed    | 8080 | ws |", "",
+        "## References", "",
+        "- `specs/missingcap`", "",
+      ].join("\n"),
+    );
+    const r = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /port 8080 is claimed by both "gateway" and "feed"/);
+    assert.match(r.stdout, /references spec "missingcap".*does not exist/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("contract check warns when a declared env var is absent from .env.example", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    mkdirSync(path.join(tmp, ".doctrina", "contracts"), { recursive: true });
+    writeFileSync(path.join(tmp, ".env.example"), "DATABASE_URL=x\n");
+    writeFileSync(
+      path.join(tmp, ".doctrina", "contracts", "system.md"),
+      [
+        "# Contract — system", "",
+        "## Environment", "",
+        "| Variable | Required | Example |",
+        "|----------|----------|---------|",
+        "| DATABASE_URL | yes | x |",
+        "| KAFKA_BROKER | yes | localhost:9092 |", "",
+      ].join("\n"),
+    );
+    const r = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(r.status, 0); // warnings only
+    assert.match(r.stdout, /env var KAFKA_BROKER is in the contract but absent from \.env\.example/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate flags an accepted ADR whose cited evidence is missing (decision drift)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Use gRPC for service calls"], { cwd: tmp });
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    const adrPath = path.join(tmp, ".doctrina", "decisions", "0001-use-grpc-for-service-calls.md");
+    // Cite a proof artifact that does not exist — the decision drifted from
+    // the code (the report's gRPC ADR with no .proto in the repo).
+    writeFileSync(
+      adrPath,
+      readFileSync(adrPath, "utf8").replace(/^-\s+\*\*Evidence:\*\*.*$/m, "- **Evidence:** `proto/order.proto`"),
+    );
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0); // warning only
+    assert.match(r.stdout, /Evidence cites `proto\/order\.proto` which is missing on disk/);
+    assert.match(r.stdout, /supersede/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate nudges an accepted ADR with no evidence, and an explicit n/a note silences it", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Adopt event sourcing"], { cwd: tmp });
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    const adrPath = path.join(tmp, ".doctrina", "decisions", "0001-adopt-event-sourcing.md");
+
+    // Freshly accepted with the placeholder "—": the nudge fires.
+    let r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /accepted ADR cites no implementation evidence/);
+
+    // An explicit "n/a — <why>" note is the deliberate escape hatch.
+    writeFileSync(
+      adrPath,
+      readFileSync(adrPath, "utf8").replace(/^-\s+\*\*Evidence:\*\*.*$/m, "- **Evidence:** n/a — process decision, see AGENTS.md"),
+    );
+    r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0);
+    assert.ok(!/accepted ADR cites no implementation evidence/.test(r.stdout));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate fails when the archive ledger and index.json disagree", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-a", "first thing"], { cwd: tmp });
+    runCli(["change", "apply", "0001-a"], { cwd: tmp });
+    completeChange(tmp, "0001-a");
+    runCli(["change", "archive", "0001-a"], { cwd: tmp });
+
+    // While ledger and index agree, validation is clean.
+    let r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout);
+
+    // Drop the ledger line — the index still records the archived change.
+    const ledgerPath = path.join(tmp, ".doctrina", "changes", "archive", "LEDGER.md");
+    const stripped = readFileSync(ledgerPath, "utf8")
+      .split(/\r?\n/)
+      .filter((l) => !l.includes("0001-a"))
+      .join("\n");
+    writeFileSync(ledgerPath, stripped);
+
+    r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /0001-a.*missing from changes\/archive\/LEDGER\.md/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("verify runs declared checks and fails when one fails", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    writeFileSync(path.join(tmp, "ok.js"), "process.exit(0)\n");
+    writeFileSync(path.join(tmp, "bad.js"), "process.exit(1)\n");
+    writeFileSync(
+      path.join(tmp, ".doctrina", "verify.json"),
+      JSON.stringify({ checks: [
+        { name: "alpha", run: "node ok.js" },
+        { name: "beta", run: "node bad.js" },
+      ] }) + "\n",
+    );
+    const r = runCli(["verify"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /alpha/);
+    assert.match(r.stdout, /beta/);
+    assert.match(r.stdout, /fail .*1\/2 checks passed/);
+    assert.match(r.stdout, /failed: beta/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("verify exits 0 when every declared check passes", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    writeFileSync(path.join(tmp, "ok.js"), "process.exit(0)\n");
+    writeFileSync(
+      path.join(tmp, ".doctrina", "verify.json"),
+      JSON.stringify({ checks: [{ name: "smoke", run: "node ok.js" }] }) + "\n",
+    );
+    const r = runCli(["verify"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /ok .*1\/1 checks passed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("verify errors loudly when nothing is configured", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["verify"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /no \.doctrina\/verify\.json/);
+    assert.match(r.stderr, /verify --init/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("verify --init scaffolds a config and --list shows it without running", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const init = runCli(["verify", "--init"], { cwd: tmp });
+    assert.equal(init.status, 0, init.stderr || init.stdout);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "verify.json")));
+    // --list prints the checks but never executes them (the starter check
+    // is `exit 1`, which would fail if run).
+    const list = runCli(["verify", "--list"], { cwd: tmp });
+    assert.equal(list.status, 0, list.stderr || list.stdout);
+    assert.match(list.stdout, /Verify checks/);
+    assert.match(list.stdout, /example/);
+    // Re-init without --force refuses to clobber.
+    const again = runCli(["verify", "--init"], { cwd: tmp });
+    assert.equal(again.status, 1);
+    assert.match(again.stderr, /already exists/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

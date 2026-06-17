@@ -89,7 +89,7 @@ function updateTemplates(flags) {
       if (idx.$schema_version === undefined) describe.push('index.json: add "$schema_version": "0.1.0"');
       if (idx.project === undefined) describe.push(`index.json: add "project": "${path.basename(projectRoot)}"`);
       if (idx.artifacts === undefined) describe.push('index.json: add empty "artifacts" object');
-      const categories = ["specs", "decisions", "changes", "changes_archive", "skills"];
+      const categories = ["specs", "decisions", "changes", "changes_archive", "skills", "contracts"];
       for (const cat of categories) {
         if (idx.artifacts && idx.artifacts[cat] === undefined) {
           describe.push(`index.json: add empty artifact category "${cat}"`);

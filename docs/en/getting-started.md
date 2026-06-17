@@ -57,6 +57,36 @@ doctrina validate
 
 You should see `ok all validation checks passed`.
 
+## The fast path: describe once, then go
+
+You do not have to scaffold every spec by hand. Hand Doctrina your whole
+project description and let your AI agent do the conversion (ADR 0005):
+
+```
+doctrina init --intake description.md --agent claude
+```
+
+This stores the description verbatim at `.doctrina/intake.md` and prints
+a **bootstrap playbook** — the ordered steps the agent runs to fill
+`product.md`, derive the capability list, and write one EARS spec per
+capability (advancing `Implementation:` honestly, keeping aspiration
+under `## Maturity`). The scaffolded `AGENTS.md` tells any AGENTS.md-aware
+agent to detect the pending intake and run that playbook on its own, so
+from your seat it is "describe once, then open your agent and go."
+(Already initialised? Use `doctrina intake description.md` instead.)
+
+Once the project exists, drive each feature with a one-line prompt:
+
+```
+doctrina work "add login with email and password"
+```
+
+`work` scaffolds the change and prints a **work playbook** — context →
+spec delta → tasks → implement → analyze → apply → **verify** → archive →
+validate — that the agent executes in one linear pass. The two commands
+are the no-ceremony path; the manual commands below are exactly what they
+orchestrate, and stay available when you want fine-grained control.
+
 ## Your first capability spec
 
 Doctrina treats capabilities as the unit of truth. Create one:
@@ -69,6 +99,14 @@ This scaffolds `.doctrina/specs/billing/spec.md` with EARS section
 headings ready to fill in. Open it, write the requirements that
 describe how billing works **today** (not what you wish it would
 do — that goes in changes).
+
+A spec carries two independent axes: the document `Status:`
+(`draft` → `active` → `deprecated`) and the `Implementation:` state
+(`planned` → `partial` → `implemented` → `verified`). A fresh scaffold
+is an honest `draft`/`planned`; advance each axis as the document and
+the code mature. `doctrina validate` warns if you mark a spec `active`
+while it is still `planned` with nothing built behind it, and
+`doctrina coverage` reports which acceptance criteria cite a real test.
 
 ## Your first change
 
@@ -101,13 +139,27 @@ Doctrina automates the common operations:
   which keeps the agent out of judgement calls about conflicting
   sections.
 
+Before you archive, prove the work. "Done" is a claim until it is checked:
+
+```
+doctrina verify      # runs your typecheck/test/build from .doctrina/verify.json
+doctrina coverage    # every acceptance criterion should cite a real test
+```
+
+`doctrina verify` is the real build gate (declare your commands once with
+`doctrina verify --init`), distinct from the structural `validate`. Then
+check every box in the change's `tasks.md` (closing steps included) and
+the proposal's `## Verification` section.
+
 Finally, archive the change:
 
 ```
 doctrina change archive 0001-add-stripe-webhook
 ```
 
-The change folder moves to
+`doctrina change archive` **refuses** to archive while any task or
+verification box is unchecked — pass `--force` only to archive
+deliberately with a recorded gap. On success the change folder moves to
 `.doctrina/changes/archive/2026-06-03-0001-add-stripe-webhook/` and
 disappears from the agent's default read path.
 

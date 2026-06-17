@@ -81,8 +81,8 @@ mesmo caminho de `change new`, registra o prompt literalmente sob o
 `## Why` da proposal, ranqueia as specs existentes por sobreposição
 determinística de termos como dica de capability, e imprime os passos
 ordenados: context → spec delta → tasks → implementar → analyze →
-apply → archive → validate. Nenhuma interpretação de linguagem natural
-acontece no CLI (ver ADR 0005).
+apply → verify (`verify`/`coverage`) → archive → validate. Nenhuma
+interpretação de linguagem natural acontece no CLI (ver ADR 0005).
 
 ```
 doctrina work "adicione login com email e senha"
@@ -109,6 +109,15 @@ Escreve `.doctrina/specs/<capability>/spec.md` e adiciona entrada
 em `.doctrina/index.json`. Nomes de capability devem casar com
 `[a-z][a-z0-9-]*`.
 
+Uma spec de capability tem dois eixos independentes: o `Status:` do
+documento (`draft` → `active` → `deprecated`) e o estado de
+`Implementation:` (`planned` → `partial` → `implemented` → `verified`).
+Um esqueleto novo nasce um honesto `draft`/`planned`; promova o `Status`
+para active quando refletir a intenção, e avance o `Implementation`
+conforme o código entra. O `validate` avisa quando uma spec `active`
+continua `planned` sem nada construído por trás — uma afirmação de
+inventário sem lastro.
+
 | Flag | Função |
 |------|--------|
 | `--bug` | Esqueletiza o template no formato de bug (current/expected/unchanged behaviour) em vez da spec EARS de capability. |
@@ -116,8 +125,9 @@ em `.doctrina/index.json`. Nomes de capability devem casar com
 
 ## `doctrina spec list`
 
-Uma linha por spec de capability: id, versão, status, contagem de
-linhas e data de última atualização, lidos dos headers da spec.
+Uma linha por spec de capability: id, versão, status do documento,
+estado de implementação, contagem de linhas e data de última
+atualização, lidos dos headers da spec.
 
 ```
 doctrina spec list
@@ -175,9 +185,17 @@ Move um change aplicado para
 doctrina change archive 0042-add-saml
 ```
 
-O CLI não exige que o change esteja em estado `applied` — você
-pode arquivar um proposal que decidiu não levar adiante, por
-exemplo.
+Arquivar é o ato de declarar um change terminado, então ele exige
+verificação: o CLI **recusa** (exit 1) enquanto qualquer caixa no
+`tasks.md` (incluindo os closing steps) ou na seção `## Verification`
+do proposal estiver desmarcada. Termine e marque os itens, ou passe
+`--force` para arquivar mesmo assim — o que imprime os itens pendentes
+e registra o gap. É a diferença entre "caixas marcadas" e "verificação
+passou".
+
+| Flag | Função |
+|------|--------|
+| `--force` | Arquiva mesmo com a verificação incompleta (registra o gap). |
 
 Arquivar também anexa um resumo de uma linha (data, id, título,
 specs afetadas) em `.doctrina/changes/archive/LEDGER.md` — o jeito
@@ -470,9 +488,102 @@ Checagens:
     mesmos caps de tamanho do arquivo raiz (warning > 150 linhas,
     erro > 200); diretórios de dependência, build e VCS são
     pulados.
+19. Honestidade de dois eixos: uma spec de capability `Status: active`
+    com `Implementation: planned` e sem nota gera warning (uma spec
+    ativa sem nada construído por trás).
+20. Evidência de ADR: um ADR aceito que adota o header `Evidence:` mas
+    cita um path ausente em disco gera warning (drift de decisão), e um
+    ADR aceito cuja evidência é o placeholder vazio gera warning (cite,
+    ou anote `n/a — <motivo>`).
+21. Ledger ↔ index do archive: quando `changes/archive/LEDGER.md`
+    existe, todo change arquivado precisa aparecer nele e em
+    `index.json.changes_archive`, ou a validação **falha** (erro).
+22. Contratos presentes em disco mas ausentes do `index.json` geram
+    warning (detecção de órfãos), e todo path de contrato indexado
+    precisa existir.
 
 Sai 0 sem erros, 1 caso contrário. Warnings não falham a
 validação.
+
+## `doctrina coverage`
+
+Reporta quantos critérios de aceite em `.doctrina/specs/` citam um
+artefato ou teste que existe em disco — a rastreabilidade que o
+`validate` não checa.
+
+```
+doctrina coverage
+doctrina coverage --strict
+```
+
+Cada critério numerado pode citar sua evidência como um path em
+backticks, ex.: `1. Retorna 429 acima da cota — verified by \`test/quota.test.ts\`.`
+Um critério está **covered** quando ao menos um path citado resolve,
+**dangling** quando um path citado está ausente, e **bare** quando nada
+é citado. Read-only.
+
+| Flag | Função |
+|------|--------|
+| `--strict` | Sai 1 quando algum critério é bare ou dangling (gate de CI). Sem ela, o comando sempre sai 0 (um relatório). |
+
+## `doctrina verify`
+
+Roda as checagens de build/verify declaradas pelo projeto — o gate real
+de "o código funciona", distinto do `validate` estrutural e nunca
+executado pelo hook de pre-commit.
+
+```
+doctrina verify
+doctrina verify --init
+doctrina verify --list
+```
+
+As checagens vivem em `.doctrina/verify.json`:
+
+```
+{
+  "checks": [
+    { "name": "typecheck", "run": "tsc --noEmit" },
+    { "name": "test",      "run": "npm test" },
+    { "name": "build",     "run": "npm run build" }
+  ]
+}
+```
+
+Cada `run` executa em ordem pelo shell com a saída transmitida; o
+`verify` sai não-zero se qualquer checagem falhar. Sem config, sai 1 e
+aponta para `--init`. Um campo opcional `cwd` por checagem (relativo à
+raiz do projeto) mira um sub-pacote num monorepo.
+
+| Flag | Função |
+|------|--------|
+| `--init` | Esqueletiza um `.doctrina/verify.json` inicial (recusa sobrescrever sem `--force`). |
+| `--list` | Imprime as checagens configuradas sem executá-las. |
+| `--force` | Com `--init`, sobrescreve uma config existente. |
+
+## `doctrina contract new <name>` / `list` / `check`
+
+É dono da superfície de integração/runtime que spec de capability
+nenhuma possui: o mapa de portas, o contrato de ambiente e as
+interfaces API/WS/eventos.
+
+```
+doctrina contract new system
+doctrina contract check
+```
+
+`contract new` esqueletiza `.doctrina/contracts/<name>.md` (tabelas de
+Ports, Environment, Interfaces, References) e o indexa. `contract check`
+verifica a parte mecanicamente checável:
+
+- **Colisão de portas** — dois serviços reivindicando a mesma porta é
+  erro.
+- **Drift de ambiente** — uma variável declarada no contrato mas ausente
+  do `.env.example` é warning.
+- **Specs referenciados** — todo `specs/<capability>` referenciado
+  precisa existir (erro caso contrário).
+
+Sai 1 em erros (colisão de portas, specs ausentes), 0 caso contrário.
 
 ## `doctrina index rebuild`
 

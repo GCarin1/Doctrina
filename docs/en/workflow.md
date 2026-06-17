@@ -17,11 +17,13 @@ intent -> spec  ->  plan  ->  implement  ->  review  ->  curate
    with a spec delta. Ambiguity is killed here.
 2. **Spec → plan.** The change folder gains a `tasks.md` and, if
    non-trivial, a `design.md`. Architectural decisions surface as ADRs.
-3. **Plan → implement.** Code is written against the approved spec.
-4. **Implement → review.** Lint, tests, and `doctrina validate` run.
-   Spec deltas are merged into the affected specs.
-5. **Review → curate.** The change folder is archived. The index is
-   updated. The next cycle starts.
+3. **Plan → implement.** Code is written against the approved spec, and
+   the spec's `Implementation:` axis advances as it lands.
+4. **Implement → review.** The build gate (`doctrina verify`) and the
+   traceability report (`doctrina coverage`) run alongside
+   `doctrina validate`; spec deltas are merged into the affected specs.
+5. **Review → curate.** The change is archived (which refuses to close
+   while verification is unchecked). The index is updated. Next cycle.
 
 There are no parallel writing agents at any phase. Subagents may
 explore the codebase for context, but only one writer touches a given
@@ -46,7 +48,8 @@ that runs them, while keeping the CLI itself offline and deterministic
   into a scaffolded change plus a **work playbook**: it derives the
   change id, records your prompt as the proposal's `## Why`, hints at the
   likely capability, and lists the steps from spec delta through
-  `apply`/`archive`/`validate`.
+  `apply` → `verify` (`doctrina verify` + `doctrina coverage`) →
+  `archive` → `validate`.
 
 The CLI does the deterministic half (scaffold, slug, index, term-match)
 and the agent does the semantic half (write product, specs, deltas,
@@ -77,7 +80,11 @@ not command-by-command document authoring.
 #   MODIFIED -> manual merge; CLI prints the pointer
 #   proposal.md Status: flips proposed -> applied
 
+# doctrina verify     (project build gate) + doctrina coverage
+#   check every task box and the proposal's ## Verification
+
 # doctrina change archive <id>
+#   REFUSES while any task or verification box is unchecked (--force overrides)
 .doctrina/changes/archive/YYYY-MM-DD-<id>/       (Status: applied)
 ```
 

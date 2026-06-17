@@ -55,6 +55,7 @@ export function deriveIndex(projectRoot, current) {
       changes: [],
       changes_archive: [],
       skills: [],
+      contracts: [],
     },
   };
 
@@ -65,13 +66,22 @@ export function deriveIndex(projectRoot, current) {
     if (!isFile(p)) continue;
     const text = read(p);
     const prev = (cur.specs ?? []).find((s) => s.id === cap);
-    out.artifacts.specs.push({
+    const entry = {
       id: cap,
       path: `.doctrina/specs/${cap}/spec.md`,
       status: specHeader(text, "Status") ?? prev?.status ?? "active",
       version: specHeader(text, "Version") ?? prev?.version ?? "0.1.0",
       last_updated: specHeader(text, "Last updated") ?? prev?.last_updated ?? date,
-    });
+    };
+    // Implementation is the capability axis (planned -> partial ->
+    // implemented -> verified), independent of the document Status. Only
+    // record it when the spec declares it or the index already tracked it,
+    // so specs that never opted in (e.g. bug specs) stay off the axis.
+    // The stored value keeps any explanatory note after the state word.
+    const implRaw = specHeader(text, "Implementation");
+    const impl = implRaw ? implRaw.trim() : prev?.implementation;
+    if (impl) entry.implementation = impl;
+    out.artifacts.specs.push(entry);
   }
 
   // Decisions — NNNN-slug.md files; Status/Date headers win.
@@ -143,6 +153,22 @@ export function deriveIndex(projectRoot, current) {
     });
   }
 
+  // Contracts — the integration/runtime surface (ports, env, interfaces)
+  // that no single capability owns. Headers inside each contract win.
+  const contractsDir = path.join(dot, "contracts");
+  for (const f of walk(contractsDir)) {
+    if (!f.endsWith(".md")) continue;
+    const id = path.basename(f, ".md");
+    const text = read(f);
+    const prev = (cur.contracts ?? []).find((s) => s.id === id);
+    out.artifacts.contracts.push({
+      id,
+      path: `.doctrina/contracts/${id}.md`,
+      status: specHeader(text, "Status") ?? prev?.status ?? "active",
+      last_updated: specHeader(text, "Last updated") ?? prev?.last_updated ?? date,
+    });
+  }
+
   // Skills — frontmatter description wins.
   const skillsDir = path.join(dot, "skills");
   for (const f of walk(skillsDir)) {
@@ -183,7 +209,7 @@ export function indexesMatch(a, b) {
     const clone = { ...x };
     delete clone.last_updated;
     const arts = { ...(clone.artifacts ?? {}) };
-    for (const cat of ["specs", "decisions", "changes", "changes_archive", "skills"]) {
+    for (const cat of ["specs", "decisions", "changes", "changes_archive", "skills", "contracts"]) {
       arts[cat] = arts[cat] ?? [];
     }
     clone.artifacts = arts;

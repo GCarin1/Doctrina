@@ -2,6 +2,7 @@
 
 **Capability:** skills
 **Status:** active
+**Implementation:** implemented
 **Last updated:** 2026-06-11
 **Version:** 0.2.1
 
