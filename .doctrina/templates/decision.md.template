@@ -5,6 +5,16 @@
 - **Deciders:**
 - **Supersedes:** —
 - **Superseded by:** —
+- **Evidence:** —
+
+<!--
+Evidence anchors the decision to reality. Once accepted, cite the file(s)
+that prove this decision is actually implemented, in backticks, e.g.
+"- **Evidence:** `proto/order.proto`, `services/gateway/grpc.ts`".
+`doctrina validate` warns when cited evidence is missing on disk (the
+decision drifted from the code) or when an accepted ADR cites none. For a
+process decision with no code artifact, write "n/a — <why>".
+-->
 
 ## Context
 

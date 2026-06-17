@@ -1,9 +1,23 @@
 # Spec — {{CAPABILITY}}
 
 **Capability:** {{CAPABILITY}}
-**Status:** active
+**Status:** draft
+**Implementation:** planned
 **Last updated:** {{DATE}}
 **Version:** 0.1.0
+
+<!--
+Two independent axes — keep them honest:
+  Status         — the document:   draft -> active -> deprecated
+  Implementation — the capability: planned -> partial -> implemented -> verified
+Flip Status to "active" only once this spec reflects intended truth.
+Advance Implementation as code lands; "verified" means a test proves it
+(cite the test per acceptance criterion — see `doctrina coverage`).
+An "active" spec left at "planned" is an inventory claim with nothing
+behind it, and `doctrina validate` warns. To record a deliberate gap and
+silence the warning, add a note after the value, e.g.
+"**Implementation:** planned — backend deferred to Q3, see ADR 0007".
+-->
 
 ## Purpose
 
@@ -43,9 +57,33 @@ Easy Approach to Requirements Syntax. Use one of the five forms per item:
 
 ## Acceptance criteria
 
-<!-- Concrete, observable signals that the capability is correctly implemented. -->
+<!--
+Concrete, observable signals that the capability is correctly implemented.
+Each criterion is also a claim that must be proven: mark it [verified] or
+[unverified] and cite the artifact/test in backticks. `doctrina coverage`
+reports which criteria have no linked evidence — an [unverified] criterion
+with no test is explicit debt, not a fact.
+-->
 
-1.
+1. [unverified] <observable signal> — verified by `path/to/test`.
+
+## Maturity
+
+<!--
+The line between an MVP and a product wishlist. List under MVP only what
+this capability COMMITS to now. Anything aspirational goes under Future and
+is explicitly NOT accepted scope — do not write Future items in EARS as if
+they were already built (no WebGPU/multi-cloud/"50k entities at 30fps"
+smuggled in as committed requirements).
+-->
+
+**MVP (committed):**
+
+-
+
+**Future (aspirational, not committed):**
+
+-
 
 ## Out of scope for this spec
 

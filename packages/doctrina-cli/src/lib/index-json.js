@@ -44,6 +44,7 @@ export function blank(projectName, date) {
       changes: [],
       changes_archive: [],
       skills: [],
+      contracts: [],
     },
   };
 }
@@ -52,6 +53,14 @@ export function addSkill(index, entry) {
   if (!index.artifacts.skills) index.artifacts.skills = [];
   if (!index.artifacts.skills.some((s) => s.id === entry.id)) {
     index.artifacts.skills.push(entry);
+  }
+  return index;
+}
+
+export function addContract(index, entry) {
+  if (!index.artifacts.contracts) index.artifacts.contracts = [];
+  if (!index.artifacts.contracts.some((s) => s.id === entry.id)) {
+    index.artifacts.contracts.push(entry);
   }
   return index;
 }

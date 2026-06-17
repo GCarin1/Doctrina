@@ -193,7 +193,7 @@ function changeApply(args, _flags) {
   return errors > 0 ? 1 : 0;
 }
 
-function changeArchive(args, _flags) {
+function changeArchive(args, flags) {
   const id = args[0];
   if (!id) {
     console.error(c.red("error:") + " change archive requires <id>");
@@ -206,6 +206,28 @@ function changeArchive(args, _flags) {
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
     return 1;
+  }
+
+  // Verification gate. "Done" is a claim until it is checked. Archiving is
+  // the act of declaring a change finished, so it must refuse while any
+  // task (including closing steps) or any declared verification item is
+  // still unchecked. This is the difference between "boxes marked" and
+  // "verification passed" the framework was faulted for collapsing.
+  // --force is the escape hatch: it archives anyway and records the gap.
+  const force = flagBool(flags, "force", false);
+  const blockers = collectArchiveBlockers(changeDir);
+  if (blockers.length > 0) {
+    if (!force) {
+      console.error(c.red("error:") + ` refusing to archive "${id}" — verification incomplete:`);
+      for (const b of blockers) console.error(`  - ${b}`);
+      console.error(
+        c.gray("hint: ") +
+          "finish and check the items, or pass --force to archive anyway (records the gap)",
+      );
+      return 1;
+    }
+    console.log(c.yellow("warn:") + ` archiving "${id}" with verification incomplete (--force):`);
+    for (const b of blockers) console.log(c.yellow("  - ") + b);
   }
 
   const date = today();
@@ -362,6 +384,45 @@ function extractDeltaBody(text) {
   const idxSep = text.indexOf("\n---\n");
   if (idxSep < 0) return text;
   return text.slice(idxSep + 5).replace(/^\n+/, "");
+}
+
+// Reasons a change is not finished enough to archive. Counts unchecked
+// GitHub-style checkboxes (`- [ ]`) in tasks.md (every task, including the
+// closing steps) and in the proposal's "## Verification" section. Returns
+// a list of human-readable blocker strings; empty means clear to archive.
+function collectArchiveBlockers(changeDir) {
+  const blockers = [];
+  const countUnchecked = (s) => (s.match(/^\s*-\s*\[ \]/gm) ?? []).length;
+
+  const tasksPath = path.join(changeDir, "tasks.md");
+  if (exists(tasksPath)) {
+    const n = countUnchecked(read(tasksPath));
+    if (n > 0) blockers.push(`${n} unchecked task${n === 1 ? "" : "s"} in tasks.md (closing steps count)`);
+  }
+
+  const proposalPath = path.join(changeDir, "proposal.md");
+  if (exists(proposalPath)) {
+    const n = countUnchecked(extractSection(read(proposalPath), "Verification"));
+    if (n > 0) blockers.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
+  }
+  return blockers;
+}
+
+// Return the body of a "## <name>" section (lines after the heading up to
+// the next "## " heading). Empty string when the section is absent.
+function extractSection(text, name) {
+  const lines = text.split(/\r?\n/);
+  const head = new RegExp(`^##\\s+${name}\\b`, "i");
+  let inSection = false;
+  const out = [];
+  for (const line of lines) {
+    if (/^##\s+/.test(line)) {
+      inSection = head.test(line);
+      continue;
+    }
+    if (inSection) out.push(line);
+  }
+  return out.join("\n");
 }
 
 function ensureDoctrinaProject(projectRoot) {

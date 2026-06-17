@@ -1,0 +1,8 @@
+{
+  "$comment": "Executable definition of 'Doctrina actually works'. `doctrina verify` runs these in order; CI and the verification gate rely on them. The framework dogfoods its own build/verify command here.",
+  "checks": [
+    { "name": "test", "run": "node --test", "cwd": "packages/doctrina-cli" },
+    { "name": "self-validate", "run": "node packages/doctrina-cli/src/index.js validate" },
+    { "name": "index-drift", "run": "node packages/doctrina-cli/src/index.js index rebuild --check" }
+  ]
+}

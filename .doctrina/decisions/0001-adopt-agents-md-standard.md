@@ -5,6 +5,7 @@
 - **Deciders:** project owner
 - **Supersedes:** —
 - **Superseded by:** —
+- **Evidence:** `AGENTS.md`, `.doctrina/templates/AGENTS.md.template`, `.doctrina/templates/adapters`
 
 ## Context
 

@@ -5,6 +5,7 @@
 - **Deciders:** project owner
 - **Supersedes:** —
 - **Superseded by:** —
+- **Evidence:** `AGENTS.md` — single linear orchestrator rule; no parallel-write tooling ships
 
 ## Context
 

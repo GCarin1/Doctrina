@@ -5,6 +5,7 @@
 - **Deciders:** project owner
 - **Supersedes:** —
 - **Superseded by:** —
+- **Evidence:** `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/intake.js`
 
 ## Context
 

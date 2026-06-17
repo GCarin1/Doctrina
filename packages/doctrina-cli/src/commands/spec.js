@@ -51,13 +51,20 @@ export async function run(positional, flags) {
   console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}${bug ? " (bug-spec shape)" : ""}`);
 
   const index = idx.load(projectRoot);
-  idx.addSpec(index, {
+  // Two axes: a fresh capability scaffold is a draft document for a
+  // planned capability. Promote `status` to active once it reflects
+  // intent; advance `implementation` as code lands (see `doctrina
+  // coverage`). Bug specs are a different shape and stay off the
+  // implementation axis — only the capability template carries it.
+  const entry = {
     id: capability,
     path: `.doctrina/specs/${capability}/spec.md`,
-    status: "active",
+    status: bug ? "active" : "draft",
     version: "0.1.0",
     last_updated: date,
-  });
+  };
+  if (!bug) entry.implementation = "planned";
+  idx.addSpec(index, entry);
   idx.touch(index, date);
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + ` spec "${capability}"`);
@@ -75,10 +82,14 @@ function specList() {
       const p = path.join(specsDir, cap, "spec.md");
       if (!isFile(p)) continue;
       const text = read(p);
+      // Show only the leading state word of Implementation, dropping any
+      // explanatory note after it ("planned — deferred" -> "planned").
+      const implRaw = specHeader(text, "Implementation");
       rows.push({
         id: cap,
         version: specHeader(text, "Version") ?? "—",
         status: specHeader(text, "Status") ?? "active",
+        impl: implRaw ? implRaw.trim().split(/[\s—-]+/)[0] : "—",
         lines: lineCount(p),
         updated: specHeader(text, "Last updated") ?? "—",
       });
@@ -88,10 +99,10 @@ function specList() {
     console.log(c.gray("no specs found in .doctrina/specs/"));
     return 0;
   }
-  console.log(c.bold("Specs:"));
+  console.log(c.bold("Specs:") + c.gray("  (status = document, impl = capability)"));
   console.log("");
   for (const r of rows) {
-    console.log(`  ${c.cyan(r.id.padEnd(20))} ${r.version.padEnd(8)} ${r.status.padEnd(10)} ${String(r.lines).padStart(4)} lines  ${r.updated}`);
+    console.log(`  ${c.cyan(r.id.padEnd(20))} ${r.version.padEnd(8)} ${r.status.padEnd(10)} ${r.impl.padEnd(12)} ${String(r.lines).padStart(4)} lines  ${r.updated}`);
   }
   console.log("");
   console.log(c.gray(`${rows.length} spec${rows.length === 1 ? "" : "s"}`));

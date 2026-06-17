@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "doctrina",
   "framework_version": "0.1.0",
-  "last_updated": "2026-06-13",
+  "last_updated": "2026-06-17",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,43 +15,49 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.14.0",
-        "last_updated": "2026-06-13"
+        "version": "0.15.0",
+        "last_updated": "2026-06-16",
+        "implementation": "implemented"
       },
       {
         "id": "core",
         "path": ".doctrina/specs/core/spec.md",
         "status": "active",
         "version": "0.1.0",
-        "last_updated": "2026-06-03"
+        "last_updated": "2026-06-03",
+        "implementation": "implemented"
       },
       {
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
         "version": "0.2.0",
-        "last_updated": "2026-06-11"
+        "last_updated": "2026-06-11",
+        "implementation": "implemented"
       },
       {
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
         "version": "0.2.1",
-        "last_updated": "2026-06-11"
+        "last_updated": "2026-06-11",
+        "implementation": "implemented"
       },
       {
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
         "version": "0.7.0",
-        "last_updated": "2026-06-03"
+        "last_updated": "2026-06-03",
+        "implementation": "implemented"
       },
       {
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
         "version": "0.1.0",
-        "last_updated": "2026-06-03"
+        "last_updated": "2026-06-03",
+        "implementation": "implemented"
       }
     ],
     "decisions": [
@@ -93,6 +99,7 @@
     ],
     "changes": [],
     "changes_archive": [],
-    "skills": []
+    "skills": [],
+    "contracts": []
   }
 }

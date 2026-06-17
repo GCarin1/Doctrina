@@ -13,7 +13,7 @@ Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI develop
 - Targets: 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI, Cursor,
   GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules)
 - Languages: documentation EN primary, PT translated
-- Status: v0.1.0 — released
+- Status: v0.3.0 — released
 
 ## Stack and tooling
 
@@ -46,6 +46,9 @@ npx doctrina-cli clarify <path>             # smell-test a Markdown file for amb
 npx doctrina-cli context [<cap>]            # print the context pack in read order (--concat: contents)
 npx doctrina-cli search <term>              # search artifacts, grouped by category
 npx doctrina-cli validate                   # schema + structural checks
+npx doctrina-cli coverage                   # acceptance criteria with linked evidence (--strict gates)
+npx doctrina-cli verify                     # run project-declared typecheck/test/build (the real gate)
+npx doctrina-cli contract new <name>        # own ports/env/interfaces; `contract check` validates them
 npx doctrina-cli templates list             # list templates shipped by the CLI
 npx doctrina-cli templates check            # compare project against recommended template shape
 npx doctrina-cli templates update           # additive fixer for check findings (preview; --write applies)
@@ -69,8 +72,10 @@ npx doctrina-cli metrics                    # local git-derived adoption metrics
   changes/<id>/                     active change proposals
   changes/archive/                  applied changes (episodic memory)
   decisions/NNNN-title.md           immutable ADRs (Nygard format)
+  contracts/<name>.md               integration/runtime surface (ports, env, interfaces)
   skills/<slug>.md                  on-demand procedural memory (optional)
   templates/                        scaffolding consumed by the CLI
+  verify.json                       project-declared build/verify checks (doctrina verify)
   index.json                        artifact metadata
 /docs/en /docs/pt                   bilingual user-facing docs
 /examples/                          two reference projects (Python FastAPI, TypeScript Express)
@@ -113,7 +118,11 @@ Keep this file under 150 lines. Density beats prose. Use exact commands, not adv
 ## Definition of done
 
 A change is done when:
-- All `tasks.md` items in the change folder are checked.
+- All `tasks.md` items in the change folder are checked (closing steps too).
+- Declared verification passed: `doctrina verify` is green and the affected
+  spec's acceptance criteria are met and cite their evidence
+  (`doctrina coverage`). `doctrina change archive` refuses to archive while
+  tasks or the proposal's `## Verification` are unchecked.
 - Delta has been merged into the affected `specs/<capability>/spec.md`.
 - The change folder has been moved to `changes/archive/YYYY-MM-DD-<id>/`.
 - Any new architectural decisions are recorded as ADRs with `Status: accepted`.

@@ -24,11 +24,14 @@ import * as context from "./commands/context.js";
 import * as search from "./commands/search.js";
 import * as intake from "./commands/intake.js";
 import * as work from "./commands/work.js";
+import * as coverage from "./commands/coverage.js";
+import * as verify from "./commands/verify.js";
+import * as contract from "./commands/contract.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
   templates, skill, index: indexCmd, next, metrics, context, search,
-  intake, work,
+  intake, work, coverage, verify, contract,
 };
 
 const TOP_HELP = `
@@ -44,6 +47,8 @@ Commands:
   change apply         Apply spec deltas (ADDED/REMOVED auto, MODIFIED manual)
   change archive       Archive an applied change
   change diff          Preview spec deltas (line diff for MODIFIED)
+  contract new         Own the integration surface (ports, env, interfaces)
+  contract check       Verify port collisions, env drift, referenced specs
   decision new         Create the next sequentially numbered ADR
   decision accept      Flip a proposed ADR to accepted
   decision supersede   Create a new ADR that supersedes an existing one
@@ -56,6 +61,8 @@ Commands:
   context              Print the context pack for a task in read order
   search               Search the artifact tree, grouped by category
   validate             Run schema and structural checks
+  coverage             Report acceptance criteria with linked evidence (--strict gates)
+  verify               Run project-declared typecheck/test/build checks (the real gate)
   templates list       List the templates shipped by the installed CLI
   templates check      Compare the project against the recommended template shape
   hooks install        Install the pre-commit hook
@@ -70,7 +77,7 @@ Global flags:
 
 async function main(argv) {
   const { positional, flags } = parseArgs(argv, {
-    boolean: ["help", "h", "version", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive"],
+    boolean: ["help", "h", "version", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init"],
   });
 
   if (flags.get("version") || flags.get("v")) {

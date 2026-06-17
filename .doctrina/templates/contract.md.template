@@ -1,0 +1,58 @@
+# Contract — {{CONTRACT_NAME}}
+
+**Contract:** {{CONTRACT_NAME}}
+**Status:** active
+**Last updated:** {{DATE}}
+
+## Purpose
+
+<!--
+The integration/runtime surface this contract OWNS. No single capability
+spec owns the seams between services and front-ends — this artifact does.
+If a login response shape, a WebSocket path, or a Kafka topic falls in the
+gap between two specs, it belongs here.
+-->
+
+## Ports
+
+<!--
+The single source of truth for who listens where. `doctrina contract check`
+fails when two rows claim the same port (the "front points at the wrong
+port" class of bug). Front-ends and clients read their targets from here.
+-->
+
+| Service | Port | Protocol |
+|---------|------|----------|
+| gateway | 8080 | http     |
+
+## Environment
+
+<!--
+Variables the running system requires, named IDENTICALLY across code,
+`.env.example`, and infra (compose/helm). `doctrina contract check` warns
+when a variable here is missing from `.env.example` — the DATABASE_URL /
+KAFKA_BROKER drift class.
+-->
+
+| Variable     | Required | Example                                   |
+|--------------|----------|-------------------------------------------|
+| DATABASE_URL | yes      | postgres://user:pass@localhost:5432/app   |
+
+## Interfaces
+
+<!--
+API / WebSocket / event-stream contracts: endpoints, message shapes, event
+schemas, and the exact response shape each consumer can rely on (e.g. login
+returns `{ token, user }`, not a bare `TokenPair`).
+-->
+
+-
+
+## References
+
+<!--
+The capability specs that must conform to this contract. List each as
+`specs/<capability>`; `doctrina contract check` verifies each spec exists.
+-->
+
+- `specs/<capability>`

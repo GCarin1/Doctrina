@@ -29,7 +29,7 @@ directory; it should exit 0. Then read in this order:
 6. The archived change folder under
    `.doctrina/changes/archive/` — exercises the workflow.
 
-These examples were created against Doctrina v0.1.0. Newer
-Doctrina versions are backward-compatible for `0.x.y`; minor
-adjustments may be needed if you regenerate the examples against
-a future major.
+These examples were created against Doctrina v0.1.0 and remain
+valid under v0.3.0. Newer Doctrina versions are backward-compatible
+for `0.x.y`; minor adjustments may be needed if you regenerate the
+examples against a future major.

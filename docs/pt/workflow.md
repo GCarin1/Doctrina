@@ -22,12 +22,14 @@ intenção -> spec  ->  plano  ->  implementar  ->  revisar  ->  curar
    com delta. Ambiguidade morre aqui.
 2. **Spec → plano.** A pasta do change ganha um `tasks.md` e, se
    não-trivial, um `design.md`. Decisões arquiteturais viram ADRs.
-3. **Plano → implementar.** Código é escrito contra a spec
-   aprovada.
-4. **Implementar → revisar.** Lint, testes e `doctrina validate`
-   rodam. Deltas de spec entram nas specs afetadas.
-5. **Revisar → curar.** A pasta do change é arquivada. O index é
-   atualizado. O próximo ciclo começa.
+3. **Plano → implementar.** Código é escrito contra a spec aprovada, e
+   o eixo `Implementation:` da spec avança conforme o código entra.
+4. **Implementar → revisar.** O gate de build (`doctrina verify`) e o
+   relatório de rastreabilidade (`doctrina coverage`) rodam junto do
+   `doctrina validate`; deltas de spec entram nas specs afetadas.
+5. **Revisar → curar.** O change é arquivado (o que recusa fechar
+   enquanto a verificação estiver desmarcada). O index é atualizado.
+   Próximo ciclo.
 
 Não há agentes paralelos escrevendo em fase nenhuma. Subagentes
 podem explorar o codebase para contexto, mas só um escritor toca um
@@ -52,7 +54,8 @@ determinístico (veja o ADR 0005):
   ("adicionar login") num change montado mais um **playbook de trabalho**:
   ele deriva o id do change, registra seu prompt como o `## Why` do
   proposal, sugere a capability provável e lista os passos do delta de
-  spec até `apply`/`archive`/`validate`.
+  spec até `apply` → `verify` (`doctrina verify` + `doctrina coverage`) →
+  `archive` → `validate`.
 
 O CLI faz a metade determinística (montar, sluggar, indexar, casar
 termos) e o agente faz a metade semântica (escrever product, specs,
@@ -83,7 +86,11 @@ e mande ir", não escrever documento por documento na mão.
 #   MODIFIED -> merge manual; o CLI imprime o ponteiro
 #   proposal.md Status: flip proposed -> applied
 
+# doctrina verify     (gate de build do projeto) + doctrina coverage
+#   marque cada caixa de task e a seção ## Verification do proposal
+
 # doctrina change archive <id>
+#   RECUSA enquanto qualquer caixa de task/verificação estiver desmarcada (--force força)
 .doctrina/changes/archive/YYYY-MM-DD-<id>/       (Status: applied)
 ```
 

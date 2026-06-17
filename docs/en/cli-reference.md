@@ -77,8 +77,9 @@ id (`NNNN-<slug>`), opens the change folder via the same path as
 `change new`, records the prompt verbatim under the proposal's
 `## Why`, ranks existing specs by deterministic term overlap as a
 capability hint, and prints the ordered steps: context → spec delta →
-tasks → implement → analyze → apply → archive → validate. No
-natural-language interpretation happens in the CLI (see ADR 0005).
+tasks → implement → analyze → apply → verify (`verify`/`coverage`) →
+archive → validate. No natural-language interpretation happens in the
+CLI (see ADR 0005).
 
 ```
 doctrina work "add login with email and password"
@@ -104,6 +105,14 @@ doctrina spec new checkout-flow --bug
 Writes `.doctrina/specs/<capability>/spec.md` and adds an entry to
 `.doctrina/index.json`. Capability names must match `[a-z][a-z0-9-]*`.
 
+A capability spec carries two independent axes: the document `Status:`
+(`draft` → `active` → `deprecated`) and the `Implementation:` state
+(`planned` → `partial` → `implemented` → `verified`). A fresh scaffold
+is an honest `draft`/`planned`; promote `Status` to active once it
+reflects intent, and advance `Implementation` as code lands. `validate`
+warns when an `active` spec is still `planned` with no note — an
+inventory claim with nothing built behind it.
+
 | Flag | Purpose |
 |------|---------|
 | `--bug` | Scaffold the bug-shape template (current / expected / unchanged behaviour) instead of the EARS capability spec. |
@@ -111,8 +120,9 @@ Writes `.doctrina/specs/<capability>/spec.md` and adds an entry to
 
 ## `doctrina spec list`
 
-One line per capability spec: id, version, status, line count, and
-last-updated date, read from the spec headers.
+One line per capability spec: id, version, document status,
+implementation state, line count, and last-updated date, read from the
+spec headers.
 
 ```
 doctrina spec list
@@ -170,8 +180,17 @@ Move an applied change to
 doctrina change archive 0042-add-saml
 ```
 
-The CLI does not require the change to be in `applied` state — you
-can archive a proposal you decided not to ship, for example.
+Archiving is the act of declaring a change finished, so it enforces
+verification: the CLI **refuses** (exit 1) while any checkbox in
+`tasks.md` (the closing steps included) or in the proposal's
+`## Verification` section is still unchecked. Finish and check the
+items, or pass `--force` to archive anyway — which prints the unmet
+items and records the gap. This is the difference between "boxes
+marked" and "verification passed".
+
+| Flag | Purpose |
+|------|---------|
+| `--force` | Archive even though verification is incomplete (records the gap). |
 
 Archiving also appends a one-line summary (date, id, title,
 affected specs) to `.doctrina/changes/archive/LEDGER.md` — the
@@ -460,8 +479,97 @@ Checks performed:
 18. Nested `AGENTS.md` files below the root obey the same size
     caps as the root file (warning > 150 lines, error > 200);
     dependency, build, and VCS directories are skipped.
+19. Two-axis honesty: a capability spec that is `Status: active` with
+    `Implementation: planned` and no explanatory note warns (an active
+    spec with nothing built behind it).
+20. ADR evidence: an accepted ADR that adopts the `Evidence:` header but
+    cites a path missing on disk warns (decision drift), and an accepted
+    ADR whose evidence is the bare placeholder warns (cite it, or note
+    `n/a — <why>`).
+21. Archive ledger ↔ index: when `changes/archive/LEDGER.md` exists,
+    every archived change must appear in both it and
+    `index.json.changes_archive`, or validation **fails** (error).
+22. Contracts present on disk but absent from `index.json` warn
+    (orphan detection), and every indexed contract path must exist.
 
 Exits 0 on no errors, 1 otherwise. Warnings do not fail validation.
+
+## `doctrina coverage`
+
+Report how many acceptance criteria across `.doctrina/specs/` cite an
+artifact or test that exists on disk — the traceability `validate` does
+not check.
+
+```
+doctrina coverage
+doctrina coverage --strict
+```
+
+Each numbered criterion may cite its evidence as a backtick path span,
+e.g. `1. Returns 429 above the quota — verified by \`test/quota.test.ts\`.`
+A criterion is **covered** when at least one cited path resolves,
+**dangling** when a cited path is missing, and **bare** when nothing is
+cited. Read-only.
+
+| Flag | Purpose |
+|------|---------|
+| `--strict` | Exit 1 when any criterion is bare or dangling (CI gate). Without it, the command always exits 0 (a report). |
+
+## `doctrina verify`
+
+Run the project-declared build/verify checks — the real "does the code
+work" gate, distinct from the structural `validate` and never run by the
+pre-commit hook.
+
+```
+doctrina verify
+doctrina verify --init
+doctrina verify --list
+```
+
+Checks live in `.doctrina/verify.json`:
+
+```
+{
+  "checks": [
+    { "name": "typecheck", "run": "tsc --noEmit" },
+    { "name": "test",      "run": "npm test" },
+    { "name": "build",     "run": "npm run build" }
+  ]
+}
+```
+
+Each `run` executes in order through the shell with output streamed;
+`verify` exits non-zero if any check fails. With no config it exits 1
+and points at `--init`.
+
+| Flag | Purpose |
+|------|---------|
+| `--init` | Scaffold a starter `.doctrina/verify.json` (refuses to overwrite without `--force`). |
+| `--list` | Print the configured checks without running them. |
+| `--force` | With `--init`, overwrite an existing config. |
+
+## `doctrina contract new <name>` / `list` / `check`
+
+Own the integration/runtime surface no single capability spec owns: the
+port map, the environment contract, and API/WS/event interfaces.
+
+```
+doctrina contract new system
+doctrina contract check
+```
+
+`contract new` scaffolds `.doctrina/contracts/<name>.md` (Ports,
+Environment, Interfaces, References tables) and indexes it. `contract
+check` verifies the mechanically checkable parts:
+
+- **Port collisions** — two services claiming the same port is an error.
+- **Environment drift** — a variable declared in the contract but absent
+  from `.env.example` is a warning.
+- **Referenced specs** — every `specs/<capability>` reference must exist
+  (error otherwise).
+
+Exits 1 on errors (port collisions, missing specs), 0 otherwise.
 
 ## `doctrina index rebuild`
 

@@ -17,6 +17,57 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-16
+
+Closes the gap between what a spec promises and what the code/tests prove.
+A framework review found Doctrina validated **form, not truth**: the docs
+could look finished while the system was half-built, and `validate` passed.
+This release adds the truth-checking guardrails. Every new gate has an
+opt-in or `--force` escape hatch — block, never imprison.
+
+### Added
+
+- **Two-axis spec status.** A capability spec now carries an
+  `Implementation:` state (`planned`/`partial`/`implemented`/`verified`)
+  independent of the document `Status:`. `spec list` shows both;
+  `validate` warns when an `active` spec is still `planned` with no note
+  (an inventory claim with nothing behind it). New specs scaffold honestly
+  as `draft`/`planned`.
+- **`doctrina coverage`.** Reports, per spec, how many acceptance criteria
+  cite an evidence path (a backtick file token) that exists — covered,
+  dangling (cited path missing), or bare (none cited). A report by default
+  (exit 0); a CI gate under `--strict`.
+- **`doctrina verify`.** Runs the project-declared build checks from
+  `.doctrina/verify.json` (typecheck/test/build) through the shell and
+  fails on any non-zero — the real "does the code work" gate, distinct
+  from the structural `validate` and never run by the pre-commit hook.
+  `--init` scaffolds the config, `--list` prints it.
+- **Contract artifact (`doctrina contract new|list|check`).** A
+  first-class home under `.doctrina/contracts/` for the integration/
+  runtime surface no capability owns — port map, environment, interfaces.
+  `contract check` fails on a port collision or a missing referenced spec,
+  and warns when a declared env var is absent from `.env.example`.
+- **ADR `Evidence:` header.** Anchors a decision to the files that prove
+  it; `validate` warns when cited evidence is missing on disk (decision
+  drift) or when an accepted ADR cites none.
+- **Spec template `## Maturity` boundary** (MVP vs aspirational) and
+  `[verified]`/`[unverified]` acceptance-criteria markers, so a product
+  wishlist cannot be smuggled in as committed EARS requirements.
+
+### Changed
+
+- **`doctrina change archive` now enforces verification.** It refuses
+  (exit 1) while any `tasks.md` checkbox (closing steps included) or any
+  item in the proposal's `## Verification` checklist is unchecked, unless
+  `--force` is passed (which archives and records the gap). "Done" is no
+  longer honour-based.
+- **`doctrina validate` cross-checks the archive ledger against
+  `index.json.changes_archive`** and fails on divergence — two sources of
+  truth for the same history can no longer silently disagree.
+- Proposal template ships a `## Verification` checklist; product template
+  ships a "Delivery order (walking skeleton)" section (depth before
+  breadth — verify one end-to-end slice before fanning out capabilities).
+
 ## [0.2.0] — 2026-06-13
 
 ### Added

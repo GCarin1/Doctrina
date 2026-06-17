@@ -2,8 +2,9 @@
 
 **Capability:** cli
 **Status:** active
-**Last updated:** 2026-06-13
-**Version:** 0.14.0
+**Implementation:** implemented
+**Last updated:** 2026-06-16
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -15,7 +16,9 @@ the exit-code conventions across the surface. The surface comprises
 `--capability`/`--id`), `spec new|list` (with
 optional `--bug`), `change new|apply|archive|diff`,
 `decision new|accept|supersede|list`, `skill new|list|sync`,
-`analyze`, `clarify` (with optional `--all`), `validate`,
+`contract new|list|check`, `analyze`, `clarify` (with optional `--all`),
+`validate`, `coverage` (with optional `--strict`),
+`verify` (with optional `--init`/`--list`),
 `templates list|check|update`, `hooks install`, `index rebuild`,
 `next`, `metrics`, `context`, `search`, `--help`, and `--version`.
 
@@ -86,8 +89,8 @@ optional `--bug`), `change new|apply|archive|diff`,
   `change new`, record the prompt verbatim under the proposal's
   `## Why`, rank existing specs by deterministic term overlap as a
   capability hint, and print the agent-executed work playbook (context →
-  spec delta → tasks → implement → analyze → apply → archive →
-  validate). With `--capability <cap>` the system shall pin that
+  spec delta → tasks → implement → analyze → apply → verify →
+  archive → validate). With `--capability <cap>` the system shall pin that
   capability instead of ranking, and with `--id <id>` it shall use the
   given id instead of deriving one. The CLI's language processing is
   limited to slugging and case-insensitive term counting; all semantic
@@ -304,6 +307,30 @@ optional `--bug`), `change new|apply|archive|diff`,
   `description`, `when`), any skill over the 200-line cap, and
   any skill whose `name:` field does not match its filename
   slug.
+- When `doctrina coverage` runs, the system shall report per spec how
+  many `## Acceptance criteria` cite an evidence path (a backtick file
+  token) that exists, marking each covered, dangling (cited path
+  missing), or bare (none cited); it exits 0 as a report and 1 under
+  `--strict` when any criterion is bare or dangling.
+- When `doctrina verify` runs, the system shall execute each check in
+  `.doctrina/verify.json` in order, stream its output, and exit non-zero
+  if any fails (no config exits 1, pointing at `--init`; `--list` prints
+  without running). This build gate is distinct from `validate` and never
+  runs in the pre-commit hook.
+- When `doctrina contract new <name>` runs, the system shall scaffold
+  `.doctrina/contracts/<name>.md` and index it under
+  `artifacts.contracts`; `doctrina contract check` shall error on a port
+  collision or a missing referenced `specs/<capability>`, and warn when a
+  declared environment variable is absent from `.env.example`.
+- When `doctrina change archive <id>` runs, the system shall refuse
+  (exit 1) while any checkbox in `tasks.md` (closing steps included) or
+  the proposal's `## Verification` section is unchecked, unless `--force`
+  is supplied — which archives and records the gap.
+- When `doctrina validate` runs, the system shall additionally warn when
+  a capability spec is `Status: active` with `Implementation: planned` and
+  no note; when an ADR's `Evidence:` cites a missing path or an accepted
+  ADR cites none; and when a contract file is absent from the index; and
+  shall fail when `LEDGER.md` and `index.json.changes_archive` disagree.
 
 ### State-driven
 
@@ -348,16 +375,20 @@ optional `--bug`), `change new|apply|archive|diff`,
 
 The CLI is v0 spec-compliant when:
 
-1. Every command listed under "Event-driven" runs and produces the
-   documented effect.
-2. `node --test packages/doctrina-cli/test/` exits 0.
-3. `doctrina validate` exits 0 against this repository's own
-   `.doctrina/` tree (self-check).
-4. `npm pack --dry-run` inside `packages/doctrina-cli/` lists only
-   `src/`, `templates/` (copied from `.doctrina/templates/` by the
-   `prepack` script), `README.md`, and `package.json` in the
-   published tarball.
-5. The runtime `dependencies` field of the package is absent or `{}`.
+1. [verified] Every command listed under "Event-driven" runs and
+   produces the documented effect — proven by
+   `packages/doctrina-cli/test/integration.test.js`.
+2. [verified] `node --test packages/doctrina-cli/test/` exits 0 —
+   the suite at `packages/doctrina-cli/test/integration.test.js`.
+3. [verified] `doctrina validate` exits 0 against this repository's own
+   `.doctrina/` tree (self-check) — implemented in
+   `packages/doctrina-cli/src/commands/validate.js`.
+4. [verified] `npm pack --dry-run` inside `packages/doctrina-cli/` lists
+   only `src/`, `templates/` (copied from `.doctrina/templates/` by the
+   `prepack` script), `README.md`, and `package.json` in the published
+   tarball — governed by `packages/doctrina-cli/package.json`.
+5. [verified] The runtime `dependencies` field of the package is absent
+   or `{}` — see `packages/doctrina-cli/package.json`.
 
 ## Out of scope for this spec
 
