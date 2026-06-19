@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 import process from "node:process";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
 import { parseArgs } from "./lib/args.js";
 import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
+import { cliVersion } from "./lib/version.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -27,11 +25,12 @@ import * as work from "./commands/work.js";
 import * as coverage from "./commands/coverage.js";
 import * as verify from "./commands/verify.js";
 import * as contract from "./commands/contract.js";
+import * as trace from "./commands/trace.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
   templates, skill, index: indexCmd, next, metrics, context, search,
-  intake, work, coverage, verify, contract,
+  intake, work, coverage, verify, contract, trace,
 };
 
 const TOP_HELP = `
@@ -51,6 +50,7 @@ Commands:
   contract check       Verify port collisions, env drift, referenced specs
   decision new         Create the next sequentially numbered ADR
   decision accept      Flip a proposed ADR to accepted
+  decision land        Record that an accepted ADR is now implemented (non-mutating)
   decision supersede   Create a new ADR that supersedes an existing one
   decision list        List ADRs with status, date, and title
   skill new            Scaffold an on-demand procedural memory skill
@@ -62,6 +62,7 @@ Commands:
   search               Search the artifact tree, grouped by category
   validate             Run schema and structural checks
   coverage             Report acceptance criteria with linked evidence (--strict gates)
+  trace                Report intent provenance: product intent → specs (--strict gates)
   verify               Run project-declared typecheck/test/build checks (the real gate)
   templates list       List the templates shipped by the installed CLI
   templates check      Compare the project against the recommended template shape
@@ -81,7 +82,7 @@ async function main(argv) {
   });
 
   if (flags.get("version") || flags.get("v")) {
-    console.log(readVersion());
+    console.log(cliVersion());
     return 0;
   }
 
@@ -116,16 +117,6 @@ async function main(argv) {
       console.error(c.gray(err.stack));
     }
     return 1;
-  }
-}
-
-function readVersion() {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  const pkgPath = path.resolve(here, "..", "package.json");
-  try {
-    return JSON.parse(readFileSync(pkgPath, "utf8")).version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
   }
 }
 

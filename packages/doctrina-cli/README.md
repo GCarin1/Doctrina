@@ -3,7 +3,7 @@
 > CLI for the Doctrina framework. The package is published as
 > `doctrina-cli`; the executable it installs is `doctrina`.
 
-**Status:** v0.3.0 — current release. Zero runtime dependencies
+**Status:** v0.4.0 — current release. Zero runtime dependencies
 (Node.js standard library only).
 
 ## Install
@@ -20,14 +20,19 @@ Requires Node.js 20.12 or later.
 
 ```
 doctrina init                              scaffold AGENTS.md + .doctrina/ in cwd
+doctrina intake [<file>]                   store the full description + bootstrap playbook (clarification gate)
+doctrina work "<prompt>"                   brief prompt -> scaffolded change + work playbook (clarification gate)
 doctrina spec new <capability>             create a capability spec
 doctrina spec list                         list specs with version, status, size
 doctrina change new <id> "<title>"         open a change proposal
 doctrina change apply <id>                 apply spec deltas (ADDED/REMOVED auto)
 doctrina change archive <id>               archive an applied change
 doctrina change diff <id>                  preview spec deltas (line diff for MODIFIED)
+doctrina contract new <name>               own the integration surface (ports, env, interfaces)
+doctrina contract check                    verify port collisions, env drift, referenced specs
 doctrina decision new "<title>"            create the next sequential ADR
 doctrina decision accept <num>             flip a proposed ADR to accepted
+doctrina decision land <num> [path...]     stamp an accepted ADR as implemented (non-mutating Landed:)
 doctrina decision supersede <num> "<t>"    supersede an existing ADR
 doctrina decision list                     list ADRs with status, date, title
 doctrina skill new <name>                  scaffold an on-demand procedural-memory skill
@@ -36,8 +41,11 @@ doctrina skill sync                        mirror skill frontmatter descriptions
 doctrina analyze <change-id>               inspect a change folder before applying
 doctrina clarify <path>                    smell-test a Markdown file for ambiguity (--all: tree)
 doctrina context [<capability>]            print the context pack in read order (--concat)
-doctrina search <term> [...]               search artifacts, grouped by category
+doctrina search <term> [...]               search artifacts, grouped by category (ranked)
 doctrina validate                          schema + artifact-existence checks
+doctrina coverage                          acceptance criteria with linked evidence (--strict gates)
+doctrina trace                             intent provenance: product intent -> specs (--strict gates)
+doctrina verify                            run project typecheck/test/build checks (the real gate)
 doctrina templates list                    enumerate shipped templates
 doctrina templates check                   compare project against recommended template shape
 doctrina templates update                  additive fixer for check findings (preview; --write applies)
@@ -109,8 +117,18 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
 16. Each skill's frontmatter description matches `index.json` (drift warn; `skill sync` fixes).
 17. EARS grammar shape per section in specs declaring `## Requirements (EARS)` (warn).
 18. Nested `AGENTS.md` files obey the root size caps (warn > 150, error > 200).
+19. No two ADR files share the same `NNNN` number (merge-collision error).
+20. `index.json` records a `framework_version` matching the running CLI
+    (stamp-divergence warn; `index rebuild` migrates it).
+21. Accepted ADRs anchor to reality via `Evidence:` and/or `Landed:`; cited
+    paths must exist on disk (drift warn).
 
 Exit code: 0 if no errors (warnings allowed), 1 otherwise.
+
+Two related read-only reports gate separately: `doctrina coverage`
+(each acceptance criterion cites a real test) and `doctrina trace`
+(each product intent has a capability, each capability traces to an
+intent). Both exit 1 under `--strict` for CI.
 
 ## Tests
 

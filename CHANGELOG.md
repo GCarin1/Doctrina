@@ -17,6 +17,57 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-19
+
+Framework-review follow-ups: tighten the framework's own hygiene where
+guardrails were missing, and start closing the intent→spec→test loop.
+
+### Added
+
+- `doctrina trace` — intent-provenance report (ADR 0006). Tag `product.md`
+  bullets with an anchor (`- [SC1] ...`) and declare `**Realizes:** SC1` on
+  the specs that deliver them; `trace` reports dropped intent (an anchor no
+  spec realizes), dangling realizes, and untraceable specs. Read-only;
+  `--strict` gates. Composes with `coverage` into the chain *intent →
+  capability → criterion → test*. It checks that the link is complete, not
+  that a criterion is faithful to the intent (that stays a human/LLM call).
+- Clarification gate (review Topic A): `doctrina intake` and `doctrina work`
+  flag a thin / under-specified description or prompt (too few words, no
+  concrete terms, or heavy vague/weasel wording) and ask the agent to clarify
+  with the user before converting to specs or writing deltas. Advisory, never
+  blocking — the intake/change is still captured.
+- `doctrina decision land <number> [path ...]` — record that an accepted
+  ADR is now implemented by stamping a non-mutating `Landed:` header (date
+  plus cited proof) without editing the immutable decision body. Closes the
+  gap where a design-time ADR ("Evidence: n/a — no implementation yet") had
+  no first-class way to note that reality caught up, short of a heavyweight
+  supersede.
+- `index.json` now records the `framework_version` that manages it: it is
+  stamped on every write and on `init`. `doctrina validate` warns when the
+  stamp is absent or behind the running CLI, and `doctrina index rebuild`
+  migrates it.
+- `doctrina validate` errors when two ADR files share the same `NNNN`
+  number — the merge-time allocation collision that previously let one
+  decision silently shadow another in the index.
+
+### Changed
+
+- `doctrina search` now ranks results best-first within each category
+  (heading / metadata-header / full-phrase / filename matches score higher)
+  and shows the highest-scoring lines per file, instead of returning the
+  first matches unordered.
+- `doctrina validate` evidence check now also reads the `Landed:` header:
+  an accepted ADR is only flagged "no evidence" when both `Evidence:` and
+  `Landed:` are empty, and dangling citations in either are reported.
+
+### Fixed
+
+- `doctrina change apply` left the change entry's `status` in `index.json`
+  at `proposed` while flipping `proposal.md` to `applied`, so the index
+  drifted from the tree in the whole apply→archive window (a pre-commit
+  `index rebuild --check` would fail there). The entry now mirrors the
+  proposal, for both delta and metadata-only applies.
+
 ## [0.3.0] — 2026-06-16
 
 Closes the gap between what a spec promises and what the code/tests prove.

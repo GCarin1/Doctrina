@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "{{PROJECT_NAME}}",
-  "framework_version": "0.0.0",
+  "framework_version": "{{FRAMEWORK_VERSION}}",
   "last_updated": "{{DATE}}",
   "artifacts": {
     "product": {

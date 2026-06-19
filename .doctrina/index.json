@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina",
-  "framework_version": "0.1.0",
-  "last_updated": "2026-06-17",
+  "framework_version": "0.4.0",
+  "last_updated": "2026-06-19",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -56,8 +56,11 @@
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
         "version": "0.1.0",
-        "last_updated": "2026-06-03",
-        "implementation": "implemented"
+        "last_updated": "2026-06-19",
+        "implementation": "implemented",
+        "realizes": [
+          "SC1"
+        ]
       }
     ],
     "decisions": [
@@ -95,6 +98,14 @@
         "title": "Agent-executed playbooks for `intake` and `work`",
         "status": "accepted",
         "date": "2026-06-12"
+      },
+      {
+        "id": "0006",
+        "path": ".doctrina/decisions/0006-intent-provenance-trace-specs-to-product-intent.md",
+        "title": "Intent provenance — trace specs to product intent",
+        "status": "accepted",
+        "date": "2026-06-19",
+        "landed": "2026-06-19 — `packages/doctrina-cli/src/commands/trace.js`, `packages/doctrina-cli/src/lib/scan.js`"
       }
     ],
     "changes": [],

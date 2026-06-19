@@ -28,7 +28,12 @@ Out of scope (deferred or rejected):
 
 ## Success criteria
 
-<!-- How you will know this project is working. Prefer measurable signals. -->
+<!--
+How you will know this project is working. Prefer measurable signals.
+Tag a bullet with a short stable id — "- [SC1] ..." — to make it an intent
+anchor that capability specs cite via "**Realizes:** SC1" (`doctrina trace`;
+ADR 0006). Untagged bullets are fine; anchors are opt-in.
+-->
 
 ## Delivery order (walking skeleton)
 

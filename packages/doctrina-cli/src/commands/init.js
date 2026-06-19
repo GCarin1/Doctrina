@@ -3,10 +3,11 @@ import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
 import { today } from "../lib/dates.js";
+import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { ask } from "../lib/prompt.js";
-import { writeIntakeFile, printBootstrapPlaybook } from "./intake.js";
+import { writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "./intake.js";
 
 const SUPPORTED_AGENTS = [
   "claude",
@@ -90,6 +91,10 @@ export async function run(_positional, flags) {
     PROJECT_DESCRIPTION: description,
     DATE: date,
     AGENTS_MD_PATH: "AGENTS.md",
+    // Stamp the framework version into the scaffolded index.json. init writes
+    // it straight from the template (bypassing idx.save), so the token is the
+    // stamp point here. (3.6)
+    FRAMEWORK_VERSION: cliVersion(),
   };
 
   // Root AGENTS.md — with optional --from base content prepended.
@@ -154,6 +159,7 @@ export async function run(_positional, flags) {
     console.log(`${c.cyan(".doctrina/product.md")} and capability specs. Any AGENTS.md-aware agent`);
     console.log(`runs it on its own; reprint anytime with ${c.cyan("doctrina intake")}.`);
     console.log("");
+    warnIfThinIntake(intakeBody);
     printBootstrapPlaybook(projectRoot);
   } else {
     console.log(`Next: edit ${c.cyan("AGENTS.md")} and ${c.cyan(".doctrina/product.md")} for your project.`);

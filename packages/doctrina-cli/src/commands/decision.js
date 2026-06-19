@@ -8,7 +8,7 @@ import { today, slugify, padNumber } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 
-const SUBCOMMANDS = ["new", "supersede", "accept", "list"];
+const SUBCOMMANDS = ["new", "supersede", "accept", "land", "list"];
 
 export async function run(positional, _flags) {
   const sub = positional[0];
@@ -19,6 +19,8 @@ export async function run(positional, _flags) {
       return decisionSupersede(positional.slice(1));
     case "accept":
       return decisionAccept(positional.slice(1));
+    case "land":
+      return decisionLand(positional.slice(1));
     case "list":
       return decisionList();
     default:
@@ -198,6 +200,81 @@ function decisionAccept(args) {
   return 0;
 }
 
+// Record that an accepted ADR is now implemented and verified, without
+// editing the immutable body. Mutates ONLY the **Landed:** header line (the
+// same "headers are updatable, the decision prose is not" pattern that accept
+// and supersede already use), stamping today's date plus any cited proof
+// paths. This closes the gap where a design-time ADR ("Evidence: n/a — no
+// implementation yet") had no first-class way to record that reality caught up
+// short of a heavyweight supersede. (3.4)
+function decisionLand(args) {
+  const target = args[0];
+  if (!target) {
+    console.error(c.red("error:") + " decision land requires the target ADR number (e.g. 0003)");
+    return 2;
+  }
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+
+  const padded = padNumber(parseInt(target, 10));
+  const adrDir = path.join(projectRoot, ".doctrina", "decisions");
+  const file = walk(adrDir).find((f) => path.basename(f).startsWith(`${padded}-`));
+  if (!file) {
+    console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
+    return 1;
+  }
+  const text = read(file);
+  const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
+  if (!statusMatch) {
+    console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, file)} has no Status: header`);
+    return 1;
+  }
+  const status = statusMatch[1].trim().toLowerCase();
+  if (status !== "accepted") {
+    console.error(
+      c.red("error:") +
+        ` ADR ${padded} is "${statusMatch[1].trim()}", not "accepted" — accept it before recording that it landed`,
+    );
+    return 1;
+  }
+
+  const date = today();
+  const proofPaths = args.slice(1).filter(Boolean);
+  const cited = proofPaths.map((p) => `\`${p}\``).join(", ");
+  const landedValue = cited ? `${date} — ${cited}` : date;
+
+  // Rewrite the existing Landed header, or insert one (after Evidence, else
+  // after Status) for ADRs that predate the field. The body stays untouched.
+  let updated;
+  if (/^-\s+\*\*Landed:\*\*/m.test(text)) {
+    updated = text.replace(/^(-\s+\*\*Landed:\*\*)\s+.*$/m, `$1 ${landedValue}`);
+  } else if (/^-\s+\*\*Evidence:\*\*.*$/m.test(text)) {
+    updated = text.replace(/^(-\s+\*\*Evidence:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
+  } else {
+    updated = text.replace(/^(-\s+\*\*Status:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
+  }
+  write(file, updated, { force: true });
+  console.log(c.green("landed") + ` ${relPath(projectRoot, file)} on ${date}`);
+
+  const index = idx.load(projectRoot);
+  // Store the same value the header now carries, so the index matches what
+  // `index rebuild` would derive from the file (no perpetual drift).
+  idx.updateDecision(index, padded, () => ({ landed: landedValue }));
+  idx.touch(index, date);
+  idx.save(projectRoot, index);
+  console.log(c.green("indexed") + ` decision ${padded} landed`);
+
+  // Parity with `validate`: cited proof that does not resolve is a dangling
+  // citation, surfaced now rather than at the next validate.
+  for (const p of proofPaths) {
+    const candidates = [path.resolve(path.dirname(file), p), path.resolve(projectRoot, p)];
+    if (!candidates.some(exists)) {
+      console.log(c.yellow("warn:") + ` cited proof \`${p}\` not found on disk`);
+    }
+  }
+  return 0;
+}
+
 function decisionList() {
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
@@ -259,6 +336,11 @@ Subcommands:
   new "<title>"                        Create the next sequentially numbered ADR
   accept <number>                      Flip a proposed ADR to accepted (rewrites
                                        only the Status: header) and update the index
+  land <number> [path ...]             Stamp an accepted ADR as implemented:
+                                       rewrites only the Landed: header with today's
+                                       date plus any cited proof paths. The decision
+                                       body stays immutable. Satisfies the accepted-
+                                       ADR evidence check without a supersede.
   supersede <number> "<new title>"     Create a new ADR that supersedes the target
                                        and rewrite the target's Status: header
   list                                 One line per ADR: number, status, date,

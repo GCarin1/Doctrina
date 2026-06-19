@@ -78,7 +78,7 @@ Out of scope (deferred or rejected):
 
 A Doctrina adoption is successful when, after one quarter:
 
-- Rework rate (DORA 5th metric) is lower than the pre-adoption baseline.
-- PR review time has not grown by more than 50% (Faros 2025 paradox limit).
-- No artifact category is consistently unread by humans or agents.
-- The team can answer "why was X decided?" by pointing to a single ADR.
+- [SC1] Rework rate (DORA 5th metric) is lower than the pre-adoption baseline.
+- [SC2] PR review time has not grown by more than 50% (Faros 2025 paradox limit).
+- [SC3] No artifact category is consistently unread by humans or agents.
+- [SC4] The team can answer "why was X decided?" by pointing to a single ADR.

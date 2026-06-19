@@ -17,6 +17,10 @@ An "active" spec left at "planned" is an inventory claim with nothing
 behind it, and `doctrina validate` warns. To record a deliberate gap and
 silence the warning, add a note after the value, e.g.
 "**Implementation:** planned — backend deferred to Q3, see ADR 0007".
+
+Optional: trace this capability to product intent by adding a header
+"**Realizes:** SC1, SC3" that names the product.md anchors it delivers
+(`doctrina trace`; ADR 0006).
 -->
 
 ## Purpose
