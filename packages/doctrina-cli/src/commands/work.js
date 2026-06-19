@@ -4,6 +4,7 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { assessBrief } from "../lib/clarity.js";
 import { changeNew } from "./change.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -58,9 +59,10 @@ export async function run(positional, flags) {
 
   const matches = pinned ? [] : rankCapabilities(projectRoot, prompt);
   const capability = pinned ?? matches[0]?.id ?? null;
+  const clarity = assessBrief(prompt, { kind: "prompt" });
 
   console.log("");
-  printPlaybook(projectRoot, { id, prompt, pinned, matches, capability });
+  printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity });
   return 0;
 }
 
@@ -150,11 +152,20 @@ export function rankCapabilities(projectRoot, prompt) {
   return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, 3);
 }
 
-function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability }) {
+function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity }) {
   const capToken = capability ?? "<capability>";
   console.log(c.bold(`Work playbook — change ${id}`) + c.gray(" — agent-executed (ADR 0005)."));
   console.log("");
   console.log(`Prompt: "${prompt}"`);
+
+  // Clarification gate (review Topic A): a thin prompt is the moment to ask
+  // the user, not to invent a spec. Advisory — the change is still scaffolded
+  // (it is a draft), but the agent is told to resolve the gaps first.
+  if (clarity?.thin) {
+    console.log("");
+    console.log(c.yellow("⚠ thin prompt — clarify with the user before writing spec deltas:"));
+    for (const r of clarity.reasons) console.log(`    - ${r}`);
+  }
 
   if (pinned) {
     const hasSpec = isFile(path.join(projectRoot, ".doctrina", "specs", pinned, "spec.md"));
@@ -214,7 +225,8 @@ Turn a brief prompt into a scaffolded change plus the work playbook the
 host AI agent executes (see ADR 0005). The CLI derives a sequential
 change id (NNNN-<slug>) from the prompt, opens the change folder,
 records the prompt under the proposal's "## Why", ranks existing specs
-by term overlap as a capability hint, and prints the ordered steps:
+by term overlap as a capability hint, flags a thin/under-specified prompt
+so you clarify before writing deltas (advisory), and prints the steps:
 context → spec delta → tasks → implement → analyze → apply → verify
 (verify + coverage) → archive → validate. No natural-language
 interpretation happens in the CLI.

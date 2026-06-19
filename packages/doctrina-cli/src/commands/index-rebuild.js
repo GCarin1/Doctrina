@@ -3,6 +3,7 @@ import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
 import * as idx from "../lib/index-json.js";
 import { deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
+import { cliVersion } from "../lib/version.js";
 import { today } from "../lib/dates.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -42,6 +43,11 @@ function rebuild(flags) {
   }
 
   const derived = deriveIndex(projectRoot, current);
+  // Migrate the framework stamp to the running CLI (3.6). deriveIndex carries
+  // the old value over (so `next` does not nag on a version-only difference);
+  // overriding it here lets a stale stamp count as drift, so `index rebuild`
+  // both reports and fixes it instead of short-circuiting on "nothing to do".
+  derived.framework_version = cliVersion();
 
   if (indexesMatch(derived, current)) {
     console.log(c.green("ok") + " index.json matches the tree (nothing to do)");
@@ -72,6 +78,9 @@ function rebuild(flags) {
 function describeDrift(current, derived) {
   const lines = [];
   if (!current) return ["index.json missing or unreadable"];
+  if ((current.framework_version ?? null) !== (derived.framework_version ?? null)) {
+    lines.push(`framework_version: ${current.framework_version ?? "unset"} -> ${derived.framework_version}`);
+  }
   const categories = ["specs", "decisions", "changes", "changes_archive", "skills"];
   for (const cat of categories) {
     const cur = new Map((current.artifacts?.[cat] ?? []).map((e) => [e.id, e]));

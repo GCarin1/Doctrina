@@ -2,6 +2,7 @@ import path from "node:path";
 import process from "node:process";
 import { exists, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { listHeader } from "../lib/scan.js";
+import { assessBrief } from "../lib/clarity.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
@@ -69,8 +70,21 @@ export async function run(positional, flags) {
   writeIntakeFile(projectRoot, { body, source, projectName, date: today(), force });
   console.log(c.green("created") + ` ${relPath(projectRoot, intakePath)}`);
   console.log("");
+  warnIfThinIntake(body);
   printBootstrapPlaybook(projectRoot);
   return 0;
+}
+
+// Clarification gate (review Topic A). A description too thin to spec from is
+// the moment to ask the user, not to let the agent invent requirements. Prints
+// the specific gaps before the bootstrap playbook; advisory, never blocking —
+// the intake is still captured verbatim (the playbook step 6 resolves it).
+export function warnIfThinIntake(body) {
+  const assessment = assessBrief(body, { kind: "intake" });
+  if (!assessment.thin) return;
+  console.log(c.yellow("⚠ thin intake — clarify with the user before converting to specs:"));
+  for (const reason of assessment.reasons) console.log(`    - ${reason}`);
+  console.log("");
 }
 
 // Shared with `init --intake`. Writes the intake verbatim under a small
@@ -158,7 +172,8 @@ Store the full project description verbatim at .doctrina/intake.md and
 print the bootstrap playbook — the ordered instruction sequence the host
 AI agent executes to convert the intake into product.md content and
 capability specs (see ADR 0005). The CLI itself does no natural-language
-interpretation.
+interpretation. A thin/under-specified description is flagged so the agent
+clarifies with the user before converting (advisory, never blocking).
 
 Forms:
   doctrina intake <file>              Ingest a description file

@@ -3,6 +3,8 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, walk } from "../lib/fs-ops.js";
 import * as idx from "../lib/index-json.js";
+import { SCHEMA_VERSION } from "../lib/index-json.js";
+import { cliVersion } from "../lib/version.js";
 import { c } from "../lib/colors.js";
 import { parseFrontmatter } from "./skill.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
@@ -45,8 +47,20 @@ export async function run(_positional, _flags) {
   }
 
   if (index) {
-    if (index.$schema_version !== "0.1.0") {
-      warnings.push(`index.json $schema_version is "${index.$schema_version}" (expected "0.1.0")`);
+    if (index.$schema_version !== SCHEMA_VERSION) {
+      warnings.push(`index.json $schema_version is "${index.$schema_version}" (expected "${SCHEMA_VERSION}")`);
+    }
+    // framework_version stamp divergence (3.6). The index records which CLI
+    // manages it; a stamp behind (or absent vs.) the running CLI means the
+    // tree may predate the current schema. `index rebuild` migrates it.
+    const runningVersion = cliVersion();
+    if (!index.framework_version) {
+      warnings.push(`index.json has no framework_version (run \`doctrina index rebuild\` to stamp it)`);
+    } else if (index.framework_version !== runningVersion) {
+      warnings.push(
+        `index.json framework_version is "${index.framework_version}" but the running CLI is ` +
+          `${runningVersion} (run \`doctrina index rebuild\` to stamp/migrate)`,
+      );
     }
     if (!index.artifacts) {
       errors.push("index.json missing artifacts object");
@@ -79,10 +93,20 @@ export async function run(_positional, _flags) {
 
   // 5. ADRs have parseable Status: header
   const adrDir = path.join(projectRoot, ".doctrina", "decisions");
+  // Track which files claim each NNNN so a merge-time collision (two branches
+  // both allocating the same number) becomes a loud error rather than one ADR
+  // silently shadowing the other (C2).
+  const adrByNumber = new Map();
   if (isDir(adrDir)) {
     for (const f of walk(adrDir)) {
       if (!f.endsWith(".md")) continue;
       const base = path.basename(f);
+      const numMatch = base.match(/^(\d{4})-/);
+      const num = numMatch ? numMatch[1] : null;
+      if (num) {
+        if (!adrByNumber.has(num)) adrByNumber.set(num, []);
+        adrByNumber.get(num).push(relPath(projectRoot, f));
+      }
       // ADR filenames must be NNNN-slug.md (four digits). The entire ADR
       // toolchain — decision new/accept/supersede, index derivation, and
       // the orphan check below — keys off this shape; a file like
@@ -105,32 +129,49 @@ export async function run(_positional, _flags) {
       // 5b. ADR evidence drift. A decision is only true if reality reflects
       //     it; an accepted ADR that points at nothing — or at a file that
       //     no longer exists — is the classic "ADR decrees X, the code
-      //     never did X". Only ADRs that adopt the **Evidence:** header are
-      //     checked, so legacy/process ADRs that opt out stay quiet.
+      //     never did X". Two header fields anchor a decision to reality:
+      //     **Evidence:** (cited at any point) and **Landed:** (the
+      //     non-mutating "this is now implemented and verified here" stamp,
+      //     written by `doctrina decision land`; 3.4). Both are checked for
+      //     dangling citations; an accepted ADR is only flagged bare when
+      //     BOTH are empty. ADRs that adopt neither header opt out entirely.
       const evidence = listHeader(text, "Evidence");
-      if (evidence !== null) {
-        const adrStatus = (listHeader(text, "Status") ?? "").toLowerCase();
-        const trimmed = evidence.trim();
-        const bare = trimmed === "—" || trimmed === "-" || trimmed === "";
-        if (bare) {
-          if (adrStatus === "accepted") {
+      const landed = listHeader(text, "Landed");
+      const isBare = (v) => {
+        const t = (v ?? "").trim();
+        return t === "" || t === "—" || t === "-";
+      };
+      for (const [field, value] of [["Evidence", evidence], ["Landed", landed]]) {
+        if (value === null || isBare(value)) continue;
+        for (const token of extractBacktickPaths(value)) {
+          const candidates = [path.resolve(path.dirname(f), token), path.resolve(projectRoot, token)];
+          if (!candidates.some(exists)) {
             warnings.push(
-              `${relPath(projectRoot, f)}: accepted ADR cites no implementation evidence ` +
-                `(link the file(s) that prove it, or note "n/a — <why>"); a decision with ` +
-                `nothing behind it may be drift waiting to be superseded`,
+              `${relPath(projectRoot, f)}: ${field} cites \`${token}\` which is missing on disk — ` +
+                `the decision may have drifted from the code (update it or supersede the ADR)`,
             );
           }
-        } else {
-          for (const token of extractBacktickPaths(evidence)) {
-            const candidates = [path.resolve(path.dirname(f), token), path.resolve(projectRoot, token)];
-            if (!candidates.some(exists)) {
-              warnings.push(
-                `${relPath(projectRoot, f)}: Evidence cites \`${token}\` which is missing on disk — ` +
-                  `the decision may have drifted from the code (update the evidence or supersede the ADR)`,
-              );
-            }
-          }
         }
+      }
+      const adrStatus = (listHeader(text, "Status") ?? "").toLowerCase();
+      if (adrStatus === "accepted" && evidence !== null && isBare(evidence) && isBare(landed)) {
+        warnings.push(
+          `${relPath(projectRoot, f)}: accepted ADR cites no implementation evidence ` +
+            `(link the file(s) that prove it, run \`doctrina decision land ${num ?? "NNNN"}\` once ` +
+            `it ships, or note "n/a — <why>"); a decision with nothing behind it may be drift ` +
+            `waiting to be superseded`,
+        );
+      }
+    }
+
+    // 5c. Duplicate ADR numbers (C2).
+    for (const [num, files] of adrByNumber) {
+      if (files.length > 1) {
+        errors.push(
+          `ADR number ${num} is claimed by ${files.length} files (${files.join(", ")}) — ` +
+            `two branches likely allocated it concurrently; renumber all but one ` +
+            `(the index keys decisions by number, so duplicates silently shadow each other)`,
+        );
       }
     }
   }

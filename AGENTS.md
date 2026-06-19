@@ -13,7 +13,7 @@ Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI develop
 - Targets: 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI, Cursor,
   GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules)
 - Languages: documentation EN primary, PT translated
-- Status: v0.3.0 — released
+- Status: v0.4.0 — released
 
 ## Stack and tooling
 

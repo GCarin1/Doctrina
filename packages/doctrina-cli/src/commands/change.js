@@ -144,6 +144,7 @@ function changeApply(args, _flags) {
   // Flip proposal status from "proposed" to "applied" when fully successful.
   // Zero-delta changes are trivially successful (no work to fail), so they
   // also flip — otherwise metadata-only changes are stuck at "proposed".
+  let flippedToApplied = false;
   if (errors === 0 && manual === 0) {
     const proposalPath = path.join(changeDir, "proposal.md");
     if (exists(proposalPath)) {
@@ -155,29 +156,40 @@ function changeApply(args, _flags) {
       if (updated !== txt) {
         write(proposalPath, updated, { force: true });
         console.log(c.green("status") + " proposal.md → applied");
+        flippedToApplied = true;
       }
     }
   }
 
-  // Update index for ADDED/REMOVED that affected specs
-  if (writes > 0) {
+  // Update the index when specs changed (ADDED/REMOVED) and/or the proposal
+  // flipped to applied. The change entry's status must mirror the proposal —
+  // the same value `index rebuild` derives from the file — or the index
+  // drifts from the tree in the apply→archive window (caught by
+  // `index rebuild --check`, e.g. in the pre-commit hook).
+  if (writes > 0 || flippedToApplied) {
     const index = idx.load(projectRoot);
-    for (const deltaPath of deltaFiles) {
-      const text = read(deltaPath);
-      const op = parseOperation(text);
-      const capability = parseCapabilityFromDelta(text, deltaPath);
-      if (!capability) continue;
-      if (op === "ADDED") {
-        idx.addSpec(index, {
-          id: capability,
-          path: `.doctrina/specs/${capability}/spec.md`,
-          status: "active",
-          version: "0.1.0",
-          last_updated: date,
-        });
-      } else if (op === "REMOVED") {
-        idx.removeSpec(index, capability);
+    if (writes > 0) {
+      for (const deltaPath of deltaFiles) {
+        const text = read(deltaPath);
+        const op = parseOperation(text);
+        const capability = parseCapabilityFromDelta(text, deltaPath);
+        if (!capability) continue;
+        if (op === "ADDED") {
+          idx.addSpec(index, {
+            id: capability,
+            path: `.doctrina/specs/${capability}/spec.md`,
+            status: "active",
+            version: "0.1.0",
+            last_updated: date,
+          });
+        } else if (op === "REMOVED") {
+          idx.removeSpec(index, capability);
+        }
       }
+    }
+    if (flippedToApplied) {
+      const entry = index.artifacts.changes.find((ch) => ch.id === id);
+      if (entry) entry.status = "applied";
     }
     idx.touch(index, date);
     idx.save(projectRoot, index);

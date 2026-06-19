@@ -81,6 +81,12 @@ export function deriveIndex(projectRoot, current) {
     const implRaw = specHeader(text, "Implementation");
     const impl = implRaw ? implRaw.trim() : prev?.implementation;
     if (impl) entry.implementation = impl;
+    // Realizes: the product intent anchors this capability delivers (ADR
+    // 0006). Stored as an id list so the provenance link is queryable, not
+    // just prose. Header wins over the previous index, like Implementation.
+    const realizesRaw = specHeader(text, "Realizes");
+    const realizes = realizesRaw ? (realizesRaw.match(/[A-Z]+\d+/g) ?? []) : prev?.realizes;
+    if (realizes && realizes.length) entry.realizes = realizes;
     out.artifacts.specs.push(entry);
   }
 
@@ -104,6 +110,8 @@ export function deriveIndex(projectRoot, current) {
     if (supersedes && supersedes !== "—") entry.supersedes = supersedes;
     const supersededBy = listHeader(text, "Superseded by");
     if (supersededBy && supersededBy !== "—") entry.superseded_by = supersededBy;
+    const landed = listHeader(text, "Landed");
+    if (landed && landed !== "—") entry.landed = landed;
     out.artifacts.decisions.push(entry);
   }
 

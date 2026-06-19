@@ -215,6 +215,42 @@ test("change apply with zero deltas still flips proposal to applied", () => {
   }
 });
 
+test("change apply keeps the index in sync with the tree (no apply→archive drift)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-x", "do x"], { cwd: tmp });
+    const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-x", "specs", "core", "delta.md");
+    mkdirSync(path.dirname(deltaPath), { recursive: true });
+    writeFileSync(
+      deltaPath,
+      "# Spec Delta — capability: core\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/core/spec.md`\n\n---\n\n# Spec — Core\n\nbody\n",
+    );
+    runCli(["change", "apply", "0001-x"], { cwd: tmp });
+    // The change entry's status must follow the proposal (applied), or the
+    // index drifts from the tree until archive.
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    assert.equal(index.artifacts.changes.find((ch) => ch.id === "0001-x").status, "applied");
+    const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
+    assert.equal(check.status, 0, check.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change apply with zero deltas also keeps the index in sync", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-meta", "metadata only"], { cwd: tmp });
+    runCli(["change", "apply", "0001-meta"], { cwd: tmp });
+    const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
+    assert.equal(check.status, 0, check.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("hooks install writes an executable pre-commit hook", () => {
   const tmp = makeTempProject();
   try {
@@ -1756,6 +1792,313 @@ test("next surfaces a pending intake before everything else", () => {
     writeFileSync(intakePath, readFileSync(intakePath, "utf8").replace("**Status:** pending", "**Status:** converted"));
     r = runCli(["next"], { cwd: tmp });
     assert.ok(!/pending intake/.test(r.stdout), "converted intake must not be flagged");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- 3.6: framework_version is stamped, flagged, and migrated ---
+
+const PKG_VERSION = JSON.parse(readFileSync(path.resolve(here, "..", "package.json"), "utf8")).version;
+
+test("init stamps the running framework_version into index.json", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    assert.equal(index.framework_version, PKG_VERSION);
+    assert.notEqual(index.framework_version, "0.0.0");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate warns when index.json framework_version is behind the CLI", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const indexPath = path.join(tmp, ".doctrina", "index.json");
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    index.framework_version = "0.0.1";
+    writeFileSync(indexPath, JSON.stringify(index, null, 2) + "\n");
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0); // warning only
+    assert.match(r.stdout, /framework_version is "0\.0\.1"/);
+    assert.match(r.stdout, /index rebuild/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("index rebuild migrates a stale framework_version stamp", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const indexPath = path.join(tmp, ".doctrina", "index.json");
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    index.framework_version = "0.0.1";
+    writeFileSync(indexPath, JSON.stringify(index, null, 2) + "\n");
+
+    const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
+    assert.equal(check.status, 1);
+    assert.match(check.stdout, /framework_version: 0\.0\.1 ->/);
+
+    const rebuild = runCli(["index", "rebuild"], { cwd: tmp });
+    assert.equal(rebuild.status, 0, rebuild.stderr || rebuild.stdout);
+    const after = JSON.parse(readFileSync(indexPath, "utf8"));
+    assert.equal(after.framework_version, PKG_VERSION);
+
+    const clean = runCli(["index", "rebuild", "--check"], { cwd: tmp });
+    assert.equal(clean.status, 0, clean.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- C2: duplicate ADR numbers are a loud error ---
+
+test("validate errors on duplicate ADR numbers (merge collision)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "First take"], { cwd: tmp }); // 0001-first-take.md
+    // Simulate a second branch that also allocated 0001 with a different slug.
+    writeFileSync(
+      path.join(tmp, ".doctrina", "decisions", "0001-colliding-take.md"),
+      "# ADR 0001 — Colliding take\n\n- **Status:** accepted\n- **Date:** 2026-06-13\n",
+    );
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /ADR number 0001 is claimed by 2 files/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- 3.4: decision land — non-mutating "this decision is now real" stamp ---
+
+test("decision land stamps a non-mutating Landed header and indexes it", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp }); // 0001
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    // AGENTS.md exists at the project root — cite it as the proof.
+    const r = runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const adr = readFileSync(path.join(tmp, ".doctrina", "decisions", "0001-adopt-postgres.md"), "utf8");
+    assert.match(adr, /- \*\*Landed:\*\*\s+\d{4}-\d{2}-\d{2} — `AGENTS\.md`/);
+    // The decision itself is untouched — still accepted.
+    assert.match(adr, /- \*\*Status:\*\*\s+accepted/);
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    const entry = index.artifacts.decisions.find((d) => d.id === "0001");
+    // The index mirrors the header (date + cited proof) so it does not drift
+    // from what `index rebuild` derives from the file.
+    assert.match(entry.landed, /^\d{4}-\d{2}-\d{2} — `AGENTS\.md`$/);
+    assert.ok(!/not found on disk/.test(r.stdout), "AGENTS.md exists, so no dangling-proof warning");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("index rebuild stays clean after decision land (no landed drift)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
+    const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
+    assert.equal(check.status, 0, check.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("decision land refuses an ADR that is not accepted", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Still proposed"], { cwd: tmp }); // 0001, proposed
+    const r = runCli(["decision", "land", "0001"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /not "accepted"/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate stops flagging bare evidence once an accepted ADR has landed", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    // Accepted ADR with bare Evidence and bare Landed → validate warns.
+    let r = runCli(["validate"], { cwd: tmp });
+    assert.match(r.stdout, /accepted ADR cites no implementation evidence/);
+    // Landing it against real proof anchors the decision → warning clears.
+    runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
+    r = runCli(["validate"], { cwd: tmp });
+    assert.ok(!/accepted ADR cites no implementation evidence/.test(r.stdout), r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- P3: search ranks relevant files first ---
+
+test("search ranks heading and repeated matches above a single body mention", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "alpha"], { cwd: tmp });
+    runCli(["spec", "new", "bravo"], { cwd: tmp });
+    const alphaPath = path.join(tmp, ".doctrina", "specs", "alpha", "spec.md");
+    const bravoPath = path.join(tmp, ".doctrina", "specs", "bravo", "spec.md");
+    writeFileSync(alphaPath, readFileSync(alphaPath, "utf8") + "\nThe system uses widget once.\n");
+    writeFileSync(
+      bravoPath,
+      readFileSync(bravoPath, "utf8") + "\n## Widget design\n\nwidget and widget and widget.\n",
+    );
+
+    const r = runCli(["search", "widget"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const ai = r.stdout.indexOf("specs/alpha/spec.md");
+    const bi = r.stdout.indexOf("specs/bravo/spec.md");
+    assert.ok(ai >= 0 && bi >= 0, r.stdout);
+    assert.ok(bi < ai, "the higher-scoring file (heading + repeats) must rank first\n" + r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- ADR 0006: doctrina trace — intent provenance ---
+
+function writeSpec(tmp, cap, { status = "draft", realizes } = {}) {
+  const dir = path.join(tmp, ".doctrina", "specs", cap);
+  mkdirSync(dir, { recursive: true });
+  const lines = [
+    `# Spec — ${cap}`,
+    "",
+    `**Capability:** ${cap}`,
+    `**Status:** ${status}`,
+    "**Last updated:** 2026-06-19",
+    "**Version:** 0.1.0",
+  ];
+  if (realizes) lines.push(`**Realizes:** ${realizes}`);
+  lines.push("", "## Purpose", "", "body", "");
+  writeFileSync(path.join(dir, "spec.md"), lines.join("\n"));
+}
+
+test("trace nudges (exit 0) when no intent-provenance markers exist", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["trace"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /no intent-provenance markers found/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("trace reports realized / dropped / dangling / untraceable and --strict gates", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // Anchor two intents (any `- [ID]` bullet in product.md is an anchor).
+    const productPath = path.join(tmp, ".doctrina", "product.md");
+    writeFileSync(
+      productPath,
+      readFileSync(productPath, "utf8") + "\n- [SC1] first intent\n- [SC2] second intent\n",
+    );
+    writeSpec(tmp, "alpha", { status: "active", realizes: "SC1" }); // realized
+    writeSpec(tmp, "bravo", { status: "active", realizes: "SC9" }); // dangling
+    writeSpec(tmp, "charlie", { status: "active" }); // untraceable
+
+    const r = runCli(["trace"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /SC1\s+✓ realized by: alpha/);
+    assert.match(r.stdout, /SC2\s+✗ dropped/);
+    assert.match(r.stdout, /dangling: spec "bravo" realizes SC9/);
+    assert.match(r.stdout, /untraceable specs \(no Realizes:\): charlie/);
+    assert.match(r.stdout, /1 of 2 intent anchors realized/);
+
+    // --strict turns any provenance break into a non-zero exit.
+    const strict = runCli(["trace", "--strict"], { cwd: tmp });
+    assert.equal(strict.status, 1);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("index rebuild captures a spec's Realizes ids", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    writeSpec(tmp, "billing", { status: "active", realizes: "SC1, SC3" });
+    const r = runCli(["index", "rebuild"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    const entry = index.artifacts.specs.find((s) => s.id === "billing");
+    assert.deepEqual(entry.realizes, ["SC1", "SC3"]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- Clarification gate (review Topic A): intake + work flag thin input ---
+
+test("work flags a thin prompt (advisory, still scaffolds)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["work", "fix it"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout); // advisory, non-blocking
+    assert.match(r.stdout, /thin prompt — clarify/);
+    // The change is still scaffolded — the gate surfaces the gap, it doesn't block.
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes")));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("work stays quiet on a detailed prompt", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(
+      ["work", "add rate limiting of 100 requests per minute returning HTTP 429"],
+      { cwd: tmp },
+    );
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.ok(!/thin prompt/.test(r.stdout), r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("intake flags a thin description and stays quiet on a detailed one", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const thin = runCli(["intake", "--text", "build the thing"], { cwd: tmp });
+    assert.equal(thin.status, 0, thin.stderr || thin.stdout);
+    assert.match(thin.stdout, /thin intake — clarify/);
+
+    const detailed = runCli(
+      [
+        "intake",
+        "--force",
+        "--text",
+        "A CLI that ingests a project description, converts it into a product brief and EARS " +
+          "capability specs, validates artifact consistency, and tracks decisions as immutable ADRs.",
+      ],
+      { cwd: tmp },
+    );
+    assert.equal(detailed.status, 0, detailed.stderr || detailed.stdout);
+    assert.ok(!/thin intake/.test(detailed.stdout), detailed.stdout);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

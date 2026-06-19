@@ -15,9 +15,9 @@ the exit-code conventions across the surface. The surface comprises
 `intake` (with optional `--text`), `work` (with optional
 `--capability`/`--id`), `spec new|list` (with
 optional `--bug`), `change new|apply|archive|diff`,
-`decision new|accept|supersede|list`, `skill new|list|sync`,
+`decision new|accept|land|supersede|list`, `skill new|list|sync`,
 `contract new|list|check`, `analyze`, `clarify` (with optional `--all`),
-`validate`, `coverage` (with optional `--strict`),
+`validate`, `coverage` and `trace` (each with optional `--strict`),
 `verify` (with optional `--init`/`--list`),
 `templates list|check|update`, `hooks install`, `index rebuild`,
 `next`, `metrics`, `context`, `search`, `--help`, and `--version`.
@@ -113,6 +113,9 @@ optional `--bug`), `change new|apply|archive|diff`,
 - When `doctrina decision supersede <number>` runs, the system shall
   create a new ADR that supersedes the target, and update only the
   `Status:` and `Superseded by:` headers of the target ADR.
+- When `doctrina decision land <number> [path ...]` runs against an
+  accepted ADR, the system shall stamp the `Landed:` header with the date
+  and cited proof, leave the decision body untouched, and refuse otherwise.
 - When `doctrina validate` runs, the system shall print every error and
   warning it finds and exit 0 only when zero errors are present.
 - When `doctrina validate` runs, the system shall emit a warning for
@@ -122,6 +125,12 @@ optional `--bug`), `change new|apply|archive|diff`,
   `.doctrina/specs/` and `.doctrina/decisions/` and emit a warning
   for any file present on disk but not referenced in
   `.doctrina/index.json` (orphan detection; warnings only).
+- When `doctrina validate` runs, the system shall error when two ADR files
+  share the same `NNNN` number (a merge-time allocation collision; the
+  index keys decisions by number).
+- When `doctrina validate` runs, the system shall warn when
+  `.doctrina/index.json` records a `framework_version` absent or behind the
+  running CLI (stamp divergence; warnings only).
 - When `doctrina hooks install` runs inside a git repository, the
   system shall write `.git/hooks/pre-commit` from the hooks
   template, mark it executable, and refuse to overwrite an
@@ -212,11 +221,11 @@ optional `--bug`), `change new|apply|archive|diff`,
 - When `doctrina index rebuild` runs, the system shall regenerate
   `.doctrina/index.json` from the artifacts on disk — spec
   headers, ADR headers, change proposals, archive folder names,
-  and skill frontmatter — preserving `project`,
-  `framework_version`, `$schema_version`, and any field that has
-  no on-disk source (product metadata is carried over from the
-  existing index). The files are the source of truth; the index
-  is a derived artifact.
+  and skill frontmatter — stamping the running `framework_version`
+  (migrating a stale stamp) and preserving `project`,
+  `$schema_version`, and any field that has no on-disk source
+  (product metadata is carried over from the existing index). The
+  files are the source of truth; the index is a derived artifact.
 - When `doctrina index rebuild --check` runs, the system shall
   write nothing, print a drift summary per artifact category,
   and exit 1 when the regenerated index differs from the one on
@@ -291,11 +300,12 @@ optional `--bug`), `change new|apply|archive|diff`,
   be excluded. With `--concat`, the system shall print the file
   contents with path separators instead of the list. The command
   is strictly read-only.
-- When `doctrina search <term> [...]` runs, the system shall
-  report lines where every term matches case-insensitively,
-  grouped by artifact category (specs, decisions, changes,
-  skills, product, AGENTS.md), excluding the change archive
-  unless `--archive` is supplied, and shall exit 0 when matches
+- When `doctrina search <term> [...]` runs, the system shall report
+  lines where every term matches case-insensitively, grouped by artifact
+  category (specs, decisions, changes, skills, product, AGENTS.md) and
+  ranked best-first within each category (heading, metadata-header,
+  full-phrase, and filename matches score higher), excluding the change
+  archive unless `--archive` is supplied, and shall exit 0 when matches
   exist and 1 otherwise. The command is strictly read-only.
 - When `doctrina clarify --all` runs, the system shall scan every
   living document — `product.md`, capability specs, open changes,
@@ -312,6 +322,10 @@ optional `--bug`), `change new|apply|archive|diff`,
   token) that exists, marking each covered, dangling (cited path
   missing), or bare (none cited); it exits 0 as a report and 1 under
   `--strict` when any criterion is bare or dangling.
+- When `doctrina trace` runs, the system shall map `product.md` intent
+  anchors (`- [SC1] ...`) to specs that declare `**Realizes:**`, reporting
+  dropped intent, dangling realizes, and untraceable active specs; it exits
+  0 as a report and 1 under `--strict` when any provenance break exists.
 - When `doctrina verify` runs, the system shall execute each check in
   `.doctrina/verify.json` in order, stream its output, and exit non-zero
   if any fails (no config exits 1, pointing at `--init`; `--list` prints

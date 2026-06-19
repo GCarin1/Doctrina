@@ -14,7 +14,7 @@
 
 > Framework spec-driven nativo de AGENTS.md para desenvolvimento multi-agente com IA.
 
-**Status:** v0.3.0 — lançado.
+**Status:** v0.4.0 — lançado.
 **Leia em [inglês](./README.md).**
 
 ---
@@ -52,14 +52,15 @@ como um corpo de agentes age.
 - Um template `AGENTS.md` aderente ao padrão aberto.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 15 comandos
-  (26 operações) cobrindo init, spec, change, decision, skill, analyze,
-  clarify, validate, templates, hooks, index, next, metrics, context
-  e search.
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 21 comandos
+  cobrindo init, intake, work, spec, change, decision, contract, skill,
+  analyze, clarify, validate, coverage, trace, verify, templates, hooks,
+  index, next, metrics, context e search.
 - Adapters para 12 agentes AGENTS.md-aware (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Seis specs de capability e três ADRs aceitos que descrevem o framework.
+- Seis specs de capability e cinco ADRs aceitos que descrevem o framework
+  (incluindo o ADR 0006, proveniência de intenção).
 - Dois projetos exemplo de referência (Python FastAPI greenfield, TypeScript
   Express brownfield retrofit).
 - Documentação bilíngue em inglês e português.

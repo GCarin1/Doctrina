@@ -1,7 +1,8 @@
 import path from "node:path";
 import { read, write, exists } from "./fs-ops.js";
+import { cliVersion } from "./version.js";
 
-const SCHEMA_VERSION = "0.1.0";
+export const SCHEMA_VERSION = "0.1.0";
 
 export function indexPath(projectRoot) {
   return path.join(projectRoot, ".doctrina", "index.json");
@@ -21,6 +22,11 @@ export function load(projectRoot) {
 }
 
 export function save(projectRoot, index) {
+  // Stamp the managing framework version on every write (3.6): the index
+  // records which CLI last wrote it, so a stale stamp (an index written by an
+  // older CLI) is detectable by `doctrina validate` and migrated by
+  // `doctrina index rebuild`.
+  index.framework_version = cliVersion();
   const p = indexPath(projectRoot);
   const text = JSON.stringify(index, null, 2) + "\n";
   write(p, text, { force: true });
@@ -30,7 +36,7 @@ export function blank(projectName, date) {
   return {
     $schema_version: SCHEMA_VERSION,
     project: projectName,
-    framework_version: "0.0.0",
+    framework_version: cliVersion(),
     last_updated: date,
     artifacts: {
       product: {

@@ -6,6 +6,7 @@
 - **Supersedes:** —
 - **Superseded by:** —
 - **Evidence:** —
+- **Landed:** —
 
 <!--
 Evidence anchors the decision to reality. Once accepted, cite the file(s)
@@ -14,6 +15,13 @@ that prove this decision is actually implemented, in backticks, e.g.
 `doctrina validate` warns when cited evidence is missing on disk (the
 decision drifted from the code) or when an accepted ADR cites none. For a
 process decision with no code artifact, write "n/a — <why>".
+
+Landed is the non-mutating "this decision is now implemented and verified
+here" stamp. Many ADRs are accepted at design time with "Evidence: n/a — no
+implementation yet"; once the capability ships, run
+"doctrina decision land NNNN `path/to/proof.ts` ..." to record the date and
+proof without editing the immutable body. A filled Landed satisfies the
+accepted-ADR evidence check.
 -->
 
 ## Context
