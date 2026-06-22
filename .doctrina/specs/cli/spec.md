@@ -3,8 +3,8 @@
 **Capability:** cli
 **Status:** active
 **Implementation:** implemented
-**Last updated:** 2026-06-16
-**Version:** 0.15.0
+**Last updated:** 2026-06-22
+**Version:** 0.18.0
 
 ## Purpose
 
@@ -13,12 +13,13 @@ command honours, the implementation constraints the package follows, and
 the exit-code conventions across the surface. The surface comprises
 `init` (with optional `--from <path>` and `--intake <file>`),
 `intake` (with optional `--text`), `work` (with optional
-`--capability`/`--id`), `spec new|list` (with
-optional `--bug`), `change new|apply|archive|diff`,
+`--capability`/`--id`/`--resume`/`--from-diff`/`--chore`),
+`spec new|list|set` (with
+optional `--bug`), `change new|apply|archive|diff|abandon`,
 `decision new|accept|land|supersede|list`, `skill new|list|sync`,
 `contract new|list|check`, `analyze`, `clarify` (with optional `--all`),
-`validate`, `coverage` and `trace` (each with optional `--strict`),
-`verify` (with optional `--init`/`--list`),
+`validate` (with optional `--fix`), `coverage` and `trace` (each with
+optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
 `templates list|check|update`, `hooks install`, `index rebuild`,
 `next`, `metrics`, `context`, `search`, `--help`, and `--version`.
 
@@ -95,16 +96,54 @@ optional `--bug`), `change new|apply|archive|diff`,
   given id instead of deriving one. The CLI's language processing is
   limited to slugging and case-insensitive term counting; all semantic
   work is the executing agent's.
+- When `doctrina work --resume <id>` runs, the system shall reprint the
+  work playbook for that open change and create nothing; and when the
+  prompt is a bare resume word (`continue`, `prossiga`, `next`, ...) while
+  an open change exists, the system shall suggest resuming it rather than
+  opening a change named after that word, unless `--force` is supplied.
+  The resume-word set is a fixed deterministic stoplist, not language
+  understanding.
+- When `doctrina work --from-diff` runs inside a git repository, the
+  system shall read the working-tree changes (tracked and untracked),
+  require no prompt, record the changed files under the proposal's
+  `## Why`, rank capabilities by those files, and print a code-first
+  backfill playbook (write the spec describing the existing code, each
+  criterion `[unverified]` until proven). With no working-tree changes it
+  exits 1 (ADR 0010).
+- When `doctrina work --chore` (alias `--no-spec`) runs, the system shall
+  open a spec-less chore change and print a playbook that omits the
+  spec-delta steps (ADR 0010).
 - When `doctrina spec new <capability>` runs, the system shall create
   `.doctrina/specs/<capability>/spec.md` from `templates/spec.md.template`
   and add the entry to `.doctrina/index.json`.
+- When `doctrina spec set <capability>` runs with at least one of
+  `--implementation`, `--status`, `--bump major|minor|patch`, or
+  `--criterion "<n>:<mark>"`, the system shall apply those bounded ops to
+  the spec headers (and criterion mark), stamp `Last updated`, and
+  regenerate `.doctrina/index.json` from the tree so the spec and index
+  never drift — all ops or none, leaving the spec untouched on any error
+  (ADR 0007/0009). With no edit flag it exits 2.
 - When `doctrina change new <id> "<title>"` runs, the system shall create
   `.doctrina/changes/<id>/` populated with `proposal.md`, `tasks.md`,
-  and `design.md` from the change templates.
+  and `design.md` from the change templates. With `--chore` (alias
+  `--no-spec`) it shall mark the proposal spec-less (`Affects specs:
+  (none — chore)`) for infra/docs/build changes that still earn a
+  proposal + ledger (ADR 0010).
 - When `doctrina change apply <id>` runs, the system shall process every
   spec delta under the change folder: ADDED writes the new spec, REMOVED
-  deletes the target spec, and MODIFIED prints a manual-merge pointer
-  without writing.
+  deletes the target spec, and MODIFIED carrying a fenced `ops` block
+  (`set-header` / `bump-version` / `set-criterion` / `replace-criterion`
+  / `append-criterion`) is applied mechanically to the target spec —
+  all ops or none, refusing to write and exiting 1 when any op errors —
+  while a MODIFIED delta with no `ops` block prints a manual-merge
+  pointer without writing (ADR 0007). On any spec write the system shall
+  regenerate `.doctrina/index.json` from the tree so the index never
+  drifts from the applied spec.
+- When `doctrina change abandon <id>` runs, the system shall delete the
+  open change folder and its `.doctrina/index.json` entry, append a
+  one-line abandonment record to `.doctrina/changes/archive/LEDGER.md`
+  (with the optional `--reason "<text>"`), and rebuild the index from the
+  tree. It is the inverse of `change new`.
 - When `doctrina change archive <id>` runs, the system shall move the
   change folder to `.doctrina/changes/archive/YYYY-MM-DD-<id>/` and
   update `.doctrina/index.json`.
@@ -125,6 +164,11 @@ optional `--bug`), `change new|apply|archive|diff`,
   `.doctrina/specs/` and `.doctrina/decisions/` and emit a warning
   for any file present on disk but not referenced in
   `.doctrina/index.json` (orphan detection; warnings only).
+- When `doctrina validate` runs, the system shall warn for any known
+  metadata key in a spec's header block (`Capability`, `Status`,
+  `Implementation`, `Version`, `Last updated`, `Realizes`) not written in
+  the canonical `**Key:** value` form — the silent non-parse footgun
+  (warnings only; ADR 0010).
 - When `doctrina validate` runs, the system shall error when two ADR files
   share the same `NNNN` number (a merge-time allocation collision; the
   index keys decisions by number).
@@ -203,10 +247,15 @@ optional `--bug`), `change new|apply|archive|diff`,
   without a `description:` field are reported and skipped. The
   frontmatter is the source of truth; the command never edits
   skill files.
-- When `doctrina validate` runs, the system shall compare the
-  `Version:` header of each capability spec against the version
-  recorded for it in `.doctrina/index.json` and emit a warning
-  on mismatch (warnings only).
+- When `doctrina validate` runs, the system shall regenerate the index
+  from the tree and emit an error for any artifact present in both the
+  index and the tree (specs, decisions, changes, changes_archive,
+  contracts) whose recorded metadata no longer matches its file — so a
+  green `validate` cannot hide the drift `index rebuild --check` would
+  catch (G5). Presence drift (orphan / missing file), the
+  `framework_version` stamp, and skill descriptions stay advisory
+  (warnings / `skill sync`). With `--fix` the system shall rebuild the
+  index from the tree before validating instead of erroring (ADR 0009).
 - When `doctrina validate` runs, the system shall compare each
   skill's frontmatter `description:` against the description
   recorded in `.doctrina/index.json` and emit a warning on
@@ -319,9 +368,11 @@ optional `--bug`), `change new|apply|archive|diff`,
   slug.
 - When `doctrina coverage` runs, the system shall report per spec how
   many `## Acceptance criteria` cite an evidence path (a backtick file
-  token) that exists, marking each covered, dangling (cited path
-  missing), or bare (none cited); it exits 0 as a report and 1 under
-  `--strict` when any criterion is bare or dangling.
+  token) that exists, marking each covered, conditional (the only
+  resolving proof is a test file whose suite is skipped), dangling (cited
+  path missing), or bare (none cited); it exits 0 as a report and 1 under
+  `--strict` when any criterion is bare, dangling, or conditional
+  (ADR 0008).
 - When `doctrina trace` runs, the system shall map `product.md` intent
   anchors (`- [SC1] ...`) to specs that declare `**Realizes:**`, reporting
   dropped intent, dangling realizes, and untraceable active specs; it exits
@@ -331,6 +382,13 @@ optional `--bug`), `change new|apply|archive|diff`,
   if any fails (no config exits 1, pointing at `--init`; `--list` prints
   without running). This build gate is distinct from `validate` and never
   runs in the pre-commit hook.
+- When `doctrina verify --clean` runs, the system shall not execute the
+  configured checks but instead lint the project's `package.json` files
+  for reproducibility footguns — an entry point under a build-output dir
+  with no `prepare`/`prepack`, and a Prisma dependency with no
+  `postinstall`/`prepare` generate step — exiting 1 on any risk and 0 when
+  clean, so "verify green" cannot hide a clean checkout that won't build
+  (ADR 0008).
 - When `doctrina contract new <name>` runs, the system shall scaffold
   `.doctrina/contracts/<name>.md` and index it under
   `artifacts.contracts`; `doctrina contract check` shall error on a port
@@ -361,8 +419,10 @@ optional `--bug`), `change new|apply|archive|diff`,
 - The system shall not mutate the body of an accepted ADR; only the
   `Status:` and `Superseded by:` headers may be rewritten, and only by
   the `decision accept` and `decision supersede` commands.
-- The system shall not auto-merge MODIFIED spec deltas; the user must
-  perform the merge.
+- The system shall not auto-merge arbitrary MODIFIED spec prose; only a
+  delta's declared, bounded `ops` block (headers and acceptance-criteria
+  markers) is applied mechanically (ADR 0007), and any other MODIFIED
+  body is left for the user to merge.
 - The system shall not write outside the project working directory.
 - The system shall not emit telemetry or make network calls.
 - The hook installed by `doctrina hooks install` shall do no work
@@ -407,7 +467,9 @@ The CLI is v0 spec-compliant when:
 ## Out of scope for this spec
 
 - Remote operations, network calls, telemetry.
-- Auto-merging MODIFIED deltas.
+- Auto-merging arbitrary MODIFIED prose; only the bounded `ops` block
+  (headers and criteria markers) is applied — semantic rewriting stays
+  the agent's job (ADR 0005, ADR 0007).
 - A full EARS grammar parser inside `validate`; v0 ships
   section-shape checks (When/While/Where/shall placement), not a
   complete grammar.

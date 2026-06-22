@@ -22,11 +22,16 @@ Requires Node.js 20.12 or later.
 doctrina init                              scaffold AGENTS.md + .doctrina/ in cwd
 doctrina intake [<file>]                   store the full description + bootstrap playbook (clarification gate)
 doctrina work "<prompt>"                   brief prompt -> scaffolded change + work playbook (clarification gate)
+doctrina work --resume <id>                reprint an open change's playbook (no new change)
+doctrina work --from-diff                  backfill a spec from working-tree changes (code-first)
+doctrina work "<prompt>" --chore           spec-less chore (infra/docs/build): no spec-delta steps
 doctrina spec new <capability>             create a capability spec
 doctrina spec list                         list specs with version, status, size
+doctrina spec set <cap> [--bump ...]       edit spec headers/criterion + resync index (no lockstep)
 doctrina change new <id> "<title>"         open a change proposal
-doctrina change apply <id>                 apply spec deltas (ADDED/REMOVED auto)
+doctrina change apply <id>                 apply spec deltas (ADDED/REMOVED auto; MODIFIED ops block applies)
 doctrina change archive <id>               archive an applied change
+doctrina change abandon <id>               delete an open change + its index entry (ledgered)
 doctrina change diff <id>                  preview spec deltas (line diff for MODIFIED)
 doctrina contract new <name>               own the integration surface (ports, env, interfaces)
 doctrina contract check                    verify port collisions, env drift, referenced specs
@@ -42,10 +47,11 @@ doctrina analyze <change-id>               inspect a change folder before applyi
 doctrina clarify <path>                    smell-test a Markdown file for ambiguity (--all: tree)
 doctrina context [<capability>]            print the context pack in read order (--concat)
 doctrina search <term> [...]               search artifacts, grouped by category (ranked)
-doctrina validate                          schema + artifact-existence checks
-doctrina coverage                          acceptance criteria with linked evidence (--strict gates)
+doctrina validate                          schema + artifact-existence + index-drift checks (--fix rebuilds)
+doctrina coverage                          acceptance criteria with linked evidence (--strict gates; skips = conditional)
 doctrina trace                             intent provenance: product intent -> specs (--strict gates)
 doctrina verify                            run project typecheck/test/build checks (the real gate)
+doctrina verify --clean                    reproducibility lint: clean-checkout footguns (dist/codegen)
 doctrina templates list                    enumerate shipped templates
 doctrina templates check                   compare project against recommended template shape
 doctrina templates update                  additive fixer for check findings (preview; --write applies)
@@ -92,10 +98,17 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
 - **ADDED:** writes the delta body to the target spec; refuses if the
   target already exists.
 - **REMOVED:** deletes the target spec.
-- **MODIFIED:** prints a manual-merge pointer and does not write. The
-  user merges the delta into the target spec by hand. This is
-  deliberate; auto-merging is the kind of implicit decision Doctrina
-  avoids.
+- **MODIFIED:** when the delta carries a fenced ` ```ops ` block
+  (`set-header` / `bump-version` / `set-criterion` / `replace-criterion`
+  / `append-criterion`), applies it mechanically to the target spec — all
+  ops or none — and regenerates the index (ADR 0007). Without an ops
+  block it prints a manual-merge pointer and does not write: auto-merging
+  arbitrary prose is the kind of implicit decision Doctrina avoids.
+
+On any spec write, the index is rebuilt from the tree so it never drifts
+from the applied spec. `doctrina change abandon <id>` is the inverse of
+`change new`: it deletes an open change and its index entry and ledgers
+the abandonment.
 
 ## `validate` checks
 
@@ -113,7 +126,9 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
 12. Skills carry the required frontmatter triple (`name`, `description`, `when`).
 13. Skills are ≤ 200 lines (warns at > 150).
 14. Each skill's `name:` matches its filename slug.
-15. Each spec's `Version:` header matches the version in `index.json` (drift warn).
+15. Indexed artifact metadata (spec/decision/change/contract) matches its
+    file — a mismatch is an **error** so a green `validate` can't hide the
+    drift `index rebuild --check` would catch (G5; `validate --fix` rebuilds).
 16. Each skill's frontmatter description matches `index.json` (drift warn; `skill sync` fixes).
 17. EARS grammar shape per section in specs declaring `## Requirements (EARS)` (warn).
 18. Nested `AGENTS.md` files obey the root size caps (warn > 150, error > 200).
@@ -123,12 +138,16 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
 21. Accepted ADRs anchor to reality via `Evidence:` and/or `Landed:`; cited
     paths must exist on disk (drift warn).
 
-Exit code: 0 if no errors (warnings allowed), 1 otherwise.
+Exit code: 0 if no errors (warnings allowed), 1 otherwise. `--fix`
+regenerates `index.json` from the tree before validating.
 
 Two related read-only reports gate separately: `doctrina coverage`
-(each acceptance criterion cites a real test) and `doctrina trace`
-(each product intent has a capability, each capability traces to an
-intent). Both exit 1 under `--strict` for CI.
+(each acceptance criterion cites a real test; a criterion proven only by
+a skipped suite is `conditional` and fails `--strict`) and `doctrina
+trace` (each product intent has a capability, each capability traces to
+an intent). Both exit 1 under `--strict` for CI. `doctrina verify
+--clean` statically lints for clean-checkout footguns (a build-dir entry
+point with no `prepare`; a Prisma dep with no generate on install).
 
 ## Tests
 

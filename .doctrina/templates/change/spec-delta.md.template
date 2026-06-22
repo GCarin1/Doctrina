@@ -8,8 +8,19 @@ For ADDED: include the full new spec body below. On apply, the body is
 written verbatim to the target path.
 
 For MODIFIED: include only the sections that change, with clear
-before/after markers. On apply, the maintainer merges the delta into the
-existing spec by hand or with the CLI.
+before/after markers. Bookkeeping edits (flip a criterion, bump the
+version, set a header) can be made mechanical by adding a fenced `ops`
+block — on apply the CLI executes it against the target spec, all ops or
+none (ADR 0007). Anything the ops verbs cannot express (rewriting prose)
+stays a by-hand merge; a MODIFIED delta with no `ops` block prints a
+manual-merge pointer.
+
+  ```ops
+  set-header Implementation: verified — durable adapter (`src/db.ts`)
+  bump-version minor
+  set-criterion 1: verified
+  append-criterion [unverified] new signal — verified by `test/x.test.ts`
+  ```
 
 For REMOVED: the body may be empty; on apply, the target spec file is
 deleted and the capability is recorded in the change archive only.

@@ -5,12 +5,14 @@ import { exists, isDir, isFile, lineCount, read, relPath, walk } from "../lib/fs
 import * as idx from "../lib/index-json.js";
 import { SCHEMA_VERSION } from "../lib/index-json.js";
 import { cliVersion } from "../lib/version.js";
+import { today } from "../lib/dates.js";
+import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseFrontmatter } from "./skill.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
-import { specHeader, listHeader } from "../lib/scan.js";
+import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
 
-export async function run(_positional, _flags) {
+export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   const errors = [];
   const warnings = [];
@@ -47,6 +49,22 @@ export async function run(_positional, _flags) {
   }
 
   if (index) {
+    // --fix (F5): regenerate the index from the tree before validating, so a
+    // drifted index is repaired rather than reported. A full rebuild — it also
+    // absorbs orphans and migrates the framework stamp, matching
+    // `index rebuild`. Subsequent checks then see the repaired index.
+    if (flagBool(flags, "fix", false)) {
+      const derived = deriveIndex(projectRoot, index);
+      const staleStamp = (index.framework_version ?? null) !== cliVersion();
+      if (!indexesMatch(derived, index) || staleStamp) {
+        derived.framework_version = cliVersion();
+        derived.last_updated = today();
+        idx.save(projectRoot, derived);
+        console.log(c.green("fixed") + " rebuilt .doctrina/index.json from the tree");
+        index = derived;
+      }
+    }
+
     if (index.$schema_version !== SCHEMA_VERSION) {
       warnings.push(`index.json $schema_version is "${index.$schema_version}" (expected "${SCHEMA_VERSION}")`);
     }
@@ -78,15 +96,18 @@ export async function run(_positional, _flags) {
         if (!exists(full)) errors.push(`index.json references missing artifact: ${rel}`);
       }
 
-      // 4b. Spec version drift — the Version: header inside each spec
-      //     must match the version recorded in index.json.
-      for (const s of index.artifacts.specs ?? []) {
-        const full = path.join(projectRoot, s.path);
-        if (!isFile(full)) continue;
-        const m = read(full).match(/^(?:-\s+)?\*\*Version:\*\*\s+(\S+)/m);
-        if (m && s.version && m[1] !== s.version) {
-          warnings.push(`${s.path} declares version ${m[1]} but index.json records ${s.version} (sync the index)`);
-        }
+      // 4b. Index metadata drift (F5 / review G5 / G7). validate is the single
+      //     source of truth about whether the project is OK, so an indexed
+      //     artifact whose recorded metadata (version, implementation, status,
+      //     ...) no longer matches its file is an ERROR here — not a
+      //     pass-with-warning that only `index rebuild --check` would catch
+      //     (the "validate says OK while next says drift" footgun). Presence
+      //     drift (orphan on disk / missing file) stays the orphan warning and
+      //     the missing-artifact error above; this targets the metadata that
+      //     silently lies. `validate --fix` (above) regenerates instead.
+      const derived = deriveIndex(projectRoot, index);
+      for (const line of metadataDrift(index, derived)) {
+        errors.push(`${line} — run \`doctrina validate --fix\` or \`doctrina index rebuild\``);
       }
     }
   }
@@ -206,6 +227,7 @@ export async function run(_positional, _flags) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   if (isDir(specsDir)) {
     const { readdirSync } = await import("node:fs");
+    const KNOWN_SPEC_HEADERS = ["Capability", "Status", "Implementation", "Version", "Last updated", "Realizes"];
     for (const cap of readdirSync(specsDir)) {
       const specPath = path.join(specsDir, cap, "spec.md");
       if (isFile(specPath)) {
@@ -241,6 +263,26 @@ export async function run(_positional, _flags) {
                 `inventory claim (advance Implementation, set Status: draft, or add a note ` +
                 `after the value: "planned — <why deferred>")`,
             );
+          }
+        }
+
+        // 8d. Metadata-header shape (review G11). In the header block (before
+        //     the first `## ` section or `<!--` comment), a known key written
+        //     without the canonical `**Key:** value` form silently fails to
+        //     parse — the index then falls back to a default and drifts. Warn
+        //     with the fix rather than letting the mis-typed header vanish.
+        const headerLines = text.split(/\r?\n/);
+        for (let i = 0; i < headerLines.length; i++) {
+          if (/^\s*(##\s|<!--)/.test(headerLines[i])) break;
+          for (const key of KNOWN_SPEC_HEADERS) {
+            const attempt = new RegExp(`^\\s*-?\\s*\\**${key}\\**\\s*:`, "i");
+            const canonical = new RegExp(`^(?:-\\s+)?\\*\\*${key}:\\*\\*\\s+\\S`);
+            if (attempt.test(headerLines[i]) && !canonical.test(headerLines[i])) {
+              warnings.push(
+                `${relPath(projectRoot, specPath)}:${i + 1} metadata header "${key}" is not in ` +
+                  `canonical "**${key}:** value" form — it will not parse (G11)`,
+              );
+            }
           }
         }
       }
@@ -384,6 +426,29 @@ export async function run(_positional, _flags) {
     console.log((errors.length === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
   }
   return errors.length === 0 ? 0 : 1;
+}
+
+// Per-entry metadata drift between the on-disk index and the tree-derived
+// one, for entries present in BOTH. Presence drift (an artifact on disk but
+// not indexed, or indexed but missing) is left to the orphan warning and the
+// missing-artifact error; this isolates the case the review hit — an indexed
+// artifact whose recorded metadata no longer matches its file.
+function metadataDrift(current, derived) {
+  const lines = [];
+  // Skills are deliberately excluded: their description has a dedicated
+  // reconciliation command (`doctrina skill sync`) and stays an advisory
+  // warning (see section 15), not a hard error.
+  const cats = ["specs", "decisions", "changes", "changes_archive", "contracts"];
+  for (const cat of cats) {
+    const cur = new Map((current.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
+    const der = new Map((derived.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
+    for (const [id, entry] of cur) {
+      if (der.has(id) && stableStringify(entry) !== stableStringify(der.get(id))) {
+        lines.push(`index.json: ${cat} "${id}" metadata differs from its file`);
+      }
+    }
+  }
+  return lines;
 }
 
 // Find AGENTS.md files below the root (the "nearest AGENTS.md wins"

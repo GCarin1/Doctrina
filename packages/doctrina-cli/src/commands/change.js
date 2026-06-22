@@ -4,12 +4,14 @@ import { exists, isDir, lineCount, mkdirp, move, read, relPath, remove, walk, wr
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
+import { deriveIndex } from "../lib/scan.js";
+import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { today } from "../lib/dates.js";
-import { flagBool } from "../lib/args.js";
+import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "diff"];
+const SUBCOMMANDS = ["new", "apply", "archive", "diff", "abandon"];
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -22,6 +24,8 @@ export async function run(positional, flags) {
       return changeArchive(positional.slice(1), flags);
     case "diff":
       return changeDiff(positional.slice(1), flags);
+    case "abandon":
+      return changeAbandon(positional.slice(1), flags);
     default:
       console.error(c.red("error:") + ` unknown change subcommand "${sub ?? ""}"`);
       const guess = suggest(sub, SUBCOMMANDS);
@@ -45,6 +49,11 @@ function changeNew(args, flags) {
   }
 
   const force = flagBool(flags, "force", false);
+  // A chore is a spec-less change (infra / docs / build / migration) — review
+  // G9. It runs the full proposal → apply → archive → ledger lifecycle (so the
+  // history shows it) without forcing a fake spec delta. The empty specs/ dir
+  // is kept so `change apply`'s zero-delta path flips it to applied unchanged.
+  const chore = flagBool(flags, "chore", false) || flagBool(flags, "no-spec", false);
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
 
@@ -66,14 +75,29 @@ function changeNew(args, flags) {
   }
   mkdirp(path.join(changeDir, "specs"));
 
+  // Stamp the proposal so a chore is honest in the artifact, not just the CLI.
+  if (chore) {
+    const proposalPath = path.join(changeDir, "proposal.md");
+    if (exists(proposalPath)) {
+      const txt = read(proposalPath);
+      const updated = txt.replace(/^(-\s+\*\*Affects specs:\*\*).*$/m, "$1 (none — chore)");
+      if (updated !== txt) write(proposalPath, updated, { force: true });
+    }
+  }
+
   const index = idx.load(projectRoot);
   idx.addChange(index, { id, title, path: `.doctrina/changes/${id}`, status: "proposed", opened: date });
   idx.touch(index, date);
   idx.save(projectRoot, index);
 
   console.log("");
-  console.log(c.bold("Change opened.") + " Add spec deltas under " +
-    c.cyan(`.doctrina/changes/${id}/specs/<capability>/delta.md`));
+  if (chore) {
+    console.log(c.bold("Chore opened.") + " No spec deltas expected — implement, check the tasks, then " +
+      c.cyan(`doctrina change apply ${id}`) + " and " + c.cyan(`doctrina change archive ${id}`) + ".");
+  } else {
+    console.log(c.bold("Change opened.") + " Add spec deltas under " +
+      c.cyan(`.doctrina/changes/${id}/specs/<capability>/delta.md`));
+  }
   return 0;
 }
 
@@ -133,8 +157,30 @@ function changeApply(args, _flags) {
       writes += 1;
       console.log(c.green("applied[REMOVED]") + ` ${relPath(projectRoot, targetPath)}`);
     } else if (op === "MODIFIED") {
-      console.log(c.yellow("manual[MODIFIED]") + ` merge ${relPath(projectRoot, deltaPath)} into ${relPath(projectRoot, targetPath)} by hand`);
-      manual += 1;
+      // A MODIFIED delta is applied mechanically when it carries a structured
+      // `ops` block (set-header / bump-version / set-criterion / ...; F3);
+      // otherwise it falls back to the historical manual-merge pointer, so
+      // prose deltas keep working unchanged.
+      const ops = extractOps(text);
+      if (ops.length === 0) {
+        console.log(c.yellow("manual[MODIFIED]") + ` merge ${relPath(projectRoot, deltaPath)} into ${relPath(projectRoot, targetPath)} by hand (no ops block)`);
+        manual += 1;
+      } else if (!exists(targetPath)) {
+        console.error(c.red("error:") + ` MODIFIED delta targets missing spec ${relPath(projectRoot, targetPath)}`);
+        errors += 1;
+      } else {
+        const result = applyOps(read(targetPath), ops);
+        if (result.errors.length > 0) {
+          console.error(c.red("error:") + ` ${result.errors.length} operation error${result.errors.length === 1 ? "" : "s"} in ${rel} — spec left untouched:`);
+          for (const e of result.errors) console.error(`  - ${e}`);
+          errors += 1;
+        } else {
+          write(targetPath, result.text, { force: true });
+          writes += 1;
+          console.log(c.green("applied[MODIFIED]") + ` ${relPath(projectRoot, targetPath)} (${result.applied.length} op${result.applied.length === 1 ? "" : "s"})`);
+          for (const s of result.applied) console.log(c.gray(`    · ${s}`));
+        }
+      }
     } else {
       console.error(c.red("error:") + ` unknown Operation "${op}" in ${rel}`);
       errors += 1;
@@ -161,38 +207,18 @@ function changeApply(args, _flags) {
     }
   }
 
-  // Update the index when specs changed (ADDED/REMOVED) and/or the proposal
-  // flipped to applied. The change entry's status must mirror the proposal —
-  // the same value `index rebuild` derives from the file — or the index
-  // drifts from the tree in the apply→archive window (caught by
-  // `index rebuild --check`, e.g. in the pre-commit hook).
+  // Update the index whenever specs changed (ADDED / REMOVED / MODIFIED-ops)
+  // or the proposal flipped to applied. The files are the source of truth, so
+  // rather than patch entry by entry — the old path that let a spec's
+  // version/implementation text drift from the index, and forced a manual
+  // lockstep bump (F3 / G5 / G7 / G8) — the index is rebuilt from the
+  // now-updated tree in one shot. This keeps `index rebuild --check` green
+  // immediately after apply.
   if (writes > 0 || flippedToApplied) {
-    const index = idx.load(projectRoot);
-    if (writes > 0) {
-      for (const deltaPath of deltaFiles) {
-        const text = read(deltaPath);
-        const op = parseOperation(text);
-        const capability = parseCapabilityFromDelta(text, deltaPath);
-        if (!capability) continue;
-        if (op === "ADDED") {
-          idx.addSpec(index, {
-            id: capability,
-            path: `.doctrina/specs/${capability}/spec.md`,
-            status: "active",
-            version: "0.1.0",
-            last_updated: date,
-          });
-        } else if (op === "REMOVED") {
-          idx.removeSpec(index, capability);
-        }
-      }
-    }
-    if (flippedToApplied) {
-      const entry = index.artifacts.changes.find((ch) => ch.id === id);
-      if (entry) entry.status = "applied";
-    }
-    idx.touch(index, date);
-    idx.save(projectRoot, index);
+    const current = idx.load(projectRoot);
+    const derived = deriveIndex(projectRoot, current);
+    derived.last_updated = date;
+    idx.save(projectRoot, derived);
   }
 
   console.log("");
@@ -302,6 +328,52 @@ function changeArchive(args, flags) {
   idx.touch(index, date);
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + " change archived");
+  return 0;
+}
+
+// Abandon an open change: delete the folder AND the index entry in one step,
+// and record the abandonment in the ledger so the history shows the dead end
+// instead of a silent gap. This is the missing inverse of `change new` — the
+// review had to delete a stray folder and hand-edit index.json (G6).
+function changeAbandon(args, flags) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change abandon requires <id>");
+    return 2;
+  }
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
+    return 1;
+  }
+
+  const reason = flagString(flags, "reason") ?? "";
+  const date = today();
+
+  remove(changeDir);
+  console.log(c.green("removed") + ` ${relPath(projectRoot, changeDir)}`);
+
+  // Ledger line so the abandonment is part of the visible history.
+  const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
+  if (!exists(ledgerPath)) {
+    write(ledgerPath,
+      "# Change ledger\n\n" +
+      "One line per archived change, newest last. Appended by\n" +
+      "`doctrina change archive`; edit freely, the CLI only appends.\n\n");
+  }
+  const reasonSuffix = reason ? ` — ${reason}` : "";
+  write(ledgerPath, read(ledgerPath) + `- ${date} — ${id} — abandoned${reasonSuffix}\n`, { force: true });
+  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerPath)}`);
+
+  // Drop the change entry; rebuild from the tree so nothing drifts.
+  const current = idx.load(projectRoot);
+  const derived = deriveIndex(projectRoot, current);
+  derived.last_updated = date;
+  idx.save(projectRoot, derived);
+  console.log(c.green("indexed") + ` change "${id}" removed from index.json`);
   return 0;
 }
 
@@ -448,13 +520,31 @@ Usage: doctrina change <subcommand> [args]
 
 Subcommands:
   new <id> "<title>"     Open a new change proposal at .doctrina/changes/<id>/
-  apply <id>             Apply spec deltas (ADDED writes, REMOVED deletes, MODIFIED is manual)
+                         (--chore / --no-spec: a spec-less change for infra /
+                         docs / build that still gets a proposal + ledger)
+  apply <id>             Apply spec deltas: ADDED writes, REMOVED deletes,
+                         MODIFIED with an \`\`\`ops block is applied mechanically
+                         (set-header / bump-version / set-criterion / ...),
+                         MODIFIED without one prints a manual-merge pointer.
+                         On any spec write the index is rebuilt from the tree.
   archive <id>           Move the change to .doctrina/changes/archive/YYYY-MM-DD-<id>/
+  abandon <id>           Delete an open change folder and its index entry, and
+                         record the abandonment in the ledger ([--reason "..."]).
   diff <id>              Preview every spec delta: line diff for MODIFIED,
                          summary for ADDED/REMOVED. Read-only.
 
+A MODIFIED delta may carry a fenced operations block that \`apply\` executes:
+  \`\`\`ops
+  set-header Implementation: verified — durable adapter (\`src/db.ts\`)
+  bump-version minor
+  set-criterion 1: verified
+  append-criterion [unverified] new signal — verified by \`test/x.test.ts\`
+  \`\`\`
+
 Options:
   --force                Overwrite existing files (where applicable)
+  --chore, --no-spec     With new, open a spec-less chore change
+  --reason "<text>"      With abandon, the reason recorded in the ledger
 `;
 
 // Re-export parsers so scan.js (index rebuild) can reuse them, and the

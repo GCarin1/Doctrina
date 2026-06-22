@@ -1,6 +1,6 @@
 {
   "name": "doctrina-cli",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "Doctrina CLI — spec-driven, AGENTS.md-native framework for multi-agent AI development.",
   "license": "MIT",
   "keywords": [
