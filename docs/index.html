@@ -6,17 +6,78 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Spec-driven, AGENTS.md-native framework for multi-agent AI development. Zero dependencies, files in git, bilingual docs.">
   <link rel="icon" type="image/svg+xml" href="assets/logo-monogram.svg">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.css">
   <style>
+    /* ── Dracula At Night ────────────────────────────────────────────────
+       Palette by Billy Ceskavich (theme.dracula). The docsify dark.css gives
+       the base layout; the rules below repaint every surface and the PrismJS
+       tokens to the exact Dracula colors. */
     :root {
-      --theme-color: #b8860b;
+      --drac-bg: #0E1419;       /* page background      */
+      --drac-fg: #F8F8F2;       /* foreground text      */
+      --drac-bg-dark: #21222C;  /* code / panels        */
+      --drac-bg-darker: #191A21;/* sidebar              */
+      --drac-comment: #6272A4;
+      --drac-cyan: #8BE9FD;
+      --drac-green: #50FA7B;
+      --drac-orange: #FFB86C;
+      --drac-pink: #FF79C6;
+      --drac-purple: #BD93F9;
+      --drac-yellow: #F1FA8C;
+      --drac-selection: #44475A;
+
+      --theme-color: var(--drac-purple);   /* accent: active nav, search hit */
       --sidebar-width: 18rem;
     }
+
+    /* Surfaces */
+    body, .content, section.cover { background-color: var(--drac-bg); }
+    .markdown-section, body { color: var(--drac-fg); }
+    .sidebar { background-color: var(--drac-bg-darker); border-right: 1px solid var(--drac-bg-dark); }
+    .cover.show { background: linear-gradient(160deg, #0E1419 0%, #21222C 100%) !important; }
+
+    /* Sidebar nav */
     .app-name-link img { max-width: 44px; vertical-align: middle; }
     .sidebar > h1 { margin: 0.5rem auto 0.5rem; }
-    .markdown-section code { color: #a3601e; }
-    .sidebar-nav li > p { font-weight: 700; margin: 12px 0 4px; }
-    .cover.show { background: linear-gradient(160deg, #232936 0%, #3b4252 100%) !important; }
+    .sidebar-nav li > p { color: var(--drac-comment); font-weight: 700; margin: 12px 0 4px; }
+    .sidebar a, .sidebar-nav a { color: var(--drac-fg) !important; }
+    .sidebar-nav li.active > a, .sidebar a:hover { color: var(--drac-purple) !important; }
+
+    /* Headings & links */
+    .markdown-section h1, .markdown-section h3, .markdown-section h4 { color: var(--drac-fg); }
+    .markdown-section h2 { color: var(--drac-purple); }
+    .markdown-section a { color: var(--drac-cyan); }
+    .markdown-section a:hover { color: var(--drac-purple); }
+
+    /* Code */
+    .markdown-section code { background-color: var(--drac-bg-dark); color: var(--drac-orange); }
+    .markdown-section pre, .markdown-section pre[data-lang] { background-color: var(--drac-bg-dark); }
+    .markdown-section pre > code { background: transparent; color: var(--drac-fg); }
+
+    /* Blockquotes & tables */
+    .markdown-section blockquote { border-left: 4px solid var(--drac-comment); background: var(--drac-bg-darker); }
+    .markdown-section blockquote p { color: #C8CEDD; }
+    .markdown-section tr { background: var(--drac-bg); border-top: 1px solid var(--drac-bg-dark); }
+    .markdown-section tr:nth-child(2n) { background: var(--drac-bg-darker); }
+    .markdown-section th, .markdown-section td { border: 1px solid var(--drac-bg-dark); }
+
+    /* Search box */
+    .search input { background: var(--drac-bg-darker); color: var(--drac-fg); border: 1px solid var(--drac-bg-dark); }
+    .search .matching-post { border-color: var(--drac-bg-dark); }
+    .search p, .search h2 { color: var(--drac-fg); }
+    .search .search-keyword { color: var(--drac-pink); }
+    ::selection { background: var(--drac-selection); }
+
+    /* PrismJS tokens — official Dracula mapping */
+    .token.comment, .token.prolog, .token.doctype, .token.cdata { color: var(--drac-comment) !important; }
+    .token.punctuation { color: var(--drac-fg) !important; }
+    .token.property, .token.tag, .token.constant, .token.symbol, .token.deleted { color: var(--drac-pink) !important; }
+    .token.boolean, .token.number { color: var(--drac-purple) !important; }
+    .token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: var(--drac-green) !important; }
+    .token.operator, .token.entity, .token.url, .token.variable { color: var(--drac-fg) !important; }
+    .token.atrule, .token.attr-value, .token.function, .token.class-name { color: var(--drac-yellow) !important; }
+    .token.keyword { color: var(--drac-cyan) !important; }
+    .token.regex, .token.important { color: var(--drac-orange) !important; }
   </style>
 </head>
 <body>
