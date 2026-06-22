@@ -6,17 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Spec-driven, AGENTS.md-native framework for multi-agent AI development. Zero dependencies, files in git, bilingual docs.">
   <link rel="icon" type="image/svg+xml" href="assets/logo-monogram.svg">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.css">
   <style>
     :root {
-      --theme-color: #b8860b;
+      /* Brighter gold than the brand #b8860b so links/active items keep
+         contrast on the dark background. */
+      --theme-color: #e0b84d;
       --sidebar-width: 18rem;
     }
     .app-name-link img { max-width: 44px; vertical-align: middle; }
     .sidebar > h1 { margin: 0.5rem auto 0.5rem; }
-    .markdown-section code { color: #a3601e; }
+    /* Inline code: light gold reads well on the dark code background. */
+    .markdown-section code { color: #e6b450; }
     .sidebar-nav li > p { font-weight: 700; margin: 12px 0 4px; }
-    .cover.show { background: linear-gradient(160deg, #232936 0%, #3b4252 100%) !important; }
+    .cover.show { background: linear-gradient(160deg, #1b1f27 0%, #2b303b 100%) !important; }
   </style>
 </head>
 <body>
