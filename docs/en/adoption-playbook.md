@@ -137,8 +137,7 @@ it.
 ```bash
 doctrina init --from . --agent all          # scaffold + align the three agents
 doctrina intake --text "<vision/PRD>"       # Claude fills product.md
-# pick one hot capability, then:
-doctrina work --from-diff                   # or: doctrina spec new <cap> + backfill
+doctrina work --from-diff                   # on a hot capability (or: spec new <cap> + backfill)
 doctrina skill new running-locally          # capture the context agents keep missing
 doctrina hooks install                      # ratchet on
 ```
