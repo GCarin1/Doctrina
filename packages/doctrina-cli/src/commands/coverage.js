@@ -15,9 +15,10 @@ import { c } from "../lib/colors.js";
 // a backtick path span, e.g.
 //   1. Returns HTTP 429 above the quota — verified by `test/quota.test.ts`.
 // A criterion is "covered" when at least one cited path resolves to a
-// file. A cited path that does not resolve is "dangling" (broken
-// traceability) and reported separately. Criteria with no cited path are
-// "bare" — the spec promises something nothing is shown to satisfy.
+// real proof, "conditional" when its only resolving proof is a test file
+// whose suite is skipped (a `describe.skip`/`xit`/`@pytest.mark.skip` that
+// proves nothing — review G3: existence ≠ a passing test), "dangling" when
+// a cited path does not resolve, and "bare" when nothing is cited.
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -47,6 +48,7 @@ export async function run(_positional, flags) {
   let totalCriteria = 0;
   let totalCovered = 0;
   let totalDangling = 0;
+  let totalConditional = 0;
 
   console.log(c.bold("Coverage") + c.gray(" — acceptance criteria with linked evidence:"));
   console.log("");
@@ -54,16 +56,23 @@ export async function run(_positional, flags) {
   for (const rep of reports) {
     const covered = rep.rows.filter((r) => r.kind === "covered").length;
     const dangling = rep.rows.filter((r) => r.kind === "dangling").length;
+    const conditional = rep.rows.filter((r) => r.kind === "conditional").length;
     totalCriteria += rep.rows.length;
     totalCovered += covered;
     totalDangling += dangling;
+    totalConditional += conditional;
 
-    const danglingNote = dangling > 0 ? c.yellow(`  (${dangling} dangling)`) : "";
-    console.log(`  ${c.cyan(rep.cap.padEnd(20))} ${covered}/${rep.rows.length} criteria${danglingNote}`);
+    const notes = [];
+    if (conditional > 0) notes.push(c.yellow(`${conditional} conditional`));
+    if (dangling > 0) notes.push(c.yellow(`${dangling} dangling`));
+    const note = notes.length > 0 ? `  (${notes.join(", ")})` : "";
+    console.log(`  ${c.cyan(rep.cap.padEnd(20))} ${covered}/${rep.rows.length} criteria${note}`);
     for (const r of rep.rows) {
       if (r.kind === "covered") continue;
       if (r.kind === "bare") {
         console.log(`    ${c.red("✗")} #${r.n}  no evidence linked — cite the file/test that proves it in backticks`);
+      } else if (r.kind === "conditional") {
+        console.log(`    ${c.yellow("!")} #${r.n}  evidence is a skipped test (proves nothing): ${r.skipped.map((m) => `\`${m}\``).join(", ")}`);
       } else {
         console.log(`    ${c.yellow("!")} #${r.n}  evidence not found on disk: ${r.missing.map((m) => `\`${m}\``).join(", ")}`);
       }
@@ -73,14 +82,18 @@ export async function run(_positional, flags) {
   const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
   console.log("");
   const summary = `${totalCovered} of ${totalCriteria} acceptance criteria across ${reports.length} spec${reports.length === 1 ? "" : "s"} have linked evidence (${pct}%)`;
-  const clean = totalCovered === totalCriteria && totalDangling === 0;
+  const clean = totalCovered === totalCriteria && totalDangling === 0 && totalConditional === 0;
   if (clean) {
     console.log(c.green("ok") + " " + summary);
     return 0;
   }
-  const danglingSummary = totalDangling > 0 ? `, ${totalDangling} dangling` : "";
-  console.log((strict ? c.red("fail") : c.yellow("gap")) + " " + summary + danglingSummary);
-  // A report by default (exit 0); a gate under --strict (exit 1 for CI).
+  const extras = [];
+  if (totalConditional > 0) extras.push(`${totalConditional} conditional`);
+  if (totalDangling > 0) extras.push(`${totalDangling} dangling`);
+  const extraSummary = extras.length > 0 ? `, ${extras.join(", ")}` : "";
+  console.log((strict ? c.red("fail") : c.yellow("gap")) + " " + summary + extraSummary);
+  // A report by default (exit 0); a gate under --strict (exit 1 for CI). A
+  // conditional criterion fails the gate too: a skipped test is not proof.
   return strict ? 1 : 0;
 }
 
@@ -121,22 +134,60 @@ function extractAcceptanceCriteria(text) {
   return out.filter((s) => s.length > 0);
 }
 
-// Decide whether a single criterion is covered, dangling, or bare.
+// Decide whether a single criterion is covered, conditional, dangling, or bare.
 function classify(criterion, n, projectRoot, specDir) {
   const cited = extractBacktickPaths(criterion);
   if (cited.length === 0) return { kind: "bare", n };
   const missing = [];
-  let resolved = 0;
+  const resolved = [];
   for (const token of cited) {
     const candidates = [
       path.resolve(projectRoot, token),
       path.resolve(specDir, token),
     ];
-    if (candidates.some(exists)) resolved += 1;
-    else missing.push(token);
+    const hit = candidates.find(exists);
+    if (!hit) {
+      missing.push(token);
+      continue;
+    }
+    const isTest = looksLikeTestFile(token);
+    const skipped = isTest && isFile(hit) ? testSuiteIsSkipped(read(hit)) : false;
+    resolved.push({ token, isTest, skipped });
   }
-  if (resolved > 0) return { kind: "covered", n };
-  return { kind: "dangling", n, missing };
+  if (resolved.length === 0) return { kind: "dangling", n, missing };
+  // Real proof = a non-test artifact, or a test file whose suite runs. If the
+  // only thing that resolves is a skipped test, the criterion is conditional.
+  const hasRealProof = resolved.some((r) => !r.isTest || !r.skipped);
+  if (hasRealProof) return { kind: "covered", n };
+  return { kind: "conditional", n, skipped: resolved.map((r) => r.token) };
+}
+
+// A cited path is a test file when it sits under a tests directory or carries
+// a test/spec/e2e filename marker — the only files skip-detection applies to.
+function looksLikeTestFile(token) {
+  if (/(?:^|\/)(?:tests?|__tests__|specs?|e2e)\//i.test(token)) return true;
+  if (/(?:\.|_|-)(?:test|spec|e2e)\.[a-z0-9]+$/i.test(token)) return true;
+  if (/(?:^|\/)test_[^/]+\.py$/i.test(token)) return true;
+  return false;
+}
+
+// Heuristic, dependency-free "is this whole test file gated off?" check: the
+// first test construct in the file is a skip/todo (e.g. the Prisma e2e suite
+// wrapped in `describe.skip`). A file whose first suite runs is treated as
+// real proof even if it has an incidental `it.skip` later — that keeps the
+// false-positive rate low without parsing the file. Python skip decorators
+// and a module-level `pytest.skip` count too.
+function testSuiteIsSkipped(text) {
+  const m = text.match(
+    /\b(x(?:describe|context|it|test)|(?:describe|context|suite|it|test|specify)\s*\.\s*(?:skip|todo)|(?:describe|context|suite|it|test|specify))\s*\(/,
+  );
+  if (m) {
+    const head = m[1];
+    if (/^x/.test(head) || /\.\s*(?:skip|todo)/.test(head)) return true;
+  }
+  if (/@(?:pytest\.mark\.skip|unittest\.skip)\b/.test(text)) return true;
+  if (/^\s*pytest\.skip\s*\(/m.test(text)) return true;
+  return false;
 }
 
 // Backtick spans that look like repository file paths. Mirrors the
@@ -169,11 +220,13 @@ Report how many acceptance criteria across .doctrina/specs/ cite an
 artifact or test that exists on disk. Each numbered criterion may cite
 its evidence as a backtick path span, e.g. \`test/quota.test.ts\`.
 
-A criterion is covered when at least one cited path resolves to a file,
-dangling when a cited path is missing on disk, and bare when nothing is
-cited. Read-only.
+A criterion is covered when a cited path resolves to real proof,
+conditional when its only resolving proof is a test file whose suite is
+skipped (\`describe.skip\` / \`xit\` / \`@pytest.mark.skip\` — proves
+nothing), dangling when a cited path is missing on disk, and bare when
+nothing is cited. Read-only.
 
 Flags:
-  --strict   Exit 1 when any criterion is bare or dangling (CI gate).
-             Without it the command always exits 0 (a report).
+  --strict   Exit 1 when any criterion is bare, dangling, or conditional
+             (CI gate). Without it the command always exits 0 (a report).
 `;

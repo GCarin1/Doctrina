@@ -1,7 +1,8 @@
 import path from "node:path";
 import process from "node:process";
+import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { exists, isFile, read, write, relPath } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 
@@ -30,6 +31,17 @@ export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+  }
+
+  // --clean is the reproducibility lint (review G4): `verify` runs the
+  // declared checks against the *current* disk, so a repo that only works
+  // because a previous run generated a Prisma client or built a workspace's
+  // dist still passes — "verify green" ≠ "passes from a clean checkout".
+  // This is the static half of that gap: it flags the footguns that make a
+  // fresh `npm install` differ from the dirty machine, without doing a real
+  // (slow, package-manager-specific) clean install.
+  if (flagBool(flags, "clean", false)) {
+    return reproducibilityLint(projectRoot);
   }
 
   const configPath = path.join(projectRoot, CONFIG_REL);
@@ -129,8 +141,142 @@ export async function run(_positional, flags) {
   return 1;
 }
 
+// Static reproducibility lint: walk the project's package.json files and
+// report the two "works on my machine" footguns the review hit — a package
+// whose entry points live in a build-output dir with nothing that builds it
+// on install, and a codegen dependency (Prisma) with no install hook that
+// generates. Returns 0 when clean, 1 when any risk is found. Pure read.
+function reproducibilityLint(projectRoot) {
+  const pkgPaths = findPackageJsons(projectRoot);
+  console.log(c.bold("doctrina verify --clean") + c.gray(" — reproducibility lint (static, not a real fresh install)"));
+  console.log("");
+
+  if (pkgPaths.length === 0) {
+    console.log(c.gray("no package.json found — nothing this lint can check (it knows Node/npm footguns)"));
+    return 0;
+  }
+
+  const findings = [];
+  for (const pkgPath of pkgPaths) {
+    const rel = relPath(projectRoot, pkgPath);
+    let pkg;
+    try {
+      pkg = JSON.parse(read(pkgPath));
+    } catch (err) {
+      findings.push(`${rel}: not valid JSON (${err.message})`);
+      continue;
+    }
+    const scripts = pkg.scripts ?? {};
+    const hasInstallBuild = typeof scripts.prepare === "string" || typeof scripts.prepack === "string";
+
+    // 1. Entry point into a build output with nothing to build it on install.
+    const built = entryIntoBuildDir(pkg);
+    if (built && !hasInstallBuild) {
+      findings.push(
+        `${rel}: ${built.field} → \`${built.value}\` is a build output, but no "prepare"/"prepack" ` +
+        `script builds it on install — a fresh install/clone won't have it (add a prepare script, or commit the output)`,
+      );
+    }
+
+    // 2. Codegen dependency with no install hook that generates.
+    const deps = {
+      ...pkg.dependencies, ...pkg.devDependencies,
+      ...pkg.peerDependencies, ...pkg.optionalDependencies,
+    };
+    for (const [dep, gen] of Object.entries(CODEGEN_DEPS)) {
+      if (!(dep in deps)) continue;
+      const installHook = `${scripts.postinstall ?? ""} ${scripts.prepare ?? ""}`;
+      if (!gen.test(installHook)) {
+        findings.push(
+          `${rel}: depends on "${dep}" but no "postinstall"/"prepare" runs its codegen ` +
+          `(\`${gen.source.replace(/\\s\+/g, " ")}\`) — a fresh install has no generated output`,
+        );
+      }
+    }
+  }
+
+  if (findings.length === 0) {
+    console.log(c.green("ok") + ` ${pkgPaths.length} package.json file${pkgPaths.length === 1 ? "" : "s"} — no reproducibility risks found`);
+    return 0;
+  }
+  for (const f of findings) console.log(`  ${c.yellow("!")} ${f}`);
+  console.log("");
+  console.log(c.red("fail") + ` ${findings.length} reproducibility risk${findings.length === 1 ? "" : "s"} — a clean checkout may not build`);
+  return 1;
+}
+
+// Known codegen dependencies → the command an install hook must run so a
+// fresh install produces their generated output.
+const CODEGEN_DEPS = {
+  "@prisma/client": /prisma\s+generate/,
+  "prisma": /prisma\s+generate/,
+};
+
+const BUILD_DIR_RE = /(?:^|\/)(?:dist|build|out)\//;
+
+// The first entry-point field that points into a build-output directory, or
+// null. Scans main/module/types/typings, bin (string or map), and exports
+// (recursively, string leaves only).
+function entryIntoBuildDir(pkg) {
+  for (const field of ["main", "module", "types", "typings"]) {
+    if (typeof pkg[field] === "string" && BUILD_DIR_RE.test(pkg[field])) {
+      return { field, value: pkg[field] };
+    }
+  }
+  if (typeof pkg.bin === "string" && BUILD_DIR_RE.test(pkg.bin)) return { field: "bin", value: pkg.bin };
+  if (pkg.bin && typeof pkg.bin === "object") {
+    for (const v of Object.values(pkg.bin)) {
+      if (typeof v === "string" && BUILD_DIR_RE.test(v)) return { field: "bin", value: v };
+    }
+  }
+  const fromExports = scanExports(pkg.exports);
+  if (fromExports) return { field: "exports", value: fromExports };
+  return null;
+}
+
+function scanExports(node) {
+  if (typeof node === "string") return BUILD_DIR_RE.test(node) ? node : null;
+  if (node && typeof node === "object") {
+    for (const v of Object.values(node)) {
+      const hit = scanExports(v);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+// Bounded walk for package.json files: skip dependency, build, and VCS
+// directories so the lint stays fast and ignores vendored manifests.
+const LINT_SKIP_DIRS = new Set([
+  ".git", "node_modules", "dist", "build", "out", "vendor", ".next",
+  "coverage", ".venv", "venv", "__pycache__", "target", ".doctrina",
+]);
+
+function findPackageJsons(projectRoot) {
+  const found = [];
+  const stack = [projectRoot];
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!LINT_SKIP_DIRS.has(entry.name) && !entry.name.startsWith(".")) stack.push(full);
+      } else if (entry.name === "package.json") {
+        found.push(full);
+      }
+    }
+  }
+  return found.sort();
+}
+
 export const help = `
-Usage: doctrina verify [--list] [--init] [--force]
+Usage: doctrina verify [--list] [--init] [--clean] [--force]
 
 Run the project-declared build/verify checks from ${CONFIG_REL} in order,
 streaming their output, and exit non-zero if any check fails. This is the
@@ -149,5 +295,9 @@ root, targets a sub-package in a monorepo):
 Flags:
   --init     Scaffold a starter ${CONFIG_REL} (refuses to overwrite without --force)
   --list     Print the configured checks without running them
+  --clean    Don't run checks; lint the project's package.json files for
+             reproducibility footguns (entry points in a build dir with no
+             prepare/prepack; a Prisma dep with no generate on install) so
+             "verify green" can't hide a clean checkout that won't build.
   --force    With --init, overwrite an existing config
 `;

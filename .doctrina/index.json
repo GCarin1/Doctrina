@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina",
-  "framework_version": "0.4.0",
-  "last_updated": "2026-06-19",
+  "framework_version": "0.6.0",
+  "last_updated": "2026-06-22",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,8 +15,8 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.15.0",
-        "last_updated": "2026-06-16",
+        "version": "0.18.0",
+        "last_updated": "2026-06-22",
         "implementation": "implemented"
       },
       {
@@ -106,6 +106,38 @@
         "status": "accepted",
         "date": "2026-06-19",
         "landed": "2026-06-19 — `packages/doctrina-cli/src/commands/trace.js`, `packages/doctrina-cli/src/lib/scan.js`"
+      },
+      {
+        "id": "0007",
+        "path": ".doctrina/decisions/0007-structured-spec-deltas-mechanically-applicable-ops.md",
+        "title": "Structured spec deltas — mechanically applicable ops",
+        "status": "accepted",
+        "date": "2026-06-22",
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/lib/spec-ops.js`, `packages/doctrina-cli/src/commands/change.js`"
+      },
+      {
+        "id": "0008",
+        "path": ".doctrina/decisions/0008-honest-gates-coverage-skip-detection-and-verify-reproducibility-lint.md",
+        "title": "Honest gates — coverage skip detection and verify reproducibility lint",
+        "status": "accepted",
+        "date": "2026-06-22",
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/verify.js`"
+      },
+      {
+        "id": "0009",
+        "path": ".doctrina/decisions/0009-validate-is-the-single-source-of-drift-truth-metadata-drift-error-fix-spec-set.md",
+        "title": "Validate is the single source of drift truth — metadata-drift error, --fix, spec set",
+        "status": "accepted",
+        "date": "2026-06-22",
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/spec.js`"
+      },
+      {
+        "id": "0010",
+        "path": ".doctrina/decisions/0010-adoption-ergonomics-code-first-backfill-chore-lane-diff-ranked-hint-header-lint.md",
+        "title": "Adoption ergonomics — code-first backfill, chore lane, diff-ranked hint, header lint",
+        "status": "accepted",
+        "date": "2026-06-22",
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/validate.js`"
       }
     ],
     "changes": [],

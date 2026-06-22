@@ -3,14 +3,15 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
-import { specHeader } from "../lib/scan.js";
+import { specHeader, deriveIndex } from "../lib/scan.js";
+import { setHeader, bumpVersion, setCriterionMark } from "../lib/spec-ops.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
-import { flagBool } from "../lib/args.js";
+import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 
-const SUBCOMMANDS = ["new", "list"];
+const SUBCOMMANDS = ["new", "list", "set"];
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -23,6 +24,7 @@ export async function run(positional, flags) {
     return 2;
   }
   if (sub === "list") return specList();
+  if (sub === "set") return specSet(positional.slice(1), flags);
 
   const capability = positional[1];
   if (!capability || !/^[a-z][a-z0-9-]*$/.test(capability)) {
@@ -109,6 +111,82 @@ function specList() {
   return 0;
 }
 
+// Edit a spec's bookkeeping headers (and a criterion mark) and resync the
+// index in one step — the inverse drift footgun the review hit (G8): a manual
+// "bump the version in the spec, then bump it again in index.json" lockstep.
+// Reuses the same structured ops as `change apply` (ADR 0007), so the header
+// and the index can never diverge after a `spec set`.
+function specSet(args, flags) {
+  const capability = args[0];
+  if (!capability || !/^[a-z][a-z0-9-]*$/.test(capability)) {
+    console.error(c.red("error:") + " spec set requires a <capability> (lowercase letters, digits, hyphens)");
+    return 2;
+  }
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+
+  const specPath = path.join(projectRoot, ".doctrina", "specs", capability, "spec.md");
+  if (!isFile(specPath)) {
+    console.error(c.red("error:") + ` no spec at ${relPath(projectRoot, specPath)} (create it with \`doctrina spec new ${capability}\`)`);
+    return 1;
+  }
+
+  const impl = flagString(flags, "implementation");
+  const status = flagString(flags, "status");
+  const bump = flagString(flags, "bump");
+  const criterion = flagString(flags, "criterion");
+  if (impl === undefined && status === undefined && bump === undefined && criterion === undefined) {
+    console.error(c.red("error:") + " spec set needs at least one of --implementation, --status, --bump, --criterion");
+    console.error(c.gray("hint: ") + `example: doctrina spec set ${capability} --implementation "verified — \`src/x.js\`" --bump minor`);
+    return 2;
+  }
+
+  let text = read(specPath);
+  const applied = [];
+  const errors = [];
+  const apply = (res) => {
+    if (res.error) errors.push(res.error);
+    else { text = res.text; applied.push(res.summary); }
+  };
+  // Order: headers, then version, then criterion — independent edits, all or
+  // none (a failed op leaves the spec untouched, like `change apply`).
+  if (status !== undefined) apply(setHeader(text, "Status", status));
+  if (impl !== undefined) apply(setHeader(text, "Implementation", impl));
+  if (bump !== undefined) {
+    if (!["major", "minor", "patch"].includes(bump)) errors.push(`--bump needs major|minor|patch (got "${bump}")`);
+    else apply(bumpVersion(text, bump));
+  }
+  if (criterion !== undefined) {
+    const m = String(criterion).match(/^(\d+)\s*:\s*(.+)$/);
+    if (!m) errors.push(`--criterion needs "<n>:<mark>" (got "${criterion}")`);
+    else apply(setCriterionMark(text, Number(m[1]), m[2].trim()));
+  }
+
+  if (errors.length > 0) {
+    console.error(c.red("error:") + ` ${errors.length} operation error${errors.length === 1 ? "" : "s"} — spec left untouched:`);
+    for (const e of errors) console.error(`  - ${e}`);
+    return 1;
+  }
+
+  // Stamp Last updated when the header exists (best-effort, never an error).
+  const date = today();
+  const lu = setHeader(text, "Last updated", date);
+  if (!lu.error) text = lu.text;
+
+  write(specPath, text, { force: true });
+  console.log(c.green("updated") + ` ${relPath(projectRoot, specPath)}`);
+  for (const s of applied) console.log(c.gray(`    · ${s}`));
+
+  // Single source of truth: regenerate the index from the now-updated tree so
+  // the spec headers and the index can never drift (no manual lockstep — G8).
+  const index = idx.load(projectRoot);
+  const derived = deriveIndex(projectRoot, index);
+  derived.last_updated = date;
+  idx.save(projectRoot, derived);
+  console.log(c.green("indexed") + ` spec "${capability}" synced`);
+  return 0;
+}
+
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
@@ -125,9 +203,17 @@ Subcommands:
   list                                 One line per spec: id, version,
                                        status, line count, last updated.
                                        Read-only.
+  set <capability> [opts]              Edit a spec's headers / a criterion
+                                       mark and resync the index in one step
+                                       (no manual lockstep bump — G8).
 
 Options:
-  --bug      Scaffold the bug-shape template (current / expected /
-             unchanged behaviour) instead of the EARS capability spec.
-  --force    Overwrite an existing spec.
+  --bug                  Scaffold the bug-shape template (current / expected /
+                         unchanged behaviour) instead of the EARS capability spec.
+  --force                Overwrite an existing spec (with \`new\`).
+  --implementation "..." With \`set\`: set the Implementation header.
+  --status "..."         With \`set\`: set the Status header.
+  --bump major|minor|patch  With \`set\`: bump the spec Version.
+  --criterion "<n>:<mark>"  With \`set\`: set criterion n's [mark]
+                         (e.g. --criterion "2:verified").
 `;

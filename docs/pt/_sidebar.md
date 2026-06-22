@@ -10,6 +10,7 @@
 - Guias
 
   - [Adoção brownfield](/pt/brownfield.md)
+  - [Playbook de adoção (multi-agente)](/pt/adoption-playbook.md)
   - [Migração de outros frameworks](/pt/migration.md)
   - [LLMs locais](/pt/local-llms.md)
 
