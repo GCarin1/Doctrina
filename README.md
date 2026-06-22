@@ -95,8 +95,10 @@ scripts/                 synthetic performance benchmark
 **📖 Documentation site:** [gcarin1.github.io/Doctrina](https://gcarin1.github.io/Doctrina/) —
 bilingual (EN/PT), sidebar navigation, full-text search, served straight
 from this repository's `docs/` folder via GitHub Pages with zero build
-step (enable it once under *Settings → Pages → Deploy from a branch →
-`main` / `docs`*).
+step. Deployment is automated by
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml), which
+publishes `docs/` on every push to `main` that touches it. One-time setup:
+enable Pages once under *Settings → Pages → Source → **GitHub Actions***.
 
 User-facing documentation lives under [`docs/`](./docs/):
 

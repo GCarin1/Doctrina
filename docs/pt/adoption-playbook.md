@@ -146,8 +146,7 @@ spec, documente-a.
 ```bash
 doctrina init --from . --agent all          # scaffold + alinha os três agentes
 doctrina intake --text "<visão/PRD>"        # Claude preenche o product.md
-# escolha uma capability quente, então:
-doctrina work --from-diff                   # ou: doctrina spec new <cap> + backfill
+doctrina work --from-diff                   # numa capability quente (ou: spec new <cap> + backfill)
 doctrina skill new running-locally          # capture o contexto que os agentes erram
 doctrina hooks install                      # ratchet ligado
 ```
