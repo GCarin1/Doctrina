@@ -17,6 +17,94 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-06-27
+
+Framework-review follow-up (`REVIEW-doctrina-2026-06-27.md`): the review's
+diagnosis was that the loop-closing features are competent but **passive** —
+they exist and nothing pulls them into the default flow, so they wither. This
+release pulls them in. All changes are deterministic and advisory (ADR 0011).
+
+### Added
+
+- Intent provenance is now **opt-out, not opt-in**: `doctrina spec new`
+  scaffolds a `**Realizes:**` header, and `doctrina validate` warns when an
+  `active` capability spec on the implementation axis declares none. Any value
+  silences it, including a deliberate `**Realizes:** n/a — <why>` for an
+  internal capability. The `work` playbook gains a step to tag a `product.md`
+  `[SC1]` anchor and set `Realizes:`, and lists `doctrina trace` among the
+  closing gates. (ADR 0011)
+- `doctrina next` surfaces two new priority-ordered actions: suggest
+  `doctrina decision land NNNN` for an accepted ADR with neither Evidence nor
+  Landed, and a one-time skill-capture nudge when no skill exists yet and an
+  archived change is fix-shaped. Both fire only when warranted. (ADR 0011)
+- The `work` and chore playbooks end with a `doctrina skill new` nudge when a
+  change taught a reusable lesson worth not relearning. (ADR 0011)
+
+### Changed
+
+- The shipped pre-commit hook now runs `doctrina validate --fix` (was a bare
+  `validate`): it regenerates `index.json` from the tree — healing metadata
+  drift and migrating the `framework_version` stamp — re-stages the index, and
+  still blocks the commit on errors a rebuild cannot heal. This eliminates the
+  most common gate failure at commit time instead of reporting it. Editable
+  back to a bare `validate` for CI-style fail-on-drift gating. (ADR 0011)
+- The `AGENTS.md` template's "How to read context efficiently" section now
+  **leads with** `doctrina context [<capability>] --concat` as the single
+  command that assembles the read pack for any task — review, debug, a
+  question — not only `doctrina work`. (ADR 0011)
+- The `AGENTS.md` template gains a dense **"Doctrina command surface"** map
+  grouped by moment (read/orient · start · scaffold · advance/close · gates),
+  so an agent self-serves the whole CLI instead of only the ~6 commands the
+  template used to name — the rest were reachable only via the `work` playbook
+  or `doctrina --help`. Manual creation stays first-class; kept under the
+  150-line budget. (ADR 0011)
+
+## [0.6.0] — 2026-06-22
+
+Adoption ergonomics for existing/in-progress codebases (ADR 0010).
+
+### Added
+
+- `doctrina work --from-diff` — code-first backfill: scaffold a change from the
+  working-tree changes (no prompt) and print a playbook to write the spec that
+  describes what the code already does (F8).
+- `--chore` / `--no-spec` lane on `doctrina change new` and `doctrina work` —
+  a spec-less home for infra/docs/build/migration changes that runs the full
+  proposal → apply → archive → ledger lifecycle without a fabricated delta (F9).
+- Diff-ranked capability hint in `work` — capabilities are ranked by which
+  working-tree files were touched, not just prompt term overlap (F10).
+
+### Changed
+
+- `doctrina validate` warns when a known metadata header is not in the
+  canonical `**Key:** value` form — turning the silent non-parse footgun into a
+  visible, fixable warning (G11).
+
+## [0.5.0] — 2026-06-22
+
+Honest gates and single-source drift truth (ADRs 0007–0009).
+
+### Added
+
+- Structured `MODIFIED` spec deltas: a fenced ops block applied mechanically by
+  `doctrina change apply` (ADR 0007).
+- `doctrina change abandon <id>` — discard an open change cleanly (F2).
+- `coverage` `conditional` verdict — a criterion proven only by a statically
+  skipped test suite is not proof, and fails `--strict` (ADR 0008).
+- `doctrina verify --clean` — clean-checkout reproducibility lint (ADR 0008).
+- `doctrina spec set <cap>` — edit a spec's headers / a criterion mark and
+  resync the index in one step, no manual lockstep bump (ADR 0009).
+- `doctrina validate --fix` — regenerate the index from the tree before
+  checking, repairing drift instead of only reporting it (ADR 0009).
+- `doctrina work --resume <id>` — reprint an open change's playbook instead of
+  fabricating a junk change from a bare "continue" prompt (F1).
+
+### Changed
+
+- `doctrina validate` now treats index **metadata** drift as an error (was a
+  warning): validate is the single source of truth about whether the project is
+  OK (ADR 0009).
+
 ## [0.4.0] — 2026-06-19
 
 Framework-review follow-ups: tighten the framework's own hygiene where

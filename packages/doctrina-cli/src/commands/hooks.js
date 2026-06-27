@@ -43,7 +43,9 @@ export async function run(positional, flags) {
   write(target, body, { force: true });
   chmodSync(target, 0o755);
   console.log(c.green("installed") + ` ${relPath(projectRoot, target)}`);
-  console.log(`The hook runs ${c.cyan("doctrina validate")} before each commit.`);
+  console.log(`The hook runs ${c.cyan("doctrina validate --fix")} before each commit:`);
+  console.log(c.gray("  it rebuilds index.json from the tree (healing drift, re-staging it)"));
+  console.log(c.gray("  and still blocks the commit on errors a rebuild cannot heal."));
   return 0;
 }
 
@@ -51,8 +53,12 @@ export const help = `
 Usage: doctrina hooks install [--force]
 
 Install the Doctrina pre-commit hook into .git/hooks/pre-commit.
-The hook runs \`doctrina validate\` and blocks the commit when
-validation reports errors.
+The hook runs \`doctrina validate --fix\`: it regenerates index.json
+from the tree (healing the most common gate failure — a hand-edited
+header that drifted the index — and re-staging the repaired index)
+and still blocks the commit on errors a rebuild cannot heal. Edit the
+installed hook freely; to gate without auto-repair, swap the line for a
+bare \`doctrina validate\`.
 
 Options:
   --force    Overwrite an existing pre-commit hook

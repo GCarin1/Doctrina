@@ -2504,3 +2504,141 @@ test("intake flags a thin description and stays quiet on a detailed one", () => 
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// --- ADR 0011: pull passive features into the default flow ---
+
+test("spec new scaffolds a Realizes header (provenance is opt-out)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["spec", "new", "billing"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const body = readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8");
+    assert.match(body, /^\*\*Realizes:\*\*/m);
+    // The scaffold's placeholder carries no anchor ids, so a fresh spec does
+    // not falsely claim provenance and validate stays clean (no drift).
+    const v = runCli(["validate"], { cwd: tmp });
+    assert.equal(v.status, 0, v.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate warns on an active spec with no Realizes header (provenance nudge)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const specPath = path.join(tmp, ".doctrina", "specs", "billing", "spec.md");
+    // An active capability spec on the implementation axis but with no
+    // Realizes header — the untraced-promise case the nudge targets.
+    writeFileSync(
+      specPath,
+      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Version:** 0.1.0\n\n## Purpose\n\nBill customers.\n",
+    );
+    runCli(["index", "rebuild"], { cwd: tmp }); // sync index so drift does not mask the warning
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout); // advisory: warning, not error
+    assert.match(r.stdout, /no Realizes: header/);
+
+    // An n/a value silences it (escape hatch for an internal capability).
+    writeFileSync(
+      specPath,
+      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nBill customers.\n",
+    );
+    runCli(["index", "rebuild"], { cwd: tmp });
+    const r2 = runCli(["validate"], { cwd: tmp });
+    assert.ok(!/no Realizes: header/.test(r2.stdout), r2.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("next suggests decision land for an accepted ADR with nothing proving it", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    const r = runCli(["next"], { cwd: tmp });
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /decision land 0001/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("next nudges skill capture when none exist and a past fix was archived", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // Hand-create a fix-shaped archived change (the change-0003 case from §5).
+    const arch = path.join(tmp, ".doctrina", "changes", "archive", "2026-06-01-0003-fix-llm-parsing");
+    mkdirSync(arch, { recursive: true });
+    writeFileSync(path.join(arch, "proposal.md"), "# Change 0003 — fix llm parsing\n\n- **Status:** applied\n");
+    const r = runCli(["next"], { cwd: tmp });
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /doctrina skill new/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("next does not nudge skill capture once a skill exists", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const arch = path.join(tmp, ".doctrina", "changes", "archive", "2026-06-01-0003-fix-llm-parsing");
+    mkdirSync(arch, { recursive: true });
+    writeFileSync(path.join(arch, "proposal.md"), "# Change 0003 — fix llm parsing\n\n- **Status:** applied\n");
+    runCli(["skill", "new", "parse-llm-output"], { cwd: tmp });
+    const r = runCli(["next"], { cwd: tmp });
+    assert.equal(r.status, 0);
+    assert.ok(!/doctrina skill new/.test(r.stdout), r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("hooks install writes a self-healing hook that runs validate --fix", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    mkdirSync(path.join(tmp, ".git", "hooks"), { recursive: true });
+    const r = runCli(["hooks", "install"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const body = readFileSync(path.join(tmp, ".git", "hooks", "pre-commit"), "utf8");
+    assert.match(body, /doctrina validate --fix/);
+    assert.match(body, /git add \.doctrina\/index\.json/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("the AGENTS.md template leads context-reading with doctrina context", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.match(agents, /doctrina context \[<capability>\] --concat/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("the AGENTS.md template carries the agent command surface, under the cap", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
+    assert.match(agents, /Doctrina command surface/);
+    // A spread across the surface so an agent self-serves any task, not just `work`.
+    for (const cmd of ["doctrina next", "doctrina spec new", "doctrina verify", "doctrina trace"]) {
+      assert.ok(agents.includes(cmd), `expected AGENTS.md to name "${cmd}"`);
+    }
+    // Stays within the always-loaded budget (validate's 150-line soft cap).
+    assert.ok(agents.split("\n").length <= 150, `AGENTS.md is ${agents.split("\n").length} lines`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

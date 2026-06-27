@@ -118,6 +118,13 @@ conforme o código entra. O `validate` avisa quando uma spec `active`
 continua `planned` sem nada construído por trás — uma afirmação de
 inventário sem lastro.
 
+O esqueleto também traz um header `**Realizes:**` (ADR 0011): nomeie os
+anchors de critério de sucesso do `product.md` (`[SC1]`) que esta
+capability entrega, ou registre `n/a — <porquê>` para uma capability
+interna. A proveniência é opt-out — o `validate` avisa quando uma spec
+`active` no eixo de implementação não declara header `Realizes:`, e o
+`doctrina trace` reporta o elo intenção→capability.
+
 | Flag | Função |
 |------|--------|
 | `--bug` | Esqueletiza o template no formato de bug (current/expected/unchanged behaviour) em vez da spec EARS de capability. |
@@ -425,11 +432,16 @@ Instala o pre-commit hook do Doctrina em
 doctrina hooks install [--force]
 ```
 
-O hook roda `doctrina validate` e bloqueia o commit se sair com
-erro. O CLI recusa rodar fora de um repositório git e recusa
-sobrescrever um hook existente sem `--force`. O hook instalado é
-um shell script POSIX abaixo de 10 linhas; edite à vontade depois
-da instalação (o CLI não sobrescreve sem `--force`).
+O hook roda `doctrina validate --fix`: ele regenera o `index.json`
+a partir da árvore (curando a falha de gate mais comum — um header
+editado à mão que dessincronizou o índice — e re-stageando o índice
+reparado) e ainda bloqueia o commit em erros que um rebuild não cura.
+O CLI recusa rodar fora de um repositório git e recusa sobrescrever
+um hook existente sem `--force`. O hook instalado é um shell script
+POSIX curto; edite à vontade depois da instalação (o CLI não
+sobrescreve sem `--force`) — por exemplo, troque a linha por um
+`doctrina validate` puro para gatekeep sem auto-reparo (estilo CI,
+falha em qualquer drift).
 
 No Windows o bit executável definido pelo instalador é no-op; o
 hook roda sob Git Bash (o shell padrão que o git-for-Windows usa
@@ -501,6 +513,15 @@ Checagens:
 22. Contratos presentes em disco mas ausentes do `index.json` geram
     warning (detecção de órfãos), e todo path de contrato indexado
     precisa existir.
+23. Adoção de proveniência: uma spec de capability `Status: active` no
+    eixo de implementação mas sem header `Realizes:` gera warning — não
+    traça a nenhuma intenção de produto (ADR 0011). Qualquer valor
+    silencia, inclusive um deliberado `n/a — <motivo>`.
+
+A flag `--fix` regenera o `index.json` a partir da árvore antes de
+checar, então um índice em drift é reparado (e o carimbo
+`framework_version` migrado) em vez de reportado — o pre-commit
+instalado roda isso.
 
 Sai 0 sem erros, 1 caso contrário. Warnings não falham a
 validação.
@@ -615,9 +636,12 @@ doctrina next
 
 Inspeciona a árvore e reporta: changes abertas (proposal faltando,
 tasks desmarcadas, deltas prontos para aplicar,
-aplicadas-mas-não-arquivadas), ADRs ainda em status `proposed` e
-drift do index. Quando nada está aberto, diz isso e aponta para
-`change new` / `spec new`.
+aplicadas-mas-não-arquivadas), ADRs ainda em status `proposed`, ADRs
+aceitos sem nada que os comprove ainda (sugerindo `decision land`), um
+nudge único de captura de skill quando nenhuma existe e uma change
+arquivada tem cara de fix, e o drift do index por último (ADR 0011).
+Quando nada está aberto, diz isso e aponta para `change new` /
+`spec new`.
 
 Read-only; sempre sai 0. Pensado para agentes e humanos retomarem
 o trabalho sem reler a árvore inteira.

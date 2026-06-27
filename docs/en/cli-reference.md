@@ -113,6 +113,13 @@ reflects intent, and advance `Implementation` as code lands. `validate`
 warns when an `active` spec is still `planned` with no note — an
 inventory claim with nothing built behind it.
 
+The scaffold also carries a `**Realizes:**` header (ADR 0011): name the
+`product.md` success-criteria anchors (`[SC1]`) this capability delivers,
+or record `n/a — <why>` for an internal capability. Provenance is opt-out
+— `validate` warns when an `active` spec on the implementation axis
+declares no `Realizes:` header, and `doctrina trace` reports the
+intent→capability link.
+
 | Flag | Purpose |
 |------|---------|
 | `--bug` | Scaffold the bug-shape template (current / expected / unchanged behaviour) instead of the EARS capability spec. |
@@ -418,12 +425,16 @@ Install the Doctrina pre-commit hook into `.git/hooks/pre-commit`.
 doctrina hooks install [--force]
 ```
 
-The hook runs `doctrina validate` and blocks the commit if it
-exits non-zero. The CLI refuses to run outside a git repository
-and refuses to overwrite an existing hook unless `--force` is
-supplied. The installed hook is a POSIX shell script under 10
-lines; edit it freely after install (the CLI will not overwrite
-without `--force`).
+The hook runs `doctrina validate --fix`: it regenerates
+`index.json` from the tree (healing the most common gate failure —
+a hand-edited header that drifted the index — and re-staging the
+repaired index) and still blocks the commit on errors a rebuild
+cannot heal. The CLI refuses to run outside a git repository and
+refuses to overwrite an existing hook unless `--force` is supplied.
+The installed hook is a short POSIX shell script; edit it freely
+after install (the CLI will not overwrite without `--force`), e.g.
+swap the line for a bare `doctrina validate` to gate without
+auto-repairing (CI-style, fail on any drift).
 
 On Windows the executable bit set by the installer is a no-op;
 the hook runs under Git Bash (the default shell git-for-Windows
@@ -491,6 +502,14 @@ Checks performed:
     `index.json.changes_archive`, or validation **fails** (error).
 22. Contracts present on disk but absent from `index.json` warn
     (orphan detection), and every indexed contract path must exist.
+23. Provenance adoption: a capability spec that is `Status: active` and
+    on the implementation axis but declares no `Realizes:` header warns —
+    it traces to no product intent (ADR 0011). Any value silences it,
+    including a deliberate `n/a — <why>`.
+
+The `--fix` flag regenerates `index.json` from the tree before checking,
+so a drifted index is repaired (and the `framework_version` stamp
+migrated) rather than reported — the shipped pre-commit hook runs this.
 
 Exits 0 on no errors, 1 otherwise. Warnings do not fail validation.
 
@@ -600,8 +619,11 @@ doctrina next
 
 Inspects the tree and reports: open changes (missing proposal,
 unchecked tasks, deltas ready to apply, applied-but-unarchived),
-ADRs still in `proposed` status, and index drift. When nothing is
-open it says so and points at `change new` / `spec new`.
+ADRs still in `proposed` status, accepted ADRs with nothing proving
+them yet (suggesting `decision land`), a one-time skill-capture nudge
+when no skill exists and an archived change is fix-shaped, and index
+drift last (ADR 0011). When nothing is open it says so and points at
+`change new` / `spec new`.
 
 Read-only; always exits 0. Intended for agents and humans resuming
 work without re-reading the whole tree.

@@ -3,8 +3,9 @@
 **Capability:** cli
 **Status:** active
 **Implementation:** implemented
-**Last updated:** 2026-06-22
-**Version:** 0.18.0
+**Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Last updated:** 2026-06-27
+**Version:** 0.19.0
 
 ## Purpose
 
@@ -175,6 +176,15 @@ optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
 - When `doctrina validate` runs, the system shall warn when
   `.doctrina/index.json` records a `framework_version` absent or behind the
   running CLI (stamp divergence; warnings only).
+- When `doctrina validate` runs against a capability spec whose `Status` is
+  `active` and which is on the implementation axis (has an `Implementation`
+  header) but declares no `Realizes:` header, the system shall warn that the
+  capability traces to no product intent — silenced by any `Realizes:` value,
+  including a deliberate `n/a — <why>` (provenance-adoption nudge; warnings
+  only).
+- When `doctrina spec new <capability>` runs, the system shall scaffold a
+  `**Realizes:**` header in the new spec from the capability template, so the
+  intent link is opt-out (record `n/a — <why>`) rather than opt-in.
 - When `doctrina hooks install` runs inside a git repository, the
   system shall write `.git/hooks/pre-commit` from the hooks
   template, mark it executable, and refuse to overwrite an
@@ -284,8 +294,11 @@ optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
   actions in priority order: a pending `.doctrina/intake.md`
   (not yet `converted`), open changes (missing proposal,
   unchecked tasks, deltas ready to apply, applied but not
-  archived), ADRs still in `proposed` status, and index drift.
-  When no work is open the system shall say so and point at
+  archived), ADRs still in `proposed` status, accepted ADRs with
+  neither `Evidence` nor `Landed` proving them (suggesting
+  `decision land`), a single skill-capture nudge when no skill
+  exists yet and an archived change is fix-shaped, and index drift
+  last. When no work is open the system shall say so and point at
   `change new` and `spec new`. The command is strictly read-only
   and shall exit 0.
 - When `doctrina metrics` runs inside a git repository, the
@@ -426,7 +439,8 @@ optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
 - The system shall not write outside the project working directory.
 - The system shall not emit telemetry or make network calls.
 - The hook installed by `doctrina hooks install` shall do no work
-  beyond invoking `doctrina validate`. Lint, tests, and
+  beyond invoking `doctrina validate --fix` and re-staging
+  `.doctrina/index.json` when the fix rewrites it. Lint, tests, and
   project-specific checks are out of scope for the shipped hook.
 
 ### Optional

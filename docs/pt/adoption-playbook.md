@@ -94,7 +94,7 @@ indexadas e compartilhadas pelos três agentes. Veja [Skills](skills.md).
 ## Fase 4 — Ligar o ratchet
 
 ```bash
-doctrina hooks install     # pre-commit roda validate (agora também pega drift de índice)
+doctrina hooks install     # pre-commit roda validate --fix (cura drift de índice, bloqueia em erros reais)
 doctrina verify --init     # declare seus comandos de typecheck / test / build
 doctrina verify --clean    # lint estático de footguns de checkout limpo (dist não buildado, client Prisma não gerado)
 ```

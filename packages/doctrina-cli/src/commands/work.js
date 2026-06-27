@@ -333,6 +333,8 @@ function printChorePlaybook(projectRoot, { id, prompt }) {
   console.log(`   spec delta, it is not a chore — reopen with ${c.cyan("doctrina work \"<prompt>\"")}.`);
   console.log(`4. ${c.cyan(`doctrina change apply ${id}`)}  (zero deltas → flips to applied).`);
   console.log(`5. ${c.cyan(`doctrina change archive ${id}`)}, then ${c.cyan("doctrina validate")}.`);
+  console.log(c.gray("   If this fix taught a lesson worth not relearning, capture it: ") +
+    c.cyan("doctrina skill new <slug>") + c.gray("."));
 }
 
 function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, fromDiff = false, diffMatches = [] }) {
@@ -385,6 +387,10 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log("");
   console.log("2. If the capability has no spec yet:");
   console.log(`       ${c.cyan("doctrina spec new <capability>")}`);
+  console.log(c.gray("   Trace it to product intent: tag the product.md success-criteria bullet"));
+  console.log(c.gray("   it serves with an anchor (\"- [SC1] ...\") and set the spec's"));
+  console.log(c.gray("   \"**Realizes:** SC1\" header (or \"n/a — <why>\"). `doctrina validate` warns"));
+  console.log(c.gray("   on an active spec with no Realizes; `doctrina trace` reports the link."));
   console.log("");
   console.log("3. Write one delta per affected capability at");
   console.log(`   .doctrina/changes/${id}/specs/<capability>/delta.md:`);
@@ -413,11 +419,14 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log("8. Prove it before declaring done (archive refuses unchecked boxes):");
   console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
   console.log(`       ${c.cyan("doctrina coverage")}   — each acceptance criterion cites a real test`);
+  console.log(`       ${c.cyan("doctrina trace")}      — the capability traces to product intent`);
   console.log("   Then check the proposal's ## Verification boxes and every task,");
   console.log("   closing steps included, and bump Implementation to verified.");
   console.log("");
   console.log(`9. ${c.cyan(`doctrina change archive ${id}`)}`);
   console.log(`10. ${c.cyan("doctrina validate")}, then ${c.cyan("doctrina next")} for the follow-up.`);
+  console.log(c.gray("    If this change taught a reusable lesson (a fix you'd hate to relearn,"));
+  console.log(c.gray("    a recurring convention), capture it: ") + c.cyan("doctrina skill new <slug>") + c.gray("."));
 }
 
 export const help = `

@@ -3,8 +3,8 @@
 **Capability:** validation
 **Status:** active
 **Implementation:** implemented
-**Realizes:** SC1
-**Last updated:** 2026-06-19
+**Realizes:** SC1, SC2, SC3
+**Last updated:** 2026-06-27
 **Version:** 0.1.0
 
 ## Purpose
