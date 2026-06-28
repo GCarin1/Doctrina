@@ -2747,6 +2747,71 @@ test("skill suggest surfaces fix-shaped lessons and --write scaffolds them", () 
   }
 });
 
+test("skill suggest surfaces a fix-shaped git commit, ignoring feat/refactor (ADR 0013)", () => {
+  const tmp = makeTempProject();
+  const gitEnv = ["-c", "user.email=t@example.com", "-c", "user.name=T", "-c", "commit.gpgsign=false"];
+  const sh = (args) => spawnSync("git", [...gitEnv, ...args], { cwd: tmp, encoding: "utf8" });
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    sh(["init", "-q"]);
+    sh(["commit", "-q", "--allow-empty", "-m", "init v0.1"]);
+    sh(["commit", "-q", "--allow-empty", "-m", "fix: tolerate trailing comma in JSON parser"]);
+    sh(["commit", "-q", "--allow-empty", "-m", "feat: add dark mode"]);
+    sh(["commit", "-q", "--allow-empty", "-m", "refactor: rename helpers"]);
+
+    const r = runCli(["skill", "suggest"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    // The fix commit is a candidate, shown with commit provenance…
+    assert.match(r.stdout, /tolerate-trailing-comma-in-json-parser/);
+    assert.match(r.stdout, /from commit [0-9a-f]{7,}/);
+    // …but feat:/refactor: subjects are not.
+    assert.doesNotMatch(r.stdout, /dark-mode/);
+    assert.doesNotMatch(r.stdout, /rename-helpers/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("skill suggest --write scaffolds a git-sourced candidate with commit provenance (ADR 0013)", () => {
+  const tmp = makeTempProject();
+  const gitEnv = ["-c", "user.email=t@example.com", "-c", "user.name=T", "-c", "commit.gpgsign=false"];
+  const sh = (args) => spawnSync("git", [...gitEnv, ...args], { cwd: tmp, encoding: "utf8" });
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    sh(["init", "-q"]);
+    sh(["commit", "-q", "--allow-empty", "-m", "fix: tolerate trailing comma in JSON parser"]);
+
+    const written = runCli(["skill", "suggest", "--write"], { cwd: tmp });
+    assert.equal(written.status, 0, written.stderr || written.stdout);
+    const skillPath = path.join(tmp, ".doctrina", "skills", "tolerate-trailing-comma-in-json-parser.md");
+    assert.ok(existsSync(skillPath));
+    assert.match(readFileSync(skillPath, "utf8"), /Candidate from commit [0-9a-f]{7,}/);
+    const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    assert.ok(index.artifacts.skills?.find((s) => s.id === "tolerate-trailing-comma-in-json-parser"));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("skill suggest dedups a git commit whose skill is already captured (ADR 0013)", () => {
+  const tmp = makeTempProject();
+  const gitEnv = ["-c", "user.email=t@example.com", "-c", "user.name=T", "-c", "commit.gpgsign=false"];
+  const sh = (args) => spawnSync("git", [...gitEnv, ...args], { cwd: tmp, encoding: "utf8" });
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    sh(["init", "-q"]);
+    sh(["commit", "-q", "--allow-empty", "-m", "fix: tolerate trailing comma in JSON parser"]);
+    // Capture the lesson first; the matching commit must no longer be surfaced.
+    runCli(["skill", "new", "tolerate-trailing-comma-in-json-parser"], { cwd: tmp });
+
+    const r = runCli(["skill", "suggest"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /no uncaptured fix-shaped lessons/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("verify manual check is a non-blocking qualitative gate until signed off", () => {
   const tmp = makeTempProject();
   try {

@@ -322,19 +322,27 @@ from the index.
 
 ## `doctrina skill suggest`
 
-Surface fix-shaped lessons in the change archive whose skill is not yet
-captured — the textbook case for a skill (ADR 0012). Skills are written by
-humans; this only points.
+Surface fix-shaped lessons whose skill is not yet captured — the textbook
+case for a skill (ADR 0012). It scans two deterministic sources: archived
+change proposals and fix-shaped commits in the git history (ADR 0013). Skills
+are written by humans; this only points.
 
 ```
 doctrina skill suggest
 doctrina skill suggest --write
+doctrina skill suggest --since v0.7.0
 ```
 
-Lists candidate slugs (derived from fix-shaped archived change ids) and the
-lesson from each change's `## Why`. With `--write` it scaffolds a stub per
-candidate, pre-seeded from the change, and indexes it — so authoring a skill
-is "fill in", not "start from blank". Read-only without `--write`.
+Lists candidate slugs — derived from fix-shaped archived change ids, or from
+fix-shaped commit subjects (`fix:`, `fix(scope):`, `bug:`, …; never
+`feat:`/`refactor:`) — each with its lesson (the change's `## Why`, or the
+commit subject) and its origin (`from <archive>` or `from commit <sha>`).
+Candidates are deduplicated by slug against existing skills, with the archive
+winning a collision. With `--write` it scaffolds a stub per candidate,
+pre-seeded from its source, and indexes it — so authoring a skill is "fill
+in", not "start from blank". `--since <ref>` scans commits in `<ref>..HEAD`
+instead of the most recent 200; the git source degrades silently to
+archive-only when there is no repo. Read-only without `--write`.
 
 ## `doctrina analyze <change-id>`
 

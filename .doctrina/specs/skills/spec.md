@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-06-27
-**Version:** 0.2.1
+**Last updated:** 2026-06-28
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -45,6 +45,16 @@ replacing it.
   entry, indexing skills present on disk but absent from the
   index. The frontmatter is the single source of truth for the
   description; the command never edits skill files.
+- When `doctrina skill suggest` runs, the system shall list
+  fix-shaped lessons not yet captured as skills, drawn from two
+  deterministic sources — archived change proposals
+  (`.doctrina/changes/archive/`) and fix-shaped commits in the
+  git history — deduplicated by slug against existing skills and
+  each other. With `--write` the system shall scaffold a stub per
+  candidate, pre-seeded from its source, and index it; with
+  `--since <ref>` it shall scan commits in `<ref>..HEAD` instead
+  of the most recent window. The command surfaces candidates
+  only; it never authors the lesson body (ADR 0013).
 - When `doctrina validate` runs, the system shall walk
   `.doctrina/skills/` and emit a warning for any skill missing
   one or more of the required frontmatter fields, any skill
@@ -101,4 +111,7 @@ A `.doctrina/skills/` directory is spec-compliant when:
 - Skill marketplaces, remote skill loading, cross-project skill
   sharing — covered indirectly by the conventions-repo pattern
   in `context-engineering.md`.
-- Automatic skill suggestion. Skills are written, not predicted.
+- Automatic authoring of skill content. `doctrina skill suggest`
+  deterministically *surfaces* fix-shaped candidates (and `--write`
+  scaffolds an empty, pre-seeded stub), but the lesson itself is
+  written by a human, never generated or predicted (ADR 0013).

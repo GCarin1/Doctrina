@@ -17,6 +17,30 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-06-28
+
+Make `skill suggest` useful outside the change lifecycle (ADR 0013). In 0.8 it
+scanned only `.doctrina/changes/archive/`, so in any repo that does its work
+directly in git — including Doctrina's own — the archive stayed empty and the
+command never surfaced anything.
+
+### Changed
+
+- `doctrina skill suggest` now draws fix-shaped candidates from **two**
+  deterministic sources: archived change proposals *and* fix-shaped commits in
+  the git commit history (conventional `fix:`/`bug:`/`hotfix:`/`patch:` and a
+  small set of debugging keywords; never `feat:`/`refactor:`). Candidates are
+  deduplicated by slug against existing skills, with the archive winning a
+  collision, and each shows its origin (`from <archive>` or `from commit
+  <sha>`). The git source degrades silently to archive-only when there is no
+  repo. Still a deterministic hint that only surfaces candidates — skills stay
+  human-authored (ADR 0005).
+
+### Added
+
+- `doctrina skill suggest --since <ref>` scans commits in `<ref>..HEAD`
+  instead of the most recent 200 (e.g. `--since v0.7.0`).
+
 ## [0.8.0] — 2026-06-27
 
 Passive-user feature set (ADR 0012): new commands so the AI agent drives the
