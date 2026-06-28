@@ -17,6 +17,51 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-06-27
+
+Passive-user feature set (ADR 0012): new commands so the AI agent drives the
+loop and the human stays passive — give intent, approve. All deterministic and
+read-only unless they scaffold/close, with the semantic-fidelity ceiling
+(ADR 0005) intact.
+
+### Added
+
+- `doctrina status` — one-glance health dashboard (index drift, framework
+  stamp, coverage %, trace anchors, verify config, artifact counts).
+  Read-only; the fast summary that `validate`/`verify` back authoritatively.
+- `doctrina close <id>` — run the whole closing sequence in one pass
+  (analyze → change apply → verify → coverage `--strict` → trace → change
+  archive → validate), stopping at the first failure with the exact rerun
+  command. A driver over the existing commands; adds no checks of its own.
+- `doctrina review [--diff <ref>] [--strict]` — deterministic conformance
+  review of the working tree (or a diff against a ref) against the spec / ADR
+  / contract tree: code changed under a capability whose spec was not updated,
+  changed code mapping to no capability, acceptance criteria citing missing
+  proof, dropped product intent, contract collisions. Checks conformance
+  shape, never semantic fidelity.
+- `doctrina why <capability>` — print a capability's provenance chain: the
+  product intent it `Realizes:`, its purpose, the acceptance criteria that
+  prove it, and the accepted ADRs that name it. Read-only.
+- `doctrina watch [--once]` — re-run `validate --fix` and reprint
+  `doctrina next` on every change under `.doctrina/` (debounced, ignoring the
+  index.json the fix rewrites), so state stays synced and the agent stays
+  oriented without anyone invoking a command. `--once` runs a single pass.
+- `doctrina skill suggest [--write]` — surface fix-shaped archived changes
+  whose skill is not yet captured; `--write` scaffolds a stub per candidate,
+  pre-seeded from the change, and indexes it.
+- `doctrina verify` qualitative gate: a check with `"type": "manual"` is
+  judged by a human/eval and recorded as a sign-off
+  (`.doctrina/verify.signoffs.json`) rather than run — pending by default
+  (non-blocking), failing only under `--strict`. Record one with
+  `doctrina verify --signoff "<name>=<note>"`.
+
+### Changed
+
+- The `AGENTS.md` "Doctrina command surface" map gains the new commands
+  (`status`/`why` under read-orient, `close` under advance-close, `review`
+  under gates, plus a `watch`/`skill suggest` line), so an agent self-serves
+  them on any task.
+
 ## [0.7.0] — 2026-06-27
 
 Framework-review follow-up (`REVIEW-doctrina-2026-06-27.md`): the review's

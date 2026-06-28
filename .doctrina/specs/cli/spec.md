@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-06-27
-**Version:** 0.19.0
+**Version:** 0.20.0
 
 ## Purpose
 
@@ -17,12 +17,15 @@ the exit-code conventions across the surface. The surface comprises
 `--capability`/`--id`/`--resume`/`--from-diff`/`--chore`),
 `spec new|list|set` (with
 optional `--bug`), `change new|apply|archive|diff|abandon`,
-`decision new|accept|land|supersede|list`, `skill new|list|sync`,
+`decision new|accept|land|supersede|list`, `skill new|list|sync|suggest`,
 `contract new|list|check`, `analyze`, `clarify` (with optional `--all`),
 `validate` (with optional `--fix`), `coverage` and `trace` (each with
-optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
+optional `--strict`), `review` (with optional `--diff <ref>`/`--strict`),
+`verify` (with optional `--init`/`--list`/`--clean`/`--strict`/`--signoff`),
+`close` (with optional `--force`), `status`, `why <capability>`,
 `templates list|check|update`, `hooks install`, `index rebuild`,
-`next`, `metrics`, `context`, `search`, `--help`, and `--version`.
+`next`, `watch` (with optional `--once`), `metrics`, `context`, `search`,
+`--help`, and `--version`.
 
 ## Requirements (EARS)
 
@@ -395,6 +398,12 @@ optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
   if any fails (no config exits 1, pointing at `--init`; `--list` prints
   without running). This build gate is distinct from `validate` and never
   runs in the pre-commit hook.
+- When a `verify.json` check declares `"type": "manual"`, the system shall
+  not run a command for it but treat it as a qualitative gate: it passes
+  when signed off (recorded in `.doctrina/verify.signoffs.json`) and is
+  otherwise reported as pending — non-blocking by default, failing only
+  under `--strict`. `doctrina verify --signoff "<name>=<note>"` shall record
+  today's sign-off for a declared manual check and exit (review 2026-06-27).
 - When `doctrina verify --clean` runs, the system shall not execute the
   configured checks but instead lint the project's `package.json` files
   for reproducibility footguns — an entry point under a build-output dir
@@ -416,6 +425,34 @@ optional `--strict`), `verify` (with optional `--init`/`--list`/`--clean`),
   no note; when an ADR's `Evidence:` cites a missing path or an accepted
   ADR cites none; and when a contract file is absent from the index; and
   shall fail when `LEDGER.md` and `index.json.changes_archive` disagree.
+- When `doctrina status` runs, the system shall print a read-only health
+  dashboard — index drift, framework stamp, coverage %, trace anchors,
+  whether verify is configured, and the artifact counts — and always exit 0
+  (a fast summary, not the authoritative gate) (review 2026-06-27).
+- When `doctrina close <id>` runs, the system shall drive the closing
+  sequence in one pass — analyze → change apply → verify (skipped with a
+  note when no `verify.json`) → coverage `--strict` → trace (advisory) →
+  change archive → validate — stopping at the first failure with the exact
+  command to rerun, and exit non-zero on that failure (review 2026-06-27).
+- When `doctrina review` runs, the system shall report structural
+  conformance breaks between the working tree (or `--diff <ref>`) and the
+  spec/ADR/contract tree — code changed under a capability whose spec was
+  not updated, changed code mapping to no capability, acceptance criteria
+  citing missing proof, dropped product intent, and contract collisions —
+  exiting 0 as a report and 1 under `--strict` when any hard break exists;
+  it never judges semantic fidelity (review 2026-06-27).
+- When `doctrina why <capability>` runs, the system shall print that
+  capability's provenance chain — the product intent it `Realizes:`, its
+  purpose and status, its acceptance criteria with cited proof, and the
+  accepted ADRs that name it — read-only (review 2026-06-27).
+- When `doctrina watch` runs, the system shall re-run `validate --fix` and
+  reprint `doctrina next` on every change under `.doctrina/` (debounced,
+  ignoring the `index.json` the fix rewrites) until interrupted; `--once`
+  shall run a single pass and exit (review 2026-06-27).
+- When `doctrina skill suggest` runs, the system shall list fix-shaped
+  archived changes whose skill is not yet captured, and with `--write`
+  scaffold a stub per candidate (pre-seeded from the change) and index it
+  (review 2026-06-27).
 
 ### State-driven
 

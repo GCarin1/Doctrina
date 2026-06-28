@@ -325,6 +325,22 @@ disco mas ausentes do index são indexadas; skills sem campo
 de skill. O `doctrina validate` avisa quando uma description
 drifou do index.
 
+## `doctrina skill suggest`
+
+Mostra lições com cara de fix no archive de changes cuja skill ainda não
+foi capturada — o caso de manual de uma skill (ADR 0012). Skills são
+escritas por humanos; isto só aponta.
+
+```
+doctrina skill suggest
+doctrina skill suggest --write
+```
+
+Lista slugs candidatos (derivados dos ids de change fix-shaped arquivados)
+e a lição do `## Why` de cada change. Com `--write`, esqueletiza um stub por
+candidato, pré-preenchido a partir da change, e o indexa — para que escrever
+a skill seja "preencher", não "começar do zero". Read-only sem `--write`.
+
 ## `doctrina analyze <change-id>`
 
 Inspeciona uma pasta de change antes de aplicar.
@@ -547,6 +563,26 @@ Um critério está **covered** quando ao menos um path citado resolve,
 |------|--------|
 | `--strict` | Sai 1 quando algum critério é bare ou dangling (gate de CI). Sem ela, o comando sempre sai 0 (um relatório). |
 
+## `doctrina review`
+
+Review de conformidade determinístico das suas mudanças contra a árvore de
+specs / ADRs / contratos (ADR 0012). Revisa o working tree por padrão, ou um
+diff contra um ref git com `--diff <ref>`.
+
+```
+doctrina review
+doctrina review --diff main
+doctrina review --strict
+```
+
+Reporta quebras estruturais: código mudado sob uma capability cuja spec não
+foi atualizada, código mudado que não mapeia para nenhuma capability,
+critérios de aceite citando prova ausente, intenção de produto realizada por
+nenhuma spec, e colisões de contrato. Checa a *forma* da conformidade — se o
+código é fiel à spec continua sendo julgamento humano/LLM (o teto do ADR
+0005). Read-only; sai 0 como relatório, 1 sob `--strict` quando há quebra
+dura. O agente se autorevisa aqui antes de levar o trabalho ao humano.
+
 ## `doctrina verify`
 
 Roda as checagens de build/verify declaradas pelo projeto — o gate real
@@ -557,29 +593,39 @@ executado pelo hook de pre-commit.
 doctrina verify
 doctrina verify --init
 doctrina verify --list
+doctrina verify --signoff "chronicle=lê bem, aprovado"
 ```
 
-As checagens vivem em `.doctrina/verify.json`:
+As checagens vivem em `.doctrina/verify.json`. Uma checagem com
+`"type": "manual"` é o gate qualitativo (ADR 0012): julgada por
+humano/eval e registrada como sign-off, não rodada como comando.
 
 ```
 {
   "checks": [
     { "name": "typecheck", "run": "tsc --noEmit" },
     { "name": "test",      "run": "npm test" },
-    { "name": "build",     "run": "npm run build" }
+    { "name": "build",     "run": "npm run build" },
+    { "name": "chronicle", "type": "manual", "rubric": "a crônica é gostosa de ler?" }
   ]
 }
 ```
 
 Cada `run` executa em ordem pelo shell com a saída transmitida; o
-`verify` sai não-zero se qualquer checagem falhar. Sem config, sai 1 e
-aponta para `--init`. Um campo opcional `cwd` por checagem (relativo à
-raiz do projeto) mira um sub-pacote num monorepo.
+`verify` sai não-zero se qualquer checagem de comando falhar. Sem config,
+sai 1 e aponta para `--init`. Um campo opcional `cwd` por checagem (relativo
+à raiz do projeto) mira um sub-pacote num monorepo. Uma checagem manual passa
+quando assinada e é reportada como *pendente* caso contrário — não-bloqueante
+por padrão, falhando só sob `--strict`. Sign-offs ficam em
+`.doctrina/verify.signoffs.json`.
 
 | Flag | Função |
 |------|--------|
 | `--init` | Esqueletiza um `.doctrina/verify.json` inicial (recusa sobrescrever sem `--force`). |
 | `--list` | Imprime as checagens configuradas sem executá-las. |
+| `--clean` | Linta package.json por footguns de reprodutibilidade em vez de rodar as checagens. |
+| `--strict` | Falha o gate quando uma checagem manual está pendente de sign-off. |
+| `--signoff "<nome>=<nota>"` | Registra o sign-off de hoje para uma checagem manual e sai. |
 | `--force` | Com `--init`, sobrescreve uma config existente. |
 
 ## `doctrina contract new <name>` / `list` / `check`
@@ -645,6 +691,68 @@ Quando nada está aberto, diz isso e aponta para `change new` /
 
 Read-only; sempre sai 0. Pensado para agentes e humanos retomarem
 o trabalho sem reler a árvore inteira.
+
+## `doctrina status`
+
+Painel de saúde do projeto em um olhar (ADR 0012).
+
+```
+doctrina status
+```
+
+Imprime os sinais de gate (drift do index, carimbo do framework, % de
+coverage, anchors de trace, se o verify está configurado) e as contagens de
+artefatos (specs por estado de implementação, changes abertas, decisões,
+skills). Read-only; sempre sai 0. É um resumo rápido, não o gate
+autoritativo — `doctrina validate` / `verify` são. Comando natural de início
+de sessão para o agente.
+
+## `doctrina close <id>`
+
+Roda toda a sequência de fechamento de uma change em uma passada (ADR 0012).
+
+```
+doctrina close 0001-add-login
+doctrina close 0001-add-login --force
+```
+
+Dirige analyze → `change apply` → verify → `coverage --strict` → trace →
+`change archive` → validate, parando na primeira falha com o comando exato
+para reexecutar. O verify é pulado (com aviso) quando não há `verify.json`;
+o trace é advisory. É um driver sobre os comandos existentes — não adiciona
+checagens próprias — então o agente faz uma chamada em vez de sete.
+
+| Flag | Função |
+|------|--------|
+| `--force` | Repassa ao `change archive` (arquiva mesmo com verificação incompleta; registra o gap). |
+
+## `doctrina why <capability>`
+
+Explica a cadeia de proveniência de uma capability (ADR 0012).
+
+```
+doctrina why event-sourcing
+```
+
+Monta, em uma leitura: a intenção de produto que ela `Realizes:` (os anchors
+`[SC1]` com o texto do product.md), o propósito e status da capability, os
+critérios de aceite que a comprovam (com evidência citada), e os ADRs aceitos
+que a nomeiam. Read-only. Responde "por que X foi construído, e construído
+assim?" sem garimpar a árvore à mão.
+
+## `doctrina watch`
+
+Mantém o projeto sincronizado e o agente orientado continuamente (ADR 0012).
+
+```
+doctrina watch
+doctrina watch --once
+```
+
+Observa a árvore `.doctrina/` e, a cada mudança, roda `validate --fix` (cura
+drift, migra o carimbo) e reimprime o `doctrina next`. Com debounce; ignora o
+`index.json` que o próprio fix reescreve. Roda até ser interrompido (Ctrl-C);
+`--once` roda uma única passada e sai (a forma scriptável/testável).
 
 ## `doctrina metrics`
 

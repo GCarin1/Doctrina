@@ -33,20 +33,25 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
 The CLI scaffolds from canonical templates and keeps `index.json` in sync,
 so prefer it over writing artifacts by hand. Full list: `doctrina --help`.
 
-- **Read / orient (any task, first & last):** `doctrina context [<cap>]
-  --concat` · `doctrina next` · `doctrina spec list` · `doctrina decision
-  list` · `doctrina search <query>`
+- **Read / orient (any task, first & last):** `doctrina status` (health) ·
+  `doctrina context [<cap>] --concat` (read pack) · `doctrina next` (what's
+  next) · `doctrina why <cap>` (provenance) · `doctrina spec list` ·
+  `doctrina decision list` · `doctrina search <query>`
 - **Start:** `doctrina work "<prompt>"` · `--from-diff` (backfill from
   existing code) · `--chore` (no-spec infra/docs/build)
 - **Scaffold (manual creation stays available):** `doctrina spec new <cap>`
   (`--bug`) · `doctrina decision new "<title>"` · `doctrina change new <id>`
   · `doctrina contract new <id>` · `doctrina skill new <slug>`
 - **Advance / close:** `doctrina change apply|archive|diff <id>` · `doctrina
-  decision accept|land|supersede <n>` · `doctrina spec set <cap> [...]`
+  decision accept|land|supersede <n>` · `doctrina spec set <cap> [...]` ·
+  `doctrina close <id>` (whole close in one pass)
 - **Gates (ground truth, not guesses):** `doctrina validate` (`--fix`) ·
-  `doctrina verify` · `doctrina coverage --strict` · `doctrina trace
-  --strict` · `doctrina contract check` · `doctrina clarify --all` ·
-  `doctrina analyze <id>`
+  `doctrina verify` · `doctrina review` (conformance vs specs/ADRs) ·
+  `doctrina coverage --strict` · `doctrina trace --strict` · `doctrina
+  contract check` · `doctrina clarify --all` · `doctrina analyze <id>`
+
+Continuous: `doctrina watch` re-syncs and re-orients on every save.
+Capture lessons: `doctrina skill suggest` surfaces skills worth writing.
 
 ## Stack and tooling
 

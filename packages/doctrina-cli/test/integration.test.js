@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, statSync, readdirSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -2638,6 +2638,138 @@ test("the AGENTS.md template carries the agent command surface, under the cap", 
     }
     // Stays within the always-loaded budget (validate's 150-line soft cap).
     assert.ok(agents.split("\n").length <= 150, `AGENTS.md is ${agents.split("\n").length} lines`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- ADR 0012: passive-user command set ---
+
+test("status prints a read-only health dashboard and exits 0", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["status"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /Doctrina status/);
+    assert.match(r.stdout, /coverage/);
+    assert.match(r.stdout, /decisions/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close needs an id, and drives a zero-delta change through to archived", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const noId = runCli(["close"], { cwd: tmp });
+    assert.equal(noId.status, 2);
+    assert.match(noId.stderr, /requires a change <id>/);
+
+    runCli(["change", "new", "0001-tidy", "tidy things"], { cwd: tmp });
+    completeChange(tmp, "0001-tidy");
+    const r = runCli(["close", "0001-tidy"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /closed/);
+    // The change folder moved into the archive.
+    const archive = path.join(tmp, ".doctrina", "changes", "archive");
+    const names = existsSync(archive) ? readdirSync(archive) : [];
+    assert.ok(names.some((n) => n.endsWith("0001-tidy")), `archive has: ${names.join(", ")}`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("review reports nothing to do when there are no changes (no git)", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["review"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /Review/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("why prints a capability's provenance chain", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const r = runCli(["why", "billing"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /Why "billing"/);
+    assert.match(r.stdout, /Product intent/);
+    assert.match(r.stdout, /Decisions/);
+    // Unknown capability is a clear error.
+    const bad = runCli(["why", "nope"], { cwd: tmp });
+    assert.equal(bad.status, 1);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("watch --once runs a single validate --fix + next pass and exits 0", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const r = runCli(["watch", "--once"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("skill suggest surfaces fix-shaped lessons and --write scaffolds them", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // No archive yet → nothing to suggest.
+    const empty = runCli(["skill", "suggest"], { cwd: tmp });
+    assert.equal(empty.status, 0);
+    assert.match(empty.stdout, /no uncaptured fix-shaped lessons/);
+
+    // A fix-shaped archived change is a candidate.
+    const arch = path.join(tmp, ".doctrina", "changes", "archive", "2026-06-01-0003-fix-parsing");
+    mkdirSync(arch, { recursive: true });
+    writeFileSync(path.join(arch, "proposal.md"), "# Change 0003 — fix parsing\n\n## Why\n\nThe LLM emits code fences.\n");
+    const listed = runCli(["skill", "suggest"], { cwd: tmp });
+    assert.equal(listed.status, 0);
+    assert.match(listed.stdout, /0003-fix-parsing/);
+
+    const written = runCli(["skill", "suggest", "--write"], { cwd: tmp });
+    assert.equal(written.status, 0, written.stderr || written.stdout);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "skills", "0003-fix-parsing.md")));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("verify manual check is a non-blocking qualitative gate until signed off", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const cfg = { checks: [{ name: "quality", type: "manual", rubric: "is it good?" }] };
+    writeFileSync(path.join(tmp, ".doctrina", "verify.json"), JSON.stringify(cfg, null, 2));
+
+    // Pending is non-blocking by default…
+    const pending = runCli(["verify"], { cwd: tmp });
+    assert.equal(pending.status, 0, pending.stdout);
+    assert.match(pending.stdout, /pending/);
+
+    // …but fails under --strict.
+    const strict = runCli(["verify", "--strict"], { cwd: tmp });
+    assert.equal(strict.status, 1);
+
+    // Sign off, and it passes (even under --strict).
+    const signoff = runCli(["verify", "--signoff", "quality=reads well"], { cwd: tmp });
+    assert.equal(signoff.status, 0, signoff.stderr || signoff.stdout);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "verify.signoffs.json")));
+    const after = runCli(["verify", "--strict"], { cwd: tmp });
+    assert.equal(after.status, 0, after.stdout);
+    assert.match(after.stdout, /signed off/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

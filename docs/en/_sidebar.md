@@ -4,6 +4,7 @@
 
   - [Overview](/en/)
   - [Getting started](/en/getting-started.md)
+  - [Flow diagram (every command)](/en/flow.md)
   - [Workflow](/en/workflow.md)
   - [Gating — when to use the pipeline](/en/gating.md)
 
