@@ -113,6 +113,13 @@ reflects intent, and advance `Implementation` as code lands. `validate`
 warns when an `active` spec is still `planned` with no note — an
 inventory claim with nothing built behind it.
 
+The scaffold also carries a `**Realizes:**` header (ADR 0011): name the
+`product.md` success-criteria anchors (`[SC1]`) this capability delivers,
+or record `n/a — <why>` for an internal capability. Provenance is opt-out
+— `validate` warns when an `active` spec on the implementation axis
+declares no `Realizes:` header, and `doctrina trace` reports the
+intent→capability link.
+
 | Flag | Purpose |
 |------|---------|
 | `--bug` | Scaffold the bug-shape template (current / expected / unchanged behaviour) instead of the EARS capability spec. |
@@ -313,6 +320,22 @@ but absent from the index are indexed; skills without a
 files. `doctrina validate` warns when a description has drifted
 from the index.
 
+## `doctrina skill suggest`
+
+Surface fix-shaped lessons in the change archive whose skill is not yet
+captured — the textbook case for a skill (ADR 0012). Skills are written by
+humans; this only points.
+
+```
+doctrina skill suggest
+doctrina skill suggest --write
+```
+
+Lists candidate slugs (derived from fix-shaped archived change ids) and the
+lesson from each change's `## Why`. With `--write` it scaffolds a stub per
+candidate, pre-seeded from the change, and indexes it — so authoring a skill
+is "fill in", not "start from blank". Read-only without `--write`.
+
 ## `doctrina analyze <change-id>`
 
 Inspect a change folder before applying it.
@@ -418,12 +441,16 @@ Install the Doctrina pre-commit hook into `.git/hooks/pre-commit`.
 doctrina hooks install [--force]
 ```
 
-The hook runs `doctrina validate` and blocks the commit if it
-exits non-zero. The CLI refuses to run outside a git repository
-and refuses to overwrite an existing hook unless `--force` is
-supplied. The installed hook is a POSIX shell script under 10
-lines; edit it freely after install (the CLI will not overwrite
-without `--force`).
+The hook runs `doctrina validate --fix`: it regenerates
+`index.json` from the tree (healing the most common gate failure —
+a hand-edited header that drifted the index — and re-staging the
+repaired index) and still blocks the commit on errors a rebuild
+cannot heal. The CLI refuses to run outside a git repository and
+refuses to overwrite an existing hook unless `--force` is supplied.
+The installed hook is a short POSIX shell script; edit it freely
+after install (the CLI will not overwrite without `--force`), e.g.
+swap the line for a bare `doctrina validate` to gate without
+auto-repairing (CI-style, fail on any drift).
 
 On Windows the executable bit set by the installer is a no-op;
 the hook runs under Git Bash (the default shell git-for-Windows
@@ -491,6 +518,14 @@ Checks performed:
     `index.json.changes_archive`, or validation **fails** (error).
 22. Contracts present on disk but absent from `index.json` warn
     (orphan detection), and every indexed contract path must exist.
+23. Provenance adoption: a capability spec that is `Status: active` and
+    on the implementation axis but declares no `Realizes:` header warns —
+    it traces to no product intent (ADR 0011). Any value silences it,
+    including a deliberate `n/a — <why>`.
+
+The `--fix` flag regenerates `index.json` from the tree before checking,
+so a drifted index is repaired (and the `framework_version` stamp
+migrated) rather than reported — the shipped pre-commit hook runs this.
 
 Exits 0 on no errors, 1 otherwise. Warnings do not fail validation.
 
@@ -515,6 +550,26 @@ cited. Read-only.
 |------|---------|
 | `--strict` | Exit 1 when any criterion is bare or dangling (CI gate). Without it, the command always exits 0 (a report). |
 
+## `doctrina review`
+
+Deterministic conformance review of your changes against the spec / ADR /
+contract tree (ADR 0012). Reviews the working tree by default, or a diff
+against a git ref with `--diff <ref>`.
+
+```
+doctrina review
+doctrina review --diff main
+doctrina review --strict
+```
+
+Reports structural breaks: code changed under a capability whose spec was
+not updated, changed code mapping to no capability, acceptance criteria
+citing missing proof, product intent realized by no spec, and contract
+port/reference collisions. It checks conformance *shape* — whether the code
+is faithful to the spec stays a human/LLM call (the ADR 0005 ceiling).
+Read-only; exits 0 as a report, 1 under `--strict` when any hard break
+exists. The agent self-reviews here before bringing work to the human.
+
 ## `doctrina verify`
 
 Run the project-declared build/verify checks — the real "does the code
@@ -525,28 +580,37 @@ pre-commit hook.
 doctrina verify
 doctrina verify --init
 doctrina verify --list
+doctrina verify --signoff "chronicle=reads well, approved"
 ```
 
-Checks live in `.doctrina/verify.json`:
+Checks live in `.doctrina/verify.json`. A check with `"type": "manual"` is
+the qualitative gate (ADR 0012): judged by a human/eval and recorded as a
+sign-off, not run as a command.
 
 ```
 {
   "checks": [
     { "name": "typecheck", "run": "tsc --noEmit" },
     { "name": "test",      "run": "npm test" },
-    { "name": "build",     "run": "npm run build" }
+    { "name": "build",     "run": "npm run build" },
+    { "name": "chronicle", "type": "manual", "rubric": "is the chronicle enjoyable to read?" }
   ]
 }
 ```
 
 Each `run` executes in order through the shell with output streamed;
-`verify` exits non-zero if any check fails. With no config it exits 1
-and points at `--init`.
+`verify` exits non-zero if any command check fails. With no config it exits
+1 and points at `--init`. A manual check passes once signed off and is
+otherwise reported as *pending* — non-blocking by default, failing only
+under `--strict`. Sign-offs live in `.doctrina/verify.signoffs.json`.
 
 | Flag | Purpose |
 |------|---------|
 | `--init` | Scaffold a starter `.doctrina/verify.json` (refuses to overwrite without `--force`). |
 | `--list` | Print the configured checks without running them. |
+| `--clean` | Lint package.json files for reproducibility footguns instead of running checks. |
+| `--strict` | Fail the gate when a manual check is still pending sign-off. |
+| `--signoff "<name>=<note>"` | Record today's sign-off for a manual check, then exit. |
 | `--force` | With `--init`, overwrite an existing config. |
 
 ## `doctrina contract new <name>` / `list` / `check`
@@ -600,11 +664,75 @@ doctrina next
 
 Inspects the tree and reports: open changes (missing proposal,
 unchecked tasks, deltas ready to apply, applied-but-unarchived),
-ADRs still in `proposed` status, and index drift. When nothing is
-open it says so and points at `change new` / `spec new`.
+ADRs still in `proposed` status, accepted ADRs with nothing proving
+them yet (suggesting `decision land`), a one-time skill-capture nudge
+when no skill exists and an archived change is fix-shaped, and index
+drift last (ADR 0011). When nothing is open it says so and points at
+`change new` / `spec new`.
 
 Read-only; always exits 0. Intended for agents and humans resuming
 work without re-reading the whole tree.
+
+## `doctrina status`
+
+One-glance project health dashboard (ADR 0012).
+
+```
+doctrina status
+```
+
+Prints the gate signals (index drift, framework stamp, coverage %, trace
+anchors, whether verify is configured) and the artifact counts (specs by
+implementation state, open changes, decisions, skills). Read-only; always
+exits 0. It is a fast summary, not the authoritative gate — `doctrina
+validate` / `verify` are. A natural session-start command for the agent.
+
+## `doctrina close <id>`
+
+Run the whole closing sequence for a change in one pass (ADR 0012).
+
+```
+doctrina close 0001-add-login
+doctrina close 0001-add-login --force
+```
+
+Drives analyze → `change apply` → verify → `coverage --strict` → trace →
+`change archive` → validate, stopping at the first failure with the exact
+command to rerun. verify is skipped (with a note) when no `verify.json` is
+declared; trace is advisory. A driver over the existing commands — it adds
+no checks of its own — so the agent makes one call instead of seven.
+
+| Flag | Purpose |
+|------|---------|
+| `--force` | Pass through to `change archive` (archive even if verification is incomplete; records the gap). |
+
+## `doctrina why <capability>`
+
+Explain a capability's provenance chain (ADR 0012).
+
+```
+doctrina why event-sourcing
+```
+
+Assembles, into one read: the product intent it `Realizes:` (the `[SC1]`
+anchors with their product.md text), the capability's purpose and status,
+the acceptance criteria that prove it (with cited evidence), and the
+accepted ADRs that name it. Read-only. Answers "why was X built, and built
+this way?" without grepping the tree by hand.
+
+## `doctrina watch`
+
+Keep the project in sync and the agent oriented continuously (ADR 0012).
+
+```
+doctrina watch
+doctrina watch --once
+```
+
+Watches the `.doctrina/` tree and, on every change, runs `validate --fix`
+(heal drift, migrate the stamp) and reprints `doctrina next`. Debounced;
+ignores the `index.json` the fix rewrites. Runs until interrupted (Ctrl-C);
+`--once` runs a single pass and exits (the scriptable/testable form).
 
 ## `doctrina metrics`
 

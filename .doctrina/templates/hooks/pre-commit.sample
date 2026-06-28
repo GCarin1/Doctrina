@@ -1,7 +1,24 @@
 #!/usr/bin/env sh
 # Doctrina pre-commit hook.
-# Installed by `doctrina hooks install`. Runs validate and blocks the
-# commit if it exits non-zero. Edit freely after install; the CLI will
-# not overwrite without --force.
+# Installed by `doctrina hooks install`. Edit freely after install; the CLI
+# will not overwrite without --force.
+#
+# Runs `doctrina validate --fix`:
+#   1. --fix regenerates index.json from the tree (repairs metadata drift and
+#      migrates the framework_version stamp) BEFORE checking, so the single
+#      most common gate failure — a hand-edited header that drifted the index —
+#      is healed at commit time instead of blocking the commit.
+#   2. validate still exits non-zero (and blocks the commit) on real errors a
+#      rebuild cannot heal: missing artifacts, duplicate ADR numbers, broken
+#      EARS, ledger/index disagreement, and so on.
+#
+# To gate without auto-repairing (CI-style, fail on any drift), replace the
+# line below with a bare `doctrina validate`.
 
-doctrina validate
+doctrina validate --fix || exit 1
+
+# Re-stage the index if --fix rewrote it, so the repaired index lands in this
+# commit rather than as a leftover unstaged change. Harmless when unchanged.
+if [ -f .doctrina/index.json ]; then
+  git add .doctrina/index.json
+fi

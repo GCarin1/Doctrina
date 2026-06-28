@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina",
-  "framework_version": "0.6.0",
-  "last_updated": "2026-06-22",
+  "framework_version": "0.8.0",
+  "last_updated": "2026-06-27",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,8 +15,8 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.18.0",
-        "last_updated": "2026-06-22",
+        "version": "0.20.0",
+        "last_updated": "2026-06-27",
         "implementation": "implemented"
       },
       {
@@ -24,23 +24,30 @@
         "path": ".doctrina/specs/core/spec.md",
         "status": "active",
         "version": "0.1.0",
-        "last_updated": "2026-06-03",
-        "implementation": "implemented"
+        "last_updated": "2026-06-27",
+        "implementation": "implemented",
+        "realizes": [
+          "SC3",
+          "SC4"
+        ]
       },
       {
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
         "version": "0.2.0",
-        "last_updated": "2026-06-11",
-        "implementation": "implemented"
+        "last_updated": "2026-06-27",
+        "implementation": "implemented",
+        "realizes": [
+          "SC3"
+        ]
       },
       {
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
         "version": "0.2.1",
-        "last_updated": "2026-06-11",
+        "last_updated": "2026-06-27",
         "implementation": "implemented"
       },
       {
@@ -48,7 +55,7 @@
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
         "version": "0.7.0",
-        "last_updated": "2026-06-03",
+        "last_updated": "2026-06-27",
         "implementation": "implemented"
       },
       {
@@ -56,10 +63,12 @@
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
         "version": "0.1.0",
-        "last_updated": "2026-06-19",
+        "last_updated": "2026-06-27",
         "implementation": "implemented",
         "realizes": [
-          "SC1"
+          "SC1",
+          "SC2",
+          "SC3"
         ]
       }
     ],
@@ -138,6 +147,22 @@
         "status": "accepted",
         "date": "2026-06-22",
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/validate.js`"
+      },
+      {
+        "id": "0011",
+        "path": ".doctrina/decisions/0011-pull-passive-features-into-the-default-flow.md",
+        "title": "Pull passive features into the default flow",
+        "status": "accepted",
+        "date": "2026-06-27",
+        "landed": "2026-06-27 — `.doctrina/templates/hooks/pre-commit.sample`, `.doctrina/templates/AGENTS.md.template`, `.doctrina/templates/spec.md.template`, `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/commands/hooks.js`"
+      },
+      {
+        "id": "0012",
+        "path": ".doctrina/decisions/0012-passive-user-command-set-status-close-review-why-watch.md",
+        "title": "Passive-user command set — status, close, review, why, watch, skill suggest, qualitative gate",
+        "status": "accepted",
+        "date": "2026-06-27",
+        "landed": "2026-06-27 — `packages/doctrina-cli/src/commands/status.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/review.js`, `packages/doctrina-cli/src/commands/why.js`, `packages/doctrina-cli/src/commands/watch.js`, `packages/doctrina-cli/src/commands/skill.js`, `packages/doctrina-cli/src/commands/verify.js`"
       }
     ],
     "changes": [],

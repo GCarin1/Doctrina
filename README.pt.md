@@ -14,8 +14,35 @@
 
 > Framework spec-driven nativo de AGENTS.md para desenvolvimento multi-agente com IA.
 
-**Status:** v0.6.0 — lançado.
+**Status:** v0.8.0 — lançado.
 **Leia em [inglês](./README.md).**
+
+---
+
+## Como funciona
+
+O caminho principal: capture a intenção uma vez, depois transforme cada pedido
+numa change esqueletizada que o agente conduz pelos gates. Você dá o prompt e
+aprova; o CLI mantém os artefatos honestos. (Fluxograma completo por comando no
+**[diagrama de fluxo](docs/pt/flow.md)**.)
+
+```mermaid
+flowchart TD
+    I["doctrina init"] --> N["doctrina intake"]
+    N --> P["product.md + specs (EARS)"]
+    P --> W["doctrina work 'prompt'"]
+    C["doctrina context --concat<br/>(pacote de leitura)"]
+    W --> C
+    C --> E["spec delta → tasks → implementar"]
+    E --> AP["doctrina analyze → change apply"]
+    AP --> GATE{"gates verdes?<br/>verify · coverage · trace · review"}
+    GATE -- "vermelho" --> E
+    GATE -- "verde" --> AR["doctrina change archive → validate"]
+    AR --> NX["doctrina next"]
+    NX -. "retoma o loop" .-> W
+    AP -. "doctrina close id: gates → archive → validate numa passada" .-> AR
+    STAT["doctrina status / why / watch<br/>(sempre-ativos, passivos)"] -.-> W
+```
 
 ---
 
@@ -52,10 +79,10 @@ como um corpo de agentes age.
 - Um template `AGENTS.md` aderente ao padrão aberto.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 21 comandos
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 26 comandos
   cobrindo init, intake, work, spec, change, decision, contract, skill,
-  analyze, clarify, validate, coverage, trace, verify, templates, hooks,
-  index, next, metrics, context e search.
+  analyze, clarify, validate, coverage, trace, review, verify, close, status,
+  why, watch, templates, hooks, index, next, metrics, context e search.
 - Adapters para 12 agentes AGENTS.md-aware (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).

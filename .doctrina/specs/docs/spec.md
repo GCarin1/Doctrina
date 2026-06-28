@@ -3,7 +3,8 @@
 **Capability:** docs
 **Status:** active
 **Implementation:** implemented
-**Last updated:** 2026-06-11
+**Realizes:** SC3
+**Last updated:** 2026-06-27
 **Version:** 0.2.0
 
 ## Purpose

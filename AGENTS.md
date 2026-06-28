@@ -102,16 +102,22 @@ npx doctrina-cli metrics                    # local git-derived adoption metrics
 
 ## How to read context efficiently
 
-When working on a change:
-1. Read this AGENTS.md.
-2. Read `.doctrina/product.md`.
-3. Read the relevant `.doctrina/specs/<capability>/spec.md`.
-4. Read open `.doctrina/changes/<id>/` if any are in progress.
-5. Read `.doctrina/decisions/` filtered by `Status: accepted`.
-6. If the task matches a skill in `.doctrina/skills/`, load the relevant
-   skill on demand (read its `description:` / `when:` frontmatter first;
-   load the full body only when the trigger fires).
-7. Do NOT read `.doctrina/changes/archive/` unless explicitly debugging history.
+Lead with the command — it assembles the pack in one call, in read order,
+for ANY task (review, debug, a question), not only `doctrina work`:
+
+```
+doctrina context [<capability>] --concat
+```
+
+It materialises, in order: this AGENTS.md → `.doctrina/product.md` → the
+relevant `.doctrina/specs/<capability>/spec.md` → open
+`.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
+`Status: accepted`. It does NOT read `.doctrina/changes/archive/` — consult
+that only when explicitly debugging history.
+
+Then, on demand only: if the task matches a skill in `.doctrina/skills/`,
+read its `description:` / `when:` frontmatter first and load the full body
+only when the trigger fires (skills stay out of the always-on context).
 
 Keep this file under 150 lines. Density beats prose. Use exact commands, not advice.
 

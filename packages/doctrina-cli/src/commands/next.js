@@ -58,17 +58,43 @@ export async function run(_positional, _flags) {
     }
   }
 
-  // ADRs stuck in proposed need a human decision.
+  // ADRs stuck in proposed need a human decision; accepted-but-bare ADRs are
+  // the rot the review flagged — a decision with nothing behind it (no Evidence,
+  // no Landed) is drift waiting to be superseded. Surface the proposed ones
+  // first (a pending decision blocks more than a missing stamp).
   const adrDir = path.join(projectRoot, ".doctrina", "decisions");
+  const landNudges = [];
+  const isBareValue = (v) => {
+    const t = (v ?? "").trim();
+    return t === "" || t === "—" || t === "-";
+  };
   for (const f of walk(adrDir)) {
     if (!f.endsWith(".md")) continue;
     const m = path.basename(f).match(/^(\d{4})-/);
     if (!m) continue;
-    const status = listHeader(read(f), "Status");
+    const text = read(f);
+    const status = listHeader(text, "Status");
     if (status && status.toLowerCase() === "proposed") {
       actions.push(`review ADR ${m[1]} (${relPath(projectRoot, f)}): doctrina decision accept ${m[1]}, or supersede it`);
+    } else if (status && status.toLowerCase() === "accepted") {
+      // Bare only when BOTH anchors are empty (Evidence header present-but-bare
+      // and no Landed stamp). An ADR that opts out of Evidence entirely
+      // (header absent) is not nagged.
+      const evidence = listHeader(text, "Evidence");
+      const landed = listHeader(text, "Landed");
+      if (evidence !== null && isBareValue(evidence) && isBareValue(landed)) {
+        landNudges.push(`record what proves ADR ${m[1]}: cite its **Evidence:**, or once it ships, doctrina decision land ${m[1]}`);
+      }
     }
   }
+  for (const n of landNudges) actions.push(n);
+
+  // No procedural memory captured yet, but the history shows a fix-shaped
+  // change — exactly the lesson a skill exists to keep from being relearned
+  // (review §5: the change-0003 "tolerate LLM code fences" case). One gentle
+  // nudge, only when skills are empty, so it never nags a project that opted in.
+  const skillNudge = suggestSkillCapture(projectRoot);
+  if (skillNudge) actions.push(skillNudge);
 
   // Index drift is silent rot; surface it last.
   try {
@@ -95,13 +121,40 @@ export async function run(_positional, _flags) {
   return 0;
 }
 
+// Return a single skill-capture nudge, or null. Fires only when no skill has
+// been written yet (skills/ holds nothing but .gitkeep) AND the archive shows a
+// fix-shaped change whose lesson is the textbook case for a skill. Deterministic
+// pattern match on the archived folder name — a hint, never a decision (ADR 0005).
+const FIX_SHAPED = /(?:^|-)(fix|bug|hotfix|patch|parse|parsing|tolerate|workaround|race|deadlock|flaky|retry|escape|sanitize|sanitise)(?:-|$)/;
+
+function suggestSkillCapture(projectRoot) {
+  const skillsDir = path.join(projectRoot, ".doctrina", "skills");
+  if (isDir(skillsDir)) {
+    const hasSkill = walk(skillsDir).some((f) => f.endsWith(".md"));
+    if (hasSkill) return null; // opted in already — never nag
+  }
+  const archiveDir = path.join(projectRoot, ".doctrina", "changes", "archive");
+  if (!isDir(archiveDir)) return null;
+  for (const name of readdirSync(archiveDir).sort()) {
+    if (!isDir(path.join(archiveDir, name))) continue;
+    const id = name.replace(/^\d{4}-\d{2}-\d{2}-/, "");
+    if (FIX_SHAPED.test(id)) {
+      return `capture a skill from past fixes (e.g. "${id}"): doctrina skill new <slug> — ` +
+        `on-demand procedural memory so the next agent does not relearn it (none exist yet)`;
+    }
+  }
+  return null;
+}
+
 export const help = `
 Usage: doctrina next
 
 Inspect the .doctrina/ tree and print the recommended next workflow
 actions in priority order: open changes (missing proposal, unchecked
 tasks, deltas ready to apply, applied-but-unarchived), ADRs still in
-proposed status, and index drift. Read-only; always exits 0.
+proposed status, accepted ADRs with nothing proving them (cite Evidence
+or run "decision land"), a skill-capture nudge when a past fix went
+uncaptured, and index drift last. Read-only; always exits 0.
 
 Intended use: agents and humans run it to resume work without
 re-reading the whole tree.

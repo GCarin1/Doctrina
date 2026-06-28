@@ -3,7 +3,8 @@
 **Capability:** templates
 **Status:** active
 **Implementation:** implemented
-**Last updated:** 2026-06-03
+**Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Last updated:** 2026-06-27
 **Version:** 0.7.0
 
 ## Purpose

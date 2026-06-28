@@ -266,6 +266,27 @@ export async function run(_positional, flags) {
           }
         }
 
+        // 8e. Provenance adoption (review 2026-06-27, §5/§9). `trace` is the
+        //     intent→capability link, but it stays inert when nothing forces
+        //     the tag, so an active capability with no Realizes: header is an
+        //     untraced promise — warn here (validate is always run) rather than
+        //     only in the opt-in `trace`. Advisory, with the same escape hatch
+        //     pattern as Implementation: any value silences it, including a
+        //     deliberate "n/a — <why>" for an internal capability that maps to
+        //     no product anchor. Bug specs (off the implementation axis) and
+        //     draft/deprecated documents are exempt — only active capability
+        //     specs make the promise.
+        const docStatusForRealizes = (specHeader(text, "Status") ?? "active").toLowerCase();
+        const onImplAxis = specHeader(text, "Implementation") !== null;
+        if (docStatusForRealizes === "active" && onImplAxis && specHeader(text, "Realizes") === null) {
+          warnings.push(
+            `${relPath(projectRoot, specPath)}: active spec has no Realizes: header — ` +
+              `it traces to no product intent (\`doctrina trace\`). Tag a product.md ` +
+              `success-criteria bullet "- [SC1] ..." and add "**Realizes:** SC1", or ` +
+              `record "**Realizes:** n/a — <why>" if it maps to no product anchor`,
+          );
+        }
+
         // 8d. Metadata-header shape (review G11). In the header block (before
         //     the first `## ` section or `<!--` comment), a known key written
         //     without the canonical `**Key:** value` form silently fails to

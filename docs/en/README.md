@@ -30,7 +30,7 @@ thin adapters for every supported agent:
 ```sh
 cd my-project
 npx doctrina-cli init --agent all
-npx doctrina-cli hooks install        # pre-commit: validate on every commit
+npx doctrina-cli hooks install        # pre-commit: validate --fix on every commit (self-heals index drift)
 ```
 
 **2. Describe a capability** — the spec is the current truth of what the
@@ -79,7 +79,7 @@ propose → apply → archive cycle in depth.
 
 ## The command surface
 
-15 commands, 26 operations, zero dependencies — see the
+26 commands, 39 operations, zero dependencies — see the
 **[CLI reference](cli-reference.md)** for all of them. The ones you will
 use daily:
 

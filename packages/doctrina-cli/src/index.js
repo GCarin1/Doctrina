@@ -26,11 +26,17 @@ import * as coverage from "./commands/coverage.js";
 import * as verify from "./commands/verify.js";
 import * as contract from "./commands/contract.js";
 import * as trace from "./commands/trace.js";
+import * as status from "./commands/status.js";
+import * as close from "./commands/close.js";
+import * as review from "./commands/review.js";
+import * as watch from "./commands/watch.js";
+import * as why from "./commands/why.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
   templates, skill, index: indexCmd, next, metrics, context, search,
   intake, work, coverage, verify, contract, trace,
+  status, close, review, watch, why,
 };
 
 const TOP_HELP = `
@@ -56,6 +62,7 @@ Commands:
   skill new            Scaffold an on-demand procedural memory skill
   skill list           List skills with their descriptions
   skill sync           Mirror skill frontmatter descriptions into index.json
+  skill suggest        Surface fix-shaped lessons worth a skill (--write scaffolds)
   analyze              Inspect a change folder before applying
   clarify              Smell-test a Markdown file for ambiguity (--all for the tree)
   context              Print the context pack for a task in read order
@@ -63,12 +70,17 @@ Commands:
   validate             Run schema and structural checks
   coverage             Report acceptance criteria with linked evidence (--strict gates)
   trace                Report intent provenance: product intent → specs (--strict gates)
+  review               Conformance review of your changes vs specs/ADRs/contracts
   verify               Run project-declared typecheck/test/build checks (the real gate)
+  close                Run the whole close sequence for a change in one pass
+  status               One-glance project health dashboard
+  why                  Explain a capability's provenance (intent → proof → ADRs)
   templates list       List the templates shipped by the installed CLI
   templates check      Compare the project against the recommended template shape
   hooks install        Install the pre-commit hook
   index rebuild        Regenerate index.json from the artifacts on disk
   next                 Print the recommended next workflow actions
+  watch                Re-run validate --fix + next on every change (--once for one pass)
   metrics              Local git-derived adoption metrics (no network)
 
 Global flags:
@@ -78,7 +90,7 @@ Global flags:
 
 async function main(argv) {
   const { positional, flags } = parseArgs(argv, {
-    boolean: ["help", "h", "version", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init"],
+    boolean: ["help", "h", "version", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init", "fix", "once", "clean"],
   });
 
   if (flags.get("version") || flags.get("v")) {

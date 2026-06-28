@@ -106,6 +106,37 @@ export async function run(_positional, flags) {
   return strict ? 1 : 0;
 }
 
+// Pure summary of intent provenance, for other commands (`status`, `review`)
+// that need the numbers without the report output.
+export function summarize(projectRoot) {
+  const anchors = collectAnchors(projectRoot);
+  const specs = collectSpecs(projectRoot);
+  const anchorIds = new Set(anchors.map((a) => a.id));
+  const realizedBy = new Map();
+  let dangling = 0;
+  for (const s of specs) {
+    if (s.realizes === null) continue;
+    for (const id of s.realizes) {
+      if (anchorIds.has(id)) {
+        if (!realizedBy.has(id)) realizedBy.set(id, []);
+        realizedBy.get(id).push(s.cap);
+      } else {
+        dangling += 1;
+      }
+    }
+  }
+  const untraceable = specs.filter((s) => s.realizes === null && s.status === "active").length;
+  let realized = 0;
+  for (const a of anchors) if ((realizedBy.get(a.id) ?? []).length > 0) realized += 1;
+  return {
+    anchors: anchors.length,
+    realized,
+    dropped: anchors.length - realized,
+    dangling,
+    untraceable,
+  };
+}
+
 // Every "[A-Z]+\d+" tag at the head of a bullet in product.md is an intent
 // anchor. Section-agnostic so Success-criteria and In-scope bullets both work.
 function collectAnchors(projectRoot) {

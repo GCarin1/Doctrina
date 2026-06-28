@@ -3,7 +3,8 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
-import { flagBool } from "../lib/args.js";
+import { flagBool, flagString } from "../lib/args.js";
+import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 
 // The build/verify gate `validate` is not. `validate` checks the shape of
@@ -15,6 +16,7 @@ import { c } from "../lib/colors.js";
 // `.doctrina/verify.json`, and `verify` runs exactly that, in order.
 
 const CONFIG_REL = ".doctrina/verify.json";
+const SIGNOFF_REL = ".doctrina/verify.signoffs.json";
 
 const STARTER = {
   $comment:
@@ -80,8 +82,11 @@ export async function run(_positional, flags) {
     return 1;
   }
   for (const ch of checks) {
-    if (!ch || typeof ch.run !== "string" || ch.run.trim() === "") {
-      console.error(c.red("error:") + ` every check in ${CONFIG_REL} needs a non-empty "run" string`);
+    // A "manual" check is the qualitative gate (review 2026-06-27 feature #7):
+    // a DoD item judged by a human/eval, recorded as a sign-off, not run as a
+    // command — so it needs no `run`. Every other check still needs one.
+    if (!ch || (ch.type !== "manual" && (typeof ch.run !== "string" || ch.run.trim() === ""))) {
+      console.error(c.red("error:") + ` every check in ${CONFIG_REL} needs a non-empty "run" string (or "type": "manual")`);
       return 1;
     }
   }
@@ -90,21 +95,69 @@ export async function run(_positional, flags) {
     return 1;
   }
 
+  // Sign-off store for manual checks: { "<check name>": { date, note } }.
+  const signoffPath = path.join(projectRoot, SIGNOFF_REL);
+  let signoffs = {};
+  if (isFile(signoffPath)) {
+    try { signoffs = JSON.parse(read(signoffPath)) ?? {}; } catch { signoffs = {}; }
+  }
+
+  // --signoff "<name>=<note>" records a manual check's human/eval sign-off
+  // (date stamped today) and exits. The name must be a declared manual check.
+  const signoffArg = flagString(flags, "signoff");
+  if (signoffArg !== undefined) {
+    const eq = String(signoffArg).indexOf("=");
+    const name = (eq >= 0 ? signoffArg.slice(0, eq) : signoffArg).trim();
+    const note = eq >= 0 ? signoffArg.slice(eq + 1).trim() : "";
+    const target = checks.find((ch) => (ch.name ?? "") === name && ch.type === "manual");
+    if (!target) {
+      console.error(c.red("error:") + ` no manual check named "${name}" in ${CONFIG_REL}`);
+      const manualNames = checks.filter((ch) => ch.type === "manual").map((ch) => ch.name);
+      console.error(c.gray("hint: ") + (manualNames.length
+        ? `manual checks: ${manualNames.join(", ")}`
+        : `add one: { "name": "${name || "quality"}", "type": "manual", "rubric": "<the question>" }`));
+      return 1;
+    }
+    signoffs[name] = { date: today(), note };
+    write(signoffPath, JSON.stringify(signoffs, null, 2) + "\n", { force: true });
+    console.log(c.green("signed off") + ` ${name} on ${today()}${note ? `: ${note}` : ""}`);
+    return 0;
+  }
+
   // --list prints the configured checks without running them.
   if (flagBool(flags, "list", false)) {
     console.log(c.bold("Verify checks") + c.gray(` (from ${CONFIG_REL}):`));
     console.log("");
     checks.forEach((ch, i) => {
-      console.log(`  ${i + 1}. ${c.cyan((ch.name ?? "check").padEnd(16))} ${c.gray(ch.run)}`);
+      const what = ch.type === "manual" ? c.gray(`manual${ch.rubric ? " — " + ch.rubric : ""}`) : c.gray(ch.run);
+      console.log(`  ${i + 1}. ${c.cyan((ch.name ?? "check").padEnd(16))} ${what}`);
     });
     return 0;
   }
 
+  const strict = flagBool(flags, "strict", false);
   console.log(c.bold("doctrina verify") + c.gray(` — ${checks.length} check${checks.length === 1 ? "" : "s"} from ${CONFIG_REL}`));
   const results = [];
   for (const ch of checks) {
     const name = ch.name ?? "check";
     console.log("");
+
+    // Manual (qualitative) check: pass if signed off, else pending. Pending is
+    // non-blocking by default (a report) and fails only under --strict, so CI
+    // can require the human/eval sign-off without blocking local runs.
+    if (ch.type === "manual") {
+      console.log(c.gray(`──── ${name}: `) + c.gray(`manual${ch.rubric ? " — " + ch.rubric : ""}`));
+      const so = signoffs[name];
+      if (so && so.date) {
+        console.log(c.green(`✓ ${name}`) + c.gray(` — signed off ${so.date}${so.note ? `: ${so.note}` : ""}`));
+        results.push({ name, ok: true, kind: "manual" });
+      } else {
+        console.log(c.yellow(`○ ${name} — pending sign-off`) + c.gray(` (doctrina verify --signoff "${name}=<note>")`));
+        results.push({ name, ok: false, kind: "manual", pending: true });
+      }
+      continue;
+    }
+
     const where = ch.cwd ? c.gray(` [${ch.cwd}]`) : "";
     console.log(c.gray(`──── ${name}: `) + ch.run + where);
     // Run through the shell so declared commands can use pipes, &&, env,
@@ -125,19 +178,28 @@ export async function run(_positional, flags) {
     } else {
       console.log(ok ? c.green(`✓ ${name}`) : c.red(`✗ ${name} (exit ${res.status})`));
     }
-    results.push({ name, ok });
+    results.push({ name, ok, kind: "command" });
     // Fail fast is tempting, but running every check surfaces all breakage
     // in one pass — more useful for an agent fixing the gap.
   }
 
+  const cmdFailed = results.filter((r) => r.kind === "command" && !r.ok);
+  const pending = results.filter((r) => r.pending);
   const passed = results.filter((r) => r.ok).length;
   console.log("");
-  if (passed === results.length) {
-    console.log(c.green("ok") + ` ${passed}/${results.length} checks passed`);
+  // The gate fails on any failed command check, or (only under --strict) any
+  // manual check still awaiting sign-off. Pending manual checks are otherwise
+  // a non-blocking report.
+  const failGate = cmdFailed.length > 0 || (strict && pending.length > 0);
+  const pendNote = pending.length > 0 ? c.gray(` (${pending.length} manual pending)`) : "";
+  if (!failGate) {
+    console.log(c.green("ok") + ` ${passed}/${results.length} checks passed${pendNote}`);
     return 0;
   }
-  const failed = results.filter((r) => !r.ok).map((r) => r.name).join(", ");
-  console.log(c.red("fail") + ` ${passed}/${results.length} checks passed — failed: ${failed}`);
+  const reasons = [];
+  if (cmdFailed.length > 0) reasons.push(`failed: ${cmdFailed.map((r) => r.name).join(", ")}`);
+  if (strict && pending.length > 0) reasons.push(`pending sign-off: ${pending.map((r) => r.name).join(", ")}`);
+  console.log(c.red("fail") + ` ${passed}/${results.length} checks passed — ${reasons.join("; ")}`);
   return 1;
 }
 
@@ -276,21 +338,27 @@ function findPackageJsons(projectRoot) {
 }
 
 export const help = `
-Usage: doctrina verify [--list] [--init] [--clean] [--force]
+Usage: doctrina verify [--list] [--init] [--clean] [--strict] [--signoff "<name>=<note>"] [--force]
 
 Run the project-declared build/verify checks from ${CONFIG_REL} in order,
 streaming their output, and exit non-zero if any check fails. This is the
 real "does the code work" gate, separate from the structural \`validate\`.
 
 ${CONFIG_REL} shape (an optional per-check "cwd", relative to the project
-root, targets a sub-package in a monorepo):
+root, targets a sub-package in a monorepo; a "manual" check is the
+qualitative gate — judged by a human/eval, recorded as a sign-off, not run):
   {
     "checks": [
       { "name": "typecheck", "run": "tsc --noEmit", "cwd": "packages/api" },
       { "name": "test",      "run": "npm test" },
-      { "name": "build",     "run": "npm run build" }
+      { "name": "build",     "run": "npm run build" },
+      { "name": "chronicle", "type": "manual", "rubric": "is the chronicle enjoyable to read?" }
     ]
   }
+
+A manual check passes when it has been signed off and is otherwise reported
+as "pending" — non-blocking by default, failing only under --strict (so CI
+can require the sign-off). Sign-offs are stored in ${SIGNOFF_REL}.
 
 Flags:
   --init     Scaffold a starter ${CONFIG_REL} (refuses to overwrite without --force)
@@ -299,5 +367,8 @@ Flags:
              reproducibility footguns (entry points in a build dir with no
              prepare/prepack; a Prisma dep with no generate on install) so
              "verify green" can't hide a clean checkout that won't build.
+  --strict   Fail the gate when a manual check is still pending sign-off
+  --signoff "<name>=<note>"
+             Record today's sign-off for a manual check, then exit
   --force    With --init, overwrite an existing config
 `;

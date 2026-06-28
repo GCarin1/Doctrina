@@ -102,7 +102,35 @@
         '/en/.*/_sidebar.md': '/en/_sidebar.md',
         '/pt/.*/_sidebar.md': '/pt/_sidebar.md',
       },
+      markdown: {
+        renderer: {
+          // Hand ```mermaid fenced blocks to mermaid.js instead of PrismJS.
+          // HTML-encode the source so labels containing <br/> survive as text
+          // (textContent decodes the entities; mermaid htmlLabels renders them).
+          code: function (code, lang) {
+            if (lang === 'mermaid') {
+              var esc = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+              return '<div class="mermaid">' + esc + '</div>';
+            }
+            return this.origin.code.apply(this, arguments);
+          },
+        },
+      },
       plugins: [
+        // Render any mermaid blocks after each page renders.
+        function (hook) {
+          hook.doneEach(function () {
+            if (!window.mermaid) return;
+            try {
+              window.mermaid.run({ querySelector: '.mermaid:not([data-processed])' });
+            } catch (e) {
+              try { window.mermaid.init(undefined, '.mermaid'); } catch (e2) { /* ignore */ }
+            }
+          });
+        },
         // Links that point outside docs/ (repo files like CONTRIBUTING.md or
         // .doctrina/ artifacts) cannot be served by the site; route them to
         // the GitHub blob view instead of 404ing.
@@ -121,6 +149,18 @@
         },
       ],
     };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    if (window.mermaid) {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'loose',
+        theme: 'dark',
+        themeVariables: { fontSize: '14px' },
+        flowchart: { htmlLabels: true, useMaxWidth: true },
+      });
+    }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>

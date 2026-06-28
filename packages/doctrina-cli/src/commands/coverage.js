@@ -97,6 +97,33 @@ export async function run(_positional, flags) {
   return strict ? 1 : 0;
 }
 
+// Pure summary of coverage across the spec tree, for other commands
+// (`status`, `review`) that need the numbers without the report output.
+export function summarize(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  let totalCriteria = 0, totalCovered = 0, totalDangling = 0, totalConditional = 0;
+  const perCap = [];
+  if (isDir(specsDir)) {
+    for (const cap of readdirSync(specsDir).sort()) {
+      const specPath = path.join(specsDir, cap, "spec.md");
+      if (!isFile(specPath)) continue;
+      const criteria = extractAcceptanceCriteria(read(specPath));
+      if (criteria.length === 0) continue;
+      const rows = criteria.map((crit, i) => classify(crit, i + 1, projectRoot, path.dirname(specPath)));
+      const covered = rows.filter((r) => r.kind === "covered").length;
+      const dangling = rows.filter((r) => r.kind === "dangling").length;
+      const conditional = rows.filter((r) => r.kind === "conditional").length;
+      totalCriteria += rows.length;
+      totalCovered += covered;
+      totalDangling += dangling;
+      totalConditional += conditional;
+      perCap.push({ cap, total: rows.length, covered, dangling, conditional });
+    }
+  }
+  const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  return { perCap, totalCriteria, totalCovered, totalDangling, totalConditional, pct };
+}
+
 // Pull the numbered items out of the "## Acceptance criteria" section.
 // Each item may span multiple lines (continuation prose); accumulate until
 // the next number or the next "## " heading. Returns an array of strings.

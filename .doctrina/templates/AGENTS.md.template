@@ -11,20 +11,47 @@ This repository uses the Doctrina framework for spec-driven, AGENTS.md
 native multi-agent development. The full framework artifacts live under
 `.doctrina/`.
 
-## Working from intent
+## Working from intent (you drive; the human stays passive)
 
-- **Bootstrap.** If `.doctrina/intake.md` exists with `Status: pending`,
-  the specs have not been written yet. Before anything else, run
-  `doctrina intake` and execute the printed bootstrap playbook in one
-  linear pass: fill `product.md`, derive capabilities, author one EARS
-  spec each, run the quality gates (`doctrina clarify --all`,
-  `doctrina validate`), then flip the intake to `Status: converted`. Ask
-  the user only when the intake is genuinely ambiguous. After conversion
-  the specs are the only source of truth — never edit `intake.md` to
-  change requirements.
-- **Day-to-day.** Turn a brief request into a scaffolded change with
-  `doctrina work "<prompt>"`, then follow the printed work playbook
-  (spec delta → tasks → implement → analyze → apply → archive → validate).
+You — the AI agent — run the Doctrina commands. The human gives a brief
+prompt and approves; do not make them run the CLI or hand-author artifacts.
+
+- **Bootstrap.** If `.doctrina/intake.md` is `Status: pending`, the specs
+  are not written yet: run `doctrina intake` and execute the printed
+  playbook in one pass (fill `product.md`, derive capabilities, one EARS
+  spec each, `doctrina clarify --all` + `doctrina validate`, then flip the
+  intake to `Status: converted`). After conversion the specs are the only
+  source of truth — never edit `intake.md` to change requirements.
+- **Day-to-day.** Turn any request into a change with `doctrina work
+  "<prompt>"` and follow the printed playbook (spec delta → tasks →
+  implement → analyze → apply → archive → validate). Unsure what to do
+  next? Run `doctrina next`. Need to read? Run `doctrina context`. Ask the
+  human only on genuine ambiguity.
+
+## Doctrina command surface (reach for these — don't hand-author)
+
+The CLI scaffolds from canonical templates and keeps `index.json` in sync,
+so prefer it over writing artifacts by hand. Full list: `doctrina --help`.
+
+- **Read / orient (any task, first & last):** `doctrina status` (health) ·
+  `doctrina context [<cap>] --concat` (read pack) · `doctrina next` (what's
+  next) · `doctrina why <cap>` (provenance) · `doctrina spec list` ·
+  `doctrina decision list` · `doctrina search <query>`
+- **Start:** `doctrina work "<prompt>"` · `--from-diff` (backfill from
+  existing code) · `--chore` (no-spec infra/docs/build)
+- **Scaffold (manual creation stays available):** `doctrina spec new <cap>`
+  (`--bug`) · `doctrina decision new "<title>"` · `doctrina change new <id>`
+  · `doctrina contract new <id>` · `doctrina skill new <slug>`
+- **Advance / close:** `doctrina change apply|archive|diff <id>` · `doctrina
+  decision accept|land|supersede <n>` · `doctrina spec set <cap> [...]` ·
+  `doctrina close <id>` (whole close in one pass)
+- **Gates (ground truth, not guesses):** `doctrina validate` (`--fix`) ·
+  `doctrina verify` · `doctrina review` (conformance vs specs/ADRs) ·
+  `doctrina coverage --strict` · `doctrina trace --strict` · `doctrina
+  contract check` · `doctrina clarify --all` · `doctrina analyze <id>`
+
+Continuous: `doctrina watch` re-syncs and re-orients on every save.
+Capture lessons: `doctrina skill suggest` surfaces skills worth writing.
 
 ## Stack and tooling
 
@@ -86,14 +113,14 @@ before considering work done.
 
 ## How to read context efficiently
 
-1. Read this `AGENTS.md`.
-2. Read `.doctrina/product.md`.
-3. Read the relevant `.doctrina/specs/<capability>/spec.md`.
-4. Read any open `.doctrina/changes/<id>/`.
-5. Read `.doctrina/decisions/` filtered by `Status: accepted`.
-6. If the task matches a skill in `.doctrina/skills/`, load the
-   relevant skill on demand (read its `description:` / `when:`
-   frontmatter; load the full body only when the trigger fires).
+`doctrina context [<capability>] --concat` assembles the read pack in one
+call, in order: this `AGENTS.md` → `.doctrina/product.md` → the capability
+spec → open `.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
+`Status: accepted`. Run it for ANY task, not only `doctrina work`; it skips
+`changes/archive/` (history — read only when debugging it).
+
+On demand only: if the task matches a skill in `.doctrina/skills/`, read its
+`description:` / `when:` frontmatter; load the full body when the trigger fires.
 
 Keep this file under 150 lines. Density beats prose. Use exact commands.
 

@@ -3,6 +3,7 @@
 **Capability:** {{CAPABILITY}}
 **Status:** draft
 **Implementation:** planned
+**Realizes:** <product.md success-criteria anchors this delivers, or "n/a — <why>">
 **Last updated:** {{DATE}}
 **Version:** 0.1.0
 
@@ -18,9 +19,12 @@ behind it, and `doctrina validate` warns. To record a deliberate gap and
 silence the warning, add a note after the value, e.g.
 "**Implementation:** planned — backend deferred to Q3, see ADR 0007".
 
-Optional: trace this capability to product intent by adding a header
-"**Realizes:** SC1, SC3" that names the product.md anchors it delivers
-(`doctrina trace`; ADR 0006).
+Realizes ties this capability to product intent (`doctrina trace`;
+ADR 0006). Tag product.md success-criteria bullets with an anchor —
+"- [SC1] ..." — and list the ones this spec delivers above. An "active"
+spec with no Realizes: header warns under `doctrina validate`; if the
+capability genuinely maps to no product anchor (internal tooling), keep
+the header and write "n/a — <why>" to record that on purpose.
 -->
 
 ## Purpose
