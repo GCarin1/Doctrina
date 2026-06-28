@@ -450,9 +450,11 @@ optional `--strict`), `review` (with optional `--diff <ref>`/`--strict`),
   ignoring the `index.json` the fix rewrites) until interrupted; `--once`
   shall run a single pass and exit (review 2026-06-27).
 - When `doctrina skill suggest` runs, the system shall list fix-shaped
-  archived changes whose skill is not yet captured, and with `--write`
-  scaffold a stub per candidate (pre-seeded from the change) and index it
-  (review 2026-06-27).
+  lessons whose skill is not yet captured, drawn from two deterministic
+  sources — archived changes and the git commit history — deduplicated by
+  slug; with `--write` it shall scaffold a stub per candidate (pre-seeded
+  from its source) and index it, and with `--since <ref>` it shall scan
+  commits in `<ref>..HEAD` instead of the most recent window (ADR 0013).
 
 ### State-driven
 

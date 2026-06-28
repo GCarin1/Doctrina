@@ -327,19 +327,27 @@ drifou do index.
 
 ## `doctrina skill suggest`
 
-Mostra lições com cara de fix no archive de changes cuja skill ainda não
-foi capturada — o caso de manual de uma skill (ADR 0012). Skills são
-escritas por humanos; isto só aponta.
+Mostra lições com cara de fix cuja skill ainda não foi capturada — o caso de
+manual de uma skill (ADR 0012). Varre duas fontes determinísticas: propostas
+de change arquivadas e commits fix-shaped no histórico git (ADR 0013). Skills
+são escritas por humanos; isto só aponta.
 
 ```
 doctrina skill suggest
 doctrina skill suggest --write
+doctrina skill suggest --since v0.7.0
 ```
 
-Lista slugs candidatos (derivados dos ids de change fix-shaped arquivados)
-e a lição do `## Why` de cada change. Com `--write`, esqueletiza um stub por
-candidato, pré-preenchido a partir da change, e o indexa — para que escrever
-a skill seja "preencher", não "começar do zero". Read-only sem `--write`.
+Lista slugs candidatos — derivados dos ids de change fix-shaped arquivados,
+ou dos subjects de commit fix-shaped (`fix:`, `fix(scope):`, `bug:`, …; nunca
+`feat:`/`refactor:`) — cada um com sua lição (o `## Why` da change, ou o
+subject do commit) e sua origem (`from <archive>` ou `from commit <sha>`).
+Candidatos são deduplicados por slug contra skills existentes, com o archive
+vencendo a colisão. Com `--write`, esqueletiza um stub por candidato,
+pré-preenchido a partir da fonte, e o indexa — para que escrever a skill seja
+"preencher", não "começar do zero". `--since <ref>` varre commits em
+`<ref>..HEAD` em vez dos últimos 200; a fonte git degrada silenciosamente
+para apenas-archive quando não há repo. Read-only sem `--write`.
 
 ## `doctrina analyze <change-id>`
 

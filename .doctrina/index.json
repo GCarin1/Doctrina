@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina",
-  "framework_version": "0.8.0",
-  "last_updated": "2026-06-27",
+  "framework_version": "0.9.0",
+  "last_updated": "2026-06-28",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -46,8 +46,8 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.2.1",
-        "last_updated": "2026-06-27",
+        "version": "0.3.0",
+        "last_updated": "2026-06-28",
         "implementation": "implemented"
       },
       {
@@ -163,6 +163,14 @@
         "status": "accepted",
         "date": "2026-06-27",
         "landed": "2026-06-27 — `packages/doctrina-cli/src/commands/status.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/review.js`, `packages/doctrina-cli/src/commands/why.js`, `packages/doctrina-cli/src/commands/watch.js`, `packages/doctrina-cli/src/commands/skill.js`, `packages/doctrina-cli/src/commands/verify.js`"
+      },
+      {
+        "id": "0013",
+        "path": ".doctrina/decisions/0013-broaden-skill-suggest-signal-source-to-git-history.md",
+        "title": "Broaden skill suggest signal source to git history",
+        "status": "accepted",
+        "date": "2026-06-28",
+        "landed": "2026-06-28 — `packages/doctrina-cli/src/commands/skill.js`"
       }
     ],
     "changes": [],
