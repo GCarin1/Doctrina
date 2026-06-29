@@ -36,14 +36,25 @@ export async function run(positional, flags) {
   pushFile("AGENTS.md", "root rules");
   pushFile(".doctrina/product.md", "product truth");
 
-  // 3. The capability spec under work.
+  // 3. The capability spec(s) — the current truth. With a named capability,
+  //    just that one. Without one, EVERY active spec: the default orientation
+  //    read previously jumped from product.md straight to the ADRs, leaving
+  //    the single source of truth out of the pack entirely (a review/debug/
+  //    question read got history but not current truth). Specs come before
+  //    open changes and ADRs, matching the documented read order.
   let specMissing = false;
+  const specsRoot = path.join(projectRoot, ".doctrina", "specs");
   if (capability) {
     const specRel = `.doctrina/specs/${capability}/spec.md`;
     if (isFile(path.join(projectRoot, specRel))) {
       pushFile(specRel, `spec: ${capability}`);
     } else {
       specMissing = true;
+    }
+  } else if (isDir(specsRoot)) {
+    for (const cap of readdirSync(specsRoot).sort()) {
+      const specRel = `.doctrina/specs/${cap}/spec.md`;
+      if (isFile(path.join(projectRoot, specRel))) pushFile(specRel, `spec: ${cap}`);
     }
   }
 
@@ -117,9 +128,10 @@ export const help = `
 Usage: doctrina context [<capability>] [--concat]
 
 Print the exact context pack for a task, in the documented read
-order: AGENTS.md, product.md, the capability spec (when given), open
-changes, accepted ADRs. Skills are listed name + description only —
-they are on-demand by design. The change archive is excluded.
+order: AGENTS.md, product.md, the capability spec (when given —
+otherwise every active spec, so the current truth is never absent),
+open changes, accepted ADRs. Skills are listed name + description only
+— they are on-demand by design. The change archive is excluded.
 
 Flags:
   --concat   Print the file contents (with separators) instead of the

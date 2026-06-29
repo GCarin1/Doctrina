@@ -79,7 +79,7 @@ propose → apply → archive cycle in depth.
 
 ## The command surface
 
-26 commands, 39 operations, zero dependencies — see the
+27 commands, 40 operations, zero dependencies — see the
 **[CLI reference](cli-reference.md)** for all of them. The ones you will
 use daily:
 

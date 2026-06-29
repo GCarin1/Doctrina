@@ -1,0 +1,12 @@
+---
+description: One-glance Doctrina project health and gate status
+---
+
+Report the health of **{{PROJECT_NAME}}**.
+
+Run `doctrina status` for the dashboard (index drift, framework stamp,
+coverage %, trace anchors, verify config, artifact counts). For the
+authoritative gates run `doctrina validate` and `doctrina verify`, and
+`doctrina next` for the recommended action.
+
+Summarise what is green, what is not, and the single next step.

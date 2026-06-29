@@ -3,6 +3,8 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { specHeader, listHeader } from "../lib/scan.js";
+import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
+import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 
@@ -66,16 +68,35 @@ export async function run(positional, _flags) {
   const purpose = sectionParagraph(text, "Purpose");
   if (purpose) console.log("    " + purpose.replace(/\s+/g, " ").trim());
 
-  // 3. The proof (acceptance criteria with cited evidence).
+  // 3. The proof (acceptance criteria with cited evidence). Read through the
+  //    shared multi-line parser so the marks here agree with `doctrina
+  //    coverage` — a criterion that cites its proof on a continuation line is
+  //    no longer mis-reported as "no evidence cited". The mark distinguishes
+  //    the three honest states, including the one that used to read as a false
+  //    green: a [verified] claim that cites nothing.
   console.log("");
   console.log(c.bold("  Proof"));
-  const criteria = acceptanceWithEvidence(text);
+  const criteria = parseAcceptanceCriteria(text);
   if (criteria.length === 0) {
     console.log(`    ${c.gray("no acceptance criteria declared")}`);
   } else {
     for (const cr of criteria) {
-      const proof = cr.proof.length ? c.gray(cr.proof.map((p) => `\`${p}\``).join(", ")) : c.yellow("no evidence cited");
-      console.log(`    ${cr.mark} #${cr.n}  ${proof}`);
+      const paths = cr.proofPaths.map((p) => `\`${p}\``).join(", ");
+      let mark, note;
+      if (isVerified(cr) && cr.proofPaths.length > 0) {
+        mark = c.green("✓");
+        note = c.gray(paths);
+      } else if (isVerified(cr)) {
+        mark = c.yellow("~");
+        note = c.yellow("marked verified but cites no proof");
+      } else if (cr.marker !== null) {
+        mark = c.yellow("○");
+        note = cr.proofPaths.length ? c.gray(paths) : c.gray(`[${cr.marker}]`);
+      } else {
+        mark = c.gray("·");
+        note = cr.proofPaths.length ? c.gray(paths) : c.yellow("no evidence cited");
+      }
+      console.log(`    ${mark} #${cr.n}  ${note}`);
     }
   }
 
@@ -89,7 +110,42 @@ export async function run(positional, _flags) {
     for (const a of adrs) console.log(`    ${c.cyan("ADR " + a.id)}  ${a.title}`);
   }
 
+  // 5. History — the archived changes that built this capability. The default
+  //    context pack excludes changes/archive/ by design, so "what shaped this
+  //    spec?" otherwise loses the change trail. The index ledger already
+  //    records each archived change's affected capabilities (specs_affected);
+  //    surface them here so the provenance chain reaches back to the work that
+  //    delivered the spec, not only the intent and decisions in front of it.
+  console.log("");
+  console.log(c.bold("  History"));
+  const history = archivedChangesFor(projectRoot, cap);
+  if (history.length === 0) {
+    console.log(`    ${c.gray("no archived change recorded against this capability")}`);
+  } else {
+    for (const ch of history) {
+      console.log(`    ${c.cyan(ch.applied ?? "—")}  ${ch.title} ${c.gray(`(${ch.op})`)}`);
+    }
+  }
+
   return 0;
+}
+
+// Archived changes whose recorded specs_affected include this capability,
+// oldest first. Read from the index ledger (the same data `index rebuild`
+// derives from each change's spec deltas); absent or unreadable index → none.
+function archivedChangesFor(projectRoot, cap) {
+  let index;
+  try {
+    index = idx.load(projectRoot);
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const ch of index.artifacts?.changes_archive ?? []) {
+    const hit = (ch.specs_affected ?? []).find((s) => s.capability === cap);
+    if (hit) out.push({ applied: ch.applied, title: ch.title, op: hit.operation ?? "MODIFIED" });
+  }
+  return out.sort((a, b) => String(a.applied ?? "").localeCompare(String(b.applied ?? "")));
 }
 
 // Map of anchor id -> the product.md bullet text that declares it.
@@ -126,30 +182,6 @@ function sectionParagraph(text, name) {
   return buf.join(" ");
 }
 
-// Numbered acceptance criteria with their [mark] and any backtick proof paths.
-function acceptanceWithEvidence(text) {
-  const lines = text.split(/\r?\n/);
-  let inSection = false;
-  const out = [];
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      inSection = /^##\s+Acceptance criteria\b/i.test(line);
-      continue;
-    }
-    if (!inSection) continue;
-    const m = line.match(/^\s*(\d+)\.\s+(.*)$/);
-    if (!m) continue;
-    const body = m[2];
-    const markMatch = body.match(/^\[([^\]]+)\]/);
-    const mark = markMatch
-      ? (/^verified/i.test(markMatch[1]) ? c.green("✓") : c.yellow("○"))
-      : c.gray("·");
-    const proof = [...body.matchAll(/`([^`]+)`/g)].map((x) => x[1]).filter((s) => s.includes("/") || /\.[a-z0-9]{1,8}$/i.test(s));
-    out.push({ n: m[1], mark, proof });
-  }
-  return out;
-}
-
 // Accepted ADRs whose body names the capability (word-ish boundary).
 function decisionsMentioning(projectRoot, cap) {
   const adrDir = path.join(projectRoot, ".doctrina", "decisions");
@@ -175,7 +207,8 @@ Usage: doctrina why <capability>
 Explain a capability's provenance by assembling the chain Doctrina already
 records into one read: the product intent it **Realizes:** ([SC1] anchors),
 the capability's purpose and status, the acceptance criteria that prove it
-(with cited evidence), and the accepted ADRs that name it. Read-only.
+(with cited evidence), the accepted ADRs that name it, and the archived
+changes that built it (from the index ledger). Read-only.
 
 Builds on the intent provenance (ADR 0006/0011) — answer "why was X built,
 and built this way?" without grepping the tree by hand.

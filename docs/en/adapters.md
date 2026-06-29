@@ -42,6 +42,23 @@ Claude Code reads `CLAUDE.md` automatically when it starts in a
 project and follows the import. From Claude's perspective, the
 canonical context is `AGENTS.md`.
 
+### Native slash commands
+
+The `claude` adapter also installs `.claude/commands/doctrina-*.md`,
+surfacing the core workflow as native Claude Code slash commands so the
+agent does not have to know to shell out to the CLI:
+
+| Command | Runs |
+|---------|------|
+| `/doctrina-work <prompt>` | `doctrina work` + drives the change through the gates |
+| `/doctrina-next` | `doctrina next` / `doctrina status` and acts on the top item |
+| `/doctrina-context [cap]` | `doctrina context --concat` (the read pack) |
+| `/doctrina-status` | `doctrina status` health dashboard |
+| `/doctrina-why <cap>` | `doctrina why` provenance chain |
+
+Each is a thin prompt that calls the CLI and relays its output — the CLI
+stays the single source of truth.
+
 ## OpenAI Codex CLI
 
 `doctrina init --agent codex` installs **nothing**. The OpenAI Codex
@@ -90,6 +107,15 @@ other three modes are excellent scoping primitives for
 project-specific rules layered on top of the Doctrina pointer;
 see [context-engineering.md](context-engineering.md) for how they
 map to Doctrina's own scoping model.
+
+### Native slash commands
+
+Like the `claude` adapter, the `cursor` adapter also installs
+`.cursor/commands/doctrina-*.md` — the same core-loop commands
+(`/doctrina-work`, `/doctrina-next`, `/doctrina-context`,
+`/doctrina-status`, `/doctrina-why`), each a thin prompt that invokes
+the CLI so the workflow is discoverable inside Cursor without the
+agent having to know to shell out.
 
 ## Nested AGENTS.md (one root, multiple subsystems)
 

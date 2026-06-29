@@ -55,8 +55,9 @@ In scope:
 - Node.js CLI for scaffolding, validating, and archiving.
 - Adapters for 12 AGENTS.md-aware agents: seven install thin pointer
   files (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Aider,
-  Windsurf, Continue); five read `AGENTS.md` natively and need no
-  file (OpenAI Codex CLI, Amp, Devin, Factory, Jules).
+  Windsurf, Continue), with Claude Code additionally getting native
+  slash commands for the core workflow; five read `AGENTS.md` natively
+  and need no file (OpenAI Codex CLI, Amp, Devin, Factory, Jules).
 - Bilingual documentation (EN primary, PT translated).
 
 Out of scope (deferred or rejected):

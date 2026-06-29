@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina-example-urls",
-  "framework_version": "0.1.0",
-  "last_updated": "2026-06-02",
+  "framework_version": "0.10.0",
+  "last_updated": "2026-06-29",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -12,18 +12,18 @@
     },
     "specs": [
       {
-        "id": "shorten",
-        "path": ".doctrina/specs/shorten/spec.md",
-        "status": "active",
-        "version": "0.1.0",
-        "last_updated": "2026-06-01"
-      },
-      {
         "id": "redirect",
         "path": ".doctrina/specs/redirect/spec.md",
         "status": "active",
         "version": "0.1.0",
         "last_updated": "2026-06-02"
+      },
+      {
+        "id": "shorten",
+        "path": ".doctrina/specs/shorten/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-06-01"
       }
     ],
     "decisions": [
@@ -57,6 +57,11 @@
           }
         ]
       }
-    ]
+    ],
+    "skills": [],
+    "contracts": [],
+    "entrypoint": {
+      "path": "AGENTS.md"
+    }
   }
 }

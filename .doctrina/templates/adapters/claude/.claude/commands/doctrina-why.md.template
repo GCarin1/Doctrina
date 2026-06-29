@@ -1,0 +1,12 @@
+---
+description: Explain a capability's provenance (intent → proof → ADRs → history)
+argument-hint: <capability>
+---
+
+Explain why a capability of **{{PROJECT_NAME}}** exists and is shaped as it is.
+
+Run `doctrina why $ARGUMENTS` and relay the provenance chain it prints: the
+product intent it Realizes, its purpose and status, the acceptance criteria
+that prove it (with cited evidence), the accepted ADRs that decided it, and
+the archived changes that built it. Read-only — answer from the artifacts,
+don't grep the tree by hand.

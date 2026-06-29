@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-06-27
-**Version:** 0.20.0
+**Last updated:** 2026-06-28
+**Version:** 0.22.0
 
 ## Purpose
 
@@ -23,7 +23,7 @@ optional `--bug`), `change new|apply|archive|diff|abandon`,
 optional `--strict`), `review` (with optional `--diff <ref>`/`--strict`),
 `verify` (with optional `--init`/`--list`/`--clean`/`--strict`/`--signoff`),
 `close` (with optional `--force`), `status`, `why <capability>`,
-`templates list|check|update`, `hooks install`, `index rebuild`,
+`constitution`, `templates list|check|update`, `hooks install`, `index rebuild`,
 `next`, `watch` (with optional `--once`), `metrics`, `context`, `search`,
 `--help`, and `--version`.
 
@@ -358,8 +358,9 @@ optional `--strict`), `review` (with optional `--diff <ref>`/`--strict`),
   from the ADR headers. The command is strictly read-only.
 - When `doctrina context [<capability>]` runs, the system shall
   print the context pack in the documented read order — AGENTS.md,
-  `product.md`, the capability spec when given, open changes,
-  ADRs with status `accepted` — with per-file line counts, plus a
+  `product.md`, the capability spec when given (or every active spec
+  when no capability is named, so the current truth is never absent),
+  open changes, ADRs with status `accepted` — with per-file line counts, plus a
   separate on-demand list of skills (name and description only,
   never the body). The change archive and non-accepted ADRs shall
   be excluded. With `--concat`, the system shall print the file
@@ -441,10 +442,31 @@ optional `--strict`), `review` (with optional `--diff <ref>`/`--strict`),
   citing missing proof, dropped product intent, and contract collisions —
   exiting 0 as a report and 1 under `--strict` when any hard break exists;
   it never judges semantic fidelity (review 2026-06-27).
+- When `doctrina constitution` runs, the system shall print the project's
+  standing rules in one read — the accepted ADRs (immutable governing
+  decisions, oldest first) and the `## Non-goals` of `product.md` — assembled
+  read-only from artifacts those files already own (no new fact home); it
+  never writes and always exits 0.
 - When `doctrina why <capability>` runs, the system shall print that
   capability's provenance chain — the product intent it `Realizes:`, its
-  purpose and status, its acceptance criteria with cited proof, and the
-  accepted ADRs that name it — read-only (review 2026-06-27).
+  purpose and status, its acceptance criteria with cited proof, the
+  accepted ADRs that name it, and a History section listing the archived
+  changes whose recorded `specs_affected` include the capability (from the
+  index ledger, oldest first) — read-only (review 2026-06-27).
+- When `doctrina validate` runs, the system shall compare the doctrina
+  commands documented in `AGENTS.md` against the real CLI surface and warn
+  when AGENTS.md references a command that does not exist, and — for an
+  AGENTS.md that documents a command catalog and does not defer to
+  `doctrina --help` — when it omits commands the CLI ships (hub-freshness;
+  warnings only).
+- When `doctrina validate` runs against an acceptance criterion marked
+  `[verified]` that cites no proof path (read across continuation lines so a
+  proof on a later line still counts), the system shall warn that the
+  criterion is self-certified (honest gates, ADR 0008; warnings only).
+- When `doctrina index rebuild` regenerates the index — or `doctrina init`
+  scaffolds one — the artifact tree shall record the root `AGENTS.md` under
+  `artifacts.entrypoint`, so a tool enumerating `index.json` can reach the
+  hub the agent reads first, not only the artifacts the hub points at.
 - When `doctrina watch` runs, the system shall re-run `validate --fix` and
   reprint `doctrina next` on every change under `.doctrina/` (debounced,
   ignoring the `index.json` the fix rewrites) until interrupted; `--once`

@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-06-27
-**Version:** 0.7.0
+**Last updated:** 2026-06-28
+**Version:** 0.9.0
 
 ## Purpose
 
@@ -53,6 +53,14 @@ The CLI consumes this spec to drive `doctrina init` and the
   only the adapter matching `<name>`.
 - When the CLI is invoked with `--agent all`, the system shall install
   every adapter under `templates/adapters/`.
+- When `doctrina init --agent claude` or `--agent cursor` (or `--agent all`)
+  runs, the system shall additionally install native slash commands for the
+  core workflow (`work`, `next`, `context`, `status`, `why`) — under
+  `.claude/commands/doctrina-*.md` for Claude Code and
+  `.cursor/commands/doctrina-*.md` for Cursor — so the workflow is
+  discoverable inside the agent, not only by the agent knowing to shell out
+  to the CLI. Each command is a thin prompt that invokes the CLI, which stays
+  the single source of truth.
 
 ### State-driven
 
@@ -80,9 +88,9 @@ The CLI consumes this spec to drive `doctrina init` and the
 
 | Agent | Files installed | Notes |
 |-------|-----------------|-------|
-| `claude` | `CLAUDE.md` at project root | Uses `@AGENTS.md` import; under 30 lines. |
+| `claude` | `CLAUDE.md` + `.claude/commands/doctrina-{work,next,context,status,why}.md` | `@AGENTS.md` pointer plus native slash commands for the core loop. |
 | `codex` | none | OpenAI Codex CLI reads `AGENTS.md` natively. |
-| `cursor` | `.cursor/rules/00-doctrina.mdc` | `alwaysApply: true`; points at `AGENTS.md`. |
+| `cursor` | `.cursor/rules/00-doctrina.mdc` + `.cursor/commands/doctrina-*.md` | `alwaysApply: true` rule plus native slash commands for the core loop. |
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot repository-level instructions; points at AGENTS.md. |
 | `gemini` | `GEMINI.md` at project root | Gemini CLI native; points at AGENTS.md. |
 | `aider` | `CONVENTIONS.md` at project root | Aider reads CONVENTIONS.md as read-only context; points at AGENTS.md. |

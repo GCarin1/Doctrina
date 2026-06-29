@@ -1,0 +1,10 @@
+# /doctrina-context — read pack for {{PROJECT_NAME}}
+
+Assemble the context before doing any work.
+
+Run `doctrina context <capability> --concat` and read top to bottom:
+AGENTS.md → product.md → the capability spec(s) → open changes → accepted ADRs.
+With no capability it includes every active spec. The change archive is
+excluded by design — run `doctrina why <capability>` when you need history.
+
+Do this for ANY task (review, debug, a question), not only new work.

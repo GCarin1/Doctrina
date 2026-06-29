@@ -1,0 +1,10 @@
+# /doctrina-next — next step for {{PROJECT_NAME}}
+
+Decide the next step from the framework's own signals.
+
+1. Run `doctrina next` and `doctrina status` to see open work and gate health.
+2. Do the single highest-priority action it names (resume a change, apply a
+   delta, archive, accept an ADR, fix index drift, …).
+3. Re-run `doctrina next` to confirm the item cleared.
+
+Use the read-only commands first; never guess what is pending.
