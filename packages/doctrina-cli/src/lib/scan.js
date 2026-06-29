@@ -192,6 +192,13 @@ export function deriveIndex(projectRoot, current) {
     });
   }
 
+  // Entrypoint — the root AGENTS.md the agent reads first (the hub the
+  // AGENTS.md-drift gate in `validate` keeps honest). Registering it closes
+  // the machine-readable graph in both directions: a tool that enumerates
+  // index.json finds the hub itself, not only the artifacts the hub points at.
+  // Path-only, so the field never churns the index.
+  out.artifacts.entrypoint = { path: "AGENTS.md" };
+
   return out;
 }
 

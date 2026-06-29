@@ -75,6 +75,17 @@ documentação pública dos projetos; nada é inventado.
   decisões implícitas; isso casa com a postura do OpenSpec.
 - **EARS para requisitos.** Kiro é nativo; Doctrina é
   guiado-por-template. Ambos fazem EARS a gramática recomendada.
+- **Constituição / princípios vigentes.** Spec Kit ship um
+  `constitution.md` escrito à mão. Doctrina monta a mesma visão
+  sob demanda com `doctrina constitution` — os ADRs aceitos mais
+  os non-goals do produto — para que os inegociáveis tenham uma
+  leitura única sem uma segunda casa para os fatos. Equivalente
+  em intenção; Doctrina deriva, Spec Kit escreve.
+- **Comandos de fluxo dentro do agente.** Spec Kit expõe
+  `/specify`, `/plan`, `/tasks`. Os adapters `claude` e `cursor`
+  do Doctrina instalam `/doctrina-work`, `/doctrina-next`,
+  `/doctrina-context`, `/doctrina-status` e `/doctrina-why`, cada
+  um um prompt fino sobre a CLI.
 
 ## Onde Doctrina está abaixo do campo
 
@@ -93,12 +104,6 @@ documentação pública dos projetos; nada é inventado.
   externos no v0.1.0. Spec Kit tem suporte Microsoft, Kiro tem
   AWS, outros têm seguidores crescendo. Isso é função de idade,
   não de design.
-- **Documento constitution centralizado.** Spec Kit ship um
-  `constitution.md` para princípios não-negociáveis. Doctrina
-  codifica o mesmo conteúdo nos ADRs aceitos (`0001`, `0003`,
-  `0004`) e na seção de princípios de design do README.
-  Adotantes vindos do Spec Kit precisarão aprender o mapping
-  Doctrina.
 
 ## O que Doctrina explicitamente não busca ser
 

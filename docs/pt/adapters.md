@@ -46,6 +46,23 @@ Code. Claude Code lê `CLAUDE.md` automaticamente ao iniciar em um
 projeto e segue o import. Da perspectiva do Claude, o contexto
 canônico é o `AGENTS.md`.
 
+### Slash commands nativos
+
+O adapter `claude` também instala `.claude/commands/doctrina-*.md`,
+expondo o fluxo principal como slash commands nativos do Claude Code,
+para que o agente não precise "saber" que deve chamar a CLI:
+
+| Comando | Roda |
+|---------|------|
+| `/doctrina-work <prompt>` | `doctrina work` + conduz a mudança pelos gates |
+| `/doctrina-next` | `doctrina next` / `doctrina status` e age no item prioritário |
+| `/doctrina-context [cap]` | `doctrina context --concat` (o pacote de leitura) |
+| `/doctrina-status` | painel de saúde `doctrina status` |
+| `/doctrina-why <cap>` | cadeia de proveniência `doctrina why` |
+
+Cada um é um prompt fino que chama a CLI e repassa a saída — a CLI
+continua sendo a única fonte de verdade.
+
 ## OpenAI Codex CLI
 
 `doctrina init --agent codex` não instala **nada**. O OpenAI Codex
@@ -94,6 +111,15 @@ modos são primitivas excelentes de escopo para regras
 projeto-específicas em cima do ponteiro do Doctrina; veja
 [context-engineering.md](context-engineering.md) para como eles
 mapeiam para o modelo de escopo próprio do Doctrina.
+
+### Slash commands nativos
+
+Como o adapter `claude`, o adapter `cursor` também instala
+`.cursor/commands/doctrina-*.md` — os mesmos comandos do core loop
+(`/doctrina-work`, `/doctrina-next`, `/doctrina-context`,
+`/doctrina-status`, `/doctrina-why`), cada um um prompt fino que chama
+a CLI, para que o fluxo seja descoberto dentro do Cursor sem o agente
+precisar "saber" que deve chamar a CLI.
 
 ## AGENTS.md aninhado (uma raiz, muitos subsistemas)
 

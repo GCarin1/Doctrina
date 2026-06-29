@@ -1,0 +1,9 @@
+# /doctrina-why — provenance for {{PROJECT_NAME}}
+
+Explain why a capability exists and is shaped as it is.
+
+Run `doctrina why <capability>` and relay the provenance chain it prints: the
+product intent it Realizes, its purpose and status, the acceptance criteria
+that prove it (with cited evidence), the accepted ADRs that decided it, and
+the archived changes that built it. Read-only — answer from the artifacts,
+don't grep the tree by hand.

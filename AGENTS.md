@@ -13,7 +13,7 @@ Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI develop
 - Targets: 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI, Cursor,
   GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules)
 - Languages: documentation EN primary, PT translated
-- Status: v0.4.0 — released
+- Status: v0.10.0 — released
 
 ## Stack and tooling
 
@@ -45,9 +45,15 @@ npx doctrina-cli analyze <change-id>        # inspect a change folder before app
 npx doctrina-cli clarify <path>             # smell-test a Markdown file for ambiguity (--all: whole tree)
 npx doctrina-cli context [<cap>]            # print the context pack in read order (--concat: contents)
 npx doctrina-cli search <term>              # search artifacts, grouped by category
-npx doctrina-cli validate                   # schema + structural checks
+npx doctrina-cli status                     # one-glance health: gates, coverage, trace, counts
+npx doctrina-cli why <cap>                  # provenance chain: intent -> proof -> ADRs -> history
+npx doctrina-cli constitution               # standing rules: accepted ADRs + product non-goals
+npx doctrina-cli validate                   # schema + structural checks (incl. AGENTS.md drift)
 npx doctrina-cli coverage                   # acceptance criteria with linked evidence (--strict gates)
+npx doctrina-cli trace                      # product intent -> capability provenance (--strict gates)
+npx doctrina-cli review                     # conformance of working tree vs specs/ADRs/contracts
 npx doctrina-cli verify                     # run project-declared typecheck/test/build (the real gate)
+npx doctrina-cli close <id>                 # whole close sequence in one pass (gates -> archive -> validate)
 npx doctrina-cli contract new <name>        # own ports/env/interfaces; `contract check` validates them
 npx doctrina-cli templates list             # list templates shipped by the CLI
 npx doctrina-cli templates check            # compare project against recommended template shape
@@ -55,6 +61,7 @@ npx doctrina-cli templates update           # additive fixer for check findings 
 npx doctrina-cli hooks install              # install the pre-commit hook
 npx doctrina-cli index rebuild              # regenerate index.json from the files (--check for CI)
 npx doctrina-cli next                       # print the recommended next workflow actions
+npx doctrina-cli watch                      # re-run validate --fix + next on every change (--once: one pass)
 npx doctrina-cli metrics                    # local git-derived adoption metrics (no network)
 ```
 
@@ -110,10 +117,10 @@ doctrina context [<capability>] --concat
 ```
 
 It materialises, in order: this AGENTS.md → `.doctrina/product.md` → the
-relevant `.doctrina/specs/<capability>/spec.md` → open
-`.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
-`Status: accepted`. It does NOT read `.doctrina/changes/archive/` — consult
-that only when explicitly debugging history.
+relevant `.doctrina/specs/<capability>/spec.md` (or, with no capability,
+every active spec) → open `.doctrina/changes/<id>/` → `.doctrina/decisions/`
+filtered to `Status: accepted`. It does NOT read `.doctrina/changes/archive/`
+— consult that only when explicitly debugging history.
 
 Then, on demand only: if the task matches a skill in `.doctrina/skills/`,
 read its `description:` / `when:` frontmatter first and load the full body

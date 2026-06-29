@@ -71,6 +71,17 @@ own documentation; nothing is invented.
   this matches OpenSpec's posture.
 - **EARS for requirements.** Kiro is native; Doctrina is template-
   guided. Both make EARS the recommended grammar.
+- **Constitution / standing principles.** Spec Kit ships a
+  hand-written `constitution.md`. Doctrina assembles the same
+  view on demand with `doctrina constitution` — the accepted
+  ADRs plus the product non-goals — so the non-negotiables have
+  a single read without a second home for the facts. Equivalent
+  in intent; Doctrina derives it, Spec Kit authors it.
+- **In-agent workflow commands.** Spec Kit exposes `/specify`,
+  `/plan`, `/tasks` slash commands. Doctrina's `claude` and
+  `cursor` adapters install `/doctrina-work`, `/doctrina-next`,
+  `/doctrina-context`, `/doctrina-status`, and `/doctrina-why`,
+  each a thin prompt over the CLI.
 
 ## Where Doctrina stands below the field
 
@@ -87,12 +98,6 @@ own documentation; nothing is invented.
   contributors at v0.1.0. Spec Kit has Microsoft backing, Kiro
   has AWS, others have growing followings. This is a function of
   age, not of design.
-- **Centralised constitution document.** Spec Kit ships a
-  `constitution.md` for non-negotiable principles. Doctrina
-  encodes the same content in the accepted ADRs (`0001`,
-  `0003`, `0004`) and the design-principles section of the
-  README. Adopters coming from Spec Kit will need to learn the
-  Doctrina mapping.
 
 ## What Doctrina explicitly does not aim to be
 

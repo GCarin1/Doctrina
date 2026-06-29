@@ -105,11 +105,11 @@ traz à tona validate como bottleneck.
   `## Acceptance criteria` do template de spec cobre o caso de
   uso. Gatilho para revisitar: alguém propõe um shape de
   checklist distinto de critérios de aceitação.
-- **Documento de constitution centralizado.** ADRs aceitos
-  (`0001`, `0003`, `0004`) mais a seção de princípios de design
-  do README codificam o mesmo conteúdo. Gatilho: um migrante do
-  Spec Kit reporta que a falta de `constitution.md` confunde a
-  migração; o guia de migração já mapeia esse caso.
+- **Documento de constitution centralizado — shipou no 0.10.0.** Em
+  vez de um `constitution.md` separado (uma segunda casa para fatos
+  que já estão nos ADRs), `doctrina constitution` monta a visão sob
+  demanda a partir dos ADRs aceitos mais os non-goals do produto.
+  Read-only; não possui nada próprio.
 
 ## Smells de clarify aceitos
 

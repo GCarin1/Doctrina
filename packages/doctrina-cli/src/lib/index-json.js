@@ -39,6 +39,7 @@ export function blank(projectName, date) {
     framework_version: cliVersion(),
     last_updated: date,
     artifacts: {
+      entrypoint: { path: "AGENTS.md" },
       product: {
         path: ".doctrina/product.md",
         status: "active",

@@ -17,6 +17,62 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-06-28
+
+Make the `AGENTS.md` hub honest and the workflow discoverable. An audit found
+the framework's own hub — the file the agent reads first — was the most stale
+file in the repo (it declared an old version and omitted commands), and that
+nothing kept it fresh. This release closes the traceability gaps the hub
+created and brings the agent-native discoverability the field's leaders have.
+
+### Added
+
+- `doctrina constitution` — print the project's standing rules in one read:
+  the accepted ADRs (immutable governing decisions, oldest first) and the
+  `## Non-goals` of `product.md`. The Spec Kit `constitution.md` analogue,
+  assembled read-only from artifacts those files already own — no new home for
+  facts. (27th command.)
+- **Native slash commands** for the core loop, installed by `doctrina init
+  --agent claude` and `--agent cursor` (and `--agent all`): `/doctrina-work`,
+  `/doctrina-next`, `/doctrina-context`, `/doctrina-status`, `/doctrina-why`.
+  Each is a thin prompt that invokes the CLI, so the workflow is discoverable
+  inside the agent — not only by the agent knowing to shell out. The CLI stays
+  the single source of truth.
+- `doctrina validate` now flags **AGENTS.md command-surface drift**: a
+  reference to a command the CLI does not have (typo/removed), and — for a hub
+  that maintains a command catalog and does not defer to `doctrina --help` —
+  commands the CLI ships that the hub omits. Closes the "the hub rots while
+  validate stays green" gap (it previously checked only the file's size).
+- `doctrina validate` now warns on a **self-certified acceptance criterion**:
+  one marked `[verified]` that cites no proof path (honest gates, ADR 0008).
+- `index.json` now records the root `AGENTS.md` under `artifacts.entrypoint`,
+  so a tool enumerating the index can reach the hub the agent reads first —
+  the machine-readable graph closes in both directions.
+- `doctrina why <capability>` gained a **History** section listing the
+  archived changes that built the capability (from the index ledger), so the
+  provenance chain reaches back to the work that delivered the spec.
+
+### Changed
+
+- `doctrina context` with no capability now includes **every active spec** in
+  the read pack (previously it jumped from `product.md` straight to the ADRs,
+  leaving the current truth out of the default orientation read).
+- `doctrina why` reads acceptance criteria through a shared multi-line parser,
+  so a criterion that cites its proof on a continuation line is no longer
+  mis-reported as "no evidence cited" — `why` and `coverage` now agree. The
+  Proof marks also distinguish a `[verified]` claim with no proof (`~`) from a
+  genuine green (`✓`).
+
+### Fixed
+
+- The root `AGENTS.md` declared `v0.4.0` while the CLI was current and omitted
+  six commands (`status`, `why`, `trace`, `review`, `close`, `watch`) — the
+  whole visibility/traceability set. Refreshed, and the new drift gate keeps
+  it honest going forward.
+- Version stamps reconciled across `README.md`, `README.pt.md`, and the CLI
+  package README (they had drifted to three different values); the canonical
+  source is `packages/doctrina-cli/package.json`.
+
 ## [0.9.0] — 2026-06-28
 
 Make `skill suggest` useful outside the change lifecycle (ADR 0013). In 0.8 it

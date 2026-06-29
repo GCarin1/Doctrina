@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina",
-  "framework_version": "0.9.0",
-  "last_updated": "2026-06-28",
+  "framework_version": "0.10.0",
+  "last_updated": "2026-06-29",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,8 +15,8 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.20.0",
-        "last_updated": "2026-06-27",
+        "version": "0.22.0",
+        "last_updated": "2026-06-28",
         "implementation": "implemented"
       },
       {
@@ -54,8 +54,8 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.7.0",
-        "last_updated": "2026-06-27",
+        "version": "0.9.0",
+        "last_updated": "2026-06-28",
         "implementation": "implemented"
       },
       {
@@ -176,6 +176,9 @@
     "changes": [],
     "changes_archive": [],
     "skills": [],
-    "contracts": []
+    "contracts": [],
+    "entrypoint": {
+      "path": "AGENTS.md"
+    }
   }
 }

@@ -541,6 +541,16 @@ Checagens:
     eixo de implementação mas sem header `Realizes:` gera warning — não
     traça a nenhuma intenção de produto (ADR 0011). Qualquer valor
     silencia, inclusive um deliberado `n/a — <motivo>`.
+24. Drift da superfície de comandos do AGENTS.md: uma referência
+    `doctrina <cmd>` a um comando que a CLI não tem gera warning
+    (typo/removido), e — para um AGENTS.md que documenta um catálogo de
+    comandos e não defere a `doctrina --help` — comandos que a CLI tem e
+    o hub omite geram warning (o hub que o agente lê primeiro fica em
+    sincronia com a superfície real).
+25. Critério de aceite auto-certificado: um critério marcado `[verified]`
+    que não cita nenhum path de prova gera warning (honest gates, ADR
+    0008; evidência em linha de continuação conta, então não há
+    falso-positivo).
 
 A flag `--fix` regenera o `index.json` a partir da árvore antes de
 checar, então um índice em drift é reparado (e o carimbo
@@ -744,9 +754,25 @@ doctrina why event-sourcing
 
 Monta, em uma leitura: a intenção de produto que ela `Realizes:` (os anchors
 `[SC1]` com o texto do product.md), o propósito e status da capability, os
-critérios de aceite que a comprovam (com evidência citada), e os ADRs aceitos
-que a nomeiam. Read-only. Responde "por que X foi construído, e construído
-assim?" sem garimpar a árvore à mão.
+critérios de aceite que a comprovam (com evidência citada, lida através de
+linhas de continuação), os ADRs aceitos que a nomeiam, e uma seção History
+listando os changes arquivados que a construíram (do ledger do index).
+Read-only. Responde "por que X foi construído, e construído assim?" sem
+garimpar a árvore à mão.
+
+## `doctrina constitution`
+
+Imprime as regras vigentes do projeto em uma leitura.
+
+```
+doctrina constitution
+```
+
+Monta, read-only: os ADRs aceitos (as decisões imutáveis que governam como o
+código evolui, mais antigos primeiro) e os `## Non-goals` do `product.md`. É
+o análogo do `constitution.md` do Spec Kit — um único lugar para ver os
+inegociáveis — mas não possui fatos próprios: para mudar um princípio,
+substitua (supersede) o ADR; para mudar um non-goal, edite o `product.md`.
 
 ## `doctrina watch`
 
@@ -798,7 +824,8 @@ doctrina context billing --concat
 ```
 
 O pacote é: `AGENTS.md` → `.doctrina/product.md` → a spec da
-capability (quando dada) → changes abertas → ADRs com status
+capability (quando dada — caso contrário, toda spec ativa, para que a
+verdade corrente nunca falte) → changes abertas → ADRs com status
 `accepted` — cada um com sua contagem de linhas, mais o total.
 Skills são listadas à parte como nome + description apenas: são
 on-demand por design, o corpo carrega só quando a tarefa casa. O

@@ -104,6 +104,42 @@ test("init --agent claude installs CLAUDE.md adapter", () => {
   }
 });
 
+test("init --agent claude installs native slash commands for the core loop", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme", "--agent", "claude"], { cwd: tmp });
+    const cmds = ["work", "next", "context", "status", "why"];
+    for (const cmd of cmds) {
+      const p = path.join(tmp, ".claude", "commands", `doctrina-${cmd}.md`);
+      assert.ok(existsSync(p), `expected slash command doctrina-${cmd}.md`);
+    }
+    // The PROJECT_NAME token is substituted and no raw template token leaks.
+    const work = readFileSync(path.join(tmp, ".claude", "commands", "doctrina-work.md"), "utf8");
+    assert.match(work, /\*\*Acme\*\*/);
+    assert.doesNotMatch(work, /\{\{/);
+    assert.match(work, /doctrina work "\$ARGUMENTS"/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init --agent cursor installs the rule and native slash commands", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme", "--agent", "cursor"], { cwd: tmp });
+    assert.ok(existsSync(path.join(tmp, ".cursor", "rules", "00-doctrina.mdc")), "the rule file");
+    for (const cmd of ["work", "next", "context", "status", "why"]) {
+      const p = path.join(tmp, ".cursor", "commands", `doctrina-${cmd}.md`);
+      assert.ok(existsSync(p), `expected slash command doctrina-${cmd}.md`);
+    }
+    const work = readFileSync(path.join(tmp, ".cursor", "commands", "doctrina-work.md"), "utf8");
+    assert.match(work, /Acme/);
+    assert.doesNotMatch(work, /\{\{/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test("spec new adds entry to index.json", () => {
   const tmp = makeTempProject();
   try {

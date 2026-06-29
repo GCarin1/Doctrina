@@ -11,6 +11,13 @@ import { c } from "../lib/colors.js";
 import { parseFrontmatter } from "./skill.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
+import { COMMAND_NAMES, referencedCommands } from "../lib/commands.js";
+import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
+
+// AGENTS.md is treated as a maintained doctrina-command catalog only once it
+// documents at least this many real commands; below it, the file defers to
+// `doctrina --help` and is never nagged about omissions.
+const CATALOG_THRESHOLD = 8;
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -25,6 +32,46 @@ export async function run(_positional, flags) {
     const lines = lineCount(agentsMd);
     if (lines > 200) errors.push(`AGENTS.md is ${lines} lines (>200, hard limit)`);
     else if (lines > 150) warnings.push(`AGENTS.md is ${lines} lines (>150 soft limit)`);
+
+    // 1c. AGENTS.md command-surface drift. AGENTS.md is the hub the agent reads
+    //     first, so the doctrina commands it documents must match the real CLI.
+    //     Two drifts are flagged: a reference to a command that does not exist
+    //     (a typo or a removed command — the agent will try to run it and fail),
+    //     and a maintained catalog that has fallen behind the CLI (commands the
+    //     agent never discovers because the hub never names them). validate only
+    //     checked AGENTS.md *size* before, so the hub could rot while staying
+    //     green; this closes that gap.
+    const agentsText = read(agentsMd);
+    const referenced = referencedCommands(agentsText);
+    const known = new Set(COMMAND_NAMES);
+    // Reverse drift is always flagged — a dangling command reference misleads
+    // the agent regardless of how the file is structured.
+    for (const cmd of [...referenced].sort()) {
+      if (!known.has(cmd)) {
+        warnings.push(
+          `AGENTS.md references \`doctrina ${cmd}\` which is not a CLI command ` +
+            `(typo or removed command — agents reading the hub will try to run it)`,
+        );
+      }
+    }
+    // Forward drift (omitted commands) is flagged only when the file presents
+    // itself as an exhaustive catalog: it documents many commands AND does not
+    // defer to `doctrina --help`. A file that defers is declaring its list
+    // illustrative (the shipped template does this), so its omissions are
+    // intentional and stay silent.
+    const documented = [...referenced].filter((cmd) => known.has(cmd));
+    const defersToHelp = /doctrina(?:-cli)?\s+--help/.test(agentsText);
+    if (documented.length >= CATALOG_THRESHOLD && !defersToHelp) {
+      const missing = COMMAND_NAMES.filter((cmd) => !referenced.has(cmd));
+      if (missing.length > 0) {
+        warnings.push(
+          `AGENTS.md documents the doctrina command surface but omits ` +
+            `${missing.length} command${missing.length === 1 ? "" : "s"} ` +
+            `(${missing.join(", ")}) — agents reading the hub will not discover ` +
+            `them (add them, or defer to \`doctrina --help\` for the full list)`,
+        );
+      }
+    }
   }
 
   // 1b. Nested AGENTS.md files ("nearest wins" hierarchy) obey the same
@@ -304,6 +351,23 @@ export async function run(_positional, flags) {
                   `canonical "**${key}:** value" form — it will not parse (G11)`,
               );
             }
+          }
+        }
+
+        // 8f. Self-certified acceptance criteria (honest gates, ADR 0008). A
+        //     criterion that asserts [verified] but cites no proof path is a
+        //     claim with nothing behind it — the dishonest-green case. `coverage`
+        //     reports every bare criterion; this names the specific combo
+        //     (claims verified, proves nothing) in the always-run gate. It reads
+        //     through the shared multi-line parser, so a proof cited on a
+        //     continuation line still counts (no false positive).
+        for (const crit of parseAcceptanceCriteria(text)) {
+          if (isVerified(crit) && crit.proofPaths.length === 0) {
+            warnings.push(
+              `${relPath(projectRoot, specPath)}: acceptance criterion #${crit.n} is marked ` +
+                `[verified] but cites no proof path — self-certified (cite the file/test in ` +
+                `backticks, or drop the marker; \`doctrina coverage\`)`,
+            );
           }
         }
       }

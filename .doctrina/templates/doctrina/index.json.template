@@ -4,6 +4,9 @@
   "framework_version": "{{FRAMEWORK_VERSION}}",
   "last_updated": "{{DATE}}",
   "artifacts": {
+    "entrypoint": {
+      "path": "AGENTS.md"
+    },
     "product": {
       "path": ".doctrina/product.md",
       "status": "active",

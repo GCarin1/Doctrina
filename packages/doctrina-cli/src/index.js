@@ -31,12 +31,13 @@ import * as close from "./commands/close.js";
 import * as review from "./commands/review.js";
 import * as watch from "./commands/watch.js";
 import * as why from "./commands/why.js";
+import * as constitution from "./commands/constitution.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
   templates, skill, index: indexCmd, next, metrics, context, search,
   intake, work, coverage, verify, contract, trace,
-  status, close, review, watch, why,
+  status, close, review, watch, why, constitution,
 };
 
 const TOP_HELP = `
@@ -75,6 +76,7 @@ Commands:
   close                Run the whole close sequence for a change in one pass
   status               One-glance project health dashboard
   why                  Explain a capability's provenance (intent → proof → ADRs)
+  constitution         Print the standing rules: accepted ADRs + product non-goals
   templates list       List the templates shipped by the installed CLI
   templates check      Compare the project against the recommended template shape
   hooks install        Install the pre-commit hook

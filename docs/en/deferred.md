@@ -100,11 +100,11 @@ protocol surfaces validate as a bottleneck.
   `## Acceptance criteria` section covers the use case. Trigger
   to revisit: someone proposes a checklist shape distinct from
   acceptance criteria.
-- **Centralised constitution document.** Accepted ADRs (`0001`,
-  `0003`, `0004`) plus the README's design-principles section
-  encode the same content. Trigger: a Spec Kit migrator reports
-  that the missing `constitution.md` confuses the migration; the
-  migration guide already maps this case.
+- **Centralised constitution document — shipped in 0.10.0.** Rather
+  than a separate `constitution.md` (a second home for facts already
+  in the ADRs), `doctrina constitution` assembles the view on demand
+  from the accepted ADRs plus the product non-goals. Read-only; owns
+  nothing of its own.
 
 ## Accepted clarify smells
 

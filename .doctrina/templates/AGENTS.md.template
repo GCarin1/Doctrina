@@ -35,8 +35,9 @@ so prefer it over writing artifacts by hand. Full list: `doctrina --help`.
 
 - **Read / orient (any task, first & last):** `doctrina status` (health) ·
   `doctrina context [<cap>] --concat` (read pack) · `doctrina next` (what's
-  next) · `doctrina why <cap>` (provenance) · `doctrina spec list` ·
-  `doctrina decision list` · `doctrina search <query>`
+  next) · `doctrina why <cap>` (provenance) · `doctrina constitution`
+  (standing rules) · `doctrina spec list` · `doctrina decision list` ·
+  `doctrina search <query>`
 - **Start:** `doctrina work "<prompt>"` · `--from-diff` (backfill from
   existing code) · `--chore` (no-spec infra/docs/build)
 - **Scaffold (manual creation stays available):** `doctrina spec new <cap>`
