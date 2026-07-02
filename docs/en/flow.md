@@ -68,19 +68,25 @@ flowchart TD
 
     subgraph NAV["Always-on drivers — you stay passive"]
         direction TB
-        status["doctrina status<br/>where am I?"]
-        next["doctrina next<br/>what now?"]
-        why["doctrina why (cap)<br/>provenance chain"]
+        prime["doctrina prime<br/>session primer (start here)"]
+        status["doctrina status (--json)<br/>where am I?"]
+        next["doctrina next (--json)<br/>what now?"]
+        why["doctrina why (cap | SC1)<br/>provenance, both directions"]
+        show["doctrina show (ref)<br/>point-read cli-R12 / cli-C3 / 0007"]
         search["doctrina search"]
+        handoff["doctrina handoff<br/>resume note for the next session"]
         watch["doctrina watch<br/>validate --fix + next on save"]
-        metrics["doctrina metrics<br/>git-derived adoption"]
     end
 
     subgraph OPS["Maintenance / setup"]
         direction TB
+        doctor["doctrina doctor<br/>aggregate diagnostic + fixes"]
         hooks["doctrina hooks install<br/>pre-commit = validate --fix"]
         indexrebuild["doctrina index rebuild"]
         templates["doctrina templates list/check/update"]
+        metrics["doctrina metrics<br/>git-derived adoption"]
+        reportcmd["doctrina report<br/>Markdown digest of the period"]
+        completion["doctrina completion<br/>bash/zsh/pwsh"]
     end
 
     specnew --> work
@@ -112,7 +118,8 @@ flowchart TD
   (`--from-diff` backfills from code, `--chore` is the spec-less lane,
   `--resume` reprints an open change's playbook).
 - `doctrina context [<cap>] --concat` — assemble the read pack in canonical
-  order. Run it for any task, not only `work`.
+  order, with token estimates. Run it for any task, not only `work`
+  (`--budget <n>` gates the size; `--diff <ref>` is the resume-session pack).
 - `doctrina analyze <id>` → `change diff <id>` → `change apply <id>` →
   `change archive <id>` — pre-flight, preview, merge deltas into specs, then
   archive (which refuses unchecked work). `change abandon <id>` discards.
@@ -143,14 +150,23 @@ flowchart TD
   capturing from fix-shaped changes. `skill new` / `sync` / `list` round it out.
 
 **Always-on drivers (you stay passive).**
-- `doctrina status` — one-glance health. `doctrina next` — the recommended next
-  action. `doctrina why <cap>` — a capability's provenance chain.
-  `doctrina search` — find artifacts. `doctrina watch` — re-run `validate --fix`
-  + `next` on every save. `doctrina metrics` — git-derived adoption signals.
+- `doctrina prime` — the session primer: gates, rules, open work, next steps
+  in one ~40-line read (start every session here). `doctrina status` —
+  one-glance health. `doctrina next` — the recommended next action.
+  `doctrina why <cap|SC1>` — provenance in either direction.
+  `doctrina show <ref>` — point-read one requirement/criterion/ADR
+  (`cli-R12`, `cli-C3`, `0007`). `doctrina search` — find artifacts.
+  `doctrina handoff` — the Markdown resume note for the next session.
+  `doctrina watch` — re-run `validate --fix` + `next` on every save.
+  `status`/`next`/`validate`/`coverage`/`trace` all speak `--json`.
 
 **Maintenance / setup.**
-- `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
+- `doctrina doctor` — aggregate diagnostic with per-finding remediation.
+  `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
   rebuild` — regenerate the index from the tree. `doctrina templates
   list|check|update` — inspect/refresh the shipped templates.
+  `doctrina metrics` — git-derived adoption signals. `doctrina report` —
+  Markdown digest of the period. `doctrina completion bash|zsh|pwsh` —
+  shell completions generated from the catalog.
 
 See the **[CLI reference](cli-reference.md)** for every flag and exit code.

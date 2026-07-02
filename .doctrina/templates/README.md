@@ -21,6 +21,9 @@ replace. No conditionals, loops, or includes.
 | `{{DECISION_NUMBER}}` | Zero-padded ADR number (e.g. `0007`) | next available |
 | `{{DECISION_TITLE}}` | ADR title | required, no default |
 | `{{DECISION_SLUG}}` | kebab-case slug derived from `{{DECISION_TITLE}}` | derived |
+| `{{SKILL_NAME}}` | Slug for a new on-demand skill | required, no default |
+| `{{CONTRACT_NAME}}` | Slug for a new integration contract | required, no default |
+| `{{FRAMEWORK_VERSION}}` | Version of the CLI that scaffolded/stamped the tree | running CLI version |
 | `{{AGENTS_MD_PATH}}` | Path to root `AGENTS.md` from the adapter location | per adapter |
 
 CLI authors and template authors share this vocabulary. Adding a token
@@ -49,13 +52,16 @@ change/
   design.md.template
   spec-delta.md.template
 decision.md.template                       one ADR (Nygard/MADR)
+contract.md.template                       one integration contract (ports/env/interfaces)
 hooks/
   pre-commit.sample                        installed by `doctrina hooks install`
   watch.sample                             on-save validation wrapper (manual wiring)
 adapters/
   claude/CLAUDE.md.template
+  claude/.claude/commands/doctrina-*.md.template   native slash commands (core loop)
   codex/README.md
   cursor/.cursor/rules/00-doctrina.mdc.template
+  cursor/.cursor/commands/doctrina-*.md.template   native slash commands (core loop)
   copilot/.github/copilot-instructions.md.template
   gemini/GEMINI.md.template
   aider/CONVENTIONS.md.template
@@ -76,7 +82,7 @@ adapters/
 | `cursor` | `.cursor/rules/00-doctrina.mdc` with `alwaysApply: true` | Cursor's `.mdc` rules live in a dedicated directory; the file is a thin pointer. |
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot's repository-level custom instructions path. |
 | `gemini` | `GEMINI.md` at project root | Gemini CLI's native context file. |
-| `aider` | `CONVENTIONS.md` at project root | Aider reads CONVENTIONS.md as cached read-only context. |
+| `aider` | `CONVENTIONS.md` at project root | Read-only context once wired in (`aider --read CONVENTIONS.md`, or `read:` in `.aider.conf.yml`). |
 | `windsurf` | `.windsurfrules` at project root | Windsurf's rules file convention. |
 | `continue` | `.continue/rules/00-doctrina.md` | Continue.dev's rules directory. |
 | `amp` / `devin` / `factory` / `jules` | nothing | AGENTS.md-native (same posture as `codex`); the directory marks the support contract and gives future per-agent affordances a home. |

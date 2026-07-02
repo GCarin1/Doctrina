@@ -41,6 +41,10 @@ doctrina init [options]
 `init` refuses to run if `AGENTS.md` or `.doctrina/` already exist
 unless `--force` is supplied.
 
+On an interactive terminal, `init` also offers the adapter install as
+a wizard step when `--agent` was not given (answer `none` to skip);
+in pipes, CI, or under `--non-interactive` the prompt never fires.
+
 ## `doctrina intake [<file>]`
 
 Store the full project description verbatim at `.doctrina/intake.md`
@@ -137,6 +141,28 @@ doctrina spec list
 
 Read-only. Pairs with `skill list` and `decision list`.
 
+## `doctrina spec set <capability>`
+
+Edit a spec's headers — and optionally one acceptance-criterion mark —
+and resync the index in the same step, so the spec and `index.json`
+can never drift apart (ADR 0007/0009). All requested ops apply
+atomically: any error leaves the spec untouched.
+
+```
+doctrina spec set billing --implementation partial
+doctrina spec set billing --bump minor --criterion "2:verified"
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--implementation "<state>"` | Set the `Implementation:` header (`planned` → `partial` → `implemented` → `verified`). |
+| `--status "<state>"` | Set the document `Status:` header (`draft` / `active` / `deprecated`). |
+| `--bump major\|minor\|patch` | Bump the spec `Version:`. |
+| `--criterion "<n>:<mark>"` | Set criterion *n*'s `[mark]`, e.g. `"2:verified"`. |
+
+Stamps `Last updated:` and regenerates `.doctrina/index.json` from the
+tree. With no edit flag it exits 2.
+
 ## `doctrina change new <id> "<title>"`
 
 Open a change proposal.
@@ -226,6 +252,23 @@ Per delta:
 Read-only; never modifies files. Pairs with `analyze`: `analyze`
 checks the change's shape, `diff` shows its content.
 
+## `doctrina change abandon <id>`
+
+Discard an open change cleanly — the inverse of `change new`.
+
+```
+doctrina change abandon 0042-add-saml --reason "superseded by 0043"
+```
+
+Deletes the open change folder and its `index.json` entry, appends a
+one-line abandonment record to `.doctrina/changes/archive/LEDGER.md`
+(history keeps the trace even for work that went nowhere), and
+rebuilds the index from the tree.
+
+| Flag | Purpose |
+|------|---------|
+| `--reason "<text>"` | Record why the change was abandoned in the ledger line. |
+
 ## `doctrina decision new "<title>"`
 
 Create the next sequentially numbered ADR from the decision template.
@@ -262,6 +305,21 @@ updates the index entry. Any other current status (already accepted,
 superseded, withdrawn) is a clear error with no writes. Closes the
 lifecycle that `decision new` opens; `doctrina next` points here
 when an ADR is stuck in `proposed`.
+
+## `doctrina decision land <number> [path ...]`
+
+Record that an accepted ADR is now implemented, without mutating the
+decision.
+
+```
+doctrina decision land 0007 src/ledger.js test/ledger.test.js
+```
+
+Stamps only the `Landed:` header with today's date plus any cited
+proof paths; the decision body stays immutable. This satisfies the
+accepted-ADR evidence check in `validate` (and the `doctrina next`
+nudge) without superseding the ADR. Refuses to land an ADR that is
+not `accepted`.
 
 ## `doctrina decision list`
 
@@ -538,10 +596,15 @@ Checks performed:
 25. Self-certified acceptance criterion: a criterion marked `[verified]`
     that cites no proof path warns (honest gates, ADR 0008; evidence on a
     continuation line still counts, so there is no false positive).
+26. Bilingual docs parity: in a project holding both `docs/en/` and
+    `docs/pt/`, a Markdown file present in one language tree and missing
+    from the other warns, in both directions (projects without both
+    trees never see this check).
 
 The `--fix` flag regenerates `index.json` from the tree before checking,
 so a drifted index is repaired (and the `framework_version` stamp
 migrated) rather than reported — the shipped pre-commit hook runs this.
+`--json` emits `{ ok, errors, warnings }` for agents and CI pipelines.
 
 Exits 0 on no errors, 1 otherwise. Warnings do not fail validation.
 
@@ -565,6 +628,28 @@ cited. Read-only.
 | Flag | Purpose |
 |------|---------|
 | `--strict` | Exit 1 when any criterion is bare or dangling (CI gate). Without it, the command always exits 0 (a report). |
+| `--json` | Emit per-spec criterion rows + summary as JSON. |
+
+## `doctrina trace`
+
+Report intent provenance: which `product.md` success-criteria anchors
+(`- [SC1] ...`) are realized by which capability specs (ADR 0006).
+
+```
+doctrina trace
+doctrina trace --strict
+```
+
+Maps every anchor to the specs whose `**Realizes:**` header names it,
+and reports the three provenance breaks: **dropped intent** (an anchor
+no spec realizes), **dangling realizes** (a spec citing an anchor that
+does not exist), and **untraceable** active specs (no `Realizes:`
+header at all — a deliberate `n/a — <why>` is fine). Read-only.
+
+| Flag | Purpose |
+|------|---------|
+| `--strict` | Exit 1 when any provenance break exists (CI gate). Without it, the command always exits 0 (a report). |
+| `--json` | Emit anchors/dangling/untraceable + summary as JSON. |
 
 ## `doctrina review`
 
@@ -687,7 +772,8 @@ drift last (ADR 0011). When nothing is open it says so and points at
 `change new` / `spec new`.
 
 Read-only; always exits 0. Intended for agents and humans resuming
-work without re-reading the whole tree.
+work without re-reading the whole tree. `--json` emits `{ actions }`
+for pipelines.
 
 ## `doctrina status`
 
@@ -701,7 +787,12 @@ Prints the gate signals (index drift, framework stamp, coverage %, trace
 anchors, whether verify is configured) and the artifact counts (specs by
 implementation state, open changes, decisions, skills). Read-only; always
 exits 0. It is a fast summary, not the authoritative gate — `doctrina
-validate` / `verify` are. A natural session-start command for the agent.
+validate` / `verify` are. A natural session-start command for the agent
+(`doctrina prime` is the richer session primer).
+
+| Flag | Purpose |
+|------|---------|
+| `--json` | Emit the snapshot as JSON (stable shape for agents and CI). |
 
 ## `doctrina close <id>`
 
@@ -728,15 +819,22 @@ Explain a capability's provenance chain (ADR 0012).
 
 ```
 doctrina why event-sourcing
+doctrina why SC1
 ```
 
-Assembles, into one read: the product intent it `Realizes:` (the `[SC1]`
-anchors with their product.md text), the capability's purpose and status,
-the acceptance criteria that prove it (with cited evidence, read across
-continuation lines), the accepted ADRs that name it, and a History section
-listing the archived changes that built it (from the index ledger).
-Read-only. Answers "why was X built, and built this way?" without grepping
-the tree by hand.
+Forward (a capability name): assembles into one read the product intent
+it `Realizes:` (the `[SC1]` anchors with their product.md text), the
+capability's purpose and status, the acceptance criteria that prove it
+(with cited evidence, read across continuation lines), the accepted ADRs
+that name it, and a History section listing the archived changes that
+built it (from the index ledger).
+
+Reverse (an anchor like `SC1`): the anchor's product.md text, the
+capabilities that realize it — each with status, implementation state,
+and proof ratio — and the archived changes behind them. Answers "who
+delivers this promise?".
+
+Read-only in both directions.
 
 ## `doctrina constitution`
 
@@ -808,10 +906,17 @@ separately as name + description only: they are on-demand by
 design, the body loads only when the task matches. The change
 archive and non-accepted ADRs are excluded.
 
-With `--concat` the command prints the file contents with path
-separators instead of the list — ready to hand to an agent. This
-is the read-order section of AGENTS.md turned into tooling:
-selection over dumping. Read-only; always exits 0.
+Every file carries a token estimate (chars/4) and the pack reports
+its total — the context-engineering thesis made measurable.
+
+| Flag | Purpose |
+|------|---------|
+| `--concat` | Print the file contents with path separators instead of the list — ready to hand to an agent. The budget verdict (if any) goes to stderr, keeping stdout pure. |
+| `--budget <n>` | Token budget for the pack: prints over/under and exits 1 when the estimate exceeds it (a context gate for scripts/CI). |
+| `--diff <ref>` | Scope the stable artifacts (AGENTS.md, product.md, specs, ADRs) to those changed since the git ref; open changes are always included. The resume-session read. |
+
+This is the read-order section of AGENTS.md turned into tooling:
+selection over dumping. Read-only; exits 0 (or 1 when over `--budget`).
 
 ## `doctrina search <term> [...]`
 
@@ -828,6 +933,106 @@ decisions, changes, skills, product, AGENTS.md. The change archive
 is excluded unless `--archive` is passed. Exits 0 when matches are
 found, 1 otherwise. Read-only — answers "where is X decided?"
 without knowing the tree layout.
+
+## `doctrina prime`
+
+The session primer: the ~40-line read that orients an agent at the
+start of a session.
+
+```
+doctrina prime
+```
+
+Prints, in one read: the gate digest (index state, coverage %, trace
+anchors, verify checks), the artifact counts, the standing rules
+(accepted ADR titles + non-goal count — `constitution` has the full
+text), every open change with its task progress, and the top next
+actions. It sits between `status` (numbers only) and
+`context --concat` (everything): enough to act, cheap enough to run
+every session. Read-only; always exits 0.
+
+## `doctrina show <ref>`
+
+Point-read one artifact fragment instead of a whole file.
+
+```
+doctrina show cli-R12     # requirement 12 of the cli spec (file order)
+doctrina show cli-C3      # acceptance criterion 3 (the spec's numbering)
+doctrina show 0007        # ADR 0007 (the whole decision)
+doctrina show cli         # the spec's header block + Purpose only
+```
+
+An agent that needs one requirement should not re-read a 400-line
+spec. `R` references are positional (they shift when a requirement is
+inserted above — cite them for point reads and conversation, not as
+immutable identifiers); `C` references use the criteria's own
+explicit numbers. Read-only.
+
+## `doctrina handoff`
+
+Print a session handoff note in Markdown — what the next session (a
+fresh agent, a teammate, tomorrow's you) needs to resume.
+
+```
+doctrina handoff
+doctrina handoff > handoff.md
+```
+
+Contains: the gate digest, each open change with task-by-task
+progress (unchecked items listed) and the exact resume command
+(`doctrina work --resume <id>`), and the prioritised next actions.
+Deliberately a **derived view, not a stored file** — the tree is the
+truth and never goes stale; regenerate on demand. Read-only.
+
+## `doctrina doctor`
+
+Aggregate diagnostic: the one command to run when something looks
+wrong and you do not know which gate to ask.
+
+```
+doctrina doctor
+```
+
+Sequences the existing checks — `validate` (machine-read), the index
+drift check, the coverage/trace ratios, the clean-checkout lint
+(`verify --clean`), the template-shape check, and the verify-config
+presence — and reports each area as ok/warn/FAIL **with its exact
+remediation command**. A driver over existing commands (like
+`close`): it adds no checks of its own, so it can never disagree with
+the gates it fronts. Read-only. Exits 1 when any area fails.
+
+## `doctrina report`
+
+Markdown digest for a period — the standup / PR-description view.
+
+```
+doctrina report
+doctrina report --since 30
+```
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `--since <days>` | `7` | Window size in days. |
+
+Sections: gate state, changes archived in the window (from the index
+ledger), open work with task progress, artifact counts, and a
+local-git summary (commits, fix share, top-churn files). Read-only;
+no network. `doctrina metrics` has the deeper git-derived numbers.
+
+## `doctrina completion <bash|zsh|pwsh>`
+
+Print a shell-completion script, generated from the same operation
+catalog that feeds `--help` — the completion can never know a
+different surface than the CLI ships.
+
+```
+doctrina completion bash >> ~/.bashrc
+doctrina completion zsh  > "${fpath[1]}/_doctrina"
+doctrina completion pwsh >> $PROFILE
+```
+
+Completes commands and their subcommands (flags are not completed).
+Static output — regenerate after upgrading the CLI.
 
 ## Environment variables
 

@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC4
-**Last updated:** 2026-06-27
-**Version:** 0.1.0
+**Last updated:** 2026-07-02
+**Version:** 0.1.1
 
 ## Purpose
 
@@ -77,12 +77,14 @@ A repository is Doctrina-compliant when:
 
 1. `AGENTS.md` exists at the root and is under 150 lines.
 2. `.doctrina/product.md` exists and states vision, scope, and target users.
-3. At least one `.doctrina/specs/<capability>/spec.md` exists.
+3. At least one capability spec exists — in this repository, e.g.
+   `.doctrina/specs/core/spec.md` and `.doctrina/specs/cli/spec.md`.
 4. `.doctrina/decisions/`, `.doctrina/changes/`, `.doctrina/changes/archive/`,
    `.doctrina/templates/`, and `.doctrina/index.json` exist (folders may be
    empty with a `.gitkeep`).
 5. Every ADR carries a `Status:` header and, if not accepted, a link to its
-   replacement.
+   replacement — enforced as an error by the Status-header check in
+   `packages/doctrina-cli/src/commands/validate.js`.
 
 ## Out of scope for this spec
 

@@ -3,6 +3,7 @@
   "checks": [
     { "name": "test", "run": "node --test", "cwd": "packages/doctrina-cli" },
     { "name": "self-validate", "run": "node packages/doctrina-cli/src/index.js validate" },
-    { "name": "index-drift", "run": "node packages/doctrina-cli/src/index.js index rebuild --check" }
+    { "name": "index-drift", "run": "node packages/doctrina-cli/src/index.js index rebuild --check" },
+    { "name": "docs-shape", "run": "node scripts/check-docs.js" }
   ]
 }

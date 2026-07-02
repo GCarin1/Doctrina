@@ -150,7 +150,7 @@ thin-pointer pattern:
 |-------|----------------|-----------|
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot's repository-level custom instructions |
 | `gemini` | `GEMINI.md` at project root | Gemini CLI native |
-| `aider` | `CONVENTIONS.md` at project root | Aider reads CONVENTIONS.md as cached read-only context |
+| `aider` | `CONVENTIONS.md` at project root | Read-only context once wired: `aider --read CONVENTIONS.md`, or `read:` in `.aider.conf.yml` |
 | `windsurf` | `.windsurfrules` at project root | Windsurf rules file convention |
 | `continue` | `.continue/rules/00-doctrina.md` | Continue.dev rules directory |
 

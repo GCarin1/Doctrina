@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { COMMAND_NAMES, referencedCommands } from "../src/lib/commands.js";
+import { COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands } from "../src/lib/commands.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
@@ -223,6 +223,103 @@ test("why surfaces the archived changes that built a capability", () => {
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /History/);
     assert.match(r.stdout, /Add redirect capability \(ADDED\)/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// COMMAND_NAMES (top-level, feeds the AGENTS.md drift gate) and OPERATIONS
+// (the full sub-command surface, feeds `--help` and the docs check) are two
+// views of one surface; if their top-level words diverge, one of them lies.
+test("COMMAND_NAMES and OPERATIONS agree on the top-level surface", () => {
+  const fromOps = new Set(OPERATIONS.map(([op]) => op.split(" ")[0]));
+  assert.deepEqual([...fromOps].sort(), [...COMMAND_NAMES].sort());
+  // And the generated help block names every operation exactly once.
+  const help = surfaceHelp();
+  for (const [op] of OPERATIONS) {
+    assert.match(help, new RegExp(`^  ${op}(\\s|$)`, "m"), `--help omits \`${op}\``);
+  }
+});
+
+// Every operation in the catalog must reach its dispatch switch — invoked
+// bare (no --help, which short-circuits before sub-command routing), none may
+// answer "unknown ... subcommand". This is the inverse of the handler test
+// above at sub-command depth: `spec set` and `change abandon` shipped fully
+// implemented but invisible to --help/AGENTS.md/docs, and no gate noticed.
+test("every operation in the catalog is dispatched, not unknown", () => {
+  const tmp = initProject();
+  try {
+    for (const [op] of OPERATIONS) {
+      const args = op === "watch" ? ["watch", "--once"] : op.split(" ");
+      const r = runCli(args, { cwd: tmp });
+      const out = `${r.stdout}\n${r.stderr}`;
+      assert.doesNotMatch(out, /unknown/i, `\`doctrina ${op}\` reads as unknown:\n${out}`);
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// The CLI reference (EN and PT) must document every operation. Headings name
+// commands in backticks (`## \`doctrina spec new <capability>\``); a heading
+// like `## \`doctrina contract new <name>\` / \`list\` / \`check\`` documents
+// the sibling sub-commands through its extra single-word spans.
+function documentedOps(markdown) {
+  const ops = new Set();
+  for (const line of markdown.split(/\r?\n/)) {
+    if (!line.startsWith("## ")) continue;
+    const spans = [...line.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
+    if (spans.length === 0 || !spans[0].startsWith("doctrina")) continue;
+    const words = spans[0].split(/\s+/).slice(1).filter((w) => /^[a-z][a-z-]*$/.test(w));
+    if (words.length === 0) continue;
+    ops.add(words.slice(0, 2).join(" "));
+    for (const extra of spans.slice(1)) {
+      if (/^[a-z][a-z-]*$/.test(extra)) ops.add(`${words[0]} ${extra}`);
+    }
+  }
+  return ops;
+}
+
+test("docs/{en,pt}/cli-reference.md document every operation", () => {
+  for (const lang of ["en", "pt"]) {
+    const docPath = path.resolve(here, "..", "..", "..", "docs", lang, "cli-reference.md");
+    if (!existsSync(docPath)) continue; // packed tarball / vendored checkout without docs
+    const documented = documentedOps(readFileSync(docPath, "utf8"));
+    for (const [op] of OPERATIONS) {
+      assert.ok(documented.has(op), `docs/${lang}/cli-reference.md has no section for \`doctrina ${op}\``);
+    }
+  }
+});
+
+// Bilingual docs parity: a file present in one language tree and missing in
+// the other is translation drift no other gate can see. Only projects with
+// BOTH docs/en and docs/pt opt in; everyone else stays silent.
+test("validate warns on a missing EN↔PT docs counterpart, both directions", () => {
+  const tmp = initProject();
+  try {
+    mkdirSync(path.join(tmp, "docs", "en"), { recursive: true });
+    mkdirSync(path.join(tmp, "docs", "pt"), { recursive: true });
+    writeFileSync(path.join(tmp, "docs", "en", "guide.md"), "# Guide\n");
+    writeFileSync(path.join(tmp, "docs", "en", "both.md"), "# Both\n");
+    writeFileSync(path.join(tmp, "docs", "pt", "both.md"), "# Ambos\n");
+    writeFileSync(path.join(tmp, "docs", "pt", "extra.md"), "# Extra\n");
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.match(r.stdout, /docs\/en\/guide\.md has no docs\/pt\/guide\.md/);
+    assert.match(r.stdout, /docs\/pt\/extra\.md has no docs\/en\/extra\.md/);
+    assert.doesNotMatch(r.stdout, /both\.md has no/);
+    assert.equal(r.status, 0, "parity drift is a warning, not an error");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate stays silent on docs parity when only one language tree exists", () => {
+  const tmp = initProject();
+  try {
+    mkdirSync(path.join(tmp, "docs", "en"), { recursive: true });
+    writeFileSync(path.join(tmp, "docs", "en", "guide.md"), "# Guide\n");
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.doesNotMatch(r.stdout, /counterpart/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

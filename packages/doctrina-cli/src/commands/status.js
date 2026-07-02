@@ -7,6 +7,7 @@ import { deriveIndex, indexesMatch, specHeader, listHeader } from "../lib/scan.j
 import { cliVersion } from "../lib/version.js";
 import { summarize as coverageSummary } from "./coverage.js";
 import { summarize as traceSummary } from "./trace.js";
+import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 
 // One-glance project health (review 2026-06-27 passive-user feature #1): a
@@ -19,53 +20,47 @@ import { c } from "../lib/colors.js";
 
 const CONFIG_REL = ".doctrina/verify.json";
 
-export async function run(_positional, _flags) {
+export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
   }
 
-  let index = null;
-  try {
-    index = idx.load(projectRoot);
-  } catch {
-    index = null;
+  const s = collectStatus(projectRoot);
+
+  if (flagBool(flags, "json", false)) {
+    console.log(JSON.stringify(s, null, 2));
+    return 0;
   }
 
-  const project = index?.project ?? path.basename(projectRoot);
-  const stamp = index?.framework_version ?? "—";
-  const cli = cliVersion();
-  console.log(c.bold("Doctrina status") + c.gray(` — ${project}  (framework ${stamp} / CLI ${cli})`));
+  console.log(c.bold("Doctrina status") + c.gray(` — ${s.project}  (framework ${s.stamp ?? "—"} / CLI ${s.cli})`));
   console.log("");
 
   // --- Gates ---
   console.log(c.bold("  Gates"));
-  // Index drift (the silent rot validate now errors on).
   let driftLine;
-  if (!index) {
+  if (s.indexState === "missing") {
     driftLine = c.red("missing/unreadable") + c.gray(" — run `doctrina index rebuild`");
-  } else if (indexesMatch(deriveIndex(projectRoot, index), index)) {
+  } else if (s.indexState === "in-sync") {
     driftLine = c.green("in sync");
   } else {
     driftLine = c.yellow("drifted") + c.gray(" — run `doctrina validate --fix`");
   }
   console.log(`    ${"index".padEnd(11)} ${driftLine}`);
 
-  // Framework stamp divergence.
-  const stampLine = stamp === cli
+  const stampLine = s.stamp === s.cli
     ? c.green("current")
-    : c.yellow(`${stamp} (CLI ${cli})`) + c.gray(" — `doctrina index rebuild`");
+    : c.yellow(`${s.stamp ?? "—"} (CLI ${s.cli})`) + c.gray(" — `doctrina index rebuild`");
   console.log(`    ${"stamp".padEnd(11)} ${stampLine}`);
 
-  // Coverage and trace ratios.
-  const cov = coverageSummary(projectRoot);
+  const cov = s.coverage;
   const covExtra = cov.totalDangling + cov.totalConditional > 0
     ? c.yellow(` ${cov.totalDangling} dangling, ${cov.totalConditional} conditional`)
     : "";
   const covColor = cov.pct === 100 ? c.green : cov.pct >= 50 ? c.yellow : c.red;
   console.log(`    ${"coverage".padEnd(11)} ${covColor(`${cov.pct}%`)} ${c.gray(`(${cov.totalCovered}/${cov.totalCriteria} criteria)`)}${covExtra}`);
 
-  const tr = traceSummary(projectRoot);
+  const tr = s.trace;
   const trExtra = tr.untraceable + tr.dropped + tr.dangling > 0
     ? c.yellow(` ${tr.dropped} dropped, ${tr.untraceable} untraceable`)
     : "";
@@ -73,38 +68,70 @@ export async function run(_positional, _flags) {
   const trText = tr.anchors === 0 ? "no anchors" : `${tr.realized}/${tr.anchors} anchors`;
   console.log(`    ${"trace".padEnd(11)} ${trColor(trText)}${trExtra}`);
 
-  // Verify config presence (running it is the slow, authoritative gate).
-  const verifyCfg = path.join(projectRoot, CONFIG_REL);
   let verifyLine = c.gray("not configured") + c.gray(" — `doctrina verify --init`");
-  if (isFile(verifyCfg)) {
-    try {
-      const cfg = JSON.parse(read(verifyCfg));
-      const n = Array.isArray(cfg?.checks) ? cfg.checks.length : 0;
-      verifyLine = c.cyan(`${n} check${n === 1 ? "" : "s"}`) + c.gray(" — run `doctrina verify`");
-    } catch {
-      verifyLine = c.red("invalid JSON");
-    }
+  if (s.verify.invalid) {
+    verifyLine = c.red("invalid JSON");
+  } else if (s.verify.configured) {
+    const n = s.verify.checks;
+    verifyLine = c.cyan(`${n} check${n === 1 ? "" : "s"}`) + c.gray(" — run `doctrina verify`");
   }
   console.log(`    ${"verify".padEnd(11)} ${verifyLine}`);
 
   // --- Work ---
   console.log("");
   console.log(c.bold("  Work"));
-  const specs = countSpecs(projectRoot);
-  const implBreak = Object.entries(specs.impl).map(([k, v]) => `${v} ${k}`).join(", ");
-  console.log(`    ${"specs".padEnd(11)} ${specs.total}${implBreak ? c.gray(`  (${implBreak})`) : ""}`);
-  console.log(`    ${"changes".padEnd(11)} ${specs.openChanges} open`);
-  const adr = countDecisions(projectRoot);
+  const implBreak = Object.entries(s.specs.impl).map(([k, v]) => `${v} ${k}`).join(", ");
+  console.log(`    ${"specs".padEnd(11)} ${s.specs.total}${implBreak ? c.gray(`  (${implBreak})`) : ""}`);
+  console.log(`    ${"changes".padEnd(11)} ${s.specs.openChanges} open`);
   const adrNotes = [];
-  if (adr.proposed > 0) adrNotes.push(c.yellow(`${adr.proposed} proposed`));
-  if (adr.bare > 0) adrNotes.push(c.yellow(`${adr.bare} unproven`));
-  console.log(`    ${"decisions".padEnd(11)} ${adr.total}${adrNotes.length ? c.gray("  (") + adrNotes.join(c.gray(", ")) + c.gray(")") : ""}`);
-  const skills = countSkills(projectRoot);
-  console.log(`    ${"skills".padEnd(11)} ${skills}`);
+  if (s.decisions.proposed > 0) adrNotes.push(c.yellow(`${s.decisions.proposed} proposed`));
+  if (s.decisions.bare > 0) adrNotes.push(c.yellow(`${s.decisions.bare} unproven`));
+  console.log(`    ${"decisions".padEnd(11)} ${s.decisions.total}${adrNotes.length ? c.gray("  (") + adrNotes.join(c.gray(", ")) + c.gray(")") : ""}`);
+  console.log(`    ${"skills".padEnd(11)} ${s.skills}`);
 
   console.log("");
   console.log(c.gray("  Full gates: `doctrina validate` · `doctrina verify`.  Next step: `doctrina next`."));
   return 0;
+}
+
+// Pure, render-free status snapshot — the data behind the dashboard, shared
+// with `prime`, `handoff`, `doctor`, and the `--json` output so every consumer
+// reads the same numbers.
+export function collectStatus(projectRoot) {
+  let index = null;
+  try {
+    index = idx.load(projectRoot);
+  } catch {
+    index = null;
+  }
+  let indexState = "missing";
+  if (index) {
+    indexState = indexesMatch(deriveIndex(projectRoot, index), index) ? "in-sync" : "drifted";
+  }
+
+  const verifyCfg = path.join(projectRoot, CONFIG_REL);
+  let verify = { configured: false, checks: 0, invalid: false };
+  if (isFile(verifyCfg)) {
+    try {
+      const cfg = JSON.parse(read(verifyCfg));
+      verify = { configured: true, checks: Array.isArray(cfg?.checks) ? cfg.checks.length : 0, invalid: false };
+    } catch {
+      verify = { configured: true, checks: 0, invalid: true };
+    }
+  }
+
+  return {
+    project: index?.project ?? path.basename(projectRoot),
+    stamp: index?.framework_version ?? null,
+    cli: cliVersion(),
+    indexState,
+    coverage: coverageSummary(projectRoot),
+    trace: traceSummary(projectRoot),
+    verify,
+    specs: countSpecs(projectRoot),
+    decisions: countDecisions(projectRoot),
+    skills: countSkills(projectRoot),
+  };
 }
 
 function countSpecs(projectRoot) {
@@ -165,12 +192,15 @@ function countSkills(projectRoot) {
 }
 
 export const help = `
-Usage: doctrina status
+Usage: doctrina status [--json]
 
 Print a one-glance health dashboard for the .doctrina/ project: the gate
 signals (index drift, framework stamp, coverage %, trace anchors, whether
 verify is configured) and the artifact counts (specs by implementation
 state, open changes, decisions, skills). Read-only; always exits 0.
+
+Flags:
+  --json   Emit the snapshot as JSON (stable shape for agents and CI).
 
 It is a fast summary, not the authoritative gate: run \`doctrina validate\`
 and \`doctrina verify\` for the full structural and build checks, and

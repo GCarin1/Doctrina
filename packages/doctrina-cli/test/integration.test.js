@@ -2875,3 +2875,310 @@ test("verify manual check is a non-blocking qualitative gate until signed off", 
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// v0.11 feature set: prime / handoff / show / why-anchor / context budgets /
+// doctor / report / completion / --json surfaces.
+
+function initedProject() {
+  const tmp = makeTempProject();
+  runCli(["init", "--non-interactive", "--project-name", "Acme", "--project-description", "x"], { cwd: tmp });
+  return tmp;
+}
+
+test("prime prints gates, standing rules, open work, and next steps in one read", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+    const r = runCli(["prime"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /Gates/);
+    assert.match(r.stdout, /Rules/);
+    assert.match(r.stdout, /Use Postgres/);
+    assert.match(r.stdout, /Next/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("handoff names each open change, its unchecked tasks, and the resume command", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-add-x", "Add X"], { cwd: tmp });
+    const r = runCli(["handoff"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /# Doctrina handoff/);
+    assert.match(r.stdout, /0001-add-x/);
+    assert.match(r.stdout, /- \[ \]/, "unchecked tasks must be listed");
+    assert.match(r.stdout, /doctrina work --resume 0001-add-x/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+const SHOW_SPEC = `# Spec — Billing
+
+**Capability:** billing
+**Status:** active
+**Implementation:** implemented
+**Realizes:** SC1
+**Last updated:** 2026-07-02
+**Version:** 0.1.0
+
+## Purpose
+
+Money in, receipts out.
+
+## Requirements (EARS)
+
+### Ubiquitous
+
+- The system shall charge the card.
+
+### Event-driven
+
+- When a charge succeeds, the system shall issue a receipt
+  within one minute.
+
+## Acceptance criteria
+
+1. [verified] Charges clear — proven by \`src/pay.js\`.
+`;
+
+test("show resolves R-refs, C-refs, ADR numbers, and spec headers", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), SHOW_SPEC);
+    mkdirSync(path.join(tmp, "src"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "pay.js"), "// proof\n");
+    runCli(["decision", "new", "Use Stripe"], { cwd: tmp });
+
+    const r2 = runCli(["show", "billing-R2"], { cwd: tmp });
+    assert.equal(r2.status, 0, r2.stderr);
+    assert.match(r2.stdout, /Event-driven/);
+    assert.match(r2.stdout, /issue a receipt/);
+
+    const c1 = runCli(["show", "billing-C1"], { cwd: tmp });
+    assert.equal(c1.status, 0, c1.stderr);
+    assert.match(c1.stdout, /Charges clear/);
+    assert.match(c1.stdout, /evidence: src\/pay\.js/);
+
+    const head = runCli(["show", "billing"], { cwd: tmp });
+    assert.equal(head.status, 0, head.stderr);
+    assert.match(head.stdout, /Money in, receipts out/);
+    assert.doesNotMatch(head.stdout, /issue a receipt/, "header view must stop before the requirements");
+
+    const adr = runCli(["show", "0001"], { cwd: tmp });
+    assert.equal(adr.status, 0, adr.stderr);
+    assert.match(adr.stdout, /Use Stripe/);
+
+    const missing = runCli(["show", "billing-R9"], { cwd: tmp });
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /no requirement R9/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("why with an intent anchor walks the chain in reverse", () => {
+  const tmp = initedProject();
+  try {
+    writeFileSync(
+      path.join(tmp, ".doctrina", "product.md"),
+      "# Acme — Product\n\n## Success criteria\n\n- [SC1] Money is collected reliably.\n",
+    );
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), SHOW_SPEC);
+    const r = runCli(["why", "SC1"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /Money is collected reliably/);
+    assert.match(r.stdout, /Realized by/);
+    assert.match(r.stdout, /billing/);
+
+    const unknown = runCli(["why", "ZZ9"], { cwd: tmp });
+    assert.equal(unknown.status, 1);
+    assert.match(unknown.stderr, /no anchor \[ZZ9\]/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("context reports token estimates and --budget gates the pack", () => {
+  const tmp = initedProject();
+  try {
+    const list = runCli(["context"], { cwd: tmp });
+    assert.equal(list.status, 0, list.stderr);
+    assert.match(list.stdout, /tok/);
+    assert.match(list.stdout, /tokens total/);
+
+    const over = runCli(["context", "--budget", "1"], { cwd: tmp });
+    assert.equal(over.status, 1, "a pack over budget must exit 1");
+    assert.match(over.stdout, /over budget/);
+
+    const under = runCli(["context", "--budget", "999999"], { cwd: tmp });
+    assert.equal(under.status, 0, under.stdout);
+    assert.match(under.stdout, /within budget/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("context --diff fails loudly outside a git repository", () => {
+  const tmp = initedProject();
+  try {
+    const r = runCli(["context", "--diff", "HEAD"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /git diff against "HEAD" failed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("doctor aggregates the checks and points at remediations", () => {
+  const tmp = initedProject();
+  try {
+    const r = runCli(["doctor"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout);
+    assert.match(r.stdout, /validate/);
+    assert.match(r.stdout, /index/);
+    assert.match(r.stdout, /verify --init/, "an unconfigured verify must point at --init");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("report prints a Markdown digest and degrades without git", () => {
+  const tmp = initedProject();
+  try {
+    const r = runCli(["report", "--since", "14"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /# Doctrina report/);
+    assert.match(r.stdout, /archived in period: none/);
+    assert.match(r.stdout, /no git history available/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("completion emits a script per shell, generated from the catalog", () => {
+  const bash = runCli(["completion", "bash"]);
+  assert.equal(bash.status, 0, bash.stderr);
+  assert.match(bash.stdout, /complete -F _doctrina doctrina/);
+  assert.match(bash.stdout, /\bprime\b/, "new commands must appear in completions");
+
+  const zsh = runCli(["completion", "zsh"]);
+  assert.equal(zsh.status, 0);
+  assert.match(zsh.stdout, /#compdef doctrina/);
+
+  const pwsh = runCli(["completion", "pwsh"]);
+  assert.equal(pwsh.status, 0);
+  assert.match(pwsh.stdout, /Register-ArgumentCompleter/);
+
+  const bogus = runCli(["completion", "fish"]);
+  assert.equal(bogus.status, 2);
+});
+
+// ---------------------------------------------------------------------------
+// Adapter contract, table-driven from the templates spec: `init --agent <x>`
+// must install exactly the documented files for that agent (and nothing for
+// the AGENTS.md-native five), every installed file must respect the 30-line
+// pointer cap, and every pointer must RESOLVE to the root AGENTS.md — the
+// "one source, N mouths" invariant the whole adapter design rests on.
+
+const SLASH_COMMANDS = ["work", "next", "context", "status", "why"];
+const ADAPTER_FILES = {
+  claude: ["CLAUDE.md", ...SLASH_COMMANDS.map((cmd) => `.claude/commands/doctrina-${cmd}.md`)],
+  codex: [],
+  cursor: [".cursor/rules/00-doctrina.mdc", ...SLASH_COMMANDS.map((cmd) => `.cursor/commands/doctrina-${cmd}.md`)],
+  copilot: [".github/copilot-instructions.md"],
+  gemini: ["GEMINI.md"],
+  aider: ["CONVENTIONS.md"],
+  windsurf: [".windsurfrules"],
+  continue: [".continue/rules/00-doctrina.md"],
+  amp: [],
+  devin: [],
+  factory: [],
+  jules: [],
+};
+const POINTER_FILES = new Set([
+  "CLAUDE.md", ".cursor/rules/00-doctrina.mdc", ".github/copilot-instructions.md",
+  "GEMINI.md", "CONVENTIONS.md", ".windsurfrules", ".continue/rules/00-doctrina.md",
+]);
+
+test("init --agent installs exactly the documented files per agent, all pointing at AGENTS.md", () => {
+  const allFiles = Object.values(ADAPTER_FILES).flat();
+  for (const [agent, files] of Object.entries(ADAPTER_FILES)) {
+    const tmp = makeTempProject();
+    try {
+      const r = runCli(
+        ["init", "--non-interactive", "--project-name", "Acme", "--project-description", "x", "--agent", agent],
+        { cwd: tmp },
+      );
+      assert.equal(r.status, 0, `--agent ${agent}: ${r.stderr || r.stdout}`);
+
+      for (const rel of files) {
+        const full = path.join(tmp, rel);
+        assert.ok(existsSync(full), `--agent ${agent} must install ${rel}`);
+        const text = readFileSync(full, "utf8");
+        const lines = text.split(/\r?\n/).length;
+        assert.ok(lines <= 30, `--agent ${agent}: ${rel} is ${lines} lines (>30 pointer cap)`);
+        // The pointer must resolve to the root AGENTS.md from where it sits
+        // (root files say "AGENTS.md"; nested ones climb with "../").
+        if (POINTER_FILES.has(rel)) {
+          const m = text.match(/(?:@|`)((?:\.\.\/)*AGENTS\.md)`?/);
+          assert.ok(m, `--agent ${agent}: ${rel} does not reference AGENTS.md`);
+          const resolved = path.resolve(path.dirname(full), m[1]);
+          assert.equal(resolved, path.join(tmp, "AGENTS.md"), `--agent ${agent}: ${rel} points at ${m[1]}, which does not resolve to the root AGENTS.md`);
+        }
+      }
+      // Nothing that belongs to OTHER agents may leak in.
+      for (const rel of allFiles) {
+        if (files.includes(rel)) continue;
+        assert.ok(!existsSync(path.join(tmp, rel)), `--agent ${agent} must not install ${rel}`);
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+});
+
+test("init --agent all installs the union of every adapter", () => {
+  const tmp = makeTempProject();
+  try {
+    const r = runCli(
+      ["init", "--non-interactive", "--project-name", "Acme", "--project-description", "x", "--agent", "all"],
+      { cwd: tmp },
+    );
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    for (const rel of Object.values(ADAPTER_FILES).flat()) {
+      assert.ok(existsSync(path.join(tmp, rel)), `--agent all must install ${rel}`);
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("status, next, validate, coverage, and trace speak JSON under --json", () => {
+  const tmp = initedProject();
+  try {
+    const status = JSON.parse(runCli(["status", "--json"], { cwd: tmp }).stdout);
+    assert.ok(typeof status.indexState === "string" && status.coverage && "pct" in status.coverage);
+
+    const next = JSON.parse(runCli(["next", "--json"], { cwd: tmp }).stdout);
+    assert.ok(Array.isArray(next.actions));
+
+    const validate = JSON.parse(runCli(["validate", "--json"], { cwd: tmp }).stdout);
+    assert.equal(validate.ok, true);
+    assert.ok(Array.isArray(validate.errors) && Array.isArray(validate.warnings));
+
+    const coverage = JSON.parse(runCli(["coverage", "--json"], { cwd: tmp }).stdout);
+    assert.ok(coverage.summary && "pct" in coverage.summary);
+
+    const trace = JSON.parse(runCli(["trace", "--json"], { cwd: tmp }).stdout);
+    assert.ok(trace.summary && "anchors" in trace.summary);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

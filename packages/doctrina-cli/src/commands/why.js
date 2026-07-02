@@ -26,10 +26,17 @@ export async function run(positional, _flags) {
   const known = isDir(specsDir) ? readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md"))) : [];
 
   if (!cap) {
-    console.error(c.red("error:") + " why requires a <capability>");
+    console.error(c.red("error:") + " why requires a <capability> (or an intent anchor like SC1)");
     if (known.length) console.error(c.gray("known: ") + known.sort().join(", "));
     return 2;
   }
+
+  // Reverse mode: `doctrina why SC1` walks the chain the other way — from a
+  // product intent anchor to the capabilities that realize it and the work
+  // that delivered them. Forward mode asks "why does this capability exist?";
+  // reverse mode asks "who delivers this promise?".
+  if (/^[A-Z]+\d+$/.test(cap)) return whyAnchor(projectRoot, cap, specsDir, known);
+
   const specPath = path.join(specsDir, cap, "spec.md");
   if (!isFile(specPath)) {
     console.error(c.red("error:") + ` no spec for capability "${cap}"`);
@@ -130,6 +137,58 @@ export async function run(positional, _flags) {
   return 0;
 }
 
+// Reverse provenance: one intent anchor → the capabilities that realize it,
+// each with its proof state, plus the archived changes that built them.
+function whyAnchor(projectRoot, id, specsDir, known) {
+  const anchors = productAnchors(projectRoot);
+  if (!anchors.has(id)) {
+    console.error(c.red("error:") + ` no anchor [${id}] in .doctrina/product.md`);
+    if (anchors.size) console.error(c.gray("known: ") + [...anchors.keys()].join(", "));
+    return 1;
+  }
+
+  console.log(c.bold(`Why ${id}`) + c.gray(" — reverse provenance (intent → capabilities → proof → history)"));
+  console.log("");
+  console.log(c.bold("  Intent"));
+  console.log(`    ${c.cyan(id)}  ${anchors.get(id)}`);
+
+  const realizing = [];
+  for (const capName of known.sort()) {
+    const text = read(path.join(specsDir, capName, "spec.md"));
+    const realizesRaw = specHeader(text, "Realizes");
+    const ids = realizesRaw ? (realizesRaw.match(/[A-Z]+\d+/g) ?? []) : [];
+    if (ids.includes(id)) realizing.push({ cap: capName, text });
+  }
+
+  console.log("");
+  console.log(c.bold("  Realized by"));
+  if (realizing.length === 0) {
+    console.log(`    ${c.red("nothing")} ${c.gray("— dropped intent: no spec declares Realizes: " + id + " (doctrina trace)")}`);
+    return 0;
+  }
+  for (const s of realizing) {
+    const status = specHeader(s.text, "Status") ?? "—";
+    const impl = specHeader(s.text, "Implementation") ?? "—";
+    const criteria = parseAcceptanceCriteria(s.text);
+    const proven = criteria.filter((cr) => cr.proofPaths.length > 0).length;
+    console.log(
+      `    ${c.cyan(s.cap.padEnd(14))} ${c.gray(`status: ${status} · implementation: ${impl} · proof: ${proven}/${criteria.length} criteria cite evidence`)}`,
+    );
+  }
+
+  console.log("");
+  console.log(c.bold("  History"));
+  let any = false;
+  for (const s of realizing) {
+    for (const ch of archivedChangesFor(projectRoot, s.cap)) {
+      console.log(`    ${c.cyan(ch.applied ?? "—")}  ${ch.title} ${c.gray(`(${s.cap}, ${ch.op})`)}`);
+      any = true;
+    }
+  }
+  if (!any) console.log(`    ${c.gray("no archived change recorded against the realizing capabilities")}`);
+  return 0;
+}
+
 // Archived changes whose recorded specs_affected include this capability,
 // oldest first. Read from the index ledger (the same data `index rebuild`
 // derives from each change's spec deltas); absent or unreadable index → none.
@@ -202,14 +261,18 @@ function decisionsMentioning(projectRoot, cap) {
 }
 
 export const help = `
-Usage: doctrina why <capability>
+Usage: doctrina why <capability | anchor>
 
-Explain a capability's provenance by assembling the chain Doctrina already
-records into one read: the product intent it **Realizes:** ([SC1] anchors),
-the capability's purpose and status, the acceptance criteria that prove it
-(with cited evidence), the accepted ADRs that name it, and the archived
-changes that built it (from the index ledger). Read-only.
+Explain provenance in either direction, read-only:
 
-Builds on the intent provenance (ADR 0006/0011) — answer "why was X built,
-and built this way?" without grepping the tree by hand.
+  doctrina why billing   forward — the product intent the capability
+                         Realizes:, its purpose/status, the acceptance
+                         criteria that prove it, the accepted ADRs that
+                         name it, and the archived changes that built it.
+  doctrina why SC1       reverse — the intent anchor's product.md text,
+                         the capabilities that realize it (with proof
+                         state), and the archived changes behind them.
+
+Builds on the intent provenance (ADR 0006/0011) — answer "why was X built"
+or "who delivers this promise?" without grepping the tree by hand.
 `;

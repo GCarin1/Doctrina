@@ -499,7 +499,35 @@ export async function run(_positional, flags) {
     }
   }
 
+  // 16. Bilingual docs parity. Projects that keep an EN-source docs tree
+  //     with a PT mirror (docs/en + docs/pt) get filename-parity checking:
+  //     a file added in one language and missing in the other is invisible
+  //     to every other gate, and the mirror silently falls behind. Only the
+  //     deterministic half (file sets) is checked — content staleness stays
+  //     a human judgement. Projects without both trees never see this.
+  const docsEn = path.join(projectRoot, "docs", "en");
+  const docsPt = path.join(projectRoot, "docs", "pt");
+  if (isDir(docsEn) && isDir(docsPt)) {
+    const mdSet = (dir) => new Set(readdirSync(dir).filter((f) => f.endsWith(".md")));
+    const enSet = mdSet(docsEn);
+    const ptSet = mdSet(docsPt);
+    for (const f of [...enSet].sort()) {
+      if (!ptSet.has(f)) {
+        warnings.push(`docs/en/${f} has no docs/pt/${f} counterpart (EN is the source; the PT mirror fell behind)`);
+      }
+    }
+    for (const f of [...ptSet].sort()) {
+      if (!enSet.has(f)) {
+        warnings.push(`docs/pt/${f} has no docs/en/${f} counterpart (PT translates an EN source, never leads it)`);
+      }
+    }
+  }
+
   // Output
+  if (flagBool(flags, "json", false)) {
+    console.log(JSON.stringify({ ok: errors.length === 0, errors, warnings }, null, 2));
+    return errors.length === 0 ? 0 : 1;
+  }
   for (const w of warnings) console.log(c.yellow("warn:  ") + w);
   for (const e of errors) console.log(c.red("error: ") + e);
 
@@ -613,9 +641,13 @@ function isLikelyPath(s) {
 }
 
 export const help = `
-Usage: doctrina validate
+Usage: doctrina validate [--fix] [--json]
 
 Run schema, artifact-existence, and structural checks against the
 .doctrina/ tree in the current working directory. Exits 0 if no errors
 (warnings allowed), 1 otherwise.
+
+Flags:
+  --fix    Rebuild index.json from the tree before checking (heals drift).
+  --json   Emit { ok, errors, warnings } as JSON (stable shape for agents/CI).
 `;

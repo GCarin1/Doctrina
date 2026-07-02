@@ -26,21 +26,15 @@ export async function run(_positional, flags) {
     throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
   }
   const strict = flagBool(flags, "strict", false);
+  const json = flagBool(flags, "json", false);
 
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  const reports = [];
-  if (isDir(specsDir)) {
-    for (const cap of readdirSync(specsDir).sort()) {
-      const specPath = path.join(specsDir, cap, "spec.md");
-      if (!isFile(specPath)) continue;
-      const criteria = extractAcceptanceCriteria(read(specPath));
-      if (criteria.length === 0) continue;
-      const rows = criteria.map((crit, i) => classify(crit, i + 1, projectRoot, path.dirname(specPath)));
-      reports.push({ cap, specPath, rows });
-    }
-  }
+  const reports = collect(projectRoot);
 
   if (reports.length === 0) {
+    if (json) {
+      console.log(JSON.stringify({ specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: 100 } }, null, 2));
+      return 0;
+    }
     console.log(c.gray("no acceptance criteria found under .doctrina/specs/"));
     return 0;
   }
@@ -49,6 +43,22 @@ export async function run(_positional, flags) {
   let totalCovered = 0;
   let totalDangling = 0;
   let totalConditional = 0;
+  for (const rep of reports) {
+    totalCriteria += rep.rows.length;
+    totalCovered += rep.rows.filter((r) => r.kind === "covered").length;
+    totalDangling += rep.rows.filter((r) => r.kind === "dangling").length;
+    totalConditional += rep.rows.filter((r) => r.kind === "conditional").length;
+  }
+  const jsonPct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  const jsonClean = totalCovered === totalCriteria && totalDangling === 0 && totalConditional === 0;
+
+  if (json) {
+    console.log(JSON.stringify({
+      specs: reports.map((rep) => ({ capability: rep.cap, criteria: rep.rows })),
+      summary: { criteria: totalCriteria, covered: totalCovered, dangling: totalDangling, conditional: totalConditional, pct: jsonPct },
+    }, null, 2));
+    return jsonClean ? 0 : strict ? 1 : 0;
+  }
 
   console.log(c.bold("Coverage") + c.gray(" — acceptance criteria with linked evidence:"));
   console.log("");
@@ -57,10 +67,6 @@ export async function run(_positional, flags) {
     const covered = rep.rows.filter((r) => r.kind === "covered").length;
     const dangling = rep.rows.filter((r) => r.kind === "dangling").length;
     const conditional = rep.rows.filter((r) => r.kind === "conditional").length;
-    totalCriteria += rep.rows.length;
-    totalCovered += covered;
-    totalDangling += dangling;
-    totalConditional += conditional;
 
     const notes = [];
     if (conditional > 0) notes.push(c.yellow(`${conditional} conditional`));
@@ -95,6 +101,24 @@ export async function run(_positional, flags) {
   // A report by default (exit 0); a gate under --strict (exit 1 for CI). A
   // conditional criterion fails the gate too: a skipped test is not proof.
   return strict ? 1 : 0;
+}
+
+// Per-spec criterion rows — the full classification behind both the report
+// and the --json output. Each row: { n, kind, missing?, skipped? }.
+export function collect(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  const reports = [];
+  if (isDir(specsDir)) {
+    for (const cap of readdirSync(specsDir).sort()) {
+      const specPath = path.join(specsDir, cap, "spec.md");
+      if (!isFile(specPath)) continue;
+      const criteria = extractAcceptanceCriteria(read(specPath));
+      if (criteria.length === 0) continue;
+      const rows = criteria.map((crit, i) => classify(crit, i + 1, projectRoot, path.dirname(specPath)));
+      reports.push({ cap, specPath, rows });
+    }
+  }
+  return reports;
 }
 
 // Pure summary of coverage across the spec tree, for other commands
@@ -256,4 +280,5 @@ nothing is cited. Read-only.
 Flags:
   --strict   Exit 1 when any criterion is bare, dangling, or conditional
              (CI gate). Without it the command always exits 0 (a report).
+  --json     Emit per-spec criterion rows + summary as JSON.
 `;

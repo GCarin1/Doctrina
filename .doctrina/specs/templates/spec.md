@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-06-28
-**Version:** 0.9.0
+**Last updated:** 2026-07-02
+**Version:** 0.9.1
 
 ## Purpose
 
@@ -93,7 +93,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 | `cursor` | `.cursor/rules/00-doctrina.mdc` + `.cursor/commands/doctrina-*.md` | `alwaysApply: true` rule plus native slash commands for the core loop. |
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot repository-level instructions; points at AGENTS.md. |
 | `gemini` | `GEMINI.md` at project root | Gemini CLI native; points at AGENTS.md. |
-| `aider` | `CONVENTIONS.md` at project root | Aider reads CONVENTIONS.md as read-only context; points at AGENTS.md. |
+| `aider` | `CONVENTIONS.md` at project root | Read-only context once wired in (`--read` / `.aider.conf.yml`); points at AGENTS.md. |
 | `windsurf` | `.windsurfrules` at project root | Windsurf rules file; points at AGENTS.md. |
 | `continue` | `.continue/rules/00-doctrina.md` | Continue.dev rules directory; points at AGENTS.md. |
 | `amp` | none | Sourcegraph Amp reads `AGENTS.md` natively. |
@@ -105,12 +105,16 @@ The CLI consumes this spec to drive `doctrina init` and the
 
 A repository's `.doctrina/templates/` directory is spec-compliant when:
 
-1. Every file path listed in the v0 template inventory exists.
+1. Every file path listed in the v0 template inventory exists — proven
+   by the inventory test in `packages/doctrina-cli/test/templates.test.js`.
 2. Every template carries at least one `{{TOKEN}}` placeholder using only
-   tokens from the canonical set.
-3. Every adapter file is under 30 lines.
-4. The templates `README.md` enumerates the canonical token set with
-   meaning and default for each.
+   tokens from the canonical set — proven by the token-contract test in
+   `packages/doctrina-cli/test/templates.test.js`.
+3. Every adapter file is under 30 lines — enforced as an error by
+   `packages/doctrina-cli/src/commands/validate.js`.
+4. The canonical token set is enumerated with meaning and default for
+   each token in `.doctrina/templates/README.md`; a template using an
+   undocumented token fails `packages/doctrina-cli/test/templates.test.js`.
 
 ## Out of scope for this spec
 

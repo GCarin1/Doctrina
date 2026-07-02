@@ -13,7 +13,7 @@ Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI develop
 - Targets: 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI, Cursor,
   GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules)
 - Languages: documentation EN primary, PT translated
-- Status: v0.10.0 — released
+- Status: v0.11.0 — released
 
 ## Stack and tooling
 
@@ -28,41 +28,42 @@ Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI develop
 npx doctrina-cli init                       # scaffold .doctrina/ + AGENTS.md (--intake <file> stores full intent)
 npx doctrina-cli intake <file>              # store full description verbatim; print bootstrap playbook
 npx doctrina-cli work "<prompt>"            # brief prompt -> scaffolded change + guided work playbook
-npx doctrina-cli spec new <cap>             # create a new capability spec (--bug for bug-shape)
-npx doctrina-cli spec list                  # list specs with version, status, size
+npx doctrina-cli prime                      # session primer: gates, rules, open work, next steps in one read
+npx doctrina-cli spec new <cap>             # create a capability spec (--bug bug-shape; `spec list` lists them)
+npx doctrina-cli spec set <cap> [opts]      # edit spec headers / criterion mark + resync index (--bump, --criterion)
 npx doctrina-cli change new <id> "<title>"  # open a change proposal
-npx doctrina-cli change apply <id>          # apply spec deltas (ADDED/REMOVED auto, MODIFIED manual)
+npx doctrina-cli change apply <id>          # apply spec deltas (ADDED/REMOVED auto, MODIFIED manual; `change diff` previews)
 npx doctrina-cli change archive <id>        # archive an applied change
-npx doctrina-cli change diff <id>           # preview spec deltas (line diff for MODIFIED)
-npx doctrina-cli decision new "<title>"     # create the next sequential ADR
+npx doctrina-cli change abandon <id>        # discard an open change cleanly (recorded in the ledger)
+npx doctrina-cli decision new "<title>"     # create the next sequential ADR (`decision list` lists them)
 npx doctrina-cli decision accept <num>      # flip a proposed ADR to accepted
+npx doctrina-cli decision land <num> [path] # stamp an accepted ADR as implemented (Landed: + proof)
 npx doctrina-cli decision supersede <num>   # supersede an existing ADR
-npx doctrina-cli decision list              # list ADRs with status, date, title
-npx doctrina-cli skill new <name>           # scaffold an on-demand procedural-memory skill
-npx doctrina-cli skill list                 # list skills with descriptions
+npx doctrina-cli skill new <name>           # scaffold a procedural-memory skill (`skill list` lists them)
 npx doctrina-cli skill sync                 # sync skill frontmatter descriptions into index.json
-npx doctrina-cli analyze <change-id>        # inspect a change folder before applying
-npx doctrina-cli clarify <path>             # smell-test a Markdown file for ambiguity (--all: whole tree)
-npx doctrina-cli context [<cap>]            # print the context pack in read order (--concat: contents)
+npx doctrina-cli skill suggest              # surface fix-shaped lessons worth a skill (--write scaffolds)
+npx doctrina-cli analyze <change-id>        # pre-flight a change (`doctrina clarify <path>` smell-tests ambiguity)
+npx doctrina-cli context [<cap>]            # context pack in read order (--concat; --budget <tok>; --diff <ref>)
+npx doctrina-cli show <ref>                 # point-read a requirement/criterion/ADR (cli-R12, cli-C3, 0007)
 npx doctrina-cli search <term>              # search artifacts, grouped by category
-npx doctrina-cli status                     # one-glance health: gates, coverage, trace, counts
-npx doctrina-cli why <cap>                  # provenance chain: intent -> proof -> ADRs -> history
-npx doctrina-cli constitution               # standing rules: accepted ADRs + product non-goals
-npx doctrina-cli validate                   # schema + structural checks (incl. AGENTS.md drift)
-npx doctrina-cli coverage                   # acceptance criteria with linked evidence (--strict gates)
-npx doctrina-cli trace                      # product intent -> capability provenance (--strict gates)
+npx doctrina-cli status                     # one-glance health: gates, coverage, trace, counts (--json)
+npx doctrina-cli why <cap|SC1>              # provenance chain (`doctrina constitution` = standing rules)
+npx doctrina-cli handoff                    # Markdown handoff note: open work, task state, resume command
+npx doctrina-cli validate                   # schema + structural checks (incl. AGENTS.md drift; --json)
+npx doctrina-cli coverage                   # acceptance criteria with linked evidence (--strict gates; --json)
+npx doctrina-cli trace                      # product intent -> capability provenance (--strict gates; --json)
 npx doctrina-cli review                     # conformance of working tree vs specs/ADRs/contracts
 npx doctrina-cli verify                     # run project-declared typecheck/test/build (the real gate)
 npx doctrina-cli close <id>                 # whole close sequence in one pass (gates -> archive -> validate)
-npx doctrina-cli contract new <name>        # own ports/env/interfaces; `contract check` validates them
-npx doctrina-cli templates list             # list templates shipped by the CLI
-npx doctrina-cli templates check            # compare project against recommended template shape
-npx doctrina-cli templates update           # additive fixer for check findings (preview; --write applies)
+npx doctrina-cli doctor                     # aggregate diagnostic with per-finding remediation
+npx doctrina-cli contract new <name>        # own ports/env/interfaces (`contract list`; `contract check` validates)
+npx doctrina-cli templates check            # vs recommended shape (`templates list`; `templates update` fixes)
 npx doctrina-cli hooks install              # install the pre-commit hook
 npx doctrina-cli index rebuild              # regenerate index.json from the files (--check for CI)
-npx doctrina-cli next                       # print the recommended next workflow actions
-npx doctrina-cli watch                      # re-run validate --fix + next on every change (--once: one pass)
-npx doctrina-cli metrics                    # local git-derived adoption metrics (no network)
+npx doctrina-cli next                       # print the recommended next workflow actions (--json)
+npx doctrina-cli watch                      # validate --fix + next on change (--once; `doctrina metrics` = git stats)
+npx doctrina-cli report [--since 7]         # Markdown digest: changes, gates, local-git summary
+npx doctrina-cli completion <shell>         # bash/zsh/pwsh completions (generated from the catalog)
 ```
 
 ## Repository structure

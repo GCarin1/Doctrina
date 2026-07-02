@@ -1,5 +1,8 @@
 # Diagrama de fluxo — cada comando
 
+> Tradução da [versão em inglês](../en/flow.md). O inglês é a
+> fonte de verdade; este arquivo o segue.
+
 Como toda a superfície do `doctrina` se encaixa. O README mostra o **caminho
 principal**; esta página mostra o **fluxo de cada comando**, agrupado pelo
 momento em que você o usa. (O CLI é determinístico — esqueletiza, sequencia e
@@ -68,19 +71,25 @@ flowchart TD
 
     subgraph NAV["Drivers sempre-ativos — você fica passivo"]
         direction TB
-        status["doctrina status<br/>onde estou?"]
-        next["doctrina next<br/>e agora?"]
-        why["doctrina why (cap)<br/>cadeia de proveniência"]
+        prime["doctrina prime<br/>primer de sessão (comece aqui)"]
+        status["doctrina status (--json)<br/>onde estou?"]
+        next["doctrina next (--json)<br/>e agora?"]
+        why["doctrina why (cap | SC1)<br/>proveniência, nas duas direções"]
+        show["doctrina show (ref)<br/>leitura pontual cli-R12 / cli-C3 / 0007"]
         search["doctrina search"]
+        handoff["doctrina handoff<br/>nota de retomada para a próxima sessão"]
         watch["doctrina watch<br/>validate --fix + next ao salvar"]
-        metrics["doctrina metrics<br/>adoção derivada do git"]
     end
 
     subgraph OPS["Manutenção / setup"]
         direction TB
+        doctor["doctrina doctor<br/>diagnóstico agregado + correções"]
         hooks["doctrina hooks install<br/>pre-commit = validate --fix"]
         indexrebuild["doctrina index rebuild"]
         templates["doctrina templates list/check/update"]
+        metrics["doctrina metrics<br/>adoção derivada do git"]
+        reportcmd["doctrina report<br/>digest Markdown do período"]
+        completion["doctrina completion<br/>bash/zsh/pwsh"]
     end
 
     specnew --> work
@@ -113,7 +122,9 @@ flowchart TD
   (`--from-diff` faz backfill a partir do código, `--chore` é a faixa sem spec,
   `--resume` reimprime o playbook de uma change aberta).
 - `doctrina context [<cap>] --concat` — monta o pacote de leitura na ordem
-  canônica. Rode em qualquer tarefa, não só no `work`.
+  canônica, com estimativas de tokens. Rode em qualquer tarefa, não só no
+  `work` (`--budget <n>` limita o tamanho; `--diff <ref>` é o pack de
+  retomada de sessão).
 - `doctrina analyze <id>` → `change diff <id>` → `change apply <id>` →
   `change archive <id>` — pré-checa, preview, funde deltas nas specs e arquiva
   (recusando trabalho aberto). `change abandon <id>` descarta.
@@ -145,15 +156,23 @@ flowchart TD
   completam.
 
 **Drivers sempre-ativos (você fica passivo).**
-- `doctrina status` — saúde num olhar. `doctrina next` — a próxima ação
-  recomendada. `doctrina why <cap>` — a cadeia de proveniência de uma capability.
-  `doctrina search` — encontra artefatos. `doctrina watch` — re-roda
-  `validate --fix` + `next` a cada save. `doctrina metrics` — sinais de adoção
-  derivados do git.
+- `doctrina prime` — o primer de sessão: gates, regras, trabalho aberto e
+  próximos passos numa leitura de ~40 linhas (comece toda sessão aqui).
+  `doctrina status` — saúde num olhar. `doctrina next` — a próxima ação
+  recomendada. `doctrina why <cap|SC1>` — proveniência nas duas direções.
+  `doctrina show <ref>` — leitura pontual de um requisito/critério/ADR
+  (`cli-R12`, `cli-C3`, `0007`). `doctrina search` — encontra artefatos.
+  `doctrina handoff` — a nota de retomada em Markdown para a próxima sessão.
+  `doctrina watch` — re-roda `validate --fix` + `next` a cada save.
+  `status`/`next`/`validate`/`coverage`/`trace` falam `--json`.
 
 **Manutenção / setup.**
-- `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
+- `doctrina doctor` — diagnóstico agregado com correção por achado.
+  `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
   rebuild` — regenera o índice a partir da árvore. `doctrina templates
   list|check|update` — inspeciona/atualiza os templates distribuídos.
+  `doctrina metrics` — sinais de adoção derivados do git. `doctrina report` —
+  digest Markdown do período. `doctrina completion bash|zsh|pwsh` —
+  completions de shell geradas do catálogo.
 
 Veja a **[Referência do CLI](cli-reference.md)** para cada flag e exit code.

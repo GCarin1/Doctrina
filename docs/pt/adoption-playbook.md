@@ -134,8 +134,9 @@ spec, documente-a.
    `[verified]` é o anti-padrão — deixe `coverage` / `trace` mostrarem a
    dívida.
 3. **Right-size suas specs (item 3.7 do review).** A própria spec `cli` da
-   Doctrina está grande demais (> 400 linhas) — exemplo vivo de over-spec.
-   Mantenha as suas pequenas e divididas por capability.
+   Doctrina chegou a estourar o teto de 400 linhas e precisou ser dividida
+   em `cli` + `gates` — exemplo vivo de over-spec e da correção. Mantenha
+   as suas pequenas e divididas por capability.
 4. **ADRs retroativos são descobertas, não autoria.** Quando achar uma
    decisão passada no código, escreva o ADR com a data de hoje e uma nota
    "descoberto, não autorado nesta data" (veja

@@ -14,7 +14,7 @@
 
 > Spec-driven, AGENTS.md-native framework for multi-agent AI development.
 
-**Status:** v0.10.0 — released.
+**Status:** v0.11.0 — released.
 **Read this in [Portuguese](./README.pt.md).**
 
 ---
@@ -78,16 +78,17 @@ governs how a body of agents acts.
 - An `AGENTS.md` template that follows the open standard.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 27 commands
-  covering init, intake, work, spec, change, decision, contract, skill,
-  analyze, clarify, validate, coverage, trace, review, verify, close, status,
-  why, constitution, watch, templates, hooks, index, next, metrics, context,
-  and search.
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 33 commands
+  covering init, intake, work, prime, spec, change, decision, contract,
+  skill, analyze, clarify, context, show, search, validate, coverage, trace,
+  review, verify, close, doctor, status, why, handoff, constitution, watch,
+  templates, hooks, index, next, metrics, report, and completion.
 - Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Six capability specs and five accepted ADRs that describe the framework
-  (including ADR 0006, intent provenance).
+- Seven capability specs and twelve accepted ADRs that describe the
+  framework (including ADR 0006, intent provenance), plus five on-demand
+  skills capturing its own maintenance procedures.
 - Two reference example projects (Python FastAPI greenfield, TypeScript
   Express brownfield retrofit).
 - Bilingual documentation in English and Portuguese.
