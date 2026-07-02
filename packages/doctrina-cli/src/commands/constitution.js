@@ -70,8 +70,9 @@ function projectName(projectRoot) {
 }
 
 // Accepted ADRs (NNNN-slug.md with Status: accepted), oldest first, with the
-// title read from the `# ADR NNNN — <title>` heading.
-function acceptedDecisions(projectRoot) {
+// title read from the `# ADR NNNN — <title>` heading. Exported for `prime`,
+// which digests the same standing rules into the session primer.
+export function acceptedDecisions(projectRoot) {
   const dir = path.join(projectRoot, ".doctrina", "decisions");
   const out = [];
   if (!isDir(dir)) return out;
@@ -87,8 +88,9 @@ function acceptedDecisions(projectRoot) {
 }
 
 // Bullets under a named `## <section>` of product.md, each accumulated across
-// its continuation lines so a wrapped bullet reads as one rule.
-function productSection(projectRoot, name) {
+// its continuation lines so a wrapped bullet reads as one rule. Exported for
+// `prime`.
+export function productSection(projectRoot, name) {
   const p = path.join(projectRoot, ".doctrina", "product.md");
   if (!isFile(p)) return [];
   const lines = read(p).split(/\r?\n/);

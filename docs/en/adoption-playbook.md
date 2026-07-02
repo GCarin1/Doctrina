@@ -125,8 +125,9 @@ it.
    to work on it. A parked spec becomes a lie.
 2. **Keep the two axes honest.** Backfilling everything as `[verified]` is
    the anti-pattern — let `coverage` / `trace` show the debt.
-3. **Right-size your specs (review item 3.7).** Doctrina's own `cli` spec is
-   oversized (> 400 lines) — a live example of over-spec'ing. Keep yours
+3. **Right-size your specs (review item 3.7).** Doctrina's own `cli` spec
+   once grew past the 400-line cap and had to be split into `cli` +
+   `gates` — a live example of over-spec'ing and of the fix. Keep yours
    small and split by capability.
 4. **Retroactive ADRs are discoveries, not authorship.** When you find a
    past decision in the code, write the ADR dated today with a "discovered,

@@ -41,6 +41,11 @@ doctrina init [opções]
 | `--force` | off | Sobrescreve arquivos existentes. |
 | `--non-interactive` | off | Falha em vez de perguntar. |
 
+Num terminal interativo, o `init` também oferece a instalação de
+adapter como passo de wizard quando `--agent` não foi passado
+(responda `none` para pular); em pipes, CI ou sob `--non-interactive`
+o prompt nunca dispara.
+
 `init` recusa se `AGENTS.md` ou `.doctrina/` já existem, a menos
 que `--force` seja passado.
 
@@ -142,6 +147,29 @@ doctrina spec list
 
 Read-only. Par do `skill list` e do `decision list`.
 
+## `doctrina spec set <capability>`
+
+Edita os headers de uma spec — e opcionalmente a marca de um
+critério de aceitação — e ressincroniza o index no mesmo passo,
+para que a spec e o `index.json` nunca divirjam (ADR 0007/0009).
+Todas as operações pedidas aplicam atomicamente: qualquer erro
+deixa a spec intocada.
+
+```
+doctrina spec set billing --implementation partial
+doctrina spec set billing --bump minor --criterion "2:verified"
+```
+
+| Flag | Propósito |
+|------|-----------|
+| `--implementation "<estado>"` | Define o header `Implementation:` (`planned` → `partial` → `implemented` → `verified`). |
+| `--status "<estado>"` | Define o header `Status:` do documento (`draft` / `active` / `deprecated`). |
+| `--bump major\|minor\|patch` | Incrementa o `Version:` da spec. |
+| `--criterion "<n>:<marca>"` | Define a `[marca]` do critério *n*, ex.: `"2:verified"`. |
+
+Carimba `Last updated:` e regenera `.doctrina/index.json` a partir
+da árvore. Sem nenhuma flag de edição, sai com código 2.
+
 ## `doctrina change new <id> "<title>"`
 
 Abre uma proposta de change.
@@ -231,6 +259,25 @@ Por delta:
 Read-only; nunca modifica arquivos. Par do `analyze`: `analyze`
 checa a forma da change, `diff` mostra o conteúdo.
 
+## `doctrina change abandon <id>`
+
+Descarta uma change aberta de forma limpa — o inverso do
+`change new`.
+
+```
+doctrina change abandon 0042-add-saml --reason "substituída pela 0043"
+```
+
+Deleta a pasta da change aberta e sua entrada no `index.json`,
+anexa um registro de abandono de uma linha ao
+`.doctrina/changes/archive/LEDGER.md` (a história preserva o rastro
+mesmo do trabalho que não foi adiante) e reconstrói o index a
+partir da árvore.
+
+| Flag | Propósito |
+|------|-----------|
+| `--reason "<texto>"` | Registra na linha do ledger por que a change foi abandonada. |
+
 ## `doctrina decision new "<title>"`
 
 Cria o próximo ADR sequencial a partir do template.
@@ -267,6 +314,21 @@ atualiza a entrada no index. Qualquer outro status atual (já
 aceito, superseded, withdrawn) é erro claro sem escrita nenhuma.
 Fecha o ciclo de vida que o `decision new` abre; o `doctrina next`
 aponta para cá quando um ADR está parado em `proposed`.
+
+## `doctrina decision land <number> [path ...]`
+
+Registra que um ADR aceito agora está implementado, sem mutar a
+decisão.
+
+```
+doctrina decision land 0007 src/ledger.js test/ledger.test.js
+```
+
+Carimba somente o header `Landed:` com a data de hoje mais os
+caminhos de prova citados; o corpo da decisão segue imutável.
+Isso satisfaz o check de evidência de ADR aceito no `validate`
+(e o lembrete do `doctrina next`) sem precisar substituir o ADR.
+Recusa aterrissar um ADR que não esteja `accepted`.
 
 ## `doctrina decision list`
 
@@ -551,11 +613,16 @@ Checagens:
     que não cita nenhum path de prova gera warning (honest gates, ADR
     0008; evidência em linha de continuação conta, então não há
     falso-positivo).
+26. Paridade de docs bilíngues: num projeto com `docs/en/` e `docs/pt/`,
+    um arquivo Markdown presente em uma árvore de idioma e ausente na
+    outra gera warning, nas duas direções (projetos sem as duas árvores
+    nunca veem este check).
 
 A flag `--fix` regenera o `index.json` a partir da árvore antes de
 checar, então um índice em drift é reparado (e o carimbo
 `framework_version` migrado) em vez de reportado — o pre-commit
-instalado roda isso.
+instalado roda isso. `--json` emite `{ ok, errors, warnings }` para
+agentes e pipelines de CI.
 
 Sai 0 sem erros, 1 caso contrário. Warnings não falham a
 validação.
@@ -580,6 +647,30 @@ Um critério está **covered** quando ao menos um path citado resolve,
 | Flag | Função |
 |------|--------|
 | `--strict` | Sai 1 quando algum critério é bare ou dangling (gate de CI). Sem ela, o comando sempre sai 0 (um relatório). |
+| `--json` | Emite as linhas de critério por spec + resumo como JSON. |
+
+## `doctrina trace`
+
+Relata a proveniência de intenção: quais âncoras de critério de
+sucesso do `product.md` (`- [SC1] ...`) são realizadas por quais
+specs de capability (ADR 0006).
+
+```
+doctrina trace
+doctrina trace --strict
+```
+
+Mapeia cada âncora para as specs cujo header `**Realizes:**` a
+nomeia, e relata as três quebras de proveniência: **dropped intent**
+(âncora que nenhuma spec realiza), **dangling realizes** (spec
+citando âncora que não existe) e specs ativas **untraceable** (sem
+header `Realizes:` — um `n/a — <porquê>` deliberado é aceito).
+Read-only.
+
+| Flag | Função |
+|------|--------|
+| `--strict` | Sai 1 quando existe alguma quebra de proveniência (gate de CI). Sem ela, o comando sempre sai 0 (um relatório). |
+| `--json` | Emite anchors/dangling/untraceable + resumo como JSON. |
 
 ## `doctrina review`
 
@@ -708,7 +799,8 @@ Quando nada está aberto, diz isso e aponta para `change new` /
 `spec new`.
 
 Read-only; sempre sai 0. Pensado para agentes e humanos retomarem
-o trabalho sem reler a árvore inteira.
+o trabalho sem reler a árvore inteira. `--json` emite `{ actions }`
+para pipelines.
 
 ## `doctrina status`
 
@@ -723,7 +815,11 @@ coverage, anchors de trace, se o verify está configurado) e as contagens de
 artefatos (specs por estado de implementação, changes abertas, decisões,
 skills). Read-only; sempre sai 0. É um resumo rápido, não o gate
 autoritativo — `doctrina validate` / `verify` são. Comando natural de início
-de sessão para o agente.
+de sessão para o agente (`doctrina prime` é o primer de sessão mais rico).
+
+| Flag | Função |
+|------|--------|
+| `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). |
 
 ## `doctrina close <id>`
 
@@ -746,19 +842,26 @@ checagens próprias — então o agente faz uma chamada em vez de sete.
 
 ## `doctrina why <capability>`
 
-Explica a cadeia de proveniência de uma capability (ADR 0012).
+Explica a proveniência nas duas direções (ADR 0012).
 
 ```
 doctrina why event-sourcing
+doctrina why SC1
 ```
 
-Monta, em uma leitura: a intenção de produto que ela `Realizes:` (os anchors
-`[SC1]` com o texto do product.md), o propósito e status da capability, os
-critérios de aceite que a comprovam (com evidência citada, lida através de
-linhas de continuação), os ADRs aceitos que a nomeiam, e uma seção History
-listando os changes arquivados que a construíram (do ledger do index).
-Read-only. Responde "por que X foi construído, e construído assim?" sem
-garimpar a árvore à mão.
+Direto (nome de capability): monta, em uma leitura, a intenção de produto
+que ela `Realizes:` (os anchors `[SC1]` com o texto do product.md), o
+propósito e status da capability, os critérios de aceite que a comprovam
+(com evidência citada, lida através de linhas de continuação), os ADRs
+aceitos que a nomeiam, e uma seção History listando os changes arquivados
+que a construíram (do ledger do index).
+
+Reverso (um anchor como `SC1`): o texto do anchor no product.md, as
+capabilities que o realizam — cada uma com status, estado de implementação
+e razão de prova — e os changes arquivados por trás delas. Responde "quem
+entrega esta promessa?".
+
+Read-only nas duas direções.
 
 ## `doctrina constitution`
 
@@ -831,10 +934,17 @@ Skills são listadas à parte como nome + description apenas: são
 on-demand por design, o corpo carrega só quando a tarefa casa. O
 archive de changes e ADRs não-aceitos ficam de fora.
 
-Com `--concat` o comando imprime o conteúdo dos arquivos com
-separadores de caminho em vez da lista — pronto para entregar a um
-agente. É a seção de ordem de leitura do AGENTS.md virada em
-tooling: seleção em vez de despejo. Read-only; sempre sai 0.
+Cada arquivo carrega uma estimativa de tokens (chars/4) e o pack
+reporta o total — a tese de context engineering tornada mensurável.
+
+| Flag | Função |
+|------|--------|
+| `--concat` | Imprime o conteúdo dos arquivos com separadores em vez da lista — pronto para entregar a um agente. O veredito de budget (se houver) vai para stderr, mantendo o stdout puro. |
+| `--budget <n>` | Orçamento de tokens do pack: imprime acima/abaixo e sai 1 quando a estimativa estoura (um gate de contexto para scripts/CI). |
+| `--diff <ref>` | Restringe os artefatos estáveis (AGENTS.md, product.md, specs, ADRs) aos alterados desde o ref do git; changes abertas entram sempre. A leitura de retomada de sessão. |
+
+É a seção de ordem de leitura do AGENTS.md virada em tooling:
+seleção em vez de despejo. Read-only; sai 0 (ou 1 acima do `--budget`).
 
 ## `doctrina search <termo> [...]`
 
@@ -851,6 +961,111 @@ decisions, changes, skills, product, AGENTS.md. O archive de
 changes fica de fora a menos que `--archive` seja passado. Sai 0
 quando há matches, 1 caso contrário. Read-only — responde "onde X
 foi decidido?" sem conhecer o layout da árvore.
+
+## `doctrina prime`
+
+O primer de sessão: a leitura de ~40 linhas que orienta um agente no
+início de uma sessão.
+
+```
+doctrina prime
+```
+
+Imprime, numa leitura só: o resumo dos gates (estado do index,
+coverage %, âncoras do trace, checks do verify), as contagens de
+artefatos, as regras vigentes (títulos dos ADRs aceitos + contagem de
+non-goals — `constitution` tem o texto completo), cada change aberta
+com seu progresso de tasks, e as próximas ações. Fica entre o
+`status` (só números) e o `context --concat` (tudo): o bastante para
+agir, barato o bastante para rodar toda sessão. Read-only; sempre
+sai 0.
+
+## `doctrina show <ref>`
+
+Leitura pontual de um fragmento de artefato em vez do arquivo inteiro.
+
+```
+doctrina show cli-R12     # requisito 12 da spec cli (ordem do arquivo)
+doctrina show cli-C3      # critério de aceitação 3 (numeração da spec)
+doctrina show 0007        # ADR 0007 (a decisão inteira)
+doctrina show cli         # só o bloco de headers + Purpose da spec
+```
+
+Um agente que precisa de um requisito não deveria reler uma spec de
+400 linhas. Referências `R` são posicionais (deslocam quando um
+requisito é inserido acima — cite-as para leituras pontuais e
+conversa, não como identificadores imutáveis); referências `C` usam
+os números explícitos dos próprios critérios. Read-only.
+
+## `doctrina handoff`
+
+Imprime uma nota de handoff de sessão em Markdown — o que a próxima
+sessão (um agente novo, um colega, o você de amanhã) precisa para
+retomar.
+
+```
+doctrina handoff
+doctrina handoff > handoff.md
+```
+
+Contém: o resumo dos gates, cada change aberta com progresso task a
+task (itens não marcados listados) e o comando exato de retomada
+(`doctrina work --resume <id>`), e as próximas ações priorizadas.
+Deliberadamente uma **view derivada, não um arquivo armazenado** — a
+árvore é a verdade e nunca envelhece; regenere sob demanda. Read-only.
+
+## `doctrina doctor`
+
+Diagnóstico agregado: o comando único para quando algo parece errado
+e você não sabe qual gate consultar.
+
+```
+doctrina doctor
+```
+
+Sequencia os checks existentes — `validate` (lido por máquina), o
+check de drift do index, as razões de coverage/trace, o lint de
+checkout limpo (`verify --clean`), o check de forma dos templates e a
+presença de config do verify — e reporta cada área como ok/warn/FAIL
+**com o comando exato de correção**. Um driver sobre comandos
+existentes (como o `close`): não adiciona checks próprios, então
+nunca discorda dos gates que apresenta. Read-only. Sai 1 quando
+alguma área falha.
+
+## `doctrina report`
+
+Digest em Markdown para um período — a visão de standup / descrição
+de PR.
+
+```
+doctrina report
+doctrina report --since 30
+```
+
+| Flag | Default | Função |
+|------|---------|--------|
+| `--since <dias>` | `7` | Tamanho da janela em dias. |
+
+Seções: estado dos gates, changes arquivadas na janela (do ledger do
+index), trabalho aberto com progresso de tasks, contagens de
+artefatos e um resumo do git local (commits, share de fix, arquivos
+de maior churn). Read-only; sem rede. `doctrina metrics` tem os
+números git mais profundos.
+
+## `doctrina completion <bash|zsh|pwsh>`
+
+Imprime um script de completion de shell, gerado do mesmo catálogo de
+operações que alimenta o `--help` — o completion nunca conhece uma
+superfície diferente da que o CLI entrega.
+
+```
+doctrina completion bash >> ~/.bashrc
+doctrina completion zsh  > "${fpath[1]}/_doctrina"
+doctrina completion pwsh >> $PROFILE
+```
+
+Completa comandos e seus subcomandos (flags não são completadas).
+Saída estática — regenere após atualizar o CLI.
 
 ## Variáveis de ambiente
 

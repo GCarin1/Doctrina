@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3
-**Last updated:** 2026-06-27
-**Version:** 0.2.0
+**Last updated:** 2026-07-02
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -22,9 +22,14 @@ this spec; humans and agents do.
   for every documented topic.
 - The system shall provide a one-to-one Portuguese translation of every
   English document, with identical filenames, under `docs/pt/`.
-- The system shall keep every documentation file under a soft cap of
-  250 lines to bound the lost-in-the-middle risk when an agent reads
-  multiple docs in one context.
+- The system shall keep every narrative documentation file under a
+  soft cap of 250 lines to bound the lost-in-the-middle risk when an
+  agent reads multiple docs in one context. Lookup references
+  (`cli-reference.md`), consulted per-section rather than read
+  linearly, are exempt from the cap.
+- The system shall keep the documentation shape executable-checkable:
+  `scripts/check-docs.js` (run by `doctrina verify`) checks parity,
+  H1 shape, line caps, and the PT source note.
 - The system shall include a single H1 at the top of every document.
 
 ### Event-driven
@@ -64,14 +69,21 @@ this spec; humans and agents do.
 
 ## Acceptance criteria
 
-The repository's `docs/` is spec-compliant when:
+The repository's `docs/` is spec-compliant when (all five checked
+mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
 
-1. `docs/en/` and `docs/pt/` exist with identical filename sets.
-2. Each prose file carries exactly one H1 (site infrastructure files —
-   `index.html`, `_sidebar.md`, `.nojekyll`, `assets/` — are exempt).
-3. No file exceeds 250 lines.
-4. Every PT file states at the top that EN is the source.
-5. The two READMEs link to `docs/en/` and `docs/pt/`.
+1. [verified] `docs/en/` and `docs/pt/` exist with identical filename
+   sets — `scripts/check-docs.js`.
+2. [verified] Each prose file carries exactly one H1; site
+   infrastructure files (`docs/index.html`, `docs/_sidebar.md`,
+   `docs/.nojekyll`, `docs/assets/`) are exempt — `scripts/check-docs.js`.
+3. [verified] No narrative file exceeds 250 lines
+   (`docs/en/cli-reference.md` is a lookup reference, exempt) —
+   `scripts/check-docs.js`.
+4. [verified] Every PT file states at the top that EN is the source —
+   `scripts/check-docs.js`.
+5. [verified] The two READMEs link to the docs trees: `README.md` to
+   `docs/en/` and `README.pt.md` to `docs/pt/` — `scripts/check-docs.js`.
 
 ## Out of scope for this spec
 

@@ -32,6 +32,7 @@ export async function run(_positional, flags) {
     throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
   }
   const strict = flagBool(flags, "strict", false);
+  const json = flagBool(flags, "json", false);
 
   const anchors = collectAnchors(projectRoot); // [{ id }], in document order
   const specs = collectSpecs(projectRoot); // [{ cap, status, realizes: [id] }]
@@ -41,6 +42,10 @@ export async function run(_positional, flags) {
 
   // The feature is unused: do not nag a project that never opted in.
   if (anchors.length === 0 && !anyRealizes) {
+    if (json) {
+      console.log(JSON.stringify({ anchors: [], dangling: [], untraceable: [], summary: summarize(projectRoot) }, null, 2));
+      return 0;
+    }
     console.log(
       c.gray(
         "no intent-provenance markers found — tag product.md bullets with `[SC1]` " +
@@ -68,6 +73,13 @@ export async function run(_positional, flags) {
   const untraceable = specs
     .filter((s) => s.realizes === null && s.status === "active")
     .map((s) => s.cap);
+
+  if (json) {
+    const rows = anchors.map((a) => ({ id: a.id, realizedBy: (realizedBy.get(a.id) ?? []).sort() }));
+    const clean = rows.every((r) => r.realizedBy.length > 0) && dangling.length === 0 && untraceable.length === 0;
+    console.log(JSON.stringify({ anchors: rows, dangling, untraceable, summary: summarize(projectRoot) }, null, 2));
+    return clean ? 0 : strict ? 1 : 0;
+  }
 
   console.log(c.bold("Trace") + c.gray(" — product intent → capability provenance:"));
   console.log("");
@@ -183,6 +195,7 @@ trace reports three provenance breaks:
   untraceable spec   an active spec with no Realizes: header
 
 Read-only. Exits 0 as a report; with --strict, exits 1 when any break
-exists (CI gate). It checks that the link exists and is complete — not
-that a criterion is faithful to the intent (that stays a human/LLM call).
+exists (CI gate). --json emits anchors/dangling/untraceable + summary
+as JSON. It checks that the link exists and is complete — not that a
+criterion is faithful to the intent (that stays a human/LLM call).
 `;

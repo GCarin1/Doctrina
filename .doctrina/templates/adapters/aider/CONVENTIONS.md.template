@@ -1,8 +1,9 @@
 # CONVENTIONS.md — {{PROJECT_NAME}}
 
-Aider reads this file as read-only context (CONVENTIONS.md is
-loaded automatically and cached). This project routes all
-operational rules through the open AGENTS.md standard.
+Aider reads this file as read-only context once wired in: launch
+with `aider --read CONVENTIONS.md`, or add `read: CONVENTIONS.md`
+to `.aider.conf.yml` so it loads on every run. This project routes
+all operational rules through the open AGENTS.md standard.
 
 See `{{AGENTS_MD_PATH}}` for the canonical operational source of
 truth. The Doctrina framework artifacts (specs, decisions,

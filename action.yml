@@ -1,0 +1,75 @@
+# Reusable composite action: run the Doctrina structural gates in CI.
+#
+#   - uses: GCarin1/Doctrina@main        # or a released tag
+#     with:
+#       strict: "true"                   # coverage/trace as hard gates
+#
+# The gates: validate (schema/structure), index rebuild --check (index ↔ tree
+# drift), coverage (acceptance-criteria evidence), trace (intent provenance).
+# `run-prefix` exists so this repository can dogfood the action against its
+# own working tree instead of the published package.
+name: "Doctrina gates"
+description: "Run the Doctrina structural gates (validate, index drift, coverage, trace) against a project's .doctrina/ tree."
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  strict:
+    description: "Run coverage and trace with --strict (fail on any gap). Set to 'false' for report-only."
+    required: false
+    default: "true"
+  version:
+    description: "doctrina-cli version to run via npx (ignored when run-prefix is set)."
+    required: false
+    default: "latest"
+  working-directory:
+    description: "Directory holding the .doctrina/ tree."
+    required: false
+    default: "."
+  run-prefix:
+    description: "Override the command used to invoke the CLI (e.g. 'node packages/doctrina-cli/src/index.js' for this repo's own CI)."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve CLI invocation
+      id: cli
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        PREFIX="${{ inputs.run-prefix }}"
+        if [ -z "$PREFIX" ]; then PREFIX="npx --yes doctrina-cli@${{ inputs.version }}"; fi
+        echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
+
+    - name: doctrina validate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ steps.cli.outputs.prefix }} validate
+
+    - name: doctrina index rebuild --check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ steps.cli.outputs.prefix }} index rebuild --check
+
+    - name: doctrina coverage
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          ${{ steps.cli.outputs.prefix }} coverage --strict
+        else
+          ${{ steps.cli.outputs.prefix }} coverage
+        fi
+
+    - name: doctrina trace
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          ${{ steps.cli.outputs.prefix }} trace --strict
+        else
+          ${{ steps.cli.outputs.prefix }} trace
+        fi

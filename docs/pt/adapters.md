@@ -155,7 +155,7 @@ pattern de pointer fino:
 |--------|-------------------|----------|
 | `copilot` | `.github/copilot-instructions.md` | Instruções custom em nível de repositório do GitHub Copilot |
 | `gemini` | `GEMINI.md` na raiz do projeto | Gemini CLI nativo |
-| `aider` | `CONVENTIONS.md` na raiz do projeto | Aider lê CONVENTIONS.md como contexto read-only cacheado |
+| `aider` | `CONVENTIONS.md` na raiz do projeto | Contexto read-only depois de ligado: `aider --read CONVENTIONS.md`, ou `read:` no `.aider.conf.yml` |
 | `windsurf` | `.windsurfrules` na raiz do projeto | Convenção do arquivo de regras do Windsurf |
 | `continue` | `.continue/rules/00-doctrina.md` | Diretório de regras do Continue.dev |
 

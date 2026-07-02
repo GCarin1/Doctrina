@@ -4,15 +4,43 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import * as idx from "../lib/index-json.js";
 import { deriveIndex, indexesMatch, listHeader } from "../lib/scan.js";
+import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 
-export async function run(_positional, _flags) {
+export async function run(_positional, flags) {
   const projectRoot = process.cwd();
+  const json = flagBool(flags, "json", false);
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    console.log("1. doctrina init — this directory is not a Doctrina project yet");
+    const first = "doctrina init — this directory is not a Doctrina project yet";
+    console.log(json ? JSON.stringify({ actions: [first] }, null, 2) : `1. ${first}`);
     return 0;
   }
 
+  const actions = computeActions(projectRoot);
+
+  if (json) {
+    console.log(JSON.stringify({ actions }, null, 2));
+    return 0;
+  }
+
+  if (actions.length === 0) {
+    console.log(c.green("ok") + " no open work.");
+    console.log("");
+    console.log("Start something:");
+    console.log(`  doctrina change new <id> "<title>"   open a change proposal`);
+    console.log(`  doctrina spec new <capability>       spec a new capability`);
+    return 0;
+  }
+
+  console.log(c.bold("Next actions") + c.gray(" (in priority order):"));
+  console.log("");
+  actions.forEach((a, i) => console.log(`${i + 1}. ${a}`));
+  return 0;
+}
+
+// The priority-ordered action list, render-free — shared with `prime`,
+// `handoff`, and the --json output.
+export function computeActions(projectRoot) {
   const actions = [];
 
   // A pending intake is the very first thing to resolve: until it is
@@ -106,19 +134,7 @@ export async function run(_positional, _flags) {
     actions.push("doctrina index rebuild — index.json is missing or unreadable");
   }
 
-  if (actions.length === 0) {
-    console.log(c.green("ok") + " no open work.");
-    console.log("");
-    console.log("Start something:");
-    console.log(`  doctrina change new <id> "<title>"   open a change proposal`);
-    console.log(`  doctrina spec new <capability>       spec a new capability`);
-    return 0;
-  }
-
-  console.log(c.bold("Next actions") + c.gray(" (in priority order):"));
-  console.log("");
-  actions.forEach((a, i) => console.log(`${i + 1}. ${a}`));
-  return 0;
+  return actions;
 }
 
 // Return a single skill-capture nudge, or null. Fires only when no skill has
@@ -147,7 +163,7 @@ function suggestSkillCapture(projectRoot) {
 }
 
 export const help = `
-Usage: doctrina next
+Usage: doctrina next [--json]
 
 Inspect the .doctrina/ tree and print the recommended next workflow
 actions in priority order: open changes (missing proposal, unchecked

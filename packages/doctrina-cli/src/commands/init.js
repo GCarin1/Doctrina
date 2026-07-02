@@ -56,7 +56,18 @@ export async function run(_positional, flags) {
     description = await ask("One-sentence project description:");
   }
 
-  const agentSelector = flagString(flags, "agent");
+  let agentSelector = flagString(flags, "agent");
+  // Interactive wizard step: when no --agent was given and we are on a real
+  // terminal, offer the adapter install instead of silently skipping it —
+  // first-run users rarely know the flag exists. Never fires in pipes/CI
+  // (no TTY) or under --non-interactive, so scripted init is unchanged.
+  if (agentSelector === undefined && !nonInteractive && process.stdin.isTTY && process.stdout.isTTY) {
+    const answer = await ask(
+      `Install an agent adapter? (${SUPPORTED_AGENTS.join("/")}/all/none)`,
+      { defaultValue: "none" },
+    );
+    if (answer && answer !== "none") agentSelector = answer;
+  }
   const fromPath = flagString(flags, "from");
   const agentsMdPath = path.join(projectRoot, "AGENTS.md");
   const doctrinaDir = path.join(projectRoot, ".doctrina");

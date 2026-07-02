@@ -36,3 +36,23 @@ jobs:
 
       - name: Index drift gate (doctrina index rebuild --check)
         run: node packages/doctrina-cli/src/index.js index rebuild --check
+
+  gates:
+    name: Doctrina gates (own action, strict)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Dogfood the published composite action against this repository's own
+      # tree, pointed at the working-tree CLI instead of the npm package.
+      - name: Run the Doctrina gates action
+        uses: ./
+        with:
+          strict: "true"
+          run-prefix: node packages/doctrina-cli/src/index.js

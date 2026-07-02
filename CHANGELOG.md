@@ -17,6 +17,134 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-07-02
+
+Two moves in one release. First, close the gaps a full framework
+self-review found: the CLI shipped operations its own surfaces never
+named, the framework failed its own strictest gates (coverage 41%), and
+its flagship feature (skills) had never been used on itself. Second, ship
+the feature set that self-review motivated — session ergonomics for the
+agent (cheap orientation, point reads, measurable context) and finish for
+the human (diagnostics, completions, CI action, digests). 33 commands /
+50 operations, still zero runtime dependencies.
+
+### Added — agent efficiency
+
+- `doctrina prime` — the session primer: gate digest, standing rules
+  (accepted ADR titles + non-goals count), open work with task progress,
+  and the top next actions in one ~40-line read. Sits between `status`
+  and `context --concat`; start every session here.
+- `doctrina handoff` — Markdown handoff note for the next session: each
+  open change with its unchecked tasks and exact resume command
+  (`doctrina work --resume <id>`), plus the gate digest and next actions.
+  Deliberately a derived view, never a stored file — the tree is the
+  truth and cannot go stale.
+- `doctrina show <ref>` — point reads: `cli-R12` (a requirement, file
+  order), `cli-C3` (an acceptance criterion by its own number), `0007`
+  (an ADR), `cli` (spec header + Purpose). An agent that needs one
+  requirement no longer re-reads a 400-line spec.
+- `doctrina context` now reports a **token estimate per file and per
+  pack** (chars/4); `--budget <n>` turns the estimate into a gate
+  (exit 1 over budget; verdict on stderr under `--concat` so stdout
+  stays pipeable); `--diff <ref>` scopes the pack to artifacts changed
+  since a git ref (open changes always included) — the resume-session
+  read. The skills listing now shows each skill's `when:` trigger, so
+  the agent can fire the right skill without loading any body.
+- `doctrina why` now walks provenance **in reverse** too: `doctrina why
+  SC1` prints the anchor's product.md text, the capabilities realizing
+  it (with proof ratios), and the archived changes behind them.
+- `--json` on `status`, `next`, `validate`, `coverage`, and `trace` —
+  stable machine-readable shapes for agents and CI pipelines.
+
+### Added — human ergonomics
+
+- `doctrina doctor` — aggregate diagnostic: validate (machine-read),
+  index drift, coverage/trace ratios, `verify --clean`, `templates
+  check`, and verify-config presence, each reported with its exact
+  remediation command. A driver over existing commands, like `close`.
+- `doctrina report [--since <days>]` — Markdown digest for standups/PRs:
+  gate state, changes archived in the window, open work, artifact
+  counts, and a local-git summary (no network).
+- `doctrina completion bash|zsh|pwsh` — shell completions generated from
+  the same `OPERATIONS` catalog that feeds `--help`, so they can never
+  drift from the real surface.
+- `doctrina init` interactive wizard step: on a TTY without `--agent`,
+  init offers the adapter install (never fires in pipes/CI or under
+  `--non-interactive`).
+- **Official GitHub Action** (`action.yml` at the repo root): a
+  composite action running the four structural gates (`validate`,
+  `index rebuild --check`, `coverage --strict`, `trace --strict`), with
+  `strict`/`version`/`working-directory`/`run-prefix` inputs. Our own CI
+  dogfoods it against the working tree. New docs page: `docs/en/ci.md`
+  (+ PT).
+
+### Changed
+
+- The `cli` spec's Purpose no longer hand-enumerates the surface — the
+  `OPERATIONS` catalog in code is the single place the surface is named,
+  and the spec points at it. Read-path/insight semantics (`context`,
+  `search`, and the new commands) moved to the `gates` spec.
+- Adapter honesty fix: the Aider adapter claimed `CONVENTIONS.md` is
+  "loaded automatically"; Aider only reads it once wired
+  (`aider --read CONVENTIONS.md`, or `read:` in `.aider.conf.yml`).
+  Template and docs corrected. A new table-driven test asserts every
+  `init --agent <x>` installs exactly the documented files, all ≤30
+  lines, every pointer resolving to the root `AGENTS.md`.
+
+### Added — self-review gap fixes
+
+- **`gates` capability spec** — the gate and insight command semantics
+  (`analyze`, `clarify`, `validate`, `coverage`, `trace`, `review`,
+  `verify`, `close`, `status`, `why`, `constitution`) split out of the
+  `cli` spec, which had crossed its own 400-line cap (551 lines → 399 +
+  227). Seven specs now.
+- **Five real skills** authored for the framework's own maintenance —
+  `add-cli-command`, `cut-a-release`, `keep-docs-en-pt-parity`,
+  `write-acceptance-evidence`, `split-an-oversized-spec` — created via
+  `doctrina skill new` + `skill sync`. The skills feature is finally
+  dogfooded; each captures a failure mode this repo actually hit.
+- `OPERATIONS` catalog in `src/lib/commands.js`: the full 44-operation
+  surface named in one place, with `--help` **generated** from it. New
+  drift tests assert every operation is dispatched (not "unknown"), the
+  top-level words equal `COMMAND_NAMES`, and `docs/{en,pt}/cli-reference.md`
+  documents every operation.
+- `doctrina validate` check #26: **bilingual docs parity** — in a project
+  holding both `docs/en/` and `docs/pt/`, a Markdown file present in one
+  language tree and missing from the other warns, in both directions.
+- `scripts/check-docs.js` — executable shape check for the docs tree
+  (EN↔PT parity, single H1, line caps, PT source note, README links),
+  wired into `doctrina verify` as the `docs-shape` check and cited as
+  evidence by the `docs` spec's acceptance criteria.
+- Templates test suite: inventory test (every template the spec declares
+  exists) and token-contract test (every `.template` uses ≥1 placeholder,
+  all documented in the templates README). It immediately caught three
+  undocumented tokens (`SKILL_NAME`, `CONTRACT_NAME`, `FRAMEWORK_VERSION`).
+
+### Fixed
+
+- **Hidden command surface**: `spec set` and `change abandon` were fully
+  implemented and spec'd but absent from `--help`, `AGENTS.md`, and both
+  CLI references; `templates update` and `contract list` were absent from
+  `--help`; `skill suggest`, `decision land`, and `contract list` were
+  absent from the `AGENTS.md` hub. All 44 operations are now named on
+  every surface (AGENTS.md still exactly 148 lines).
+- **`doctrina trace` had no section in the CLI reference** (EN or PT) —
+  caught by the new docs drift test on its first run.
+- **Coverage 41% → 100%**: all 33 acceptance criteria across the 7 specs
+  now cite evidence that resolves. Fixed the two dangling citations
+  (`docs` spec cited site files without the `docs/` prefix; `validation`
+  spec cited the `memory/` folder ADR 0003 deliberately rejected) and
+  reframed the `validation` criteria to measure the delivered protocol,
+  keeping the per-run rubric as process guidance.
+- README claimed "six capability specs and five accepted ADRs" while the
+  repo held twelve accepted ADRs; docs READMEs said "40 operations" —
+  counts reconciled (EN + PT).
+- `docs/pt/flow.md` was missing the "EN is the source" note every PT doc
+  carries.
+- Removed two stale session artifacts from the repository root
+  (`integracao.md`, `RESUMO-EXECUTIVO.md`); their content already lives,
+  polished, in `docs/{en,pt}/adoption-playbook.md`.
+
 ## [0.10.0] — 2026-06-28
 
 Make the `AGENTS.md` hub honest and the workflow discoverable. An audit found

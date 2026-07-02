@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-06-28
-**Version:** 0.3.0
+**Last updated:** 2026-07-02
+**Version:** 0.3.1
 
 ## Purpose
 
@@ -95,13 +95,19 @@ replacing it.
 A `.doctrina/skills/` directory is spec-compliant when:
 
 1. Every `*.md` file under it carries the three required
-   frontmatter fields.
-2. No file exceeds 200 lines.
-3. Each file's `name:` field matches its filename slug.
+   frontmatter fields — enforced by the skills walk in
+   `packages/doctrina-cli/src/commands/validate.js` against the live
+   skills (e.g. `.doctrina/skills/add-cli-command.md`).
+2. No file exceeds 200 lines — enforced by
+   `packages/doctrina-cli/src/commands/validate.js`.
+3. Each file's `name:` field matches its filename slug — enforced by
+   `packages/doctrina-cli/src/commands/validate.js`.
 4. Every skill present on disk is referenced in
    `.doctrina/index.json` under `artifacts.skills`.
 5. Each indexed description matches the skill's frontmatter
-   `description:` (`doctrina skill sync` restores this).
+   `description:` — `doctrina skill sync` restores this
+   (`packages/doctrina-cli/src/commands/skill.js`), and drift warns in
+   `packages/doctrina-cli/src/commands/validate.js`.
 
 ## Out of scope for this spec
 

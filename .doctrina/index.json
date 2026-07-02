@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina",
-  "framework_version": "0.10.0",
-  "last_updated": "2026-06-29",
+  "framework_version": "0.11.0",
+  "last_updated": "2026-07-02",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,16 +15,16 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.22.0",
-        "last_updated": "2026-06-28",
+        "version": "0.24.0",
+        "last_updated": "2026-07-02",
         "implementation": "implemented"
       },
       {
         "id": "core",
         "path": ".doctrina/specs/core/spec.md",
         "status": "active",
-        "version": "0.1.0",
-        "last_updated": "2026-06-27",
+        "version": "0.1.1",
+        "last_updated": "2026-07-02",
         "implementation": "implemented",
         "realizes": [
           "SC3",
@@ -35,35 +35,43 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.2.0",
-        "last_updated": "2026-06-27",
+        "version": "0.3.0",
+        "last_updated": "2026-07-02",
         "implementation": "implemented",
         "realizes": [
           "SC3"
         ]
       },
       {
+        "id": "gates",
+        "path": ".doctrina/specs/gates/spec.md",
+        "status": "active",
+        "version": "0.2.0",
+        "last_updated": "2026-07-02",
+        "implementation": "implemented"
+      },
+      {
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.3.0",
-        "last_updated": "2026-06-28",
+        "version": "0.3.1",
+        "last_updated": "2026-07-02",
         "implementation": "implemented"
       },
       {
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.9.0",
-        "last_updated": "2026-06-28",
+        "version": "0.9.1",
+        "last_updated": "2026-07-02",
         "implementation": "implemented"
       },
       {
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.1.0",
-        "last_updated": "2026-06-27",
+        "version": "0.2.0",
+        "last_updated": "2026-07-02",
         "implementation": "implemented",
         "realizes": [
           "SC1",
@@ -175,7 +183,38 @@
     ],
     "changes": [],
     "changes_archive": [],
-    "skills": [],
+    "skills": [
+      {
+        "id": "add-cli-command",
+        "path": ".doctrina/skills/add-cli-command.md",
+        "description": "Add or change a doctrina CLI command or subcommand without leaving any surface (help, hub, docs, tests) behind.",
+        "last_updated": "2026-07-02"
+      },
+      {
+        "id": "cut-a-release",
+        "path": ".doctrina/skills/cut-a-release.md",
+        "description": "Cut a doctrina-cli release with consistent version stamps, a Changelog entry, and every gate green.",
+        "last_updated": "2026-07-02"
+      },
+      {
+        "id": "keep-docs-en-pt-parity",
+        "path": ".doctrina/skills/keep-docs-en-pt-parity.md",
+        "description": "Keep docs/en and docs/pt as true mirrors — same files, same structure, EN as the source of truth.",
+        "last_updated": "2026-07-02"
+      },
+      {
+        "id": "split-an-oversized-spec",
+        "path": ".doctrina/skills/split-an-oversized-spec.md",
+        "description": "Split a capability spec that crossed the 400-line cap into two coherent capabilities without losing provenance.",
+        "last_updated": "2026-07-02"
+      },
+      {
+        "id": "write-acceptance-evidence",
+        "path": ".doctrina/skills/write-acceptance-evidence.md",
+        "description": "Write acceptance criteria whose evidence actually resolves, so coverage --strict stays green and honest.",
+        "last_updated": "2026-07-02"
+      }
+    ],
     "contracts": [],
     "entrypoint": {
       "path": "AGENTS.md"

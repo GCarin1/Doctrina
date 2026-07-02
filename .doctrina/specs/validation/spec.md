@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
-**Last updated:** 2026-06-27
-**Version:** 0.1.0
+**Last updated:** 2026-07-02
+**Version:** 0.2.0
 
 ## Purpose
 
@@ -103,9 +103,12 @@ below independently. More than one may fire.
 4. **Eliminate any artifact category** whose files were not read by
    humans or agents during the treatment period.
 
-## Acceptance criteria
+## Compliance rubric for a validation run
 
-A Doctrina validation run is spec-compliant when:
+This rubric grades a RUN of the protocol by an adopting team; it is
+process guidance, not a repo-resident claim (so it carries no evidence
+citations — see the acceptance criteria below for what this repository
+itself delivers). A run is protocol-compliant when:
 
 1. Baseline metrics are recorded for three to five work items.
 2. Treatment metrics are recorded for three to five work items of
@@ -113,15 +116,34 @@ A Doctrina validation run is spec-compliant when:
 3. A comparison record exists that evaluates all four triggers
    against the data.
 4. The comparison record is committed somewhere durable in the
-   repository (an ADR, a doc, or a memory entry if `memory/` exists
-   later in this project's lifetime).
+   repository (an ADR or a doc).
 5. Any decision flowing from the triggers (cut an artifact,
    simplify, keep, expand) is itself recorded as an ADR if it is
    architecturally significant.
 
+## Acceptance criteria
+
+The validation capability is delivered when:
+
+1. [verified] The protocol is published in both languages —
+   `docs/en/validation.md` and `docs/pt/validation.md`.
+2. [verified] The protocol defines the seven required metrics with
+   cohort-identical definitions and pairs every velocity metric with a
+   quality metric — the table in `docs/en/validation.md`.
+3. [verified] The four decision triggers are pre-declared with their
+   thresholds (Faros 50%, AGENTbench 20%) — `docs/en/validation.md`.
+4. [verified] The recording shape for baseline and treatment cohorts
+   is documented with a concrete example record —
+   `docs/en/validation.md`.
+5. [verified] The tooling half of the protocol ships in the CLI:
+   `doctrina metrics` snapshots and diffs local git-derived metrics —
+   `packages/doctrina-cli/src/commands/metrics.js`, proven by
+   `packages/doctrina-cli/test/integration.test.js`.
+
 ## Out of scope for this spec
 
-- A harness, CLI command, or scraper that collects metrics
-  automatically.
+- Automated collection of the seven protocol metrics (deploy counts,
+  incidents, PR review times). `doctrina metrics` supplies only local
+  git-derived proxies; the protocol metrics are recorded by the team.
 - Statistical methodology beyond pre-declared thresholds.
 - Cross-team or cross-project aggregation.
