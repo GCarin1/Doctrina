@@ -61,9 +61,23 @@ function skillSuggest(args, flags) {
   const since = flagString(flags, "since");
 
   const skillsDir = path.join(projectRoot, ".doctrina", "skills");
-  const existing = new Set(
-    isDir(skillsDir) ? walk(skillsDir).filter((f) => f.endsWith(".md")).map((f) => path.basename(f, ".md")) : [],
-  );
+  const existingFiles = isDir(skillsDir) ? walk(skillsDir).filter((f) => f.endsWith(".md")) : [];
+  const existing = new Set(existingFiles.map((f) => path.basename(f, ".md")));
+  // A lesson may already be captured under a DIFFERENT slug (0.11.0 field
+  // review item 11: the human names the skill after the lesson, not after the
+  // change id — "tela-preta-crash-de-render..." for change 0049). Two extra
+  // dedup signals: an existing skill whose body cites the candidate's change
+  // id / commit hash, and token-overlap similarity between the slugs.
+  const existingBodies = existingFiles.map((f) => ({ slug: path.basename(f, ".md"), body: read(f) }));
+  const captured = (cand) => {
+    if (existing.has(cand.slug)) return true;
+    for (const sk of existingBodies) {
+      if (cand.id && sk.body.includes(cand.id)) return true;
+      if (cand.from && sk.body.includes(cand.from)) return true;
+      if (slugSimilarity(cand.slug, sk.slug) >= 0.5) return true;
+    }
+    return false;
+  };
 
   // Two deterministic sources, deduped by slug. `seen` guards against a lesson
   // appearing twice (e.g. a fix committed and later archived as a change).
@@ -78,18 +92,20 @@ function skillSuggest(args, flags) {
       const id = name.replace(/^\d{4}-\d{2}-\d{2}-/, "");
       if (!FIX_SHAPED.test(id)) continue;
       const slug = skillSlug(id);
-      if (existing.has(slug) || seen.has(slug)) continue; // captured or already queued
+      if (seen.has(slug)) continue;
+      const cand = { id, slug, source: "change", from: name };
+      if (captured(cand)) continue; // captured (any slug) or cited by an existing skill
       const proposal = path.join(archiveDir, name, "proposal.md");
-      const why = isFile(proposal) ? firstWhyLine(read(proposal)) : "";
+      cand.why = isFile(proposal) ? firstWhyLine(read(proposal)) : "";
       seen.add(slug);
-      candidates.push({ id, slug, why, source: "change", from: name });
+      candidates.push(cand);
     }
   }
 
   // Source 2 — fix-shaped commits in the git history (ADR 0013). Archive wins a
   // slug collision: a `## Why` paragraph is a richer seed than a subject line.
   for (const cand of gitFixCommits(projectRoot, { since, limit: GIT_LOG_LIMIT })) {
-    if (existing.has(cand.slug) || seen.has(cand.slug)) continue;
+    if (seen.has(cand.slug) || captured(cand)) continue;
     seen.add(cand.slug);
     candidates.push(cand);
   }
@@ -215,6 +231,29 @@ function skillSlug(id) {
   const slug = id.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
   return slug.length > 40 ? slug.slice(0, 40).replace(/-+$/g, "") : (slug || "lesson");
 }
+
+// Token-overlap similarity between two kebab slugs (Jaccard over meaningful
+// tokens). "0049-fix-tela-preta-render" vs "tela-preta-crash-de-render-sem-
+// error-boundary" share tela/preta/render → high overlap even though the
+// human renamed the skill after the lesson. Deterministic; never semantic.
+function slugSimilarity(a, b) {
+  const toks = (s) => new Set(
+    String(s).split("-").filter((t) => t.length >= 3 && !/^\d+$/.test(t) && !SLUG_NOISE.has(t)),
+  );
+  const A = toks(a);
+  const B = toks(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter += 1;
+  return inter / (A.size + B.size - inter);
+}
+
+// Fix-shaped verbs and connectives carry no lesson identity — without this,
+// every "fix-..." candidate looks 30% similar to every "fix-..." skill.
+const SLUG_NOISE = new Set([
+  "fix", "bug", "hotfix", "patch", "the", "and", "for", "with", "sem", "com",
+  "que", "nao", "por", "para", "una", "uma", "dos", "das",
+]);
 
 function firstWhyLine(proposalText) {
   const m = proposalText.match(/##\s*Why\s*\r?\n+([^\r\n][^\r\n]*)/i);

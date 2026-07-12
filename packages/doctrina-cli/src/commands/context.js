@@ -3,7 +3,7 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
-import { listHeader } from "../lib/scan.js";
+import { listHeader, parseDependsOn } from "../lib/scan.js";
 import { parseFrontmatter } from "./skill.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -80,6 +80,15 @@ export async function run(positional, flags) {
     const specRel = `.doctrina/specs/${capability}/spec.md`;
     if (isFile(path.join(projectRoot, specRel))) {
       pushFile(specRel, `spec: ${capability}`);
+      // Pull the declared dependencies into the pack (the machine-readable
+      // **Depends on:** header): a task on `risk-map` that builds on
+      // `reporting` needs both truths in one read. One level deep,
+      // deterministic, no cycles (each spec is pushed at most once).
+      for (const dep of parseDependsOn(read(path.join(projectRoot, specRel)))) {
+        if (dep === capability) continue;
+        const depRel = `.doctrina/specs/${dep}/spec.md`;
+        if (isFile(path.join(projectRoot, depRel))) pushFile(depRel, `dependency of ${capability}`);
+      }
     } else {
       specMissing = true;
     }

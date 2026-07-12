@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-07-02
-**Version:** 0.24.0
+**Version:** 0.25.0
 
 ## Purpose
 
@@ -300,6 +300,40 @@ owns the surface itself and the conventions every command shares.
   the system shall print a completion script generated from the operation
   catalog (commands and their subcommands; flags are not completed), and
   shall exit 2 for a missing or unrecognised shell.
+- When `doctrina intent add "<text>"` runs, the system shall append a new
+  intent anchor bullet (`- [SC5] <text>`) to product.md's Success criteria,
+  allocating the next number for the dominant prefix (or honouring an
+  explicit `"SC15: <text>"` form, refusing a duplicate id), and shall print
+  the `**Realizes:**` follow-up; `doctrina intent list` shall print every
+  anchor in document order. Read-only apart from the appended bullet
+  (0.12.0 field-review follow-ups; ADR 0014).
+- When `doctrina upgrade` runs, the system shall preview — and with
+  `--write` apply — the steps that bring an existing project up to the
+  installed CLI: additive `templates update`, index rebuild with
+  `framework_version` stamp migration, and `validate` (`--fix` under
+  `--write`); the preview shall exit 1 while steps are pending (ADR 0014).
+- When `doctrina change apply <id>` processes an ADDED delta whose target
+  spec is still the untouched `spec new` scaffold, the system shall replace
+  the scaffold with the delta body; a target with real content shall refuse
+  with a MODIFIED/REMOVE hint (ADR 0014).
+- When `doctrina change archive <id>` archives a proposal still marked
+  `proposed` (the manual-merge path), the system shall stamp it
+  `applied` with an `Applied:` date before the move, so the archived file
+  never contradicts the ledger (ADR 0014).
+- When `doctrina work` derives a change id from a prompt longer than the
+  slug cap, the system shall truncate the slug at a word boundary; with
+  `--title "<short>"` the title shall drive the slug and the proposal H1
+  while the full prompt still lands under `## Why` (ADR 0014).
+- When `doctrina change new` runs, the system shall scaffold `design.md`
+  only under `--design` (ADR 0014).
+- When `doctrina spec set <cap> --version X.Y.Z` runs, the system shall set
+  the spec's `Version:` header explicitly, and every `spec set` output
+  shall echo the SPEC's resulting version, not the CLI's (ADR 0014).
+- When a spec declares a `**Depends on:** <caps>` header, the system shall
+  record the capability list in the index, show the graph in `doctrina why`
+  (both directions), pull the dependency specs into `doctrina context
+  <cap>`, and flag dependents of touched capabilities in `doctrina review`
+  (ADR 0014).
 - When `doctrina init` runs on an interactive terminal without `--agent`
   and without `--non-interactive`, the system shall offer the adapter
   install as a wizard prompt (default: none); the prompt shall never fire

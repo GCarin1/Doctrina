@@ -451,8 +451,15 @@ export async function run(_positional, flags) {
   if (index?.artifacts && isFile(ledgerPath)) {
     const ledgerIds = new Set();
     for (const line of read(ledgerPath).split(/\r?\n/)) {
-      const m = line.match(/^-\s+\d{4}-\d{2}-\d{2}\s+[—-]\s+(\S+)\s+[—-]\s+/);
-      if (m) ledgerIds.add(m[1]);
+      const m = line.match(/^-\s+\d{4}-\d{2}-\d{2}\s+[—-]\s+(\S+)\s+[—-]\s+(.*)$/);
+      if (!m) continue;
+      // An abandoned change is ledger-only BY DESIGN: `change abandon`
+      // records the discard in history but deletes the folder, so there is
+      // deliberately no archive entry to cross-check. Requiring one made
+      // every abandonment turn validate permanently red (found dogfooding
+      // change 0001-review-followups).
+      if (/^abandoned\b/i.test(m[2].trim())) continue;
+      ledgerIds.add(m[1]);
     }
     const archiveIds = new Set((index.artifacts.changes_archive ?? []).map((ch) => ch.id));
     for (const id of archiveIds) {
@@ -523,6 +530,14 @@ export async function run(_positional, flags) {
     }
   }
 
+  // Project rules — permanent, lintable constraints (.doctrina/rules.json;
+  // 0.11.0 field review item 12: "never reference company X" lived only in
+  // agent memory, and the remaining mentions sailed through every gate). Each
+  // rule is a forbid-regex over glob-scoped paths; a match is an ERROR with
+  // the rule's own message. Deterministic, zero-deps, and the instruction
+  // survives sessions because it is an artifact, not a memory.
+  for (const line of checkProjectRules(projectRoot)) errors.push(line);
+
   // Output
   if (flagBool(flags, "json", false)) {
     console.log(JSON.stringify({ ok: errors.length === 0, errors, warnings }, null, 2));
@@ -539,6 +554,106 @@ export async function run(_positional, flags) {
     console.log((errors.length === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
   }
   return errors.length === 0 ? 0 : 1;
+}
+
+// Enforce .doctrina/rules.json — permanent project constraints as
+// forbid-regexes over glob-scoped paths:
+//   { "rules": [ { "id": "white-label", "forbid": "\\bAcmeCorp\\b",
+//                  "paths": ["src/**", ".doctrina/specs/**"],
+//                  "message": "white-label product; use a generic placeholder" } ] }
+// Returns error strings (one per offending file+rule, capped per rule so a
+// mass violation stays readable). Missing/invalid file → no rules (an
+// invalid JSON is reported once). Binary-ish and vendored dirs are skipped
+// by the same bounded walk validate already uses elsewhere.
+const RULES_SKIP_DIRS = new Set([
+  ".git", "node_modules", "vendor", "dist", "build", "out", "target",
+  ".venv", "venv", "__pycache__", ".next", "coverage",
+]);
+const RULES_MAX_HITS_PER_RULE = 10;
+
+function checkProjectRules(projectRoot) {
+  const rulesPath = path.join(projectRoot, ".doctrina", "rules.json");
+  if (!isFile(rulesPath)) return [];
+  let cfg;
+  try {
+    cfg = JSON.parse(read(rulesPath));
+  } catch (err) {
+    return [`.doctrina/rules.json is not valid JSON: ${err.message}`];
+  }
+  const rules = Array.isArray(cfg?.rules) ? cfg.rules : [];
+  const out = [];
+  const compiled = [];
+  for (const r of rules) {
+    if (!r || typeof r.forbid !== "string" || !r.forbid) {
+      out.push(`.doctrina/rules.json: rule "${r?.id ?? "?"}" needs a non-empty "forbid" regex`);
+      continue;
+    }
+    let re;
+    try {
+      re = new RegExp(r.forbid, "m");
+    } catch (err) {
+      out.push(`.doctrina/rules.json: rule "${r.id ?? r.forbid}" has an invalid regex: ${err.message}`);
+      continue;
+    }
+    const paths = Array.isArray(r.paths) && r.paths.length ? r.paths : ["**"];
+    compiled.push({ id: r.id ?? r.forbid, re, matchers: paths.map(globToRegExp), message: r.message ?? "", hits: 0 });
+  }
+  if (compiled.length === 0) return out;
+
+  // One bounded walk; each text file is read at most once.
+  const stack = [projectRoot];
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!RULES_SKIP_DIRS.has(entry.name)) stack.push(full);
+        continue;
+      }
+      const rel = relPath(projectRoot, full).replace(/\\/g, "/");
+      if (rel === ".doctrina/rules.json") continue; // the rule text itself always matches
+      const applicable = compiled.filter((cr) => cr.hits < RULES_MAX_HITS_PER_RULE && cr.matchers.some((m) => m.test(rel)));
+      if (applicable.length === 0) continue;
+      let text;
+      try {
+        text = read(full);
+      } catch {
+        continue;
+      }
+      for (const cr of applicable) {
+        const m = cr.re.exec(text);
+        if (m) {
+          cr.hits += 1;
+          const lineNo = text.slice(0, m.index).split("\n").length;
+          out.push(`rule "${cr.id}": ${rel}:${lineNo} matches forbidden pattern${cr.message ? ` — ${cr.message}` : ""}`);
+        }
+      }
+    }
+  }
+  for (const cr of compiled) {
+    if (cr.hits >= RULES_MAX_HITS_PER_RULE) {
+      out.push(`rule "${cr.id}": more matches suppressed after ${RULES_MAX_HITS_PER_RULE} files`);
+    }
+  }
+  return out;
+}
+
+// Minimal glob → RegExp: ** crosses directories, * stays within a segment.
+// Anchored to the whole repo-relative POSIX path.
+function globToRegExp(glob) {
+  const esc = String(glob).replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  const body = esc
+    .replace(/\*\*\//g, "(?:.*/)?")
+    .replace(/\*\*/g, ".*")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\?/g, "[^/]");
+  return new RegExp(`^${body}$`);
 }
 
 // Per-entry metadata drift between the on-disk index and the tree-derived

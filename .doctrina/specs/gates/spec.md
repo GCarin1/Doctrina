@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-07-02
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -56,6 +56,31 @@ constraints (exit codes, zero-deps, no-network).
   living document — `product.md`, capability specs, open changes,
   and skills — in one pass and exit 1 when any smell is found.
   ADRs and the change archive shall be excluded.
+- When `doctrina clarify` scans a file, the system shall pick the smell
+  lexicon by language — the project-declared `.doctrina/config.json`
+  `"language"` wins, else a per-file stopword count decides — and in
+  Portuguese mode shall not flag the English false positives (bare `TODO`
+  is the pronoun; only `TODO:` is a marker) while flagging the PT lexicon
+  (`talvez`, `provavelmente`, `vários`, ...); a line carrying
+  `<!-- clarify:ok -->` shall never be flagged (author-accepted; ADR 0014).
+- When `doctrina coverage` classifies a criterion in a spec that declares a
+  deliberate deferral (`Implementation: planned — <note>`, the same escape
+  hatch `validate` honours), the system shall report it as `deferred` —
+  visible in report and JSON output, never a `--strict` failure; with
+  `--only <cap,cap>` the report/gate shall be scoped to those capabilities,
+  and with `--run` the system shall execute each unique resolving cited
+  test file through the project-declared `evidence_runner` command template
+  (`{file}` placeholder) from `.doctrina/verify.json`, exiting 1 when any
+  run fails or no runner is declared (ADR 0014).
+- When `doctrina close <id>` gates coverage, the system shall scope it to
+  the capabilities the change's deltas touch (falling back to the whole
+  tree for a delta-less change), so a declared deferral elsewhere cannot
+  block an unrelated close (ADR 0014).
+- When `doctrina validate` runs and `.doctrina/rules.json` exists, the
+  system shall enforce each rule — a forbid-regex over glob-scoped paths —
+  as an error carrying the rule's own message, capped per rule to keep a
+  mass violation readable; an invalid rules file shall be a single error
+  (ADR 0014).
 - When `doctrina validate` runs, the system shall print every error and
   warning it finds and exit 0 only when zero errors are present.
 - When `doctrina validate` runs, the system shall emit a warning for

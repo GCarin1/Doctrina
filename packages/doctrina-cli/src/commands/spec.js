@@ -134,9 +134,10 @@ function specSet(args, flags) {
   const impl = flagString(flags, "implementation");
   const status = flagString(flags, "status");
   const bump = flagString(flags, "bump");
+  const versionExplicit = flagString(flags, "version");
   const criterion = flagString(flags, "criterion");
-  if (impl === undefined && status === undefined && bump === undefined && criterion === undefined) {
-    console.error(c.red("error:") + " spec set needs at least one of --implementation, --status, --bump, --criterion");
+  if (impl === undefined && status === undefined && bump === undefined && versionExplicit === undefined && criterion === undefined) {
+    console.error(c.red("error:") + " spec set needs at least one of --implementation, --status, --bump, --version, --criterion");
     console.error(c.gray("hint: ") + `example: doctrina spec set ${capability} --implementation "verified — \`src/x.js\`" --bump minor`);
     return 2;
   }
@@ -155,6 +156,10 @@ function specSet(args, flags) {
   if (bump !== undefined) {
     if (!["major", "minor", "patch"].includes(bump)) errors.push(`--bump needs major|minor|patch (got "${bump}")`);
     else apply(bumpVersion(text, bump));
+  }
+  if (versionExplicit !== undefined) {
+    if (!/^\d+\.\d+\.\d+$/.test(versionExplicit)) errors.push(`--version needs semver X.Y.Z (got "${versionExplicit}")`);
+    else apply(setHeader(text, "Version", versionExplicit));
   }
   if (criterion !== undefined) {
     const m = String(criterion).match(/^(\d+)\s*:\s*(.+)$/);
@@ -183,7 +188,10 @@ function specSet(args, flags) {
   const derived = deriveIndex(projectRoot, index);
   derived.last_updated = date;
   idx.save(projectRoot, derived);
-  console.log(c.green("indexed") + ` spec "${capability}" synced`);
+  // Echo the SPEC's resulting version, not the framework's — the two look
+  // identical in output and the ambiguity was a field-review papercut.
+  const specVersion = specHeader(text, "Version") ?? "—";
+  console.log(c.green("indexed") + ` spec "${capability}" synced (spec version ${specVersion})`);
   return 0;
 }
 
@@ -214,6 +222,8 @@ Options:
   --implementation "..." With \`set\`: set the Implementation header.
   --status "..."         With \`set\`: set the Status header.
   --bump major|minor|patch  With \`set\`: bump the spec Version.
+  --version X.Y.Z        With \`set\`: set the spec Version explicitly
+                         (the output echoes the SPEC version, not the CLI's).
   --criterion "<n>:<mark>"  With \`set\`: set criterion n's [mark]
                          (e.g. --criterion "2:verified").
 `;

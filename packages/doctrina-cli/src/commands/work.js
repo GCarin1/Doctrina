@@ -71,14 +71,18 @@ export async function run(positional, flags) {
   }
 
   const effPrompt = prompt || `backfill specs from ${files.length} changed file${files.length === 1 ? "" : "s"}`;
-  const slug = prompt ? slugify(prompt) : "backfill";
+  // --title separates the short display name from the full brief: the title
+  // drives the slug and the proposal H1; the whole prompt still lands, intact,
+  // under ## Why. Without it a long prompt used to become a 900-char H1.
+  const title = flagString(flags, "title") ?? effPrompt;
+  const slug = prompt || flags.has("title") ? slugify(title) : "backfill";
   const id = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
   if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
     console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
     return 2;
   }
 
-  const code = changeNew([id, effPrompt], flags);
+  const code = changeNew([id, title], flags);
   if (code !== 0) return code;
 
   // Record the prompt verbatim as the change's Why — the raw intent has
@@ -228,6 +232,9 @@ function resumeChange(projectRoot, resumeId) {
 }
 
 // ASCII-folded kebab-case of the prompt ("Faça o login" -> "faca-o-login").
+// Over-long slugs are cut at a WORD boundary, not mid-token — a 900-char
+// prompt used to produce folder names ending in a half word ("...-scoped-c"),
+// which then leaks into every path, ledger line, and archive name.
 export function slugify(text) {
   let slug = text
     .normalize("NFD")
@@ -235,7 +242,11 @@ export function slugify(text) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  if (slug.length > 48) slug = slug.slice(0, 48).replace(/-+$/g, "");
+  if (slug.length > 48) {
+    const cut = slug.slice(0, 49); // one past the cap: a "-" here means 48 ends a word
+    const boundary = cut.lastIndexOf("-");
+    slug = (boundary > 0 ? cut.slice(0, boundary) : cut.slice(0, 48)).replace(/-+$/g, "");
+  }
   return slug.length > 0 ? slug : "task";
 }
 
@@ -292,7 +303,7 @@ export function rankCapabilities(projectRoot, prompt) {
 // file scores its capability when the file sits under a path segment named for
 // it, or when the spec cites the file as evidence. A deterministic overlap
 // hint for the agent — never a decision (ADR 0005).
-export function rankCapabilitiesByDiff(projectRoot, files) {
+export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   if (!files || files.length === 0 || !isDir(specsDir)) return [];
   const norm = files.map((f) => f.replace(/\\/g, "/"));
@@ -310,7 +321,10 @@ export function rankCapabilitiesByDiff(projectRoot, files) {
     }
     if (score > 0) ranked.push({ id: cap, score, path: `.doctrina/specs/${cap}/spec.md` });
   }
-  return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, 3);
+  // `limit` keeps the work-playbook hint short (top 3); review passes
+  // Infinity — truncating there is how it missed 5 of 8 touched capabilities
+  // in the 0.11.0 field session.
+  return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, limit);
 }
 
 // A chore is a spec-less change (review F9): the playbook drops the spec-delta
@@ -401,6 +415,16 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log(c.gray("       <EARS body. Keep the two axes honest (Status vs Implementation),"));
   console.log(c.gray("        keep aspiration under ## Maturity → Future, and cite the proof per"));
   console.log(c.gray("        criterion: \"1. [unverified] <signal> — verified by `path/to/test`\">"));
+  console.log(c.gray("   New capability? `spec new` then an ADDED delta with the FULL body — apply"));
+  console.log(c.gray("   replaces the untouched scaffold. Bookkeeping edits? MODIFIED with an ops"));
+  console.log(c.gray("   block, applied mechanically (all ops or none):"));
+  console.log(c.gray("       ```ops"));
+  console.log(c.gray("       set-header Implementation: verified — `src/x.js`"));
+  console.log(c.gray("       bump-version minor"));
+  console.log(c.gray("       set-criterion 1: verified"));
+  console.log(c.gray("       append-criterion [unverified] new signal — verified by `test/y.test.js`"));
+  console.log(c.gray("       ```"));
+  console.log(c.gray("   Only prose rewrites stay a by-hand merge."));
   if (fromDiff) {
     console.log(c.gray("   --from-diff: the code already exists — describe its CURRENT behaviour, and"));
     console.log(c.gray("   mark each criterion [unverified] until a test proves it (don't assume the"));
@@ -414,19 +438,22 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log("   spec's Implementation: planned → partial → implemented as code lands.");
   console.log("   If the prompt is genuinely ambiguous, ask the user before assuming.");
   console.log("");
-  console.log(`6. ${c.cyan(`doctrina analyze ${id}`)} — fix every ✗ before applying.`);
-  console.log(`7. ${c.cyan(`doctrina change apply ${id}`)}   (MODIFIED with an ops block applies mechanically; prose merges by hand).`);
-  console.log("8. Prove it before declaring done (archive refuses unchecked boxes):");
-  console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
-  console.log(`       ${c.cyan("doctrina coverage")}   — each acceptance criterion cites a real test`);
-  console.log(`       ${c.cyan("doctrina trace")}      — the capability traces to product intent`);
-  console.log("   Then check the proposal's ## Verification boxes and every task,");
+  console.log(`6. ADR checkpoint — does this change decide something structural`);
+  console.log("   (an architecture, a boundary, a trade-off a future session must");
+  console.log(`   not relitigate)? If yes: ${c.cyan("doctrina decision new \"<title>\"")} now,`);
+  console.log("   before closing — the definition of done requires it recorded.");
+  console.log("");
+  console.log(`7. Close in one attested pass (preferred — runs every gate and stops`);
+  console.log("   at the first failure with the exact rerun command):");
+  console.log(`       ${c.cyan(`doctrina close ${id}`)}`);
+  console.log(c.gray("   (equivalent, step by step: ") +
+    c.gray(`analyze → change apply → verify → coverage → trace → change archive → validate)`));
+  console.log("   Before it: check the proposal's ## Verification boxes and every task,");
   console.log("   closing steps included, and bump Implementation to verified.");
   console.log("");
-  console.log(`9. ${c.cyan(`doctrina change archive ${id}`)}`);
-  console.log(`10. ${c.cyan("doctrina validate")}, then ${c.cyan("doctrina next")} for the follow-up.`);
-  console.log(c.gray("    If this change taught a reusable lesson (a fix you'd hate to relearn,"));
-  console.log(c.gray("    a recurring convention), capture it: ") + c.cyan("doctrina skill new <slug>") + c.gray("."));
+  console.log(`8. ${c.cyan("doctrina next")} for the follow-up.`);
+  console.log(c.gray("   If this change taught a reusable lesson (a fix you'd hate to relearn,"));
+  console.log(c.gray("   a recurring convention), capture it: ") + c.cyan("doctrina skill new <slug>") + c.gray("."));
 }
 
 export const help = `
@@ -447,6 +474,8 @@ already open, work suggests resuming it instead of opening a junk change
 named after that word (review G1). Use --resume to do so directly.
 
 Options:
+  --title "<short>"    Short display title: drives the slug and the proposal
+                       H1; the full prompt still lands under ## Why
   --capability <cap>   Pin the capability instead of ranking matches
   --id <id>            Override the derived change id
   --resume <id>        Reprint the playbook for an open change; create nothing

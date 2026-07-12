@@ -91,8 +91,14 @@ doctrina work "tighten password rules" --capability auth
 doctrina work "rework billing" --id 0042-billing-overhaul
 ```
 
+The slug is truncated at a word boundary (never mid-token), and the
+playbook closes with `doctrina close <id>` (the attested one-pass close)
+after an explicit ADR checkpoint — "does this change decide something
+structural? record it before closing."
+
 | Flag | Purpose |
 |------|---------|
+| `--title "<short>"` | Short display title: drives the slug and the proposal H1; the full prompt still lands under `## Why`. Without it a long prompt becomes a long H1. |
 | `--capability <cap>` | Pin the capability instead of ranking matches. |
 | `--id <id>` | Override the derived change id. |
 | `--force` | Overwrite an existing change folder. |
@@ -158,10 +164,13 @@ doctrina spec set billing --bump minor --criterion "2:verified"
 | `--implementation "<state>"` | Set the `Implementation:` header (`planned` → `partial` → `implemented` → `verified`). |
 | `--status "<state>"` | Set the document `Status:` header (`draft` / `active` / `deprecated`). |
 | `--bump major\|minor\|patch` | Bump the spec `Version:`. |
+| `--version X.Y.Z` | Set the spec `Version:` explicitly. |
 | `--criterion "<n>:<mark>"` | Set criterion *n*'s `[mark]`, e.g. `"2:verified"`. |
 
 Stamps `Last updated:` and regenerates `.doctrina/index.json` from the
-tree. With no edit flag it exits 2.
+tree, echoing the **spec's** resulting version (not the CLI's — the two
+looked identical in output and the ambiguity was a field-review
+papercut). With no edit flag it exits 2.
 
 ## `doctrina change new <id> "<title>"`
 
@@ -171,15 +180,18 @@ Open a change proposal.
 doctrina change new 0042-add-saml "Add SAML login"
 ```
 
-Writes `.doctrina/changes/<id>/` populated with `proposal.md`,
-`tasks.md`, and `design.md`, plus an empty `specs/` directory ready
-for delta files. Adds an entry to `.doctrina/index.json` under
-`changes`.
+Writes `.doctrina/changes/<id>/` populated with `proposal.md` and
+`tasks.md`, plus an empty `specs/` directory ready for delta files
+(`design.md` scaffolds only under `--design` — in practice it stayed
+blank on every change that did not ask for one). Adds an entry to
+`.doctrina/index.json` under `changes`.
 
 The `<id>` is the directory name. Convention: `NNNN-slug`.
 
 | Flag | Purpose |
 |------|---------|
+| `--chore`, `--no-spec` | Open a spec-less chore change (infra/docs/build) that still gets a proposal + ledger. |
+| `--design` | Also scaffold `design.md` (opt-in). |
 | `--force` | Overwrite an existing change folder. |
 
 ## `doctrina change apply <id>`
@@ -192,17 +204,24 @@ doctrina change apply 0042-add-saml
 
 Semantics:
 
-- **ADDED:** writes the delta body to the target spec. Refuses if
-  the target already exists.
+- **ADDED:** writes the full delta body to the target spec. A target that
+  is still the **untouched `spec new` scaffold is replaced** — that is the
+  canonical new-capability flow (`spec new` → write the ADDED delta →
+  apply). Only a target with real content refuses (use MODIFIED, or
+  REMOVE it first).
 - **REMOVED:** deletes the target spec.
-- **MODIFIED:** prints `manual[MODIFIED]` with a pointer; does not
-  write. You merge the delta into the target spec by hand.
+- **MODIFIED with an ` ```ops ` block:** applied mechanically — all ops
+  or none (`set-header` / `bump-version` / `set-criterion` /
+  `replace-criterion` / `append-criterion`; ADR 0007). The syntax lives
+  in the delta template and the work playbook.
+- **MODIFIED without one:** prints `manual[MODIFIED]` with a pointer;
+  you merge the prose by hand (prose rewriting is the only case left).
 
-When every delta processed successfully (no errors and no MODIFIED
-deltas) and at least one delta was written, the proposal's `Status:`
-header flips from `proposed` to `applied` and an `Applied:` line is
-added. Otherwise the proposal stays `proposed` until you resolve the
-manual merges and re-run.
+When every delta processed successfully (no errors and no manual merges)
+and at least one delta was written, the proposal's `Status:` header flips
+from `proposed` to `applied` and an `Applied:` line is added. A change
+whose merges stayed manual gets the stamp at `change archive` time
+instead, so the file never contradicts the ledger.
 
 ## `doctrina change archive <id>`
 
@@ -395,12 +414,34 @@ Lists candidate slugs — derived from fix-shaped archived change ids, or from
 fix-shaped commit subjects (`fix:`, `fix(scope):`, `bug:`, …; never
 `feat:`/`refactor:`) — each with its lesson (the change's `## Why`, or the
 commit subject) and its origin (`from <archive>` or `from commit <sha>`).
-Candidates are deduplicated by slug against existing skills, with the archive
-winning a collision. With `--write` it scaffolds a stub per candidate,
-pre-seeded from its source, and indexes it — so authoring a skill is "fill
-in", not "start from blank". `--since <ref>` scans commits in `<ref>..HEAD`
-instead of the most recent 200; the git source degrades silently to
-archive-only when there is no repo. Read-only without `--write`.
+Candidates are deduplicated against existing skills — by exact slug, by an
+existing skill whose body cites the candidate's change id / commit, and by
+token-overlap slug similarity (a lesson captured under a *different* name no
+longer resurfaces as a "new" candidate). The archive wins a collision. With
+`--write` it scaffolds a stub per candidate, pre-seeded from its source, and
+indexes it — so authoring a skill is "fill in", not "start from blank".
+`--since <ref>` scans commits in `<ref>..HEAD` instead of the most recent
+200; the git source degrades silently to archive-only when there is no
+repo. Read-only without `--write`.
+
+## `doctrina intent add "<text>"` / `list`
+
+Post-intake intent evolution. Capabilities born after the intake —
+brainstorms, pivots — used to end inevitably at `Realizes: n/a`, leaving
+`trace` blind to the newest part of the system.
+
+```
+doctrina intent add "Risk map answers 'what should we test next?' in one read"
+doctrina intent add "SC15: <text>"     # pin an explicit id
+doctrina intent list
+```
+
+`add` appends a new anchor bullet (`- [SC5] <text>`) to product.md's
+Success criteria, allocating the next number for the dominant prefix (or
+pin one with the `SC15:` form). The follow-up is printed: declare
+`**Realizes:** SC5` on the spec that delivers it, and `doctrina trace`
+closes the loop. `list` prints every anchor in document order. The CLI
+allocates and appends; the intent's wording is yours, verbatim (ADR 0005).
 
 ## `doctrina analyze <change-id>`
 
@@ -441,6 +482,15 @@ command noisy on every Doctrina spec.
 Skips fenced code blocks, HTML comments, and inline backtick
 spans. Exits 0 when no smells are found, 1 otherwise — useful as
 a pre-PR gate in CI. Never modifies the file.
+
+**Language-aware.** Declare the project language in
+`.doctrina/config.json` (`{ "language": "pt-BR" }`) or let a per-file
+stopword count decide. Portuguese mode swaps the lexicon: `talvez`,
+`provavelmente`, `vários`, `alguns`, … are the smells, while the English
+false positives disappear (`some` is the verb *sumir*; bare `TODO` is the
+pronoun *todo* — only `TODO:` is a marker). A line carrying
+`<!-- clarify:ok -->` is author-accepted and never flagged — the escape
+hatch for a false positive the lexicon cannot know about.
 
 With `--all`, every living document is scanned in one pass:
 `product.md`, capability specs, open changes, and skills. ADRs
@@ -600,6 +650,17 @@ Checks performed:
     `docs/pt/`, a Markdown file present in one language tree and missing
     from the other warns, in both directions (projects without both
     trees never see this check).
+27. Project rules (`.doctrina/rules.json`): permanent, lintable
+    constraints — each rule is a forbid-regex over glob-scoped paths, and
+    a match is an **error** carrying the rule's own message. The place
+    for instructions like "white-label: never name company X", which
+    otherwise live only in agent memory and expire with the session:
+
+    ```
+    { "rules": [ { "id": "white-label", "forbid": "\\bAcmeCorp\\b",
+                   "paths": ["src/**", ".doctrina/specs/**"],
+                   "message": "white-label product; use a generic placeholder" } ] }
+    ```
 
 The `--fix` flag regenerates `index.json` from the tree before checking,
 so a drifted index is repaired (and the `framework_version` stamp
@@ -623,11 +684,16 @@ Each numbered criterion may cite its evidence as a backtick path span,
 e.g. `1. Returns 429 above the quota — verified by \`test/quota.test.ts\`.`
 A criterion is **covered** when at least one cited path resolves,
 **dangling** when a cited path is missing, and **bare** when nothing is
-cited. Read-only.
+cited. A spec that declares a deliberate deferral — `Implementation:
+planned — <why>`, the same escape hatch `validate` honours — has its
+unproven criteria reported as **deferred**: visible, never a `--strict`
+failure (declared debt is not hidden debt). Read-only without `--run`.
 
 | Flag | Purpose |
 |------|---------|
-| `--strict` | Exit 1 when any criterion is bare or dangling (CI gate). Without it, the command always exits 0 (a report). |
+| `--strict` | Exit 1 when any criterion is bare, dangling, or conditional (CI gate). Deferred never fails. Without it, the command always exits 0 (a report). |
+| `--only <cap,cap>` | Scope the report/gate to specific capabilities (`doctrina close` uses this so an unrelated deferred spec cannot block a change's close). |
+| `--run` | Execute the cited evidence via the project-declared `"evidence_runner"` in `.doctrina/verify.json` (a command template with a `{file}` placeholder, e.g. `"python -m pytest {file}"`). Exits 1 when any run fails — promotes "the file exists" to "the proof passes". |
 | `--json` | Emit per-spec criterion rows + summary as JSON. |
 
 ## `doctrina trace`
@@ -805,9 +871,13 @@ doctrina close 0001-add-login --force
 
 Drives analyze → `change apply` → verify → `coverage --strict` → trace →
 `change archive` → validate, stopping at the first failure with the exact
-command to rerun. verify is skipped (with a note) when no `verify.json` is
-declared; trace is advisory. A driver over the existing commands — it adds
-no checks of its own — so the agent makes one call instead of seven.
+command to rerun. The coverage gate is **scoped to the capabilities the
+change's deltas touch** (`--only` under the hood), so a deliberately
+deferred spec elsewhere in the tree cannot block an unrelated close; a
+change with no deltas gates on the whole tree. verify is skipped (with a
+note) when no `verify.json` is declared; trace is advisory. A driver over
+the existing commands — it adds no checks of its own — so the agent makes
+one call instead of seven.
 
 | Flag | Purpose |
 |------|---------|
@@ -1033,6 +1103,29 @@ doctrina completion pwsh >> $PROFILE
 
 Completes commands and their subcommands (flags are not completed).
 Static output — regenerate after upgrading the CLI.
+
+## `doctrina upgrade`
+
+Bring an existing project up to the installed CLI after an npm update.
+The project keeps the scaffold of the version that init-ed it — stale
+framework stamp, an AGENTS.md that predates new commands, missing
+recommended sections — and no other command closed that gap.
+
+```
+doctrina upgrade            # preview (exits 1 when steps are pending)
+doctrina upgrade --write    # apply
+```
+
+An orchestrator over the pieces that already exist, in order:
+
+1. `templates update` — append missing recommended sections to AGENTS.md /
+   product.md and missing index.json fields (additive-only; never rewrites
+   your content).
+2. `index rebuild` — regenerate index.json from the tree and migrate the
+   `framework_version` stamp to the running CLI.
+3. `validate` (`--fix` under `--write`) — surface anything the additive
+   upgrade cannot fix, e.g. an AGENTS.md documenting a stale command
+   surface (refresh that section so agents see the new commands).
 
 ## Environment variables
 

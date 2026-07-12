@@ -17,6 +17,87 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-07-12
+
+Field-review follow-ups (external 0.11.0 review, project session of
+2026-07-12: 9 changes, 6 new capabilities) plus the project-upgrade gap.
+Theme: the core held — no artifact desynced, the gates caught real
+problems — and the cost was at the edges: the delta merge was manual in
+practice, the one-pass close was blocked by a mis-scoped global gate, the
+ambiguity linter didn't speak the project's language, and intent
+provenance froze at the intake. All fixed deterministically (ADR 0014).
+
+### Added
+
+- `doctrina intent add "<text>"` / `intent list` — post-intake intent
+  evolution: append a new `[SC]` anchor to product.md (next number
+  auto-allocated, or pin with `"SC15: <text>"`), so capabilities born
+  after the intake get something to `Realizes:` instead of landing at
+  `n/a` and leaving `trace` blind to the newest surface.
+- `doctrina upgrade [--write]` — bring an existing project up to the
+  installed CLI after an npm update (user-reported gap: the project keeps
+  the scaffold of the version that init-ed it). Orchestrates
+  `templates update` (additive-only) → index rebuild + stamp migration →
+  `validate --fix`. Preview by default.
+- `**Depends on:**` spec header — machine-readable capability links
+  (specs cited each other only in prose). Parsed into the index, shown by
+  `why` (both directions), pulled into `context <cap>` (dependencies join
+  the read pack), and used by `review` (dependents of a touched capability
+  are flagged).
+- Project rules: `.doctrina/rules.json` — permanent lintable constraints
+  (forbid-regex over glob paths, each with its own message), enforced as
+  errors by `validate`. The home for instructions like "white-label:
+  never name company X" that previously lived only in agent memory.
+- `doctrina coverage --run` — execute the cited evidence via a
+  project-declared `"evidence_runner"` command template in
+  `.doctrina/verify.json` (`{file}` placeholder), promoting "the file
+  exists" to "the proof passes". The CLI never guesses a test runner.
+- `doctrina coverage --only <cap,cap>` — scope the report/gate to
+  specific capabilities.
+- `doctrina work --title "<short>"` — short display title drives the slug
+  and proposal H1; the full prompt still lands under `## Why`.
+- `doctrina spec set --version X.Y.Z` — set the spec version explicitly;
+  the output now echoes the SPEC's resulting version.
+
+### Changed
+
+- **The mechanical-delta gap is closed** (review item #1): `change apply`
+  treats an ADDED delta onto a target that is still the untouched
+  `spec new` scaffold as a whole-file replacement — the canonical
+  new-capability flow no longer collides with its own validator. The
+  ` ```ops ` block syntax is now shown in the work playbook (step 3) and
+  the `change apply` help, not only the delta template.
+- **`doctrina close` gates coverage on the change's touched capabilities**
+  (via `--only`), so one deliberately deferred spec elsewhere cannot block
+  every unrelated close. A change with no deltas still gates on the whole
+  tree.
+- **`coverage` honours declared deferrals**: criteria in a spec with
+  `Implementation: planned — <note>` (the same escape hatch `validate`
+  honours) are reported as `deferred` — visible, never a `--strict`
+  failure. Declared debt and hidden debt stop being punished identically.
+- **`clarify` is language-aware** (review item #3): declare
+  `{ "language": "pt-BR" }` in `.doctrina/config.json` or let a per-file
+  stopword count decide. Portuguese mode swaps the lexicon (bare `TODO`
+  is the pronoun; `some` is the verb *sumir*) so a PT-BR project is no
+  longer permanently red. Inline suppression: a line with
+  `<!-- clarify:ok -->` is author-accepted.
+- **`skill suggest` deduplicates against existing skills** beyond exact
+  slug: an existing skill citing the candidate's change id/commit, or
+  token-overlap slug similarity, retires the candidate (a lesson captured
+  under a different name no longer resurfaces).
+- The `work` playbook adds an explicit **ADR checkpoint** ("does this
+  change decide something structural? record it before closing") and
+  closes with `doctrina close <id>` as the preferred, attested one-pass
+  close; slugs truncate at a word boundary; `review` no longer caps
+  capability detection at 3 (it missed 5 of 8 in the field session) and
+  unions in changed specs.
+- `change archive` stamps the proposal `Status: applied` when the change
+  arrives still `proposed` (manual-merge path), so the file never
+  contradicts the ledger; `design.md` scaffolds only under
+  `change new --design`; a global `--version` no longer shadows a
+  command's flag (`doctrina spec set x --version …` printed the CLI
+  version and exited).
+
 ## [0.11.0] — 2026-07-02
 
 Two moves in one release. First, close the gaps a full framework

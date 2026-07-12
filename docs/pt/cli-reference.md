@@ -95,8 +95,14 @@ doctrina work "endurecer regras de senha" --capability auth
 doctrina work "refazer billing" --id 0042-billing-overhaul
 ```
 
+O slug é truncado em fronteira de palavra (nunca no meio de um token), e
+o playbook fecha com `doctrina close <id>` (o fechamento atestado em uma
+passada) depois de um checkpoint explícito de ADR — "esta change decide
+algo estrutural? registre antes de fechar."
+
 | Flag | Função |
 |------|--------|
+| `--title "<curto>"` | Título curto de exibição: dirige o slug e o H1 da proposal; o prompt completo continua indo para o `## Why`. Sem ela, um prompt longo vira um H1 longo. |
 | `--capability <cap>` | Fixa a capability em vez de ranquear matches. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--force` | Sobrescreve uma pasta de change existente. |
@@ -165,10 +171,13 @@ doctrina spec set billing --bump minor --criterion "2:verified"
 | `--implementation "<estado>"` | Define o header `Implementation:` (`planned` → `partial` → `implemented` → `verified`). |
 | `--status "<estado>"` | Define o header `Status:` do documento (`draft` / `active` / `deprecated`). |
 | `--bump major\|minor\|patch` | Incrementa o `Version:` da spec. |
+| `--version X.Y.Z` | Define o `Version:` da spec explicitamente. |
 | `--criterion "<n>:<marca>"` | Define a `[marca]` do critério *n*, ex.: `"2:verified"`. |
 
 Carimba `Last updated:` e regenera `.doctrina/index.json` a partir
-da árvore. Sem nenhuma flag de edição, sai com código 2.
+da árvore, ecoando a versão resultante da **spec** (não a do CLI — as
+duas eram idênticas na saída, e a ambiguidade foi um papercut da review
+de campo). Sem nenhuma flag de edição, sai com código 2.
 
 ## `doctrina change new <id> "<title>"`
 
@@ -178,14 +187,18 @@ Abre uma proposta de change.
 doctrina change new 0042-add-saml "Adicionar login SAML"
 ```
 
-Escreve `.doctrina/changes/<id>/` com `proposal.md`, `tasks.md` e
-`design.md`, além de um diretório `specs/` vazio para arquivos de
-delta. Adiciona entrada em `.doctrina/index.json` sob `changes`.
+Escreve `.doctrina/changes/<id>/` com `proposal.md` e `tasks.md`, além
+de um diretório `specs/` vazio para arquivos de delta (`design.md` só é
+esqueletizado sob `--design` — na prática ele ficava em branco em toda
+change que não pediu um). Adiciona entrada em `.doctrina/index.json`
+sob `changes`.
 
 O `<id>` é o nome do diretório. Convenção: `NNNN-slug`.
 
 | Flag | Função |
 |------|--------|
+| `--chore`, `--no-spec` | Abre uma change chore sem spec (infra/docs/build) que ainda ganha proposal + ledger. |
+| `--design` | Também esqueletiza `design.md` (opt-in). |
 | `--force` | Sobrescreve uma pasta de change existente. |
 
 ## `doctrina change apply <id>`
@@ -199,17 +212,25 @@ doctrina change apply 0042-add-saml
 
 Semântica:
 
-- **ADDED:** escreve o corpo do delta na spec alvo. Recusa se a
-  spec já existe.
+- **ADDED:** escreve o corpo completo do delta na spec alvo. Um alvo que
+  ainda é o **esqueleto intocado do `spec new` é substituído** — esse é o
+  fluxo canônico de capability nova (`spec new` → escrever o delta ADDED
+  → apply). Só um alvo com conteúdo real recusa (use MODIFIED, ou
+  remova-o antes).
 - **REMOVED:** deleta a spec alvo.
-- **MODIFIED:** imprime `manual[MODIFIED]` com um ponteiro; não
-  escreve. Você faz o merge à mão.
+- **MODIFIED com bloco ` ```ops `:** aplicado mecanicamente — todas as
+  ops ou nenhuma (`set-header` / `bump-version` / `set-criterion` /
+  `replace-criterion` / `append-criterion`; ADR 0007). A sintaxe vive no
+  template do delta e no playbook do work.
+- **MODIFIED sem bloco:** imprime `manual[MODIFIED]` com um ponteiro;
+  você faz o merge da prosa à mão (reescrever prosa é o único caso que
+  resta).
 
-Quando todos os deltas processam com sucesso (sem erros e sem
-MODIFIED) e pelo menos um delta foi escrito, o `Status:` do
-proposal flipa de `proposed` para `applied` e uma linha `Applied:`
-é adicionada. Caso contrário, o proposal continua `proposed` até
-você resolver os merges manuais e rodar de novo.
+Quando todos os deltas processam com sucesso (sem erros e sem merges
+manuais) e pelo menos um delta foi escrito, o `Status:` do proposal
+flipa de `proposed` para `applied` e uma linha `Applied:` é adicionada.
+Uma change cujos merges ficaram manuais ganha o carimbo na hora do
+`change archive`, então o arquivo nunca contradiz o ledger.
 
 ## `doctrina change archive <id>`
 
@@ -404,12 +425,34 @@ Lista slugs candidatos — derivados dos ids de change fix-shaped arquivados,
 ou dos subjects de commit fix-shaped (`fix:`, `fix(scope):`, `bug:`, …; nunca
 `feat:`/`refactor:`) — cada um com sua lição (o `## Why` da change, ou o
 subject do commit) e sua origem (`from <archive>` ou `from commit <sha>`).
-Candidatos são deduplicados por slug contra skills existentes, com o archive
-vencendo a colisão. Com `--write`, esqueletiza um stub por candidato,
-pré-preenchido a partir da fonte, e o indexa — para que escrever a skill seja
-"preencher", não "começar do zero". `--since <ref>` varre commits em
-`<ref>..HEAD` em vez dos últimos 200; a fonte git degrada silenciosamente
-para apenas-archive quando não há repo. Read-only sem `--write`.
+Candidatos são deduplicados contra skills existentes — por slug exato, por
+uma skill existente cujo corpo cita o change-id/commit do candidato, e por
+similaridade de tokens entre slugs (uma lição capturada sob *outro* nome não
+ressurge como candidato "novo"). O archive vence a colisão. Com `--write`,
+esqueletiza um stub por candidato, pré-preenchido a partir da fonte, e o
+indexa — para que escrever a skill seja "preencher", não "começar do zero".
+`--since <ref>` varre commits em `<ref>..HEAD` em vez dos últimos 200; a
+fonte git degrada silenciosamente para apenas-archive quando não há repo.
+Read-only sem `--write`.
+
+## `doctrina intent add "<texto>"` / `list`
+
+Evolução de intenção pós-intake. Capabilities nascidas depois do intake —
+brainstorms, pivôs — terminavam inevitavelmente em `Realizes: n/a`, deixando
+o `trace` cego para a parte mais nova do sistema.
+
+```
+doctrina intent add "Risk map responde 'o que testar agora?' em uma leitura"
+doctrina intent add "SC15: <texto>"    # fixa um id explícito
+doctrina intent list
+```
+
+`add` anexa um novo bullet de âncora (`- [SC5] <texto>`) aos Success
+criteria do product.md, alocando o próximo número do prefixo dominante (ou
+fixe um com a forma `SC15:`). O follow-up é impresso: declare
+`**Realizes:** SC5` na spec que a entrega, e o `doctrina trace` fecha o
+loop. `list` imprime cada âncora em ordem de documento. O CLI aloca e
+anexa; o texto da intenção é o seu, verbatim (ADR 0005).
 
 ## `doctrina analyze <change-id>`
 
@@ -450,6 +493,15 @@ barulhento em toda spec Doctrina.
 Pula blocos de código com fence, comentários HTML e backticks
 inline. Sai 0 sem smells, 1 caso contrário — útil como gate
 pré-PR em CI. Nunca modifica o arquivo.
+
+**Sensível ao idioma.** Declare o idioma do projeto em
+`.doctrina/config.json` (`{ "language": "pt-BR" }`) ou deixe uma contagem
+de stopwords por arquivo decidir. O modo português troca o léxico:
+`talvez`, `provavelmente`, `vários`, `alguns`, … são os smells, e os
+falsos positivos do inglês desaparecem (`some` é o verbo *sumir*; `TODO`
+sem dois-pontos é o pronome *todo* — só `TODO:` é marcador). Uma linha
+com `<!-- clarify:ok -->` é aceita pelo autor e nunca é sinalizada — o
+escape para um falso positivo que o léxico não tem como conhecer.
 
 Com `--all`, todo documento vivo é escaneado em um passe:
 `product.md`, specs de capability, changes abertas e skills. ADRs
@@ -617,6 +669,17 @@ Checagens:
     um arquivo Markdown presente em uma árvore de idioma e ausente na
     outra gera warning, nas duas direções (projetos sem as duas árvores
     nunca veem este check).
+27. Regras do projeto (`.doctrina/rules.json`): restrições permanentes e
+    lintáveis — cada regra é um regex proibido sobre paths com glob, e um
+    match é um **erro** com a mensagem da própria regra. O lugar de
+    instruções como "white-label: nunca citar a empresa X", que antes
+    viviam só na memória do agente e expiravam com a sessão:
+
+    ```
+    { "rules": [ { "id": "white-label", "forbid": "\\bAcmeCorp\\b",
+                   "paths": ["src/**", ".doctrina/specs/**"],
+                   "message": "produto white-label; use placeholder genérico" } ] }
+    ```
 
 A flag `--fix` regenera o `index.json` a partir da árvore antes de
 checar, então um índice em drift é reparado (e o carimbo
@@ -642,11 +705,17 @@ Cada critério numerado pode citar sua evidência como um path em
 backticks, ex.: `1. Retorna 429 acima da cota — verified by \`test/quota.test.ts\`.`
 Um critério está **covered** quando ao menos um path citado resolve,
 **dangling** quando um path citado está ausente, e **bare** quando nada
-é citado. Read-only.
+é citado. Uma spec que declara adiamento deliberado — `Implementation:
+planned — <porquê>`, o mesmo escape que o `validate` respeita — tem seus
+critérios não-provados reportados como **deferred**: visíveis, nunca uma
+falha de `--strict` (dívida declarada não é dívida escondida). Read-only
+sem `--run`.
 
 | Flag | Função |
 |------|--------|
-| `--strict` | Sai 1 quando algum critério é bare ou dangling (gate de CI). Sem ela, o comando sempre sai 0 (um relatório). |
+| `--strict` | Sai 1 quando algum critério é bare, dangling ou conditional (gate de CI). Deferred nunca falha. Sem ela, o comando sempre sai 0 (um relatório). |
+| `--only <cap,cap>` | Escopa o relatório/gate a capabilities específicas (o `doctrina close` usa isto para uma spec adiada alheia não bloquear o close de uma change). |
+| `--run` | Executa a evidência citada via o `"evidence_runner"` declarado pelo projeto em `.doctrina/verify.json` (um template de comando com placeholder `{file}`, ex.: `"python -m pytest {file}"`). Sai 1 quando alguma execução falha — promove "o arquivo existe" para "a prova passa". |
 | `--json` | Emite as linhas de critério por spec + resumo como JSON. |
 
 ## `doctrina trace`
@@ -832,9 +901,13 @@ doctrina close 0001-add-login --force
 
 Dirige analyze → `change apply` → verify → `coverage --strict` → trace →
 `change archive` → validate, parando na primeira falha com o comando exato
-para reexecutar. O verify é pulado (com aviso) quando não há `verify.json`;
-o trace é advisory. É um driver sobre os comandos existentes — não adiciona
-checagens próprias — então o agente faz uma chamada em vez de sete.
+para reexecutar. O gate de coverage é **escopado às capabilities que os
+deltas da change tocam** (`--only` por baixo), então uma spec
+deliberadamente adiada em outro canto da árvore não bloqueia um close que
+nunca a tocou; uma change sem deltas gateia na árvore inteira. O verify é
+pulado (com aviso) quando não há `verify.json`; o trace é advisory. É um
+driver sobre os comandos existentes — não adiciona checagens próprias —
+então o agente faz uma chamada em vez de sete.
 
 | Flag | Função |
 |------|--------|
@@ -1066,6 +1139,30 @@ doctrina completion pwsh >> $PROFILE
 
 Completa comandos e seus subcomandos (flags não são completadas).
 Saída estática — regenere após atualizar o CLI.
+
+## `doctrina upgrade`
+
+Traz um projeto existente para o CLI instalado após um npm update.
+O projeto mantém o esqueleto da versão que o init-ou — carimbo do
+framework defasado, um AGENTS.md anterior aos comandos novos, seções
+recomendadas faltando — e nenhum outro comando fechava esse gap.
+
+```
+doctrina upgrade            # preview (sai 1 quando há passos pendentes)
+doctrina upgrade --write    # aplica
+```
+
+Um orquestrador sobre as peças que já existem, em ordem:
+
+1. `templates update` — anexa seções recomendadas faltantes ao AGENTS.md /
+   product.md e campos faltantes do index.json (apenas-aditivo; nunca
+   reescreve o seu conteúdo).
+2. `index rebuild` — regenera o index.json a partir da árvore e migra o
+   carimbo `framework_version` para o CLI em execução.
+3. `validate` (`--fix` sob `--write`) — mostra o que um upgrade aditivo
+   não consegue corrigir, ex.: um AGENTS.md documentando uma superfície de
+   comandos defasada (atualize essa seção para os agentes verem os
+   comandos novos).
 
 ## Variáveis de ambiente
 
