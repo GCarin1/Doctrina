@@ -48,7 +48,7 @@ separadamente.
 ## Compatibilidade runtime × LLM
 
 | Runtime | Adapter Doctrina | LLMs locais | Cloud OpenAI-compatible | Cloud Anthropic |
-|---------|------------------|-------------|--------------------------|-----------------|
+|---------|------------------|-------------|--------------------------|----------------|
 | Aider | `--agent aider` (CONVENTIONS.md) | ✅ Ollama, LM Studio, vLLM | ✅ todos | ✅ Claude |
 | Continue.dev | `--agent continue` | ✅ Ollama, LM Studio | ✅ todos | ✅ Claude |
 | Cursor (endpoint custom) | `--agent cursor` | ✅ via LiteLLM proxy | ✅ todos | ✅ Claude |
