@@ -40,8 +40,8 @@ npx doctrina-cli decision accept <num>      # flip a proposed ADR to accepted
 npx doctrina-cli decision land <num> [path] # stamp an accepted ADR as implemented (Landed: + proof)
 npx doctrina-cli decision supersede <num>   # supersede an existing ADR
 npx doctrina-cli skill new <name>           # scaffold a procedural-memory skill (`skill list` lists them)
-npx doctrina-cli skill sync                 # sync skill frontmatter descriptions into index.json
-npx doctrina-cli skill suggest              # surface fix-shaped lessons worth a skill (--write scaffolds)
+npx doctrina-cli skill suggest              # fix-shaped lessons worth a skill (--write; `skill sync` = index)
+npx doctrina-cli intent add "<text>"        # append a product intent anchor post-intake (`intent list` shows them)
 npx doctrina-cli analyze <change-id>        # pre-flight a change (`doctrina clarify <path>` smell-tests ambiguity)
 npx doctrina-cli context [<cap>]            # context pack in read order (--concat; --budget <tok>; --diff <ref>)
 npx doctrina-cli show <ref>                 # point-read a requirement/criterion/ADR (cli-R12, cli-C3, 0007)
@@ -64,6 +64,7 @@ npx doctrina-cli next                       # print the recommended next workflo
 npx doctrina-cli watch                      # validate --fix + next on change (--once; `doctrina metrics` = git stats)
 npx doctrina-cli report [--since 7]         # Markdown digest: changes, gates, local-git summary
 npx doctrina-cli completion <shell>         # bash/zsh/pwsh completions (generated from the catalog)
+npx doctrina-cli upgrade                    # bring an existing project up to the installed CLI (--write applies)
 ```
 
 ## Repository structure

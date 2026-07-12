@@ -2,7 +2,7 @@ import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
-import { specHeader, listHeader } from "../lib/scan.js";
+import { specHeader, listHeader, parseDependsOn } from "../lib/scan.js";
 import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
@@ -74,6 +74,16 @@ export async function run(positional, _flags) {
   console.log(`    ${c.gray("status:")} ${status}   ${c.gray("implementation:")} ${impl}`);
   const purpose = sectionParagraph(text, "Purpose");
   if (purpose) console.log("    " + purpose.replace(/\s+/g, " ").trim());
+
+  // Dependency graph, both directions (the machine-readable **Depends on:**
+  // header — specs used to cite each other only in prose, invisible here).
+  const deps = parseDependsOn(text);
+  const dependents = known
+    .filter((other) => other !== cap)
+    .filter((other) => parseDependsOn(read(path.join(specsDir, other, "spec.md"))).includes(cap))
+    .sort();
+  if (deps.length > 0) console.log(`    ${c.gray("depends on:")} ${deps.map((d) => c.cyan(d)).join(", ")}`);
+  if (dependents.length > 0) console.log(`    ${c.gray("depended on by:")} ${dependents.map((d) => c.cyan(d)).join(", ")}`);
 
   // 3. The proof (acceptance criteria with cited evidence). Read through the
   //    shared multi-line parser so the marks here agree with `doctrina

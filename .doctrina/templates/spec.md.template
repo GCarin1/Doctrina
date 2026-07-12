@@ -24,7 +24,15 @@ ADR 0006). Tag product.md success-criteria bullets with an anchor —
 "- [SC1] ..." — and list the ones this spec delivers above. An "active"
 spec with no Realizes: header warns under `doctrina validate`; if the
 capability genuinely maps to no product anchor (internal tooling), keep
-the header and write "n/a — <why>" to record that on purpose.
+the header and write "n/a — <why>" to record that on purpose. Need a NEW
+anchor for intent born after the intake? `doctrina intent add "<text>"`.
+
+Optional: declare the sibling capabilities this spec builds on with a
+machine-readable header — "**Depends on:** defects, decisions". It feeds
+`doctrina why` (the dependency graph), `doctrina context <cap>` (the
+dependencies join the read pack), and `doctrina review` (dependents of a
+touched capability are flagged). Citing them only in prose keeps every
+tool blind to the link.
 -->
 
 ## Purpose

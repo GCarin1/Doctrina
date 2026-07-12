@@ -12,8 +12,10 @@ flowchart TD
         init["doctrina init<br/>scaffold AGENTS.md + .doctrina/"]
         intake["doctrina intake<br/>store full intent + print playbook"]
         product["product.md<br/>vision · scope · [SC] anchors"]
-        specnew["doctrina spec new (cap)<br/>EARS spec + Realizes:"]
+        specnew["doctrina spec new (cap)<br/>EARS spec + Realizes: + Depends on:"]
+        intentadd["doctrina intent add<br/>new [SC] anchor post-intake"]
         init --> intake --> product --> specnew
+        intentadd -. "intent evolves" .-> product
     end
 
     subgraph LOOP["Change loop — once per task (agent-driven)"]
@@ -84,6 +86,7 @@ flowchart TD
         hooks["doctrina hooks install<br/>pre-commit = validate --fix"]
         indexrebuild["doctrina index rebuild"]
         templates["doctrina templates list/check/update"]
+        upgradecmd["doctrina upgrade<br/>bring the project up after an npm update"]
         metrics["doctrina metrics<br/>git-derived adoption"]
         reportcmd["doctrina report<br/>Markdown digest of the period"]
         completion["doctrina completion<br/>bash/zsh/pwsh"]
@@ -112,6 +115,9 @@ flowchart TD
 - `doctrina spec new <cap>` (`--bug`) / `spec list` / `spec set <cap>` — create,
   inventory, and edit specs; `spec set` advances `Implementation:` / bumps the
   version and resyncs the index in one step.
+- `doctrina intent add "<text>"` / `intent list` — append a new `[SC]` anchor to
+  product.md when intent evolves after the intake, so new capabilities get
+  something to `Realizes:` instead of landing at `n/a`.
 
 **Change loop (per task).**
 - `doctrina work "<prompt>"` — scaffold a change and print the playbook
@@ -165,8 +171,11 @@ flowchart TD
   `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
   rebuild` — regenerate the index from the tree. `doctrina templates
   list|check|update` — inspect/refresh the shipped templates.
-  `doctrina metrics` — git-derived adoption signals. `doctrina report` —
-  Markdown digest of the period. `doctrina completion bash|zsh|pwsh` —
-  shell completions generated from the catalog.
+  `doctrina upgrade` (`--write`) — bring an existing project up to the
+  installed CLI after an npm update (templates update → index/stamp →
+  validate). `doctrina metrics` — git-derived adoption signals.
+  `doctrina report` — Markdown digest of the period.
+  `doctrina completion bash|zsh|pwsh` — shell completions generated from
+  the catalog.
 
 See the **[CLI reference](cli-reference.md)** for every flag and exit code.

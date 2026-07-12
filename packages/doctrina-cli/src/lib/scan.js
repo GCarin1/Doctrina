@@ -25,6 +25,15 @@ export function listHeader(text, name) {
   return m ? m[1].trim() : null;
 }
 
+// The machine-readable "**Depends on:** defects, decisions" spec header: the
+// sibling capabilities this spec builds on. Returns [] when absent, "n/a", or
+// empty. One parser so index, why, context, and review agree.
+export function parseDependsOn(text) {
+  const raw = specHeader(text, "Depends on");
+  if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
+  return raw.match(/[a-z][a-z0-9][a-z0-9-]*/g) ?? [];
+}
+
 function dirEntries(dir) {
   if (!isDir(dir)) return [];
   return readdirSync(dir).filter((e) => !e.startsWith(".")).sort();
@@ -87,6 +96,13 @@ export function deriveIndex(projectRoot, current) {
     const realizesRaw = specHeader(text, "Realizes");
     const realizes = realizesRaw ? (realizesRaw.match(/[A-Z]+\d+/g) ?? []) : prev?.realizes;
     if (realizes && realizes.length) entry.realizes = realizes;
+    // Depends on: sibling capabilities this spec builds on (0.11.0 field
+    // review — specs cited each other only in prose, unreadable by machine).
+    // Stored as a capability-id list so `why` can show the graph, `context`
+    // can pull dependencies into the read pack, and `review` can flag
+    // dependents of a touched capability.
+    const depends = specHeader(text, "Depends on") !== null ? parseDependsOn(text) : prev?.depends_on;
+    if (depends && depends.length) entry.depends_on = depends;
     out.artifacts.specs.push(entry);
   }
 

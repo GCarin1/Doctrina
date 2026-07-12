@@ -6,6 +6,7 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "./work.js";
+import { parseDependsOn } from "../lib/scan.js";
 import { summarize as coverageSummary } from "./coverage.js";
 import { summarize as traceSummary } from "./trace.js";
 
@@ -42,15 +43,35 @@ export async function run(_positional, flags) {
   const notes = [];  // advisory observations
 
   // 1. Code changed under a capability whose spec was NOT touched — the spec
-  //    may have drifted from the code it describes.
+  //    may have drifted from the code it describes. Touched = every capability
+  //    matched by the code diff (UNCAPPED — the top-3 hint truncation is how
+  //    this missed 5 of 8 in the 0.11.0 field session) UNIONED with every
+  //    capability whose spec.md itself changed.
   const specChanged = new Set(
     all.filter((f) => /(^|\/)\.doctrina\/specs\/[^/]+\/spec\.md$/.test(f.replace(/\\/g, "/")))
       .map((f) => f.replace(/\\/g, "/").match(/\.doctrina\/specs\/([^/]+)\/spec\.md$/)[1]),
   );
-  const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles);
+  const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity });
+  const touched = new Set([...specChanged, ...ranked.map((m) => m.id)]);
   for (const m of ranked) {
     if (!specChanged.has(m.id)) {
       breaks.push(`code under capability "${m.id}" changed, but its spec was not updated — confirm \`.doctrina/specs/${m.id}/spec.md\` still describes the code (update it, or note why not)`);
+    }
+  }
+
+  // 1b. Dependents of touched capabilities (the machine-readable
+  //     **Depends on:** header): a spec that builds on something you changed
+  //     may silently no longer hold. Advisory — a pointer, not a verdict.
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (isDir(specsDir) && touched.size > 0) {
+    for (const cap of readdirSync(specsDir).sort()) {
+      if (touched.has(cap)) continue;
+      const specPath = path.join(specsDir, cap, "spec.md");
+      if (!isFile(specPath)) continue;
+      const deps = parseDependsOn(read(specPath)).filter((d) => touched.has(d));
+      if (deps.length > 0) {
+        notes.push(`capability "${cap}" depends on touched ${deps.map((d) => `"${d}"`).join(", ")} — confirm it still holds (\`doctrina why ${cap}\`)`);
+      }
     }
   }
 
@@ -83,8 +104,8 @@ export async function run(_positional, flags) {
 
   // --- Output ---
   console.log(c.gray(`${all.length} changed path(s); ${sourceFiles.length} source file(s) outside .doctrina/.`));
-  if (ranked.length > 0) {
-    console.log(c.gray("Capabilities touched: ") + ranked.map((m) => c.cyan(m.id)).join(", "));
+  if (touched.size > 0) {
+    console.log(c.gray("Capabilities touched: ") + [...touched].sort().map((id) => c.cyan(id)).join(", "));
   }
   console.log("");
 

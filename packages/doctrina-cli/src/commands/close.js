@@ -1,8 +1,9 @@
 import path from "node:path";
 import process from "node:process";
-import { exists, isFile } from "../lib/fs-ops.js";
+import { exists, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { parseCapabilityFromDelta } from "./change.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -30,8 +31,20 @@ export async function run(positional, flags) {
   }
 
   const force = flagBool(flags, "force", false);
-  const strict = new Map([["strict", true]]);
   const archiveFlags = force ? new Map([["force", true]]) : new Map();
+
+  // Scope the coverage gate to the capabilities THIS change touches (its
+  // deltas), so one deliberately deferred spec elsewhere in the tree cannot
+  // block closing a change that never went near it (0.11.0 field review
+  // item 4). A change with no deltas (chore / metadata-only) falls back to
+  // the whole-tree gate — there is no narrower honest scope for it.
+  const touched = touchedCapabilities(projectRoot, id);
+  const coverageFlags = new Map([["strict", true]]);
+  let coverageRerun = "doctrina coverage --strict";
+  if (touched.length > 0) {
+    coverageFlags.set("only", touched.join(","));
+    coverageRerun = `doctrina coverage --strict --only ${touched.join(",")}`;
+  }
 
   // Each step: a label, the command that runs it, and the literal command to
   // rerun on failure. verify is conditional (skipped, with a loud note, when no
@@ -43,7 +56,11 @@ export async function run(positional, flags) {
     verifyConfigured
       ? { label: "verify", rerun: "doctrina verify", run: () => verify.run([], new Map()) }
       : { label: "verify", skip: "no .doctrina/verify.json — declare the real gate with `doctrina verify --init`" },
-    { label: "coverage", rerun: "doctrina coverage --strict", run: () => coverage.run([], strict) },
+    {
+      label: touched.length > 0 ? `coverage (scoped: ${touched.join(", ")})` : "coverage",
+      rerun: coverageRerun,
+      run: () => coverage.run([], coverageFlags),
+    },
     // trace is advisory (provenance is a warning, not a hard gate): report it,
     // never let it block the close.
     { label: "trace", rerun: "doctrina trace", run: async () => { await trace.run([], new Map()); return 0; } },
@@ -84,19 +101,35 @@ export async function run(positional, flags) {
   return 0;
 }
 
+// The capabilities this change's deltas target — the honest scope for its
+// coverage gate. Read from the change folder's specs/**/delta.md files.
+function touchedCapabilities(projectRoot, id) {
+  const specsDir = path.join(projectRoot, ".doctrina", "changes", id, "specs");
+  const caps = new Set();
+  for (const deltaPath of walk(specsDir)) {
+    if (!deltaPath.endsWith("delta.md")) continue;
+    const cap = parseCapabilityFromDelta(read(deltaPath), deltaPath);
+    if (cap) caps.add(cap);
+  }
+  return [...caps].sort();
+}
+
 export const help = `
 Usage: doctrina close <id> [--force]
 
 Run the whole closing sequence for a change in one pass, stopping at the
 first failure with the exact command to rerun:
 
-  analyze → change apply → verify → coverage --strict → trace → change
-  archive → validate
+  analyze → change apply → verify → coverage --strict (scoped to the
+  change's touched capabilities) → trace → change archive → validate
 
-verify is skipped (with a note) when no .doctrina/verify.json is declared;
-trace is advisory (a report, never a blocker). This is a driver over the
-existing commands — it adds no checks of its own — so the agent makes one
-call instead of seven and the human approves once.
+The coverage gate is scoped to the capabilities the change's deltas touch,
+so a deliberately deferred spec elsewhere cannot block an unrelated close;
+a change with no deltas gates on the whole tree. verify is skipped (with a
+note) when no .doctrina/verify.json is declared; trace is advisory (a
+report, never a blocker). This is a driver over the existing commands — it
+adds no checks of its own — so the agent makes one call instead of seven
+and the human approves once.
 
 Options:
   --force    Pass through to \`change archive\` (archive even if verification

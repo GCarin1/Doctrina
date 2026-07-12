@@ -1989,7 +1989,11 @@ test("work derives a sequential id, records the prompt as Why, and prints the pl
     const proposal = readFileSync(proposalPath, "utf8");
     assert.match(proposal, /## Why\r?\n\r?\nadd login with email and password/);
     assert.match(r.stdout, /Work playbook — change 0001-add-login/);
-    assert.match(r.stdout, /doctrina change apply 0001-add-login/);
+    // The close is one attested pass (review item 5), with an ADR checkpoint
+    // before it and the ops-block syntax shown in the delta step.
+    assert.match(r.stdout, /doctrina close 0001-add-login/);
+    assert.match(r.stdout, /ADR checkpoint/);
+    assert.match(r.stdout, /```ops/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -3178,6 +3182,313 @@ test("status, next, validate, coverage, and trace speak JSON under --json", () =
 
     const trace = JSON.parse(runCli(["trace", "--json"], { cwd: tmp }).stdout);
     assert.ok(trace.summary && "anchors" in trace.summary);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// --- ADR 0014: field-review follow-ups ---
+
+test("work truncates long slugs at a word boundary and honours --title", () => {
+  const tmp = initedProject();
+  try {
+    const long = "implement the incredibly long capability description that would previously truncate mid word somewhere";
+    const r = runCli(["work", long], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const dirs = readdirSync(path.join(tmp, ".doctrina", "changes")).filter((d) => d.startsWith("0001-"));
+    assert.equal(dirs.length, 1);
+    // Every token in the slug is a complete word from the prompt.
+    const slug = dirs[0].replace(/^0001-/, "");
+    for (const tok of slug.split("-")) {
+      assert.ok(long.split(/\s+/).includes(tok), `slug token "${tok}" is a truncated word in "${slug}"`);
+    }
+
+    const t = runCli(["work", "full prompt with lots of detail that goes to Why", "--title", "short title", "--id", "0002-short-title"], { cwd: tmp });
+    assert.equal(t.status, 0, t.stderr || t.stdout);
+    const proposal = readFileSync(path.join(tmp, ".doctrina", "changes", "0002-short-title", "proposal.md"), "utf8");
+    assert.match(proposal, /^# Change 0002-short-title — short title/m);
+    assert.match(proposal, /## Why\r?\n\r?\nfull prompt with lots of detail/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change apply replaces an untouched spec-new scaffold on ADDED, refuses real content", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    runCli(["change", "new", "0001-add-billing", "add billing"], { cwd: tmp });
+    const deltaDir = path.join(tmp, ".doctrina", "changes", "0001-add-billing", "specs", "billing");
+    mkdirSync(deltaDir, { recursive: true });
+    const body = "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nBill people.\n\n## Acceptance criteria\n\n1. [unverified] bills monthly — verified by `test/billing.test.js`.\n";
+    writeFileSync(path.join(deltaDir, "delta.md"),
+      `# Spec Delta — capability: billing\n\n**Operation:** ADDED\n**Target spec on apply:** \`.doctrina/specs/billing/spec.md\`\n\n---\n\n${body}`);
+    const r = runCli(["change", "apply", "0001-add-billing"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /replaced the untouched spec-new scaffold/);
+    assert.match(readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8"), /Bill people/);
+
+    // Now the spec has real content: a second ADDED refuses.
+    runCli(["change", "new", "0002-again", "again"], { cwd: tmp });
+    const deltaDir2 = path.join(tmp, ".doctrina", "changes", "0002-again", "specs", "billing");
+    mkdirSync(deltaDir2, { recursive: true });
+    writeFileSync(path.join(deltaDir2, "delta.md"),
+      `# Spec Delta — capability: billing\n\n**Operation:** ADDED\n**Target spec on apply:** \`.doctrina/specs/billing/spec.md\`\n\n---\n\nother\n`);
+    const r2 = runCli(["change", "apply", "0002-again"], { cwd: tmp });
+    assert.equal(r2.status, 1);
+    assert.match(r2.stderr, /real content — refusing/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change new scaffolds design.md only under --design; archive stamps a proposed proposal applied", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-a", "no design"], { cwd: tmp });
+    assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0001-a", "design.md")));
+    runCli(["change", "new", "0002-b", "with design", "--design"], { cwd: tmp });
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0002-b", "design.md")));
+
+    // Archive 0001-a while still "proposed" (no apply): the file gets stamped.
+    for (const f of ["tasks.md", "proposal.md"]) {
+      const p = path.join(tmp, ".doctrina", "changes", "0001-a", f);
+      if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
+    }
+    const r = runCli(["change", "archive", "0001-a"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const archived = readdirSync(path.join(tmp, ".doctrina", "changes", "archive")).find((n) => n.endsWith("0001-a"));
+    const proposal = readFileSync(path.join(tmp, ".doctrina", "changes", "archive", archived, "proposal.md"), "utf8");
+    assert.match(proposal, /\*\*Status:\*\* applied/);
+    assert.match(proposal, /\*\*Applied:\*\*/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("coverage reports declared deferrals as deferred and --only scopes the gate", () => {
+  const tmp = initedProject();
+  try {
+    // A deferred spec with an unproven criterion...
+    runCli(["spec", "new", "deferred-cap"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "deferred-cap", "spec.md"),
+      "# Spec — deferred-cap\n\n**Capability:** deferred-cap\n**Status:** active\n**Implementation:** planned — gated on the corporate migration\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Acceptance criteria\n\n1. [unverified] works — verified by `test/does-not-exist.test.js`.\n");
+    // ...and a healthy spec whose criterion cites this very test file.
+    runCli(["spec", "new", "healthy"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "healthy", "spec.md"),
+      "# Spec — healthy\n\n**Capability:** healthy\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Acceptance criteria\n\n1. [verified] indexes — verified by `.doctrina/index.json`.\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    // Whole-tree strict: the deferral is visible but does NOT fail the gate.
+    const all = runCli(["coverage", "--strict"], { cwd: tmp });
+    assert.equal(all.status, 0, all.stdout);
+    assert.match(all.stdout, /deferred/);
+
+    // Scoped to the healthy capability: clean.
+    const only = runCli(["coverage", "--strict", "--only", "healthy"], { cwd: tmp });
+    assert.equal(only.status, 0, only.stdout);
+    assert.ok(!/deferred-cap/.test(only.stdout), only.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("clarify speaks Portuguese: PT lexicon, no EN false positives, clarify:ok suppression", () => {
+  const tmp = initedProject();
+  try {
+    writeFileSync(path.join(tmp, ".doctrina", "config.json"), JSON.stringify({ language: "pt-BR" }, null, 2));
+    const p = path.join(tmp, "doc.md");
+    writeFileSync(p, [
+      "# Documento",
+      "",
+      "O evento some da lista quando TODO o pensamento é processado.", // EN false positives: none in PT mode
+      "Talvez o sistema aceite vários formatos.",                      // PT smells: talvez + vários
+      "Provavelmente quebra aqui. <!-- clarify:ok -->",                // suppressed line
+      "",
+    ].join("\n"));
+    const r = runCli(["clarify", "doc.md"], { cwd: tmp });
+    assert.equal(r.status, 1, r.stdout);
+    assert.match(r.stdout, /talvez/i);
+    assert.ok(!/["“]?some["”]?/i.test(r.stdout.replace(/some smells|no smells/i, "")), r.stdout);
+    assert.ok(!/TODO/.test(r.stdout), r.stdout);
+    assert.ok(!/Provavelmente quebra/.test(r.stdout), r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("intent add allocates the next anchor and intent list shows it", () => {
+  const tmp = initedProject();
+  try {
+    // initedProject's product.md may have no anchors: first add starts at SC1.
+    const r1 = runCli(["intent", "add", "First measurable outcome"], { cwd: tmp });
+    assert.equal(r1.status, 0, r1.stderr || r1.stdout);
+    const r2 = runCli(["intent", "add", "Second outcome"], { cwd: tmp });
+    assert.equal(r2.status, 0);
+    const product = readFileSync(path.join(tmp, ".doctrina", "product.md"), "utf8");
+    assert.match(product, /- \[SC1\] First measurable outcome/);
+    assert.match(product, /- \[SC2\] Second outcome/);
+    const list = runCli(["intent", "list"], { cwd: tmp });
+    assert.match(list.stdout, /SC1/);
+    assert.match(list.stdout, /SC2/);
+    // Pinned duplicate refuses.
+    const dup = runCli(["intent", "add", "SC1: duplicate"], { cwd: tmp });
+    assert.equal(dup.status, 1);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("Depends on: feeds why, context, and review", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["spec", "new", "reporting"], { cwd: tmp });
+    runCli(["spec", "new", "risk-map"], { cwd: tmp });
+    const riskPath = path.join(tmp, ".doctrina", "specs", "risk-map", "spec.md");
+    writeFileSync(riskPath,
+      "# Spec — risk-map\n\n**Capability:** risk-map\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Depends on:** reporting\n**Version:** 0.1.0\n\n## Purpose\n\nRank risk.\n\n## Acceptance criteria\n\n1. [verified] ranks — verified by `.doctrina/index.json`.\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    const why = runCli(["why", "risk-map"], { cwd: tmp });
+    assert.match(why.stdout, /depends on:.*reporting/);
+    const whyRev = runCli(["why", "reporting"], { cwd: tmp });
+    assert.match(whyRev.stdout, /depended on by:.*risk-map/);
+
+    const ctx = runCli(["context", "risk-map"], { cwd: tmp });
+    assert.match(ctx.stdout, /dependency of risk-map/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate enforces .doctrina/rules.json forbid rules as errors", () => {
+  const tmp = initedProject();
+  try {
+    mkdirSync(path.join(tmp, "src"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "app.js"), "// mentions AcmeCorp here\n");
+    writeFileSync(path.join(tmp, ".doctrina", "rules.json"), JSON.stringify({
+      rules: [{ id: "white-label", forbid: "\\bAcmeCorp\\b", paths: ["src/**"], message: "use a generic placeholder" }],
+    }, null, 2));
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /rule "white-label": src\/app\.js:1/);
+    assert.match(r.stdout, /generic placeholder/);
+    // Out-of-scope file does not trip the rule.
+    rmSync(path.join(tmp, "src", "app.js"));
+    writeFileSync(path.join(tmp, "notes.md"), "AcmeCorp\n");
+    const ok = runCli(["validate"], { cwd: tmp });
+    assert.equal(ok.status, 0, ok.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("coverage --run executes cited evidence through the declared evidence_runner", () => {
+  const tmp = initedProject();
+  try {
+    mkdirSync(path.join(tmp, "test"), { recursive: true });
+    writeFileSync(path.join(tmp, "test", "ok.test.js"), "process.exit(0);\n");
+    runCli(["spec", "new", "runner"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "runner", "spec.md"),
+      "# Spec — runner\n\n**Capability:** runner\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Acceptance criteria\n\n1. [verified] runs — verified by `test/ok.test.js`.\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    // No runner declared → clear error.
+    const none = runCli(["coverage", "--run"], { cwd: tmp });
+    assert.equal(none.status, 1);
+    assert.match(none.stderr, /evidence_runner/);
+
+    writeFileSync(path.join(tmp, ".doctrina", "verify.json"), JSON.stringify({
+      checks: [{ name: "noop", run: "node -e 0" }],
+      evidence_runner: "node {file}",
+    }, null, 2));
+    const r = runCli(["coverage", "--run"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout);
+    assert.match(r.stdout, /1\/1 evidence runs passed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("spec set --version sets the header and echoes the SPEC version", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const r = runCli(["spec", "set", "billing", "--version", "0.10.0"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stderr || r.stdout);
+    assert.match(r.stdout, /spec version 0\.10\.0/);
+    assert.match(readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8"), /\*\*Version:\*\* 0\.10\.0/);
+    // Bare `doctrina --version` still prints the CLI version.
+    const v = runCli(["--version"], {});
+    assert.match(v.stdout.trim(), /^\d+\.\d+\.\d+$/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("upgrade previews pending steps, applies with --write, and is then clean", () => {
+  const tmp = initedProject();
+  try {
+    // Age the project: de-stamp the framework version.
+    const idxPath = path.join(tmp, ".doctrina", "index.json");
+    const index = JSON.parse(readFileSync(idxPath, "utf8"));
+    index.framework_version = "0.1.0";
+    writeFileSync(idxPath, JSON.stringify(index, null, 2) + "\n");
+
+    const preview = runCli(["upgrade"], { cwd: tmp });
+    assert.equal(preview.status, 1, preview.stdout);
+    assert.match(preview.stdout, /migrate framework stamp/);
+
+    const apply = runCli(["upgrade", "--write"], { cwd: tmp });
+    assert.equal(apply.status, 0, apply.stderr || apply.stdout);
+
+    const again = runCli(["upgrade"], { cwd: tmp });
+    assert.equal(again.status, 0, again.stdout);
+    assert.match(again.stdout, /nothing to upgrade/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("an abandoned change (ledger-only by design) does not fail the ledger↔index check", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-oops", "wrong direction"], { cwd: tmp });
+    const ab = runCli(["change", "abandon", "0001-oops", "--force"], { cwd: tmp });
+    assert.equal(ab.status, 0, ab.stderr || ab.stdout);
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout);
+    assert.ok(!/ledger and index disagree/.test(r.stdout), r.stdout);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close scopes the coverage gate to the change's touched capabilities", () => {
+  const tmp = initedProject();
+  try {
+    // A deferred spec elsewhere in the tree (would fail an unscoped strict gate).
+    runCli(["spec", "new", "elsewhere"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "elsewhere", "spec.md"),
+      "# Spec — elsewhere\n\n**Capability:** elsewhere\n**Status:** active\n**Implementation:** planned — deferred to Q4\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Acceptance criteria\n\n1. [unverified] later — verified by `test/missing.test.js`.\n");
+
+    // The change touches only "touched", whose criterion is covered.
+    runCli(["spec", "new", "touched"], { cwd: tmp });
+    runCli(["change", "new", "0001-touch", "touch it"], { cwd: tmp });
+    const deltaDir = path.join(tmp, ".doctrina", "changes", "0001-touch", "specs", "touched");
+    mkdirSync(deltaDir, { recursive: true });
+    writeFileSync(path.join(deltaDir, "delta.md"),
+      "# Spec Delta — capability: touched\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/touched/spec.md`\n\n---\n\n# Spec — touched\n\n**Capability:** touched\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nTouch.\n\n## Acceptance criteria\n\n1. [verified] touched — verified by `.doctrina/index.json`.\n");
+    for (const f of ["tasks.md", "proposal.md"]) {
+      const p = path.join(tmp, ".doctrina", "changes", "0001-touch", f);
+      if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
+    }
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    const r = runCli(["close", "0001-touch"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /coverage \(scoped: touched\)/);
+    assert.match(r.stdout, /closed/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

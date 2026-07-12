@@ -13,13 +13,13 @@ export const COMMAND_NAMES = [
   // bootstrap / day-to-day
   "init", "intake", "work",
   // authoring
-  "spec", "change", "contract", "decision", "skill",
+  "spec", "change", "contract", "decision", "skill", "intent",
   // read / orient
   "prime", "context", "show", "search", "status", "next", "why", "handoff", "constitution",
   // gates
   "analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor",
   // maintenance
-  "templates", "hooks", "index", "watch", "metrics", "report", "completion",
+  "templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade",
 ];
 
 // The full operation surface — every `doctrina <command> [<subcommand>]` a
@@ -56,6 +56,8 @@ export const OPERATIONS = [
   ["skill list", "List skills with their descriptions"],
   ["skill sync", "Mirror skill frontmatter descriptions into index.json"],
   ["skill suggest", "Surface fix-shaped lessons worth a skill (--write scaffolds)"],
+  ["intent add", "Append a new product intent anchor post-intake (- [SC5] ...)"],
+  ["intent list", "List product.md intent anchors in document order"],
   ["analyze", "Inspect a change folder before applying"],
   ["clarify", "Smell-test a Markdown file for ambiguity (--all for the tree)"],
   ["prime", "Session primer: gates, rules, open work, next steps in one read"],
@@ -83,6 +85,7 @@ export const OPERATIONS = [
   ["metrics", "Local git-derived adoption metrics (no network)"],
   ["report", "Markdown digest for a period: changes, gates, git summary"],
   ["completion", "Print bash/zsh/pwsh completions (generated from the catalog)"],
+  ["upgrade", "Bring an existing project up to the installed CLI (--write applies)"],
 ];
 
 // The Commands block of `doctrina --help`, generated from OPERATIONS so the

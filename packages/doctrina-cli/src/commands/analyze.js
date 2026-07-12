@@ -2,6 +2,7 @@ import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { c } from "../lib/colors.js";
+import { isUntouchedScaffold } from "./change.js";
 
 export async function run(positional, _flags) {
   const id = positional[0];
@@ -74,8 +75,13 @@ export async function run(positional, _flags) {
       const targetSpec = path.join(projectRoot, ".doctrina", "specs", cap, "spec.md");
       const targetRel = relPath(projectRoot, targetSpec);
       if (op === "ADDED") {
-        if (exists(targetSpec)) {
-          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} already exists`, "  "));
+        // Mirrors `change apply`: an existing target that is still the
+        // untouched `spec new` scaffold is the canonical flow (spec new →
+        // ADDED delta), so it passes as a replacement; only real content fails.
+        if (exists(targetSpec) && !isUntouchedScaffold(read(targetSpec), cap)) {
+          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`, "  "));
+        } else if (exists(targetSpec)) {
+          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (replaces the untouched scaffold)`, "  "));
         } else {
           results.push(pass(`  ${cap} (ADDED) → ${targetRel} (new)`, "  "));
         }

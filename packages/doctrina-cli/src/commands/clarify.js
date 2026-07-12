@@ -5,7 +5,14 @@ import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 
-const RULES = [
+// Two lexicons, one linter (0.11.0 field review item 3: an English-only
+// clarify is permanently red on a PT-BR project — "some" is the verb *sumir*,
+// "TODO o pensamento" is the pronoun *todo* — which teaches people to ignore
+// the gate). The language comes from `.doctrina/config.json` ("language":
+// "pt-BR" | "en"), else a per-file stopword heuristic. Portuguese mode swaps
+// the ambiguous EN tokens for a PT lexicon; TODO only counts with a colon
+// ("TODO:") since bare TODO is the pronoun.
+const RULES_EN = [
   {
     // "may" is intentionally NOT in this list: EARS Optional grammar
     // uses "the system may ..." legitimately, and a clarify pass that
@@ -26,6 +33,56 @@ const RULES = [
     hint: "resolve before applying",
   },
 ];
+
+const RULES_PT = [
+  {
+    name: "weasel",
+    re: /\b(talvez|possivelmente|provavelmente|aproximadamente|quem sabe|eventualmente)\b/gi,
+    hint: "afirme explicitamente, com um verbo definido",
+  },
+  {
+    // ASCII-folded variants included so "varios"/"vários" both match.
+    name: "vague",
+    re: /\b(muitos|muitas|poucos|poucas|v[aá]rios|v[aá]rias|alguns|algumas|adequado|adequada|robusto|robusta|escal[aá]vel)\b(?!\s+\d)/gi,
+    hint: "quantifique (um número ou um escopo preciso)",
+  },
+  {
+    // Bare TODO is the Portuguese pronoun; only TODO: is a marker here.
+    name: "placeholder",
+    re: /\b(TBD|FIXME|XXX|\?\?\?)\b|\bTODO:/g,
+    hint: "resolva antes de aplicar",
+  },
+];
+
+// Language for a file: the project-declared `.doctrina/config.json`
+// ("language": "pt-BR" / "pt" / "en") wins; otherwise a deterministic
+// stopword count over the file text decides. Never semantic (ADR 0005).
+const PT_STOPWORDS = /\b(que|n[aã]o|para|uma|como|mais|ser|quando|est[aá]|s[aã]o|pela|pelo|dos|das|ou seja|deve)\b/gi;
+const EN_STOPWORDS = /\b(the|and|that|with|shall|when|this|from|are|not|for|must)\b/gi;
+
+function projectLanguage(projectRoot) {
+  const cfgPath = path.join(projectRoot, ".doctrina", "config.json");
+  if (isFile(cfgPath)) {
+    try {
+      const lang = String(JSON.parse(read(cfgPath))?.language ?? "").toLowerCase();
+      if (lang.startsWith("pt")) return "pt";
+      if (lang.startsWith("en")) return "en";
+    } catch { /* fall through to detection */ }
+  }
+  return null;
+}
+
+function detectLang(text) {
+  const pt = (text.match(PT_STOPWORDS) ?? []).length;
+  const en = (text.match(EN_STOPWORDS) ?? []).length;
+  return pt > en ? "pt" : "en";
+}
+
+function rulesFor(projectRoot, text) {
+  const declared = projectLanguage(projectRoot);
+  const lang = declared ?? detectLang(text);
+  return lang === "pt" ? RULES_PT : RULES_EN;
+}
 
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
@@ -110,19 +167,27 @@ function clarifyAll(projectRoot) {
   return 1;
 }
 
-function scanFile(fullPath) {
+function scanFile(fullPath, projectRoot = process.cwd()) {
   const text = read(fullPath);
   const skippedRanges = collectSkippedRanges(text);
+  const rules = rulesFor(projectRoot, text);
   const smells = [];
 
-  // Per-line rules: regex pass with skip-range filter.
+  // Per-line rules: regex pass with skip-range filter. A line carrying the
+  // inline suppression marker `<!-- clarify:ok -->` is deliberately accepted
+  // by the author — skip it entirely (the escape hatch for a false positive
+  // the lexicon cannot know about; "block, never imprison").
   const lines = text.split("\n");
   let cursor = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lineStart = cursor;
     const lineEnd = cursor + line.length;
-    for (const rule of RULES) {
+    if (line.includes("clarify:ok")) {
+      cursor = lineEnd + 1;
+      continue;
+    }
+    for (const rule of rules) {
       rule.re.lastIndex = 0;
       let m;
       while ((m = rule.re.exec(line))) {
@@ -199,6 +264,13 @@ Read a Markdown file and report weasel words, vague quantifiers,
 placeholders, and empty Acceptance criteria sections. Exits 0 when
 no smells are found, 1 otherwise. Matches inside fenced code
 blocks, HTML comments, and inline backtick spans are skipped.
+
+Language-aware: declare it in .doctrina/config.json
+({ "language": "pt-BR" }) or let a per-file stopword count decide.
+Portuguese mode uses a PT lexicon (bare TODO is the pronoun, only
+"TODO:" is a marker; "some"/"several" are not smells). A line ending
+in <!-- clarify:ok --> is author-accepted and never flagged — the
+escape hatch for a false positive.
 
 With --all, every living document is scanned in one pass:
 product.md, capability specs, open changes, and skills. ADRs

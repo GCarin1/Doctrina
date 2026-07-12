@@ -39,6 +39,8 @@ import * as show from "./commands/show.js";
 import * as doctor from "./commands/doctor.js";
 import * as report from "./commands/report.js";
 import * as completion from "./commands/completion.js";
+import * as intent from "./commands/intent.js";
+import * as upgrade from "./commands/upgrade.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
@@ -46,6 +48,7 @@ const COMMANDS = {
   intake, work, coverage, verify, contract, trace,
   status, close, review, watch, why, constitution,
   prime, handoff, show, doctor, report, completion,
+  intent, upgrade,
 };
 
 const TOP_HELP = `
@@ -60,11 +63,17 @@ Global flags:
 `;
 
 async function main(argv) {
+  // `--version` is only "print the CLI version" when NO command is given.
+  // With a command it is that command's flag to consume — the old global
+  // intercept made `doctrina spec set x --version 0.10.0` print the CLI
+  // version and exit, looking exactly like the spec's version had been set
+  // (0.11.0 field-review papercut). `-v` stays global either way.
+  const versionOnly = argv.every((t) => t === "--version" || t === "-v") && argv.length > 0;
   const { positional, flags } = parseArgs(argv, {
-    boolean: ["help", "h", "version", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init", "fix", "once", "clean", "json"],
+    boolean: ["help", "h", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init", "fix", "once", "clean", "json"],
   });
 
-  if (flags.get("version") || flags.get("v")) {
+  if (versionOnly || flags.get("v") === true) {
     console.log(cliVersion());
     return 0;
   }

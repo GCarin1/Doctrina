@@ -67,9 +67,15 @@ function changeNew(args, flags) {
   const date = today();
   const tokens = { CHANGE_ID: id, CHANGE_TITLE: title, DATE: date, CAPABILITY: "" };
 
+  // design.md is opt-in (--design): in practice it scaffolded on every change
+  // and stayed empty — nine changes out of nine in the 0.11.0 field review. A
+  // change that needs a design doc asks for one; the rest stop carrying a
+  // blank file through apply/archive/ledger.
+  const wantDesign = flagBool(flags, "design", false);
   const tree = loadTemplateTree(templatesDir, "change");
   for (const entry of tree) {
     if (entry.relativePath === "spec-delta.md.template") continue;
+    if (entry.relativePath === "design.md.template" && !wantDesign) continue;
     const written = materialiseEntry(entry, changeDir, tokens, { force });
     console.log(c.green("created") + ` ${relPath(projectRoot, written)}`);
   }
@@ -139,15 +145,24 @@ function changeApply(args, _flags) {
     const targetPath = path.join(projectRoot, ".doctrina", "specs", capability, "spec.md");
 
     if (op === "ADDED") {
-      if (exists(targetPath)) {
-        console.error(c.red("error:") + ` ADDED delta targets existing spec ${relPath(projectRoot, targetPath)} — refusing to overwrite`);
+      // The canonical new-capability flow is `spec new <cap>` (which creates
+      // the file) → write the ADDED delta — so "target already exists" is the
+      // NORMAL case, not a conflict. When the existing spec is still the
+      // untouched `spec new` scaffold, ADDED means "replace the placeholder
+      // with the real spec" and applies as a whole-file write. Only a spec
+      // with real content refuses, since overwriting it would destroy truth.
+      if (exists(targetPath) && !isUntouchedScaffold(read(targetPath), capability)) {
+        console.error(c.red("error:") + ` ADDED delta targets existing spec ${relPath(projectRoot, targetPath)} with real content — refusing to overwrite`);
+        console.error(c.gray("hint: ") + "use a MODIFIED delta (with an ```ops block for bookkeeping edits), or REMOVE the spec first if it is truly being replaced");
         errors += 1;
         continue;
       }
+      const replacing = exists(targetPath);
       const body = extractDeltaBody(text);
-      write(targetPath, body, { force: false });
+      write(targetPath, body, { force: replacing });
       writes += 1;
-      console.log(c.green("applied[ADDED]") + ` ${relPath(projectRoot, targetPath)}`);
+      console.log(c.green("applied[ADDED]") + ` ${relPath(projectRoot, targetPath)}` +
+        (replacing ? c.gray(" (replaced the untouched spec-new scaffold)") : ""));
     } else if (op === "REMOVED") {
       if (!exists(targetPath)) {
         console.log(c.yellow("warn:") + ` REMOVED delta targets missing spec ${relPath(projectRoot, targetPath)} — skipping`);
@@ -275,6 +290,25 @@ function changeArchive(args, flags) {
     console.error(c.red("error:") + ` archive target already exists: ${relPath(projectRoot, archiveDir)}`);
     return 1;
   }
+
+  // Flip the proposal Status before the move. `apply` only flips it when no
+  // delta fell back to a manual merge, so a change whose merges were manual
+  // (the common case before the ops-block docs) reached the archive still
+  // saying "proposed" — the index recorded applied, the file lied. Archiving
+  // IS the declaration that the change went in; stamp the file to match.
+  const proposalPathLive = path.join(changeDir, "proposal.md");
+  if (exists(proposalPathLive)) {
+    const txt = read(proposalPathLive);
+    const updated = txt.replace(
+      /^(-\s+\*\*Status:\*\*)\s+proposed\s*$/m,
+      `$1 applied\n- **Applied:** ${date}`,
+    );
+    if (updated !== txt) {
+      write(proposalPathLive, updated, { force: true });
+      console.log(c.green("status") + " proposal.md → applied (stamped at archive)");
+    }
+  }
+
   move(changeDir, archiveDir);
   console.log(c.green("archived") + ` ${relPath(projectRoot, archiveDir)}`);
 
@@ -470,6 +504,38 @@ function extractDeltaBody(text) {
   return text.slice(idxSep + 5).replace(/^\n+/, "");
 }
 
+// Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
+// check: render the shipped capability template for the same capability and
+// compare, ignoring the date-bearing "Last updated" line and whitespace
+// normalisation. When the template cannot be located (unusual installs),
+// fall back to the scaffold's own placeholder fingerprints — text no real
+// spec keeps. Used by `change apply` so an ADDED delta can replace a
+// scaffold (the canonical spec-new → delta flow) without ever clobbering a
+// spec that carries real content.
+function isUntouchedScaffold(specText, capability) {
+  const normalize = (s) =>
+    s.replace(/\r\n/g, "\n")
+      .split("\n")
+      .filter((line) => !/^\*\*Last updated:\*\*/.test(line))
+      .join("\n")
+      .trim();
+  try {
+    const tplPath = path.join(locateTemplatesDir(), "spec.md.template");
+    const rendered = read(tplPath)
+      .replace(/\{\{CAPABILITY\}\}/g, capability)
+      .replace(/\{\{DATE\}\}/g, "");
+    if (normalize(rendered) === normalize(specText)) return true;
+  } catch {
+    // fall through to the fingerprint heuristic
+  }
+  // Fingerprints: the Purpose placeholder comment AND an empty Ubiquitous
+  // section survive only in a scaffold nobody edited.
+  return (
+    specText.includes("<!-- One paragraph: what this capability does and why it exists. -->") &&
+    /##\s+Requirements \(EARS\)[\s\S]*?### Ubiquitous\s*\n\s*-\s*\n/.test(specText)
+  );
+}
+
 // Reasons a change is not finished enough to archive. Counts unchecked
 // GitHub-style checkboxes (`- [ ]`) in tasks.md (every task, including the
 // closing steps) and in the proposal's "## Verification" section. Returns
@@ -521,8 +587,12 @@ Usage: doctrina change <subcommand> [args]
 Subcommands:
   new <id> "<title>"     Open a new change proposal at .doctrina/changes/<id>/
                          (--chore / --no-spec: a spec-less change for infra /
-                         docs / build that still gets a proposal + ledger)
-  apply <id>             Apply spec deltas: ADDED writes, REMOVED deletes,
+                         docs / build that still gets a proposal + ledger;
+                         --design: also scaffold design.md, opt-in)
+  apply <id>             Apply spec deltas: ADDED writes the full body (it
+                         also REPLACES a target that is still the untouched
+                         \`spec new\` scaffold — the canonical new-capability
+                         flow; real content refuses), REMOVED deletes,
                          MODIFIED with an \`\`\`ops block is applied mechanically
                          (set-header / bump-version / set-criterion / ...),
                          MODIFIED without one prints a manual-merge pointer.
@@ -544,9 +614,10 @@ A MODIFIED delta may carry a fenced operations block that \`apply\` executes:
 Options:
   --force                Overwrite existing files (where applicable)
   --chore, --no-spec     With new, open a spec-less chore change
+  --design               With new, also scaffold design.md (opt-in)
   --reason "<text>"      With abandon, the reason recorded in the ledger
 `;
 
 // Re-export parsers so scan.js (index rebuild) can reuse them, and the
 // scaffold so `work` can open a change without duplicating the logic.
-export { parseOperation, parseCapabilityFromDelta, changeNew };
+export { parseOperation, parseCapabilityFromDelta, changeNew, isUntouchedScaffold };
