@@ -2,84 +2,54 @@
 
 ## Vision
 
-A spec-driven development framework whose primary unit of value is a small,
-dense, portable artifact stack that any AI coding agent can consume on day one
-without proprietary lock-in.
+Doctrina exists to make AI-enabled software development reliable by turning human intent into traceable, spec-driven change artifacts and a single linear work pipeline for multi-agent collaboration.
 
 ## Problem
 
-Teams adopting AI coding agents in 2026 hit four recurring failure modes:
-
-1. **Context drift.** Specs go out of sync with code; the agent reads stale truth.
-2. **Decision amnesia.** Architectural decisions are lost in chat history.
-3. **Multi-agent chaos.** Parallel agents take conflicting implicit decisions.
-4. **Documentation theater.** Frameworks add ceremony that nobody maintains
-   after the first sprint.
-
-The existing market (Spec Kit, OpenSpec, Kiro, BMAD, SpecWeave) partially
-addresses each, but the entire field has converged on two truths that
-Doctrina takes as non-negotiable:
-
-- Files in git are the most durable substrate for agent context.
-- AGENTS.md is the de facto portable standard.
-
-A third truth shapes how Doctrina is built but is less widely known:
-context engineering, not agent count, predicts performance. On the
-BrowseComp evaluation, Anthropic measured that **token usage alone
-explains 80% of the variance in task performance**, with tool-call
-count and model choice carrying the remaining variance (source:
-[How we built our multi-agent research system](https://www.anthropic.com/engineering/built-multi-agent-research-system),
-Anthropic engineering blog, June 2025).
-The implication is direct: investing in dense, well-scoped context
-artifacts (specs, ADRs, AGENTS.md) returns more than investing in
-agent topology (more roles, more parallelism). Doctrina's design
-follows the data.
+Teams building AI-assisted software struggle with fragmented intent, conflicting agent outputs, and missing traceability. Existing workflows often produce unstructured drafts, undocumented decisions, and brittle coordination between human prompts, agent tools, and project artifacts.
 
 ## Target users
 
-| Segment | Why Doctrina fits |
-|---------|-------------------|
-| Solo developers using Claude Code, Codex CLI, or Cursor | Low-ceremony defaults, AGENTS.md works out of the box |
-| Small teams adopting SDD | Versioned artifacts review well in PRs |
-| Brownfield projects | Specs as current-truth (OpenSpec model), not waterfall artifacts |
+- AI engineering teams that need a repeatable, audit-ready way to manage specs, changes, and decisions.
+- Product and platform teams adopting AGENTS.md and modern multi-agent workflows.
+- Developers and maintainers who want a lightweight, zero-dependency CLI for coordinating AI-assisted code work.
+- Organizations that value formal requirements, ADRs, and gated delivery over ad hoc prompt-driven changes.
 
-Doctrina is **not** for: throwaway prototypes, one-line fixes, or teams that
-already have a working SDD process they like.
-
-## Scope (v0–v3)
+## Scope
 
 In scope:
 
-- AGENTS.md-first authoring conventions.
-- `.doctrina/` layout with specs, changes, decisions, templates, index.
-- Node.js CLI for scaffolding, validating, and archiving.
-- Adapters for 12 AGENTS.md-aware agents: seven install thin pointer
-  files (Claude Code, Cursor, GitHub Copilot, Gemini CLI, Aider,
-  Windsurf, Continue), with Claude Code additionally getting native
-  slash commands for the core workflow; five read `AGENTS.md` natively
-  and need no file (OpenAI Codex CLI, Amp, Devin, Factory, Jules).
-- Bilingual documentation (EN primary, PT translated).
+- A zero-dependency Node.js CLI for managing Doctrina artifacts and workflows.
+- Support for AGENTS.md-native project structure with product intent, capability specs, decisions, skills, templates, and indexed artifacts.
+- A single linear coordination model for `doctrina work`, `doctrina analyze`, `doctrina apply`, `doctrina close`, `doctrina validate`, and related commands.
+- Integration patterns for AGENTS.md-aware agents and adapters, plus bilingual documentation and example projects.
+- Validation, traceability, and coverage gates to ensure changes remain aligned with specs and accepted decisions.
 
 Out of scope (deferred or rejected):
 
-- `memory/` folder (deferred — see ADR 0003).
-- Multi-agent parallel writers (rejected — see ADR 0004).
-- Database, vector store, or RAG infrastructure (v0/v1 hard rule).
-- Hosted SaaS, web UI, or analytics backend.
+- A runtime database, vector store, or RAG layer.
+- Persistent project memory beyond spec, decision, and change artifacts.
+- Parallel multi-agent writing as the default orchestration model.
+- Automatic content generation or documentation tools that bypass human review.
 
 ## Non-goals
 
-- Doctrina is not an agent runtime. It is a context substrate. The agents
-  themselves (Claude Code, Codex CLI, Cursor) are not bundled or replaced.
-- Doctrina is not a project management tool. It does not track velocity,
-  burndown, or assignees.
-- Doctrina does not generate code. Agents do, against Doctrina artifacts.
+- Doctrina is not a general-purpose ORM, test framework, or application runtime.
+- It is not intended to replace source control or traditional CI/CD systems.
+- It is not a hosted LLM service or telemetry platform.
+- It is not a lock-in platform; it preserves editable AGENTS.md artifacts and plain repository structure.
 
 ## Success criteria
 
-A Doctrina adoption is successful when, after one quarter:
+- [SC1] Users can initialize and operate a Doctrina project with no runtime dependencies beside Node.js.
+- [SC2] Every change proposal can be traced to a spec and validated through `doctrina validate` with coverage and trace gates.
+- [SC3] The CLI supports the full work cycle from intent capture to change archive without losing artifact consistency.
+- [SC4] Documentation exists for onboarding, workflow, adapters, and validation in both English and Portuguese.
+- [SC5] Example reference projects demonstrate a greenfield and brownfield adoption path.
 
-- [SC1] Rework rate (DORA 5th metric) is lower than the pre-adoption baseline.
-- [SC2] PR review time has not grown by more than 50% (Faros 2025 paradox limit).
-- [SC3] No artifact category is consistently unread by humans or agents.
-- [SC4] The team can answer "why was X decided?" by pointing to a single ADR.
+## Delivery order (walking skeleton)
+
+1. Capture product intent and requirements in `.doctrina/product.md` and capability specs.
+2. Scaffold a change with `doctrina work` and implement it through `doctrina analyze` and `doctrina apply`.
+3. Validate the resulting artifacts with `doctrina validate` and `doctrina verify`.
+4. Archive the change and confirm the project remains consistent via `doctrina status` and `doctrina next`.

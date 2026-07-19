@@ -1,11 +1,11 @@
-# AGENTS.md — Arbites
+# AGENTS.md — Doctrina
 
 Operational source of truth for AI coding agents working in this
 repository. Follows the open AGENTS.md standard.
 
 ## What this repo is
 
-Arbites — Plataforma Local de Gestão e Rastreabilidade de Testes
+
 
 This repository uses the Doctrina framework for spec-driven, AGENTS.md
 native multi-agent development. The full framework artifacts live under
@@ -42,31 +42,38 @@ so prefer it over writing artifacts by hand. Full list: `doctrina --help`.
   existing code) · `--chore` (no-spec infra/docs/build)
 - **Scaffold (manual creation stays available):** `doctrina spec new <cap>`
   (`--bug`) · `doctrina decision new "<title>"` · `doctrina change new <id>`
-  · `doctrina contract new <id>` · `doctrina skill new <slug>`
+  · `doctrina contract new <id>` · `doctrina skill new <slug>` · `doctrina
+  intent add "<text>"` (new product anchor post-intake)
 - **Advance / close:** `doctrina change apply|archive|diff <id>` · `doctrina
   decision accept|land|supersede <n>` · `doctrina spec set <cap> [...]` ·
-  `doctrina close <id>` (whole close in one pass)
+  `doctrina close <id>` (whole close in one pass, coverage scoped to the
+  change)
 - **Gates (ground truth, not guesses):** `doctrina validate` (`--fix`) ·
   `doctrina verify` · `doctrina review` (conformance vs specs/ADRs) ·
-  `doctrina coverage --strict` · `doctrina trace --strict` · `doctrina
-  contract check` · `doctrina clarify --all` · `doctrina analyze <id>`
+  `doctrina coverage --strict` (`--run` executes cited proof) ·
+  `doctrina trace --strict` · `doctrina contract check` ·
+  `doctrina clarify --all` · `doctrina analyze <id>`
 
 Continuous: `doctrina watch` re-syncs and re-orients on every save.
 Capture lessons: `doctrina skill suggest` surfaces skills worth writing.
+After a CLI update: `doctrina upgrade --write` brings this project up.
 
 ## Stack and tooling
 
-- Runtime: Python 3.12+ (FastAPI + Pydantic v2, uvicorn) · Node (React 18 + Vite + TypeScript)
-- Package manager: pip/venv (backend) · npm (frontend)
-- Test runner: pytest (backend)
-- Índice: SQLite (stdlib) · Watcher: watchdog · Parsers: python-frontmatter, markdown-it-py, gherkin
+<!-- Replace with the project's actual stack. Keep this section short. -->
+- Runtime:
+- Package manager:
+- Test runner:
+- Linter / formatter:
 
 ## Commands
 
+<!-- Use exact, copy-pasteable commands. Avoid prose. -->
 ```
-python -m pytest backend/tests -q     # test (backend)
-npm --prefix frontend run build       # build (frontend)
-doctrina verify                       # gate executável (roda os dois)
+# install
+# build
+# test
+# lint
 ```
 
 ## Repository structure

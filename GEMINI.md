@@ -1,0 +1,11 @@
+# GEMINI.md — Doctrina
+
+This project uses the open AGENTS.md standard as the single source of
+truth for agent-readable rules. The canonical file is at the
+repository root; this `GEMINI.md` is a thin pointer so Gemini CLI's
+auto-loading picks it up.
+
+See `AGENTS.md` for the operational rules.
+
+The Doctrina framework artifacts (specs, decisions, changes) live
+under `.doctrina/`. Read order is documented in AGENTS.md.
