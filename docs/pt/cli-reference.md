@@ -100,10 +100,18 @@ o playbook fecha com `doctrina close <id>` (o fechamento atestado em uma
 passada) depois de um checkpoint explícito de ADR — "esta change decide
 algo estrutural? registre antes de fechar."
 
+Com `--capability`, o change também ganha um **delta esqueletizado** em
+`specs/<cap>/delta.md` com o header `**Operation:**` pré-preenchido
+(`MODIFIED` quando a spec existe, `ADDED` quando não) — o delta era
+historicamente o único arquivo 100% escrito à mão do fluxo, e um header
+ausente só explodia dias depois no `analyze` do fechamento. Nunca
+esqueletizado a partir de um palpite do ranking; só do pin explícito.
+
 | Flag | Função |
 |------|--------|
 | `--title "<curto>"` | Título curto de exibição: dirige o slug e o H1 da proposal; o prompt completo continua indo para o `## Why`. Sem ela, um prompt longo vira um H1 longo. |
-| `--capability <cap>` | Fixa a capability em vez de ranquear matches. |
+| `--capability <cap>` | Fixa a capability em vez de ranquear matches, e esqueletiza um `delta.md` pré-preenchido para ela. |
+| `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--force` | Sobrescreve uma pasta de change existente. |
 
@@ -201,13 +209,16 @@ O `<id>` é o nome do diretório. Convenção: `NNNN-slug`.
 | `--design` | Também esqueletiza `design.md` (opt-in). |
 | `--force` | Sobrescreve uma pasta de change existente. |
 
-## `doctrina change apply <id>`
+## `doctrina change apply <id...>`
 
 Aplica cada delta encontrado em
-`.doctrina/changes/<id>/specs/`.
+`.doctrina/changes/<id>/specs/`. Vários ids rodam em sequência, cada um
+independente (fechamento em lote de backlog); o código de saída é o pior
+resultado por id.
 
 ```
 doctrina change apply 0042-add-saml
+doctrina change apply 0042-add-saml 0043-rate-limit 0044-audit-log
 ```
 
 Semântica:
@@ -219,12 +230,19 @@ Semântica:
   remova-o antes).
 - **REMOVED:** deleta a spec alvo.
 - **MODIFIED com bloco ` ```ops `:** aplicado mecanicamente — todas as
-  ops ou nenhuma (`set-header` / `bump-version` / `set-criterion` /
-  `replace-criterion` / `append-criterion`; ADR 0007). A sintaxe vive no
+  ops ou nenhuma (ADR 0007). Os verbos cobrem headers (`set-header` /
+  `bump-version`), critérios de aceitação (`set-criterion` /
+  `replace-criterion` / `append-criterion`) e os bullets EARS de
+  requisito (`append-requirement <seção>: <texto>` /
+  `replace-requirement <seção> <n>: <texto>`, seções
+  `ubiquitous|event|state|unwanted|optional`), então um delta típico
+  aplica de ponta a ponta sem merge manual. Ops `append-*` resolvem
+  numeração/posição na hora do apply, então changes abertas
+  concorrentes anexando à mesma spec nunca colidem. A sintaxe vive no
   template do delta e no playbook do work.
 - **MODIFIED sem bloco:** imprime `manual[MODIFIED]` com um ponteiro;
-  você faz o merge da prosa à mão (reescrever prosa é o único caso que
-  resta).
+  você faz o merge da prosa à mão (reescrever prosa livre — Purpose,
+  Maturity — é o único caso que resta).
 
 Quando todos os deltas processam com sucesso (sem erros e sem merges
 manuais) e pelo menos um delta foi escrito, o `Status:` do proposal
@@ -232,13 +250,15 @@ flipa de `proposed` para `applied` e uma linha `Applied:` é adicionada.
 Uma change cujos merges ficaram manuais ganha o carimbo na hora do
 `change archive`, então o arquivo nunca contradiz o ledger.
 
-## `doctrina change archive <id>`
+## `doctrina change archive <id...>`
 
 Move um change aplicado para
 `.doctrina/changes/archive/YYYY-MM-DD-<id>/` e atualiza o index.
+Vários ids rodam em sequência; o código de saída é o pior por id.
 
 ```
 doctrina change archive 0042-add-saml
+doctrina change archive 0042-add-saml 0043-rate-limit
 ```
 
 Arquivar é o ato de declarar um change terminado, então ele exige
@@ -258,6 +278,54 @@ specs afetadas) em `.doctrina/changes/archive/LEDGER.md` — o jeito
 barato de escanear a história sem abrir as pastas do archive, que
 ficam fora do caminho de leitura default. O CLI só anexa; edite o
 ledger à vontade.
+
+## `doctrina change check <id...>`
+
+Dry-run pré-fechamento — tudo que o `close` recusaria, listado **antes**
+de qualquer coisa rodar, com a remediação ao lado de cada achado.
+Read-only; o `doctor` por-change.
+
+```
+doctrina change check 0042-add-saml
+```
+
+Três passes mais um advisory:
+
+1. **estrutura** — os mesmos checks que o `analyze` roda (proposal,
+   tasks, headers de delta, alvos).
+2. **dry-run das ops** — o bloco ` ```ops ` de cada delta MODIFIED
+   executado em memória contra a spec alvo: uma op que falharia na hora
+   do apply (header ausente, critério ou requisito inexistente, verbo
+   desconhecido) é reportada aqui, não no fechamento. Um delta sem bloco
+   ops é sinalizado como merge manual, para o fechamento ser planejado
+   em volta dele.
+3. **gate do archive** — as caixas desmarcadas que o `archive` vai
+   recusar, com o conserto em lote (`change tick <id> --all`) nomeado.
+
+Advisory (nunca bloqueia): os ADRs aceitos cujo texto cita as
+capabilities tocadas — se a change altera o que um ADR decidiu, registre
+o amendment (`decision supersede` / `decision new`) em vez de passar por
+cima em silêncio.
+
+Sai com 0 e `ready to close` quando as três áreas estão limpas. Aceita
+vários ids.
+
+## `doctrina change tick <id> [n... | --all]`
+
+Lista — e marca em lote — as caixas desmarcadas de uma change: cada
+`- [ ]` do `tasks.md` mais a seção `## Verification` do proposal, em um
+espaço contínuo de ordinais.
+
+```
+doctrina change tick 0042-add-saml            # lista com ordinais
+doctrina change tick 0042-add-saml 1 3        # marca as caixas 1 e 3
+doctrina change tick 0042-add-saml --all      # marca tudo
+```
+
+Marcar checkbox era o único passo sem comando nenhum — fechamento em
+lote significava sed/Python à mão. Marcar é uma *alegação* de conclusão;
+os gates honestos continuam sendo `verify`/`coverage`/`archive` — isto
+só remove a fricção mecânica.
 
 ## `doctrina change diff <id>`
 
@@ -494,14 +562,17 @@ Pula blocos de código com fence, comentários HTML e backticks
 inline. Sai 0 sem smells, 1 caso contrário — útil como gate
 pré-PR em CI. Nunca modifica o arquivo.
 
-**Sensível ao idioma.** Declare o idioma do projeto em
-`.doctrina/config.json` (`{ "language": "pt-BR" }`) ou deixe uma contagem
-de stopwords por arquivo decidir. O modo português troca o léxico:
-`talvez`, `provavelmente`, `vários`, `alguns`, … são os smells, e os
-falsos positivos do inglês desaparecem (`some` é o verbo *sumir*; `TODO`
-sem dois-pontos é o pronome *todo* — só `TODO:` é marcador). Uma linha
-com `<!-- clarify:ok -->` é aceita pelo autor e nunca é sinalizada — o
-escape para um falso positivo que o léxico não tem como conhecer.
+**Sensível ao idioma.** `--lang pt|en` força o léxico; senão decide o
+idioma declarado em `.doctrina/config.json`
+(`{ "language": "pt-BR" }`), senão uma contagem de stopwords por
+arquivo. O modo português troca o léxico: `talvez`, `provavelmente`,
+`vários`, `alguns`, … são os smells, e os falsos positivos do inglês
+desaparecem (`some` é o verbo *sumir*; `TODO` sem dois-pontos é o
+pronome *todo* — só `TODO:` é marcador). A flag importa em arquivos de
+idioma misto, onde a heurística pode pender para o lado errado. Uma
+linha com `<!-- clarify:ok -->` é aceita pelo autor e nunca é
+sinalizada — o escape para um falso positivo que o léxico não tem como
+conhecer.
 
 Com `--all`, todo documento vivo é escaneado em um passe:
 `product.md`, specs de capability, changes abertas e skills. ADRs
@@ -532,9 +603,11 @@ doctrina templates check
 
 Caminha por `AGENTS.md`, `.doctrina/product.md` e
 `.doctrina/index.json` e reporta qualquer seção recomendada ou
-campo de schema que esteja faltando. Read-only; nunca modifica
-arquivos. Sai 0 quando toda seção recomendada está presente,
-1 caso contrário.
+campo de schema que esteja faltando — inclusive se o **bloco
+doctrina:surface** do AGENTS.md (o catálogo de comandos delimitado por
+marcadores, propriedade do CLI, gerado do CLI instalado; ADR 0015)
+está presente e atual. Read-only; nunca modifica arquivos. Sai 0
+quando toda seção recomendada está presente, 1 caso contrário.
 
 Distinto de `validate`: `validate` responde "esta é uma árvore
 Doctrina bem-formada?"; `templates check` responde "esta árvore
@@ -545,7 +618,7 @@ existentes ainda não adotaram.
 
 ## `doctrina templates update`
 
-Corretor só-aditivo para o que o `templates check` reporta.
+Corretor para o que o `templates check` reporta.
 
 ```
 doctrina templates update [--write]
@@ -554,12 +627,18 @@ doctrina templates update [--write]
 Preview é o default: o comando imprime o plano de update — seções
 recomendadas faltando em `AGENTS.md` e `.doctrina/product.md`,
 campos de schema ou categorias de artefato faltando no
-`index.json` — não escreve nada e sai 1 enquanto há updates
-pendentes. Com `--write` ele anexa seções stub (marcadas com
-`<!-- added by doctrina templates update — fill in -->`) e
-adiciona os campos faltantes. Conteúdo existente nunca é
-reescrito ou removido; preencher os stubs continua sendo decisão
-humana.
+`index.json`, e o estado do **bloco doctrina:surface** do AGENTS.md —
+não escreve nada e sai 1 enquanto há updates pendentes. Com `--write`
+ele anexa seções stub (marcadas com
+`<!-- added by doctrina templates update — fill in -->`), adiciona os
+campos faltantes e **regenera o bloco surface** a partir do catálogo
+do CLI instalado: um bloco desatualizado é reescrito no lugar; uma
+seção legada `## Doctrina command surface` escrita à mão (esqueleto de
+CLI antigo, sem marcadores) é substituída pelo bloco gerenciado; um
+arquivo sem nenhum dos dois ganha o bloco anexado. O trecho entre
+marcadores é a única região de propriedade do CLI (ADR 0015) — tudo
+fora dele nunca é reescrito ou removido, e preencher os stubs continua
+sendo decisão humana.
 
 ## `doctrina hooks install`
 
@@ -890,24 +969,34 @@ de sessão para o agente (`doctrina prime` é o primer de sessão mais rico).
 |------|--------|
 | `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). |
 
-## `doctrina close <id>`
+## `doctrina close <id...>`
 
 Roda toda a sequência de fechamento de uma change em uma passada (ADR 0012).
 
 ```
 doctrina close 0001-add-login
 doctrina close 0001-add-login --force
+doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 
-Dirige analyze → `change apply` → verify → `coverage --strict` → trace →
-`change archive` → validate, parando na primeira falha com o comando exato
-para reexecutar. O gate de coverage é **escopado às capabilities que os
-deltas da change tocam** (`--only` por baixo), então uma spec
-deliberadamente adiada em outro canto da árvore não bloqueia um close que
-nunca a tocou; uma change sem deltas gateia na árvore inteira. O verify é
-pulado (com aviso) quando não há `verify.json`; o trace é advisory. É um
+Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
+texto cita as capabilities tocadas, com os comandos de amendment — o
+passo "registre um ADR" do playbook era ignorável em silêncio) →
+`change apply` → verify → `coverage --strict` → trace →
+`change archive` → validate → **skill suggest** (advisory: lições
+fix-shaped ainda não capturadas, sugeridas enquanto estão frescas),
+parando na primeira falha com o comando exato para reexecutar. O gate de
+coverage é **escopado às capabilities que os deltas da change tocam**
+(`--only` por baixo), então uma spec deliberadamente adiada em outro
+canto da árvore não bloqueia um close que nunca a tocou; uma change sem
+deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
+não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
 driver sobre os comandos existentes — não adiciona checagens próprias —
-então o agente faz uma chamada em vez de sete.
+então o agente faz uma chamada em vez de nove.
+
+Vários ids fecham em sequência, cada um independente; o código de saída
+é o pior resultado por id. Pré-visualize o que o close recusaria com
+`doctrina change check <id>`.
 
 | Flag | Função |
 |------|--------|
@@ -1154,15 +1243,17 @@ doctrina upgrade --write    # aplica
 
 Um orquestrador sobre as peças que já existem, em ordem:
 
-1. `templates update` — anexa seções recomendadas faltantes ao AGENTS.md /
-   product.md e campos faltantes do index.json (apenas-aditivo; nunca
-   reescreve o seu conteúdo).
+1. `templates update` — **regenera o bloco doctrina:surface do
+   AGENTS.md** a partir do catálogo do CLI instalado (o bloco é
+   propriedade do CLI, ADR 0015 — é assim que agentes lendo o hub
+   descobrem comandos adicionados desde o init; uma seção de superfície
+   legada escrita à mão é substituída pelo bloco gerenciado), e anexa
+   seções recomendadas / campos do index.json faltantes (apenas-aditivo
+   fora do bloco).
 2. `index rebuild` — regenera o index.json a partir da árvore e migra o
    carimbo `framework_version` para o CLI em execução.
-3. `validate` (`--fix` sob `--write`) — mostra o que um upgrade aditivo
-   não consegue corrigir, ex.: um AGENTS.md documentando uma superfície de
-   comandos defasada (atualize essa seção para os agentes verem os
-   comandos novos).
+3. `validate` (`--fix` sob `--write`) — mostra o que o upgrade não
+   consegue corrigir (drift escrito à mão, checks novos do validate).
 
 ## Variáveis de ambiente
 

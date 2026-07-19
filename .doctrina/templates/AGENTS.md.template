@@ -22,41 +22,31 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
   spec each, `doctrina clarify --all` + `doctrina validate`, then flip the
   intake to `Status: converted`). After conversion the specs are the only
   source of truth — never edit `intake.md` to change requirements.
-- **Day-to-day.** Turn any request into a change with `doctrina work
-  "<prompt>"` and follow the printed playbook (spec delta → tasks →
-  implement → analyze → apply → archive → validate). Unsure what to do
-  next? Run `doctrina next`. Need to read? Run `doctrina context`. Ask the
-  human only on genuine ambiguity.
+- **Day-to-day.** Start every session with `doctrina prime` (gates, rules,
+  open work in one read). Turn any request into a change with `doctrina
+  work "<prompt>"` and follow the printed playbook (spec delta → tasks →
+  implement → close). Preview a close with `doctrina change check <id>`;
+  close with `doctrina close <id>`. Unsure what's next? `doctrina next`.
+  Before compaction or handover: `doctrina handoff`. Ask the human only on
+  genuine ambiguity.
 
-## Doctrina command surface (reach for these — don't hand-author)
+<!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->
+## Doctrina command surface (generated — reach for these, don't hand-author)
 
-The CLI scaffolds from canonical templates and keeps `index.json` in sync,
-so prefer it over writing artifacts by hand. Full list: `doctrina --help`.
+Every operation of the installed CLI, grouped by workflow. The CLI
+scaffolds from canonical templates and keeps `index.json` in sync, so
+prefer it over writing artifacts by hand. Details: `doctrina --help`.
 
-- **Read / orient (any task, first & last):** `doctrina status` (health) ·
-  `doctrina context [<cap>] --concat` (read pack) · `doctrina next` (what's
-  next) · `doctrina why <cap>` (provenance) · `doctrina constitution`
-  (standing rules) · `doctrina spec list` · `doctrina decision list` ·
-  `doctrina search <query>`
-- **Start:** `doctrina work "<prompt>"` · `--from-diff` (backfill from
-  existing code) · `--chore` (no-spec infra/docs/build)
-- **Scaffold (manual creation stays available):** `doctrina spec new <cap>`
-  (`--bug`) · `doctrina decision new "<title>"` · `doctrina change new <id>`
-  · `doctrina contract new <id>` · `doctrina skill new <slug>` · `doctrina
-  intent add "<text>"` (new product anchor post-intake)
-- **Advance / close:** `doctrina change apply|archive|diff <id>` · `doctrina
-  decision accept|land|supersede <n>` · `doctrina spec set <cap> [...]` ·
-  `doctrina close <id>` (whole close in one pass, coverage scoped to the
-  change)
-- **Gates (ground truth, not guesses):** `doctrina validate` (`--fix`) ·
-  `doctrina verify` · `doctrina review` (conformance vs specs/ADRs) ·
-  `doctrina coverage --strict` (`--run` executes cited proof) ·
-  `doctrina trace --strict` · `doctrina contract check` ·
-  `doctrina clarify --all` · `doctrina analyze <id>`
+- **Start:** `doctrina init` · `doctrina intake` · `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)`
+- **Author:** `doctrina spec new|list|set` · `doctrina change new|apply|archive|check|tick|diff|abandon` · `doctrina contract new|list|check` · `doctrina decision new|accept|land|supersede|list` · `doctrina skill new|list|sync|suggest` · `doctrina intent add|list`
+- **Read / orient:** `doctrina prime (session start)` · `doctrina context [<cap>] --concat` · `doctrina show` · `doctrina search` · `doctrina status` · `doctrina next` · `doctrina why` · `doctrina handoff (before compaction/handover)` · `doctrina constitution`
+- **Gates:** `doctrina analyze` · `doctrina clarify --all (--lang pt|en)` · `doctrina validate (--fix)` · `doctrina coverage --strict` · `doctrina trace --strict` · `doctrina review` · `doctrina verify` · `doctrina close <id...>` · `doctrina doctor`
+- **Maintain:** `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write`
 
-Continuous: `doctrina watch` re-syncs and re-orients on every save.
-Capture lessons: `doctrina skill suggest` surfaces skills worth writing.
-After a CLI update: `doctrina upgrade --write` brings this project up.
+Session bookends: `doctrina prime` to orient at session start;
+`doctrina handoff` before compaction or handover. Continuous:
+`doctrina watch`. Capture lessons: `doctrina skill suggest`.
+<!-- doctrina:surface:end -->
 
 ## Stack and tooling
 

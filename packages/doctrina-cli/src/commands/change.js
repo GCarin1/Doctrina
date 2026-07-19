@@ -1,17 +1,18 @@
 import path from "node:path";
 import process from "node:process";
-import { exists, isDir, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
 import { deriveIndex } from "../lib/scan.js";
 import { extractOps, applyOps } from "../lib/spec-ops.js";
+import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "diff", "abandon"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -19,9 +20,13 @@ export async function run(positional, flags) {
     case "new":
       return changeNew(positional.slice(1), flags);
     case "apply":
-      return changeApply(positional.slice(1), flags);
+      return forEachId(positional.slice(1), "apply", (id) => changeApply([id], flags));
     case "archive":
-      return changeArchive(positional.slice(1), flags);
+      return forEachId(positional.slice(1), "archive", (id) => changeArchive([id], flags));
+    case "check":
+      return forEachId(positional.slice(1), "check", (id) => changeCheck(id));
+    case "tick":
+      return changeTick(positional.slice(1), flags);
     case "diff":
       return changeDiff(positional.slice(1), flags);
     case "abandon":
@@ -34,6 +39,40 @@ export async function run(positional, flags) {
         : `available: ${SUBCOMMANDS.join(", ")}`));
       return 2;
   }
+}
+
+// Batch driver (operator review 2026-07-19 §3.5/§4.5): apply/archive/check
+// accept multiple ids so a backlog closes without a bash loop. Each id runs
+// independently — one failure does not stop the rest — and the exit code is
+// the worst one seen. `new` and `abandon` stay single-id on purpose (creation
+// wants a title; abandonment is destructive and deserves one deliberate call).
+async function forEachId(ids, name, one) {
+  if (ids.length === 0) {
+    console.error(c.red("error:") + ` change ${name} requires at least one <id>`);
+    return 2;
+  }
+  let worst = 0;
+  for (const id of ids) {
+    if (ids.length > 1) {
+      console.log("");
+      console.log(c.bold(`──── change ${name} ${id}`));
+    }
+    let code;
+    try {
+      code = await one(id);
+    } catch (err) {
+      console.error(c.red("error:") + ` ${err.message}`);
+      code = 1;
+    }
+    worst = Math.max(worst, code);
+  }
+  if (ids.length > 1) {
+    console.log("");
+    console.log(worst === 0
+      ? c.green("ok") + ` all ${ids.length} changes passed ${name}`
+      : c.red("fail") + ` at least one change failed ${name}`);
+  }
+  return worst;
 }
 
 function changeNew(args, flags) {
@@ -244,6 +283,178 @@ function changeApply(args, _flags) {
     console.log(`Next: ${c.cyan(`doctrina change archive ${id}`)}.`);
   }
   return errors > 0 ? 1 : 0;
+}
+
+// Pre-close dry-run (operator review 2026-07-19 §4.4): everything analyze,
+// apply, and archive would refuse, listed BEFORE any of them runs, with the
+// remediation next to each finding. Read-only — the per-change `doctor`.
+async function changeCheck(id) {
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
+    return 1;
+  }
+
+  let failures = 0;
+
+  // 1. Structural analysis — same checks analyze runs before an apply.
+  console.log(c.gray("──── 1/3 structure (analyze)"));
+  const analyze = await import("./analyze.js");
+  if ((await analyze.run([id], new Map())) !== 0) failures += 1;
+
+  // 2. Ops dry-run: execute every MODIFIED delta's ops block against the
+  //    target spec in memory. An op that would fail at apply time (missing
+  //    header, no such criterion, unknown verb) is reported here, not days
+  //    later; a delta with no ops block is flagged as a manual merge so the
+  //    close is planned around it instead of surprised by it.
+  console.log(c.gray("──── 2/3 ops dry-run (what apply would do)"));
+  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  let opsFindings = 0;
+  for (const deltaPath of deltaFiles) {
+    const text = read(deltaPath);
+    if (parseOperation(text) !== "MODIFIED") continue;
+    const capability = parseCapabilityFromDelta(text, deltaPath);
+    const rel = relPath(projectRoot, deltaPath);
+    const ops = extractOps(text);
+    if (ops.length === 0) {
+      console.log(c.yellow("⚠ ") + `${rel}: no ops block — apply will print a manual-merge pointer`);
+      continue;
+    }
+    const targetPath = path.join(projectRoot, ".doctrina", "specs", capability ?? "", "spec.md");
+    if (!capability || !exists(targetPath)) {
+      console.log(c.red("✗ ") + `${rel}: MODIFIED targets missing spec`);
+      opsFindings += 1;
+      continue;
+    }
+    const result = applyOps(read(targetPath), ops);
+    if (result.errors.length > 0) {
+      console.log(c.red("✗ ") + `${rel}: ${result.errors.length} op error${result.errors.length === 1 ? "" : "s"} (apply would refuse):`);
+      for (const e of result.errors) console.log(`    - ${e}`);
+      opsFindings += 1;
+    } else {
+      console.log(c.green("✓ ") + `${rel}: ${result.applied.length} op${result.applied.length === 1 ? "" : "s"} would apply cleanly`);
+    }
+  }
+  if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
+  if (opsFindings > 0) failures += 1;
+
+  // 3. Archive gate preview: what archive will refuse, listed with the fix.
+  console.log(c.gray("──── 3/3 archive gate"));
+  const blockers = collectArchiveBlockers(changeDir);
+  if (blockers.length === 0) {
+    console.log(c.green("✓ ") + "archive gate clear (all boxes checked)");
+  } else {
+    failures += 1;
+    for (const b of blockers) console.log(c.red("✗ ") + b);
+    console.log(c.gray("    check them off as they land, or in bulk: ") + c.cyan(`doctrina change tick ${id} --all`));
+  }
+
+  // Advisory (never gates): accepted ADRs citing the touched capabilities.
+  const caps = [...new Set(deltaFiles.map((p) => parseCapabilityFromDelta(read(p), p)).filter(Boolean))].sort();
+  console.log("");
+  printAdrCheckpoint(projectRoot, caps, { c });
+
+  console.log("");
+  if (failures === 0) {
+    console.log(c.green("ok") + ` ${id} is ready to close: ` + c.cyan(`doctrina close ${id}`));
+    return 0;
+  }
+  console.log(c.red("fail") + ` ${failures} area${failures === 1 ? "" : "s"} would block the close — fix them first`);
+  return 1;
+}
+
+// Bulk checkbox marking (operator review 2026-07-19 §3.5: "marcar checkbox
+// não tem comando nenhum" — it was sed/Python by hand). With no args it
+// LISTS the unchecked boxes with ordinals; `tick <id> 2 5` checks those;
+// `tick <id> --all` checks everything (tasks.md + the proposal's
+// ## Verification). Ticking is a claim of completion — the honest gate is
+// still archive/verify; this only removes the mechanical friction.
+function changeTick(args, flags) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change tick requires <id> [ordinals... | --all]");
+    return 2;
+  }
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
+    return 1;
+  }
+
+  // Unified ordinal space over both files, in reading order: every unchecked
+  // `- [ ]` in tasks.md, then in the proposal's ## Verification section.
+  const files = [
+    { label: "tasks.md", path: path.join(changeDir, "tasks.md"), section: null },
+    { label: "proposal.md ## Verification", path: path.join(changeDir, "proposal.md"), section: "Verification" },
+  ];
+  const boxes = [];
+  for (const f of files) {
+    if (!isFile(f.path)) continue;
+    const lines = read(f.path).split(/\r?\n/);
+    const inScope = f.section === null
+      ? () => true
+      : (() => {
+          const scoped = new Set();
+          let inSection = false;
+          for (let i = 0; i < lines.length; i++) {
+            if (/^##\s+/.test(lines[i])) inSection = new RegExp(`^##\\s+${f.section}\\b`, "i").test(lines[i]);
+            else if (inSection) scoped.add(i);
+          }
+          return (i) => scoped.has(i);
+        })();
+    for (let i = 0; i < lines.length; i++) {
+      if (/^\s*-\s*\[ \]/.test(lines[i]) && inScope(i)) {
+        boxes.push({ file: f, lineIndex: i, text: lines[i].replace(/^\s*-\s*\[ \]\s*/, "") });
+      }
+    }
+  }
+
+  if (boxes.length === 0) {
+    console.log(c.green("ok") + " no unchecked boxes in tasks.md or the proposal's ## Verification");
+    return 0;
+  }
+
+  const all = flagBool(flags, "all", false);
+  const ordinals = args.slice(1).map(Number);
+  if (!all && ordinals.length === 0) {
+    console.log(c.bold(`Unchecked boxes in ${id}:`));
+    console.log("");
+    for (let i = 0; i < boxes.length; i++) {
+      console.log(`  ${String(i + 1).padStart(3)}. ${boxes[i].text}  ${c.gray(`[${boxes[i].file.label}]`)}`);
+    }
+    console.log("");
+    console.log(c.gray("tick some: ") + c.cyan(`doctrina change tick ${id} 1 3`) + c.gray(" · all: ") + c.cyan(`doctrina change tick ${id} --all`));
+    return 0;
+  }
+
+  const picked = all ? boxes.map((_, i) => i + 1) : ordinals;
+  for (const n of picked) {
+    if (!Number.isInteger(n) || n < 1 || n > boxes.length) {
+      console.error(c.red("error:") + ` no box #${n} (1..${boxes.length} — run \`doctrina change tick ${id}\` to list)`);
+      return 2;
+    }
+  }
+
+  // Group edits per file so each file is read/written once.
+  const byPath = new Map();
+  for (const n of picked) {
+    const box = boxes[n - 1];
+    if (!byPath.has(box.file.path)) byPath.set(box.file.path, []);
+    byPath.get(box.file.path).push(box);
+  }
+  for (const [filePath, hits] of byPath) {
+    const lines = read(filePath).split(/\r?\n/);
+    for (const box of hits) {
+      lines[box.lineIndex] = lines[box.lineIndex].replace(/\[ \]/, "[x]");
+    }
+    write(filePath, lines.join("\n"), { force: true });
+  }
+  console.log(c.green("ticked ") + `${picked.length} box${picked.length === 1 ? "" : "es"} in ${byPath.size} file${byPath.size === 1 ? "" : "s"}`);
+  return 0;
 }
 
 function changeArchive(args, flags) {
@@ -589,7 +800,7 @@ Subcommands:
                          (--chore / --no-spec: a spec-less change for infra /
                          docs / build that still gets a proposal + ledger;
                          --design: also scaffold design.md, opt-in)
-  apply <id>             Apply spec deltas: ADDED writes the full body (it
+  apply <id...>          Apply spec deltas: ADDED writes the full body (it
                          also REPLACES a target that is still the untouched
                          \`spec new\` scaffold — the canonical new-capability
                          flow; real content refuses), REMOVED deletes,
@@ -597,11 +808,22 @@ Subcommands:
                          (set-header / bump-version / set-criterion / ...),
                          MODIFIED without one prints a manual-merge pointer.
                          On any spec write the index is rebuilt from the tree.
-  archive <id>           Move the change to .doctrina/changes/archive/YYYY-MM-DD-<id>/
+  archive <id...>        Move the change to .doctrina/changes/archive/YYYY-MM-DD-<id>/
+  check <id...>          Pre-close dry-run, read-only: analyze's structural
+                         checks + every ops block executed in memory against
+                         its target + the archive gate preview + an advisory
+                         list of accepted ADRs citing the touched capabilities.
+                         Everything close would refuse, listed BEFORE it runs.
+  tick <id> [n... |--all]  List the unchecked boxes (tasks.md + proposal
+                         ## Verification) with ordinals; tick the given ones,
+                         or every one with --all. No args = list only.
   abandon <id>           Delete an open change folder and its index entry, and
                          record the abandonment in the ledger ([--reason "..."]).
   diff <id>              Preview every spec delta: line diff for MODIFIED,
                          summary for ADDED/REMOVED. Read-only.
+
+apply / archive / check accept multiple ids (batch close of a backlog); the
+exit code is the worst per-id result.
 
 A MODIFIED delta may carry a fenced operations block that \`apply\` executes:
   \`\`\`ops
@@ -609,7 +831,11 @@ A MODIFIED delta may carry a fenced operations block that \`apply\` executes:
   bump-version minor
   set-criterion 1: verified
   append-criterion [unverified] new signal — verified by \`test/x.test.ts\`
+  append-requirement event: When <trigger>, the system shall <action>.
+  replace-requirement ubiquitous 2: The system shall <action>.
   \`\`\`
+append-* ops resolve numbering/position at apply time, so concurrent open
+changes appending to the same spec cannot collide.
 
 Options:
   --force                Overwrite existing files (where applicable)
