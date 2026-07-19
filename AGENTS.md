@@ -1,150 +1,136 @@
-# AGENTS.md — Doctrina
+# AGENTS.md — Arbites
 
-Operational source of truth for AI coding agents working in this repository.
-This file follows the open AGENTS.md standard (Linux Foundation / Agentic AI Foundation).
+Operational source of truth for AI coding agents working in this
+repository. Follows the open AGENTS.md standard.
 
 ## What this repo is
 
-Doctrina is a spec-driven, AGENTS.md-native framework for multi-agent AI development.
+Arbites — Plataforma Local de Gestão e Rastreabilidade de Testes
 
-- Brand: Doctrina (Latin: "doctrine, teaching")
-- Distribution: npm CLI — package `doctrina-cli`, binary `doctrina`
-  (`npx doctrina-cli <command>` or, after global install, `doctrina <command>`)
-- Targets: 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI, Cursor,
-  GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules)
-- Languages: documentation EN primary, PT translated
-- Status: v0.11.0 — released
+This repository uses the Doctrina framework for spec-driven, AGENTS.md
+native multi-agent development. The full framework artifacts live under
+`.doctrina/`.
+
+## Working from intent (you drive; the human stays passive)
+
+You — the AI agent — run the Doctrina commands. The human gives a brief
+prompt and approves; do not make them run the CLI or hand-author artifacts.
+
+- **Bootstrap.** If `.doctrina/intake.md` is `Status: pending`, the specs
+  are not written yet: run `doctrina intake` and execute the printed
+  playbook in one pass (fill `product.md`, derive capabilities, one EARS
+  spec each, `doctrina clarify --all` + `doctrina validate`, then flip the
+  intake to `Status: converted`). After conversion the specs are the only
+  source of truth — never edit `intake.md` to change requirements.
+- **Day-to-day.** Turn any request into a change with `doctrina work
+  "<prompt>"` and follow the printed playbook (spec delta → tasks →
+  implement → analyze → apply → archive → validate). Unsure what to do
+  next? Run `doctrina next`. Need to read? Run `doctrina context`. Ask the
+  human only on genuine ambiguity.
+
+## Doctrina command surface (reach for these — don't hand-author)
+
+The CLI scaffolds from canonical templates and keeps `index.json` in sync,
+so prefer it over writing artifacts by hand. Full list: `doctrina --help`.
+
+- **Read / orient (any task, first & last):** `doctrina status` (health) ·
+  `doctrina context [<cap>] --concat` (read pack) · `doctrina next` (what's
+  next) · `doctrina why <cap>` (provenance) · `doctrina constitution`
+  (standing rules) · `doctrina spec list` · `doctrina decision list` ·
+  `doctrina search <query>`
+- **Start:** `doctrina work "<prompt>"` · `--from-diff` (backfill from
+  existing code) · `--chore` (no-spec infra/docs/build)
+- **Scaffold (manual creation stays available):** `doctrina spec new <cap>`
+  (`--bug`) · `doctrina decision new "<title>"` · `doctrina change new <id>`
+  · `doctrina contract new <id>` · `doctrina skill new <slug>`
+- **Advance / close:** `doctrina change apply|archive|diff <id>` · `doctrina
+  decision accept|land|supersede <n>` · `doctrina spec set <cap> [...]` ·
+  `doctrina close <id>` (whole close in one pass)
+- **Gates (ground truth, not guesses):** `doctrina validate` (`--fix`) ·
+  `doctrina verify` · `doctrina review` (conformance vs specs/ADRs) ·
+  `doctrina coverage --strict` · `doctrina trace --strict` · `doctrina
+  contract check` · `doctrina clarify --all` · `doctrina analyze <id>`
+
+Continuous: `doctrina watch` re-syncs and re-orients on every save.
+Capture lessons: `doctrina skill suggest` surfaces skills worth writing.
 
 ## Stack and tooling
 
-- Runtime: Node.js >= 20.12
-- Package manager: npm workspaces (monorepo)
-- License: MIT
-- No build step (pure Markdown + Node.js stdlib CLI, zero runtime deps)
+- Runtime: Python 3.12+ (FastAPI + Pydantic v2, uvicorn) · Node (React 18 + Vite + TypeScript)
+- Package manager: pip/venv (backend) · npm (frontend)
+- Test runner: pytest (backend)
+- Índice: SQLite (stdlib) · Watcher: watchdog · Parsers: python-frontmatter, markdown-it-py, gherkin
 
 ## Commands
 
 ```
-npx doctrina-cli init                       # scaffold .doctrina/ + AGENTS.md (--intake <file> stores full intent)
-npx doctrina-cli intake <file>              # store full description verbatim; print bootstrap playbook
-npx doctrina-cli work "<prompt>"            # brief prompt -> scaffolded change + guided work playbook
-npx doctrina-cli prime                      # session primer: gates, rules, open work, next steps in one read
-npx doctrina-cli spec new <cap>             # create a capability spec (--bug bug-shape; `spec list` lists them)
-npx doctrina-cli spec set <cap> [opts]      # edit spec headers / criterion mark + resync index (--bump, --criterion)
-npx doctrina-cli change new <id> "<title>"  # open a change proposal
-npx doctrina-cli change apply <id>          # apply spec deltas (ADDED/REMOVED auto, MODIFIED manual; `change diff` previews)
-npx doctrina-cli change archive <id>        # archive an applied change
-npx doctrina-cli change abandon <id>        # discard an open change cleanly (recorded in the ledger)
-npx doctrina-cli decision new "<title>"     # create the next sequential ADR (`decision list` lists them)
-npx doctrina-cli decision accept <num>      # flip a proposed ADR to accepted
-npx doctrina-cli decision land <num> [path] # stamp an accepted ADR as implemented (Landed: + proof)
-npx doctrina-cli decision supersede <num>   # supersede an existing ADR
-npx doctrina-cli skill new <name>           # scaffold a procedural-memory skill (`skill list` lists them)
-npx doctrina-cli skill suggest              # fix-shaped lessons worth a skill (--write; `skill sync` = index)
-npx doctrina-cli intent add "<text>"        # append a product intent anchor post-intake (`intent list` shows them)
-npx doctrina-cli analyze <change-id>        # pre-flight a change (`doctrina clarify <path>` smell-tests ambiguity)
-npx doctrina-cli context [<cap>]            # context pack in read order (--concat; --budget <tok>; --diff <ref>)
-npx doctrina-cli show <ref>                 # point-read a requirement/criterion/ADR (cli-R12, cli-C3, 0007)
-npx doctrina-cli search <term>              # search artifacts, grouped by category
-npx doctrina-cli status                     # one-glance health: gates, coverage, trace, counts (--json)
-npx doctrina-cli why <cap|SC1>              # provenance chain (`doctrina constitution` = standing rules)
-npx doctrina-cli handoff                    # Markdown handoff note: open work, task state, resume command
-npx doctrina-cli validate                   # schema + structural checks (incl. AGENTS.md drift; --json)
-npx doctrina-cli coverage                   # acceptance criteria with linked evidence (--strict gates; --json)
-npx doctrina-cli trace                      # product intent -> capability provenance (--strict gates; --json)
-npx doctrina-cli review                     # conformance of working tree vs specs/ADRs/contracts
-npx doctrina-cli verify                     # run project-declared typecheck/test/build (the real gate)
-npx doctrina-cli close <id>                 # whole close sequence in one pass (gates -> archive -> validate)
-npx doctrina-cli doctor                     # aggregate diagnostic with per-finding remediation
-npx doctrina-cli contract new <name>        # own ports/env/interfaces (`contract list`; `contract check` validates)
-npx doctrina-cli templates check            # vs recommended shape (`templates list`; `templates update` fixes)
-npx doctrina-cli hooks install              # install the pre-commit hook
-npx doctrina-cli index rebuild              # regenerate index.json from the files (--check for CI)
-npx doctrina-cli next                       # print the recommended next workflow actions (--json)
-npx doctrina-cli watch                      # validate --fix + next on change (--once; `doctrina metrics` = git stats)
-npx doctrina-cli report [--since 7]         # Markdown digest: changes, gates, local-git summary
-npx doctrina-cli completion <shell>         # bash/zsh/pwsh completions (generated from the catalog)
-npx doctrina-cli upgrade                    # bring an existing project up to the installed CLI (--write applies)
+python -m pytest backend/tests -q     # test (backend)
+npm --prefix frontend run build       # build (frontend)
+doctrina verify                       # gate executável (roda os dois)
 ```
 
 ## Repository structure
 
-```
-/AGENTS.md                          this file — root rules (portable)
-/README.md /README.pt.md            public-facing pitch (EN + PT)
-/CHANGELOG.md /CONTRIBUTING.md /SECURITY.md   policy
-/LICENSE                            MIT
-/package.json                       monorepo root, workspaces
-/.doctrina/                         framework artifacts
-  product.md                        vision, scope, target users
-  specs/<capability>/spec.md        current truth (EARS requirements)
-  changes/<id>/                     active change proposals
-  changes/archive/                  applied changes (episodic memory)
-  decisions/NNNN-title.md           immutable ADRs (Nygard format)
-  contracts/<name>.md               integration/runtime surface (ports, env, interfaces)
-  skills/<slug>.md                  on-demand procedural memory (optional)
-  templates/                        scaffolding consumed by the CLI
-  verify.json                       project-declared build/verify checks (doctrina verify)
-  index.json                        artifact metadata
-/docs/en /docs/pt                   bilingual user-facing docs
-/examples/                          two reference projects (Python FastAPI, TypeScript Express)
-/packages/doctrina-cli/             the npm CLI source
-/scripts/bench.js                   synthetic performance harness
-```
+<!-- Outline the top-level directories an agent needs to know about. -->
 
 ## Conventions and boundaries
 
-- Specs use EARS (Easy Approach to Requirements Syntax) for requirements.
-- ADRs are **immutable** once accepted. To change a decision, write a new ADR
-  and mark the old one `Status: superseded by NNNN` with bidirectional links.
-- Active changes live in `.doctrina/changes/<id>/`. Applied changes are moved
-  to `.doctrina/changes/archive/YYYY-MM-DD-<id>/` and DROPPED from default read path.
-- Single linear orchestrator. No parallel multi-agent writing.
-  See `.doctrina/decisions/0004-single-linear-orchestrator.md`.
-- No `memory/` folder. See `.doctrina/decisions/0003-defer-memory-folder.md`.
-- Do NOT introduce a runtime database, vector store, or RAG.
-  Files in git are the source of truth.
-- Do NOT translate file paths, command names, or code identifiers. Doctrina is
-  EN-primary; PT docs are translations of EN, never the reverse.
-- Framework evolution (this repo's own changes) uses Conventional Commits, not
-  `doctrina change new`. The change workflow is for projects that USE Doctrina.
+- Specs in `.doctrina/specs/<capability>/spec.md` are the current truth.
+- ADRs in `.doctrina/decisions/` are immutable; supersede instead of edit.
+- Active change proposals live in `.doctrina/changes/<id>/`.
+- Archived changes in `.doctrina/changes/archive/` are out of the default
+  read path; consult only when explicitly debugging history.
+
+## Artifact invariants (verbatim — `doctrina validate` enforces these)
+
+Scaffold artifacts with the CLI (`doctrina decision new`, `doctrina work`),
+which writes from the canonical templates. Do NOT hand-author these files
+from memory. If you must write one by hand, match these exactly:
+
+- **Metadata headers come in two forms — do not mix them up:**
+  - ADRs, change proposals, and the intake use **list items**:
+    `- **Status:** accepted`, `- **Date:** 2026-06-13`.
+  - Specs use **bare bold** (no leading `- `):
+    `**Status:** active`, `**Version:** 0.1.0`.
+  Match the template for the artifact you are writing.
+- **ADR filename** must be `NNNN-slug.md` — four digits, e.g.
+  `0001-jwt-algorithm.md`. `ADR-001-...md` or `1-...md` is invisible to
+  `doctrina decision accept`, the index, and the orphan check.
+- **Change folder** at `.doctrina/changes/<id>/` must contain a file named
+  exactly `proposal.md` (not `change.md`, not `README.md`). `tasks.md` and
+  `design.md` are optional siblings.
+- **Spec** lives at `.doctrina/specs/<capability>/spec.md` and its
+  `**Version:**` header must equal the `version` recorded for it in
+  `.doctrina/index.json`.
+- **Every artifact on disk** must be registered in `.doctrina/index.json`,
+  and every path in `index.json` must exist on disk. Update the index in
+  the same change that adds or moves a file.
+
+Always finish by running `doctrina validate` and resolving every `error:`
+before considering work done.
 
 ## How to read context efficiently
 
-Lead with the command — it assembles the pack in one call, in read order,
-for ANY task (review, debug, a question), not only `doctrina work`:
+`doctrina context [<capability>] --concat` assembles the read pack in one
+call, in order: this `AGENTS.md` → `.doctrina/product.md` → the capability
+spec → open `.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
+`Status: accepted`. Run it for ANY task, not only `doctrina work`; it skips
+`changes/archive/` (history — read only when debugging it).
 
-```
-doctrina context [<capability>] --concat
-```
+On demand only: if the task matches a skill in `.doctrina/skills/`, read its
+`description:` / `when:` frontmatter; load the full body when the trigger fires.
 
-It materialises, in order: this AGENTS.md → `.doctrina/product.md` → the
-relevant `.doctrina/specs/<capability>/spec.md` (or, with no capability,
-every active spec) → open `.doctrina/changes/<id>/` → `.doctrina/decisions/`
-filtered to `Status: accepted`. It does NOT read `.doctrina/changes/archive/`
-— consult that only when explicitly debugging history.
-
-Then, on demand only: if the task matches a skill in `.doctrina/skills/`,
-read its `description:` / `when:` frontmatter first and load the full body
-only when the trigger fires (skills stay out of the always-on context).
-
-Keep this file under 150 lines. Density beats prose. Use exact commands, not advice.
+Keep this file under 150 lines. Density beats prose. Use exact commands.
 
 ## Definition of done
 
 A change is done when:
-- All `tasks.md` items in the change folder are checked (closing steps too).
-- Declared verification passed: `doctrina verify` is green and the affected
-  spec's acceptance criteria are met and cite their evidence
-  (`doctrina coverage`). `doctrina change archive` refuses to archive while
-  tasks or the proposal's `## Verification` are unchecked.
-- Delta has been merged into the affected `specs/<capability>/spec.md`.
-- The change folder has been moved to `changes/archive/YYYY-MM-DD-<id>/`.
-- Any new architectural decisions are recorded as ADRs with `Status: accepted`.
-- `.doctrina/index.json` has been updated with new artifact metadata.
-- Commit message references the change id.
+- All tasks in the change's `tasks.md` are checked.
+- Deltas have been merged into affected spec files.
+- The change folder has been moved to `.doctrina/changes/archive/`.
+- Any architectural decisions are recorded as ADRs with `Status: accepted`.
+- `.doctrina/index.json` has been updated.
 
 ## What never goes in this file
 
-Tutorials, prose explanations, project history, secrets, generated content,
-session-specific notes. Those belong in `docs/`, ADRs, or change folders.
+Tutorials, project history, secrets, generated content, session notes.
