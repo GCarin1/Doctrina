@@ -41,6 +41,16 @@ export async function run(positional, _flags) {
   } else {
     results.push(pass("tasks.md present"));
     const text = read(tasksPath);
+    // Scaffold placeholders never replaced ("- [ ]" with no text, checked or
+    // not) mean the change was OPENED but never PLANNED — the agent went
+    // straight to implementing on a hollow change and nothing barked
+    // (operator report 2026-07-19). A hard failure here blocks `change
+    // check` and `close` until the plan is real; ticking an empty box does
+    // not help, `change tick` refuses those too.
+    const placeholders = (text.match(/^\s*-\s*\[[ xX]\]\s*$/gm) ?? []).length;
+    if (placeholders > 0) {
+      results.push(fail(`tasks.md still carries ${placeholders} scaffold placeholder task${placeholders === 1 ? "" : "s"} ("- [ ]" with no text) — plan the change before implementing: replace them with real tasks (or delete the lines)`));
+    }
     if (/^\s*-\s*\[\s\]/m.test(text)) results.push(pass("tasks.md has at least one unchecked task"));
     else results.push(info("tasks.md has no unchecked tasks (already done?)"));
   }

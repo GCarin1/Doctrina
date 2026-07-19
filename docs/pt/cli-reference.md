@@ -292,7 +292,9 @@ doctrina change check 0042-add-saml
 Três passes mais um advisory:
 
 1. **estrutura** — os mesmos checks que o `analyze` roda (proposal,
-   tasks, headers de delta, alvos).
+   tasks, headers de delta, alvos), incluindo a falha de change oco:
+   `tasks.md` ainda com os `- [ ]` vazios do esqueleto significa que o
+   change foi aberto mas nunca planejado.
 2. **dry-run das ops** — o bloco ` ```ops ` de cada delta MODIFIED
    executado em memória contra a spec alvo: uma op que falharia na hora
    do apply (header ausente, critério ou requisito inexistente, verbo
@@ -326,6 +328,12 @@ Marcar checkbox era o único passo sem comando nenhum — fechamento em
 lote significava sed/Python à mão. Marcar é uma *alegação* de conclusão;
 os gates honestos continuam sendo `verify`/`coverage`/`archive` — isto
 só remove a fricção mecânica.
+
+Uma caixa sem texto é um **placeholder do scaffold** (o change foi
+aberto mas nunca planejado): a listagem a marca como tal, e marcá-la é
+recusado — escreva a task real (ou delete a linha) primeiro. `analyze`
+e `close` falham duro com placeholders restantes, então um change oco
+não fecha.
 
 ## `doctrina change diff <id>`
 
@@ -534,6 +542,11 @@ Reporta por linha:
 
 - Presença de `proposal.md` e presença de seção `## Why`.
 - Presença de `tasks.md` e pelo menos uma task desmarcada.
+- `tasks.md` livre de **placeholders do scaffold** — um `- [ ]` vazio
+  deixado do esqueleto (marcado ou não) é falha dura: o change foi
+  aberto mas nunca planejado, e implementar em cima de um change oco é
+  exatamente o modo de falha que isto bloqueia (o `validate` avisa a
+  cada rodada; o `change tick` recusa marcar caixa vazia).
 - Presença de `design.md` (informacional, opcional).
 - Para cada spec delta: validade do header `Operation:` e
   resolução do path da spec alvo.
@@ -606,7 +619,11 @@ Caminha por `AGENTS.md`, `.doctrina/product.md` e
 campo de schema que esteja faltando — inclusive se o **bloco
 doctrina:surface** do AGENTS.md (o catálogo de comandos delimitado por
 marcadores, propriedade do CLI, gerado do CLI instalado; ADR 0015)
-está presente e atual. Read-only; nunca modifica arquivos. Sai 0
+está presente e atual. Também verifica cada **adapter de agente
+instalado** (CLAUDE.md, GEMINI.md, `.cursor/rules/…`, …): adapters são
+ponteiros finos para o hub, e é por isso que um refresh do bloco de
+superfície alcança todos os agentes instalados — um ponteiro quebrado é
+reportado com o conserto. Read-only; nunca modifica arquivos. Sai 0
 quando toda seção recomendada está presente, 1 caso contrário.
 
 Distinto de `validate`: `validate` responde "esta é uma árvore
@@ -1254,6 +1271,13 @@ Um orquestrador sobre as peças que já existem, em ordem:
    carimbo `framework_version` para o CLI em execução.
 3. `validate` (`--fix` sob `--write`) — mostra o que o upgrade não
    consegue corrigir (drift escrito à mão, checks novos do validate).
+
+Um único `upgrade --write` cobre **todos os agentes instalados**: os
+adapters (CLAUDE.md, GEMINI.md, `.cursor/rules/…`, …) são ponteiros
+finos para o AGENTS.md e não carregam superfície de comandos própria,
+então atualizar o bloco do hub É atualizar o que todo agente lê. O
+`templates check` (passo 1) verifica que cada adapter instalado ainda
+aponta para o hub.
 
 ## Variáveis de ambiente
 

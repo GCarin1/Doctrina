@@ -272,6 +272,19 @@ export async function run(_positional, flags) {
             `(every dir under .doctrina/changes/ needs a proposal.md — that exact filename)`,
         );
       }
+      // A change whose tasks are still the scaffold placeholders was opened
+      // but never planned — the agent is (or will be) implementing with no
+      // recorded plan. Early, every-run signal; analyze/close hard-fail it.
+      const tasksPath = path.join(changesDir, entry, "tasks.md");
+      if (isFile(tasksPath)) {
+        const ph = (read(tasksPath).match(/^\s*-\s*\[[ xX]\]\s*$/gm) ?? []).length;
+        if (ph > 0) {
+          warnings.push(
+            `open change "${entry}" tasks.md still carries ${ph} scaffold placeholder task${ph === 1 ? "" : "s"} — ` +
+              `the change was opened but never planned (replace them with real tasks; analyze/close refuse them)`,
+          );
+        }
+      }
       for (const deltaPath of walk(path.join(changesDir, entry, "specs"))) {
         if (!deltaPath.endsWith("delta.md")) continue;
         const text = read(deltaPath);

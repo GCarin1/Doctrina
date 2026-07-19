@@ -284,7 +284,9 @@ doctrina change check 0042-add-saml
 Three passes plus an advisory:
 
 1. **structure** — the same checks `analyze` runs (proposal, tasks,
-   delta headers, targets).
+   delta headers, targets), including the hollow-change failure: tasks.md
+   still carrying the scaffold's empty `- [ ]` placeholders means the
+   change was opened but never planned.
 2. **ops dry-run** — every MODIFIED delta's ` ```ops ` block executed in
    memory against its target spec: an op that would fail at apply time
    (missing header, no such criterion or requirement, unknown verb) is
@@ -316,6 +318,11 @@ Marking a checkbox was the one step with no command at all — batch
 closes meant sed/Python by hand. Ticking is a *claim* of completion;
 the honest gates are still `verify`/`coverage`/`archive` — this only
 removes the mechanical friction.
+
+A box with no text is a **scaffold placeholder** (the change was opened
+but never planned): the listing marks it, and ticking it is refused —
+write the real task (or delete the line) first. `analyze` and `close`
+hard-fail on leftover placeholders, so a hollow change cannot close.
 
 ## `doctrina change diff <id>`
 
@@ -522,6 +529,11 @@ Reports per-line:
 
 - `proposal.md` presence and presence of a `## Why` section.
 - `tasks.md` presence and presence of at least one unchecked task.
+- `tasks.md` free of **scaffold placeholders** — an empty `- [ ]` left
+  from the scaffold (checked or not) is a hard failure: the change was
+  opened but never planned, and implementing on a hollow change is the
+  failure mode this blocks (`validate` warns about it on every run;
+  `change tick` refuses to tick an empty box).
 - `design.md` presence (informational, optional).
 - For each spec delta: `Operation:` header validity and target spec
   path resolution.
@@ -593,7 +605,11 @@ Walks `AGENTS.md`, `.doctrina/product.md`, and
 schema field that is missing — including whether the AGENTS.md
 **doctrina:surface block** (the CLI-owned, marker-delimited command
 catalog generated from the installed CLI; ADR 0015) is present and
-current. Read-only; never modifies any files. Exits 0 when every
+current. It also verifies every **installed agent adapter** (CLAUDE.md,
+GEMINI.md, `.cursor/rules/…`, …) still references `AGENTS.md`: adapters
+are thin pointers at the hub, which is why one surface-block refresh
+reaches every installed agent — a broken pointer is reported with the
+fix. Read-only; never modifies any files. Exits 0 when every
 recommended section is present, 1 otherwise.
 
 Distinct from `validate`: `validate` answers "is this a
@@ -1216,6 +1232,12 @@ An orchestrator over the pieces that already exist, in order:
    `framework_version` stamp to the running CLI.
 3. `validate` (`--fix` under `--write`) — surface anything the upgrade
    cannot fix (hand-authored drift, new validate checks).
+
+One `upgrade --write` covers **every installed agent**: the adapters
+(CLAUDE.md, GEMINI.md, `.cursor/rules/…`, …) are thin pointers at
+AGENTS.md and carry no command surface of their own, so refreshing the
+hub's surface block is refreshing what every agent reads. `templates
+check` (step 1) verifies each installed adapter still points at the hub.
 
 ## Environment variables
 

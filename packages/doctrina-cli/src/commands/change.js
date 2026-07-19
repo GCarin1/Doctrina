@@ -420,11 +420,15 @@ function changeTick(args, flags) {
 
   const all = flagBool(flags, "all", false);
   const ordinals = args.slice(1).map(Number);
+  const isPlaceholder = (box) => box.text.trim() === "";
   if (!all && ordinals.length === 0) {
     console.log(c.bold(`Unchecked boxes in ${id}:`));
     console.log("");
     for (let i = 0; i < boxes.length; i++) {
-      console.log(`  ${String(i + 1).padStart(3)}. ${boxes[i].text}  ${c.gray(`[${boxes[i].file.label}]`)}`);
+      const label = isPlaceholder(boxes[i])
+        ? c.yellow("(scaffold placeholder — write the real task, or delete the line)")
+        : boxes[i].text;
+      console.log(`  ${String(i + 1).padStart(3)}. ${label}  ${c.gray(`[${boxes[i].file.label}]`)}`);
     }
     console.log("");
     console.log(c.gray("tick some: ") + c.cyan(`doctrina change tick ${id} 1 3`) + c.gray(" · all: ") + c.cyan(`doctrina change tick ${id} --all`));
@@ -437,6 +441,15 @@ function changeTick(args, flags) {
       console.error(c.red("error:") + ` no box #${n} (1..${boxes.length} — run \`doctrina change tick ${id}\` to list)`);
       return 2;
     }
+  }
+  // Ticking an empty scaffold placeholder is a meaningless claim — it is how
+  // a hollow change games the archive gate. Refuse (all-or-nothing) and name
+  // the fix; analyze/close hard-fail on the placeholders regardless.
+  const empties = picked.filter((n) => isPlaceholder(boxes[n - 1]));
+  if (empties.length > 0) {
+    console.error(c.red("error:") + ` box${empties.length === 1 ? "" : "es"} ${empties.join(", ")} ${empties.length === 1 ? "is a" : "are"} scaffold placeholder${empties.length === 1 ? "" : "s"} with no text — nothing was ticked`);
+    console.error(c.gray("hint: ") + "write the real task on each line (or delete it), then tick");
+    return 2;
   }
 
   // Group edits per file so each file is read/written once.

@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.13.0",
+  "framework_version": "0.12.0",
   "last_updated": "2026-07-19",
   "artifacts": {
     "product": {
@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.26.0",
+        "version": "0.27.0",
         "last_updated": "2026-07-19",
         "implementation": "implemented"
       },
@@ -62,8 +62,8 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.9.1",
-        "last_updated": "2026-07-02",
+        "version": "0.10.0",
+        "last_updated": "2026-07-19",
         "implementation": "implemented"
       },
       {
@@ -225,6 +225,23 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0003-hollow-change-teeth-and-adapter-pointer-check",
+        "title": "hollow change teeth and adapter pointer check",
+        "path": ".doctrina/changes/archive/2026-07-19-0003-hollow-change-teeth-and-adapter-pointer-check",
+        "status": "applied",
+        "applied": "2026-07-19",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

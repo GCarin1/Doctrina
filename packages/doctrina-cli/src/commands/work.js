@@ -370,6 +370,8 @@ function printChorePlaybook(projectRoot, { id, prompt }) {
   console.log("");
   console.log(`1. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
   console.log("   with small, checkable steps; implement them, checking each box.");
+  console.log(c.gray("   (Do it before implementing — analyze/close refuse leftover scaffold"));
+  console.log(c.gray("   placeholders, and `change tick` will not tick an empty box.)"));
   console.log("2. Prove it (archive refuses unchecked boxes):");
   console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
   console.log(`       ${c.cyan("doctrina verify --clean")} — clean-checkout reproducibility lint`);
@@ -473,7 +475,10 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   }
   console.log("");
   console.log(`4. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
-  console.log("   with small, checkable implementation tasks (a few hours each, max).");
+  console.log("   with small, checkable implementation tasks (a few hours each, max),");
+  console.log("   and record the change's What/Scope in its proposal.md. Do this BEFORE");
+  console.log("   implementing — analyze and close refuse a change whose scaffold");
+  console.log("   placeholders were never replaced, and `change tick` will not tick them.");
   console.log("");
   console.log("5. Implement task by task, checking each box as it lands. Advance the");
   console.log("   spec's Implementation: planned → partial → implemented as code lands.");

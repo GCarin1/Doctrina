@@ -1,7 +1,7 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir } from "../lib/templates.js";
+import { locateTemplatesDir, loadTemplateTree } from "../lib/templates.js";
 import { surfaceBlock, findSurfaceBlock } from "../lib/commands.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -247,6 +247,32 @@ function checkTemplates() {
   } else {
     findings.push(".doctrina/product.md missing");
   }
+
+  // Installed agent adapters: every adapter is a thin POINTER at AGENTS.md
+  // (that is why one `upgrade --write` refresh of the hub reaches every
+  // installed agent). Verify the contract holds for each adapter file the
+  // project actually has: it must still reference AGENTS.md. The shipped
+  // adapter template tree is the inventory, so a new adapter is covered
+  // automatically.
+  try {
+    const templatesDir = locateTemplatesDir();
+    const adaptersRoot = path.join(templatesDir, "adapters");
+    if (isDir(adaptersRoot)) {
+      for (const agent of walk(adaptersRoot).map((f) => relPath(adaptersRoot, f))) {
+        const posix = agent.replace(/\\/g, "/");
+        if (posix.endsWith("README.md") || posix.endsWith(".gitkeep")) continue;
+        const rel = posix.split("/").slice(1).join("/").replace(/\.template$/, "");
+        if (!rel) continue;
+        const installed = path.join(projectRoot, rel);
+        if (!isFile(installed)) continue; // not installed — nothing to check
+        if (read(installed).includes("AGENTS.md")) {
+          ok.push(`adapter ${rel}: points at AGENTS.md`);
+        } else {
+          findings.push(`adapter ${rel} no longer references AGENTS.md — agents loading it will miss the hub (restore the pointer, e.g. re-run \`doctrina init --agent <name> --force\`)`);
+        }
+      }
+    }
+  } catch { /* no templates dir (unusual install) — skip the adapter pass */ }
 
   // index.json schema fields
   const indexPath = path.join(projectRoot, ".doctrina", "index.json");

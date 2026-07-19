@@ -22,10 +22,21 @@ function makeTempProject() {
   return tmp;
 }
 
-// Check every GitHub-style checkbox in a change's tasks.md and proposal.md
-// so it clears the archive verification gate (3.3). Mirrors a real
-// operator finishing and verifying the work before archiving.
+// Fill the scaffold's placeholder tasks with real text, then check every
+// GitHub-style checkbox in a change's tasks.md and proposal.md so it clears
+// the archive verification gate (3.3). Mirrors a real operator planning,
+// finishing, and verifying the work before archiving — an empty "- [ ]"
+// left from the scaffold now FAILS analyze and cannot be ticked, so the
+// helper writes a real task line first.
+function planTasks(tmp, id) {
+  const p = path.join(tmp, ".doctrina", "changes", id, "tasks.md");
+  if (existsSync(p)) {
+    writeFileSync(p, readFileSync(p, "utf8").replace(/^(\s*-\s*\[[ xX]\])\s*$/gm, "$1 implement the change"));
+  }
+}
+
 function completeChange(tmp, id) {
+  planTasks(tmp, id);
   for (const f of ["tasks.md", "proposal.md"]) {
     const p = path.join(tmp, ".doctrina", "changes", id, f);
     if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
@@ -393,9 +404,29 @@ test("analyze passes on a well-formed change", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["change", "new", "0001-good", "good change"], { cwd: tmp });
+    planTasks(tmp, "0001-good");
     const r = runCli(["analyze", "0001-good"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     assert.match(r.stdout, /ready to apply/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("analyze fails while tasks.md still carries the scaffold placeholders", () => {
+  // The hollow-change failure mode: `work` opens the change, the agent
+  // starts implementing without ever writing the plan, and nothing barks
+  // until now. validate warns on every run; analyze (and so change check /
+  // close) refuses.
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-hollow", "hollow change"], { cwd: tmp });
+    const r = runCli(["analyze", "0001-hollow"], { cwd: tmp });
+    assert.equal(r.status, 1, r.stderr || r.stdout);
+    assert.match(r.stdout, /scaffold placeholder/);
+    const v = runCli(["validate"], { cwd: tmp });
+    assert.match(v.stdout, /opened but never planned/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1026,6 +1057,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     assert.match(r.stdout, /0001-x\/tasks\.md/);
 
     // Tasks done + a delta present: suggests analyze/apply.
+    planTasks(tmp, "0001-x");
     const tasksPath = path.join(tmp, ".doctrina", "changes", "0001-x", "tasks.md");
     writeFileSync(tasksPath, readFileSync(tasksPath, "utf8").replaceAll("- [ ]", "- [x]"));
     const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-x", "specs", "core", "delta.md");
@@ -3251,10 +3283,7 @@ test("change new scaffolds design.md only under --design; archive stamps a propo
     assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0002-b", "design.md")));
 
     // Archive 0001-a while still "proposed" (no apply): the file gets stamped.
-    for (const f of ["tasks.md", "proposal.md"]) {
-      const p = path.join(tmp, ".doctrina", "changes", "0001-a", f);
-      if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
-    }
+    completeChange(tmp, "0001-a");
     const r = runCli(["change", "archive", "0001-a"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const archived = readdirSync(path.join(tmp, ".doctrina", "changes", "archive")).find((n) => n.endsWith("0001-a"));
@@ -3479,10 +3508,7 @@ test("close scopes the coverage gate to the change's touched capabilities", () =
     mkdirSync(deltaDir, { recursive: true });
     writeFileSync(path.join(deltaDir, "delta.md"),
       "# Spec Delta — capability: touched\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/touched/spec.md`\n\n---\n\n# Spec — touched\n\n**Capability:** touched\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nTouch.\n\n## Acceptance criteria\n\n1. [verified] touched — verified by `.doctrina/index.json`.\n");
-    for (const f of ["tasks.md", "proposal.md"]) {
-      const p = path.join(tmp, ".doctrina", "changes", "0001-touch", f);
-      if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
-    }
+    completeChange(tmp, "0001-touch");
     runCli(["index", "rebuild"], { cwd: tmp });
 
     const r = runCli(["close", "0001-touch"], { cwd: tmp });
@@ -3525,6 +3551,18 @@ test("change tick lists unchecked boxes with ordinals and ticks them (--all)", (
   const tmp = initedProject();
   try {
     runCli(["change", "new", "0001-x", "x"], { cwd: tmp });
+
+    // Scaffold placeholders: listed as such, and refused by tick — an empty
+    // box ticked is how a hollow change games the archive gate.
+    const raw = runCli(["change", "tick", "0001-x"], { cwd: tmp });
+    assert.match(raw.stdout, /scaffold placeholder/);
+    const refuseAll = runCli(["change", "tick", "0001-x", "--all"], { cwd: tmp });
+    assert.equal(refuseAll.status, 2, refuseAll.stdout + refuseAll.stderr);
+    assert.match(refuseAll.stderr, /placeholder/);
+    const refuseOne = runCli(["change", "tick", "0001-x", "1"], { cwd: tmp });
+    assert.equal(refuseOne.status, 2);
+
+    planTasks(tmp, "0001-x");
     const list = runCli(["change", "tick", "0001-x"], { cwd: tmp });
     assert.equal(list.status, 0, list.stdout + list.stderr);
     assert.match(list.stdout, /1\./, "must list ordinals");
@@ -3556,11 +3594,13 @@ test("change check reports ops errors and archive blockers before close, then ok
       "\n```ops\nset-criterion 9: verified\n```\n");
     const bad = runCli(["change", "check", id], { cwd: tmp });
     assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.match(bad.stdout, /scaffold placeholder/, "check must flag the never-planned tasks");
     assert.match(bad.stdout, /apply would refuse/);
     assert.match(bad.stdout, /unchecked task/);
 
-    // Fix the ops block, tick everything: check goes green.
+    // Fix the ops block, plan the tasks, tick everything: check goes green.
     writeFileSync(deltaPath, readFileSync(deltaPath, "utf8").replace("set-criterion 9: verified", "bump-version patch"));
+    planTasks(tmp, id);
     runCli(["change", "tick", id, "--all"], { cwd: tmp });
     const good = runCli(["change", "check", id], { cwd: tmp });
     assert.equal(good.status, 0, good.stdout + good.stderr);
@@ -3586,6 +3626,7 @@ test("close accepts multiple ids and runs the ADR checkpoint and skill-suggest a
       mkdirSync(deltaDir, { recursive: true });
       writeFileSync(path.join(deltaDir, "delta.md"),
         "# Spec Delta — capability: " + cap + "\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/" + cap + "/spec.md`\n\n---\n\n# Spec — " + cap + "\n\n**Capability:** " + cap + "\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nX.\n\n## Acceptance criteria\n\n1. [verified] present — verified by `.doctrina/index.json`.\n");
+      planTasks(tmp, id);
       runCli(["change", "tick", id, "--all"], { cwd: tmp });
     };
     mkChange("0002-a", "billing");
@@ -3698,6 +3739,24 @@ test("validate warns early on a delta with a missing or malformed Operation head
     writeFileSync(path.join(deltaDir, "delta.md"), "# Spec Delta — capability: billing\n\nno operation header\n");
     const r = runCli(["validate"], { cwd: tmp });
     assert.match(r.stdout, /has no \*\*Operation:\*\* header/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("templates check verifies installed adapters still point at AGENTS.md", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme", "--agent", "claude"], { cwd: tmp });
+    const okRun = runCli(["templates", "check"], { cwd: tmp });
+    assert.match(okRun.stdout, /adapter CLAUDE\.md: points at AGENTS\.md/);
+
+    // Break the pointer: the adapter no longer references the hub.
+    const adapterPath = path.join(tmp, "CLAUDE.md");
+    writeFileSync(adapterPath, "# CLAUDE.md\n\nProject notes only.\n");
+    const broken = runCli(["templates", "check"], { cwd: tmp });
+    assert.equal(broken.status, 1, broken.stdout + broken.stderr);
+    assert.match(broken.stdout, /adapter CLAUDE\.md no longer references AGENTS\.md/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-07-19
-**Version:** 0.26.0
+**Version:** 0.27.0
 
 ## Purpose
 
@@ -347,6 +347,9 @@ owns the surface itself and the conventions every command shares.
 - When `doctrina clarify` runs with `--lang pt` or `--lang en`, the system shall apply that lexicon regardless of the project config and the per-file stopword heuristic.
 - When `doctrina templates update --write` or `doctrina upgrade --write` runs, the system shall regenerate the marker-delimited doctrina:surface block of AGENTS.md from the installed command catalog — replacing a legacy hand-written surface section — while writing nothing outside the markers (ADR 0015).
 - When `doctrina validate` finds an open change's delta whose `**Operation:**` header is missing or not one of ADDED, MODIFIED, or REMOVED, the system shall warn, naming the file and the fix.
+- When `doctrina analyze` finds `tasks.md` still carrying a scaffold placeholder task (`- [ ]` with no text, checked or not), the system shall fail, telling the operator to plan the change before implementing; `change check` and `close` inherit the refusal.
+- When `doctrina change tick` targets a box whose text is empty, the system shall refuse without ticking anything and shall name the fix; the tick listing shall mark such boxes as scaffold placeholders.
+- When `doctrina validate` finds an open change whose `tasks.md` still carries scaffold placeholder tasks, the system shall warn that the change was opened but never planned.
 
 ### State-driven
 
@@ -411,6 +414,7 @@ The CLI is v0 spec-compliant when:
 5. [verified] The runtime `dependencies` field of the package is absent
    or `{}` — see `packages/doctrina-cli/package.json`.
 6. [verified] Operator-review follow-ups behave as specified: change check/tick, batch ids on close/apply/archive/check, the prefilled work delta and `--quiet`, the close advisories, `clarify --lang`, the regenerated doctrina:surface block, and the EARS requirement verbs — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/spec-ops.test.js`, `packages/doctrina-cli/test/commands.test.js`.
+7. [verified] A hollow change cannot close: analyze fails on scaffold placeholders, `change tick` refuses empty boxes, validate warns on every run — verified by `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 

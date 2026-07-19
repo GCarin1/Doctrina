@@ -77,6 +77,19 @@ never refreshed it (ADR 0015).
 - `validate` warns on an open change's delta with a missing or malformed
   `**Operation:**` header — the error now appears near the cause, not
   days later at the closing analyze (§3.2).
+- **Hollow-change teeth** (user report: the agent runs `work`, leaves the
+  scaffolded artifacts empty, and starts implementing with no plan) — an
+  empty `- [ ]` scaffold placeholder in tasks.md (checked or not) is now
+  a hard `analyze` failure (so `change check` and `close` refuse), a
+  `validate` warning on every run ("opened but never planned"), and
+  `change tick` refuses to tick a textless box — the gate cannot be
+  gamed by ticking placeholders. The work playbook states the order
+  explicitly: plan the tasks/proposal BEFORE implementing.
+- `templates check` verifies every **installed agent adapter** (CLAUDE.md,
+  GEMINI.md, `.cursor/rules/…`, …) still references AGENTS.md. Adapters
+  are thin pointers at the hub — that is why a single
+  `doctrina upgrade --write` surface refresh reaches every installed
+  agent; a broken pointer is now a named finding.
 
 ### Changed
 

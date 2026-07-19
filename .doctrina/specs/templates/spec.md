@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-07-02
-**Version:** 0.9.1
+**Last updated:** 2026-07-19
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -61,6 +61,7 @@ The CLI consumes this spec to drive `doctrina init` and the
   discoverable inside the agent, not only by the agent knowing to shell out
   to the CLI. Each command is a thin prompt that invokes the CLI, which stays
   the single source of truth.
+- When `doctrina templates check` runs, the system shall verify each installed agent adapter (inventoried from the shipped adapter template tree) still references `AGENTS.md`, and shall report a finding with the fix when the pointer is gone.
 
 ### State-driven
 
@@ -115,6 +116,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 4. The canonical token set is enumerated with meaning and default for
    each token in `.doctrina/templates/README.md`; a template using an
    undocumented token fails `packages/doctrina-cli/test/templates.test.js`.
+5. [verified] A broken adapter pointer is a named `templates check` finding — verified by `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 
