@@ -1,4 +1,4 @@
-# CLAUDE.md — Simulacao-economica
+# CLAUDE.md — Doctrina
 
 This project uses the open AGENTS.md standard as the single source of
 truth for agent-readable rules. The canonical file is at the repository

@@ -17,7 +17,16 @@
 //   set-criterion 1: verified
 //   replace-criterion 2: [verified] new text — verified by `test/x.test.ts`
 //   append-criterion [unverified] new signal — verified by `test/y.test.ts`
+//   append-requirement event: When X occurs, the system shall do Y.
+//   replace-requirement ubiquitous 2: The system shall do Z.
 //   ```
+//
+// The requirement verbs (operator review 2026-07-19 §4.1) cover the dominant
+// MODIFIED case — inserting or rewording EARS bullets in a `## Requirements
+// (EARS)` subsection — so a typical delta no longer falls back to a manual
+// merge. Because append-* verbs resolve their position/number at APPLY time,
+// concurrent open changes appending to the same spec cannot collide on
+// numbering: order of application decides, mechanically.
 //
 // A `# comment` or blank line inside the block is ignored. When a delta has
 // no ops block, apply falls back to the manual-merge pointer (backward
@@ -48,9 +57,13 @@ export function extractOps(deltaText) {
 
 // Find the body of the first ```ops fenced block, or null if absent. The
 // info string must be exactly "ops" (case-insensitive) so a normal code
-// fence in the prose is never mistaken for operations.
+// fence in the prose is never mistaken for operations. HTML comments are
+// stripped first: the scaffolded delta template carries an EXAMPLE ops block
+// inside its instructional comment, and executing an example against a real
+// spec is exactly the surprise this guard removes.
 function matchOpsBlock(text) {
-  const m = text.match(/^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/m);
+  const visible = text.replace(/<!--[\s\S]*?-->/g, "");
+  const m = visible.match(/^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/m);
   return m ? m[1] : null;
 }
 
@@ -92,9 +105,48 @@ function parseOpLine(line) {
       if (!rest) return { verb, error: "append-criterion is missing its text" };
       return { verb, value: rest };
     }
+    case "append-requirement": {
+      // append-requirement <section>: <text>
+      const colon = rest.indexOf(":");
+      if (colon < 0) return { verb, error: `append-requirement needs "<section>: <text>" (got "${rest}")` };
+      const section = normalizeSection(rest.slice(0, colon).trim());
+      const value = rest.slice(colon + 1).trim();
+      if (!section) return { verb, error: `append-requirement: unknown section "${rest.slice(0, colon).trim()}" (use ${SECTION_TOKENS})` };
+      if (!value) return { verb, error: "append-requirement is missing the requirement text" };
+      return { verb, section, value };
+    }
+    case "replace-requirement": {
+      // replace-requirement <section> <n>: <text>
+      const colon = rest.indexOf(":");
+      if (colon < 0) return { verb, error: `replace-requirement needs "<section> <n>: <text>" (got "${rest}")` };
+      const head = rest.slice(0, colon).trim().split(/\s+/);
+      const value = rest.slice(colon + 1).trim();
+      const n = Number(head[head.length - 1]);
+      const section = normalizeSection(head.slice(0, -1).join(" "));
+      if (!section) return { verb, error: `replace-requirement: unknown section "${head.slice(0, -1).join(" ")}" (use ${SECTION_TOKENS})` };
+      if (!Number.isInteger(n) || n < 1) return { verb, error: `replace-requirement needs a positive bullet number (got "${rest}")` };
+      if (!value) return { verb, error: `replace-requirement ${n} is missing the requirement text` };
+      return { verb, section, n, value };
+    }
     default:
       return { verb: null, error: `unknown operation "${verb}"` };
   }
+}
+
+// EARS subsection aliases -> the canonical token used to match the spec's
+// `### ` heading under `## Requirements (EARS)`. Deterministic: first word of
+// the heading, folded ("Unwanted-behavior (must-not)" -> "unwanted").
+const SECTIONS = {
+  ubiquitous: "ubiquitous",
+  event: "event", "event-driven": "event",
+  state: "state", "state-driven": "state",
+  unwanted: "unwanted", "unwanted-behavior": "unwanted", "must-not": "unwanted",
+  optional: "optional",
+};
+const SECTION_TOKENS = "ubiquitous|event|state|unwanted|optional";
+
+function normalizeSection(raw) {
+  return SECTIONS[raw.toLowerCase()] ?? null;
 }
 
 // Apply a parsed op list to a spec's Markdown text. Pure: returns
@@ -132,6 +184,10 @@ function applyOne(text, op) {
       return replaceCriterion(text, op.n, op.value);
     case "append-criterion":
       return appendCriterion(text, op.value);
+    case "append-requirement":
+      return appendRequirement(text, op.section, op.value);
+    case "replace-requirement":
+      return replaceRequirement(text, op.section, op.n, op.value);
     default:
       return { error: `unknown operation "${op.verb}"` };
   }
@@ -221,6 +277,90 @@ export function replaceCriterion(text, n, value) {
   return { text: loc.lines.join("\n"), summary: `replace-criterion ${n}` };
 }
 
+// The `### <Section>` blocks under `## Requirements (EARS)`. Returns
+// { lines, sections: { <token>: { headingIndex, endIndex, bullets: [lineIndex] } } }
+// or null when the Requirements section is absent. A section's token is the
+// first word of its heading, folded through SECTIONS ("Unwanted-behavior
+// (must-not)" -> "unwanted"). endIndex is exclusive: the line index of the
+// next heading (### or ##) after the section, or lines.length.
+function locateRequirements(text) {
+  const lines = text.split(/\r?\n/);
+  let inRequirements = false;
+  let current = null;
+  const sections = {};
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^##\s+/.test(line) && !/^###/.test(line)) {
+      if (current) { current.endIndex = i; current = null; }
+      inRequirements = /^##\s+Requirements\b/i.test(line);
+      continue;
+    }
+    if (!inRequirements) continue;
+    const h = line.match(/^###\s+(\S+)/);
+    if (h) {
+      if (current) current.endIndex = i;
+      const token = SECTIONS[h[1].toLowerCase().replace(/[^a-z-]/g, "")] ?? null;
+      current = { headingIndex: i, endIndex: lines.length, bullets: [] };
+      if (token) sections[token] = current;
+      continue;
+    }
+    if (current && /^\s*-(\s|$)/.test(line)) current.bullets.push(i);
+  }
+  return Object.keys(sections).length > 0 || /^##\s+Requirements\b/im.test(text)
+    ? { lines, sections }
+    : null;
+}
+
+// A list item may wrap over indented continuation lines ("- When X,\n
+// the system shall ..."). Inserting right after the item's FIRST line
+// splits it from its continuation — the bug the 0.13.0 dogfood close
+// caught on this very repo's cli spec. From the item's first line, the
+// item ends after every following line that is indented content.
+function endOfItem(lines, startIndex) {
+  let i = startIndex;
+  while (i + 1 < lines.length && /^\s+\S/.test(lines[i + 1])) i += 1;
+  return i;
+}
+
+// append-requirement <section>: <text> — add "- <text>" at the end of the
+// EARS subsection. A lone "-" placeholder bullet (the untouched scaffold) is
+// replaced instead of appended after, so the first real requirement does not
+// land under an empty stub.
+export function appendRequirement(text, section, value) {
+  const loc = locateRequirements(text);
+  if (!loc) return { error: "append-requirement: spec has no '## Requirements (EARS)' section" };
+  const sec = loc.sections[section];
+  if (!sec) return { error: `append-requirement: no '### ${section}...' subsection found under Requirements` };
+  const placeholder = sec.bullets.length === 1 && /^\s*-\s*$/.test(loc.lines[sec.bullets[0]]);
+  if (placeholder) {
+    loc.lines[sec.bullets[0]] = `- ${value}`;
+  } else if (sec.bullets.length > 0) {
+    loc.lines.splice(endOfItem(loc.lines, sec.bullets[sec.bullets.length - 1]) + 1, 0, `- ${value}`);
+  } else {
+    // Empty section: insert after the heading (skipping one blank line if present).
+    let at = sec.headingIndex + 1;
+    while (at < sec.endIndex && loc.lines[at].trim() === "") at += 1;
+    loc.lines.splice(at, 0, `- ${value}`);
+  }
+  return { text: loc.lines.join("\n"), summary: `append-requirement ${section}: ${value.slice(0, 60)}` };
+}
+
+// replace-requirement <section> <n>: <text> — replace the nth bullet (1-based)
+// of the EARS subsection.
+export function replaceRequirement(text, section, n, value) {
+  const loc = locateRequirements(text);
+  if (!loc) return { error: "replace-requirement: spec has no '## Requirements (EARS)' section" };
+  const sec = loc.sections[section];
+  if (!sec) return { error: `replace-requirement: no '### ${section}...' subsection found under Requirements` };
+  const real = sec.bullets.filter((i) => !/^\s*-\s*$/.test(loc.lines[i]));
+  if (n > real.length) {
+    return { error: `replace-requirement: section "${section}" has ${real.length} requirement${real.length === 1 ? "" : "s"}, no #${n}` };
+  }
+  const indent = loc.lines[real[n - 1]].match(/^(\s*)/)[1];
+  loc.lines[real[n - 1]] = `${indent}- ${value}`;
+  return { text: loc.lines.join("\n"), summary: `replace-requirement ${section} ${n}` };
+}
+
 // append-criterion <text> — add a new numbered criterion after the last one
 // in the section.
 export function appendCriterion(text, value) {
@@ -231,6 +371,6 @@ export function appendCriterion(text, value) {
   }
   const last = loc.items[loc.items.length - 1];
   const nextN = Math.max(...loc.items.map((it) => it.n)) + 1;
-  loc.lines.splice(last.lineIndex + 1, 0, `${last.indent}${nextN}. ${value}`);
+  loc.lines.splice(endOfItem(loc.lines, last.lineIndex) + 1, 0, `${last.indent}${nextN}. ${value}`);
   return { text: loc.lines.join("\n"), summary: `append-criterion ${nextN}` };
 }

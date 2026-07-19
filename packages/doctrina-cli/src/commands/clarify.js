@@ -2,7 +2,7 @@ import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
-import { flagBool } from "../lib/args.js";
+import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
@@ -78,16 +78,30 @@ function detectLang(text) {
   return pt > en ? "pt" : "en";
 }
 
-function rulesFor(projectRoot, text) {
-  const declared = projectLanguage(projectRoot);
-  const lang = declared ?? detectLang(text);
+function rulesFor(projectRoot, text, forcedLang = null) {
+  const lang = forcedLang ?? projectLanguage(projectRoot) ?? detectLang(text);
   return lang === "pt" ? RULES_PT : RULES_EN;
+}
+
+// --lang pt|en wins over the project config and the per-file heuristic
+// (operator review 2026-07-19 §4.8: on a PT-BR project with no config.json,
+// a file whose stopword count tips English gets the EN lexicon and "some" —
+// the verb *sumir* — is flagged as the vague quantifier). One flag, zero
+// guessing; persist it with .doctrina/config.json { "language": "pt-BR" }.
+function forcedLang(flags) {
+  const raw = flagString(flags, "lang");
+  if (!raw || raw === true) return null;
+  const lang = String(raw).toLowerCase();
+  if (lang.startsWith("pt")) return "pt";
+  if (lang.startsWith("en")) return "en";
+  console.error(c.yellow("warn:") + ` unknown --lang "${raw}" (use pt|en) — falling back to detection`);
+  return null;
 }
 
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
 
-  if (flagBool(flags, "all", false)) return clarifyAll(projectRoot);
+  if (flagBool(flags, "all", false)) return clarifyAll(projectRoot, forcedLang(flags));
 
   const target = positional[0];
   if (!target) {
@@ -103,7 +117,7 @@ export async function run(positional, flags) {
   console.log(`clarify ${relPath(projectRoot, fullPath)}`);
   console.log("");
 
-  const smells = scanFile(fullPath);
+  const smells = scanFile(fullPath, projectRoot, forcedLang(flags));
   for (const s of smells) {
     console.log(`${c.yellow("⚠")} line ${s.line}: ${s.rule} "${s.token}" — ${s.hint}`);
   }
@@ -122,7 +136,7 @@ export async function run(positional, flags) {
 // and clarify each. ADRs are immutable and the archive is history, so
 // neither is included; AGENTS.md is dense command text, a different
 // register from prose specs.
-function clarifyAll(projectRoot) {
+function clarifyAll(projectRoot, lang = null) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
   }
@@ -149,7 +163,7 @@ function clarifyAll(projectRoot) {
 
   let total = 0;
   for (const f of files) {
-    const smells = scanFile(f);
+    const smells = scanFile(f, projectRoot, lang);
     if (smells.length === 0) continue;
     total += smells.length;
     const rel = relPath(projectRoot, f);
@@ -167,10 +181,10 @@ function clarifyAll(projectRoot) {
   return 1;
 }
 
-function scanFile(fullPath, projectRoot = process.cwd()) {
+function scanFile(fullPath, projectRoot = process.cwd(), lang = null) {
   const text = read(fullPath);
   const skippedRanges = collectSkippedRanges(text);
-  const rules = rulesFor(projectRoot, text);
+  const rules = rulesFor(projectRoot, text, lang);
   const smells = [];
 
   // Per-line rules: regex pass with skip-range filter. A line carrying the
@@ -257,20 +271,20 @@ function findAcceptanceLine(text) {
 }
 
 export const help = `
-Usage: doctrina clarify <path>
-       doctrina clarify --all
+Usage: doctrina clarify <path> [--lang pt|en]
+       doctrina clarify --all [--lang pt|en]
 
 Read a Markdown file and report weasel words, vague quantifiers,
 placeholders, and empty Acceptance criteria sections. Exits 0 when
 no smells are found, 1 otherwise. Matches inside fenced code
 blocks, HTML comments, and inline backtick spans are skipped.
 
-Language-aware: declare it in .doctrina/config.json
-({ "language": "pt-BR" }) or let a per-file stopword count decide.
-Portuguese mode uses a PT lexicon (bare TODO is the pronoun, only
-"TODO:" is a marker; "some"/"several" are not smells). A line ending
-in <!-- clarify:ok --> is author-accepted and never flagged — the
-escape hatch for a false positive.
+Language-aware: --lang pt|en forces the lexicon; otherwise
+.doctrina/config.json ({ "language": "pt-BR" }) decides, else a
+per-file stopword count. Portuguese mode uses a PT lexicon (bare
+TODO is the pronoun, only "TODO:" is a marker; "some"/"several" are
+not smells). A line ending in <!-- clarify:ok --> is author-accepted
+and never flagged — the escape hatch for a false positive.
 
 With --all, every living document is scanned in one pass:
 product.md, capability specs, open changes, and skills. ADRs

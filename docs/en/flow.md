@@ -20,16 +20,17 @@ flowchart TD
 
     subgraph LOOP["Change loop — once per task (agent-driven)"]
         direction TB
-        work["doctrina work 'prompt'<br/>--from-diff · --chore · --resume"]
+        work["doctrina work 'prompt'<br/>--capability scaffolds the delta · --from-diff · --chore · --quiet · --resume"]
         context["doctrina context --concat<br/>read pack, canonical order"]
-        delta["spec delta + tasks.md"]
+        delta["spec delta + tasks.md<br/>(ops block: headers · criteria · EARS requirements)"]
         specset["doctrina spec set (cap)<br/>advance Implementation / bump"]
-        analyze["doctrina analyze (id)<br/>pre-flight the change"]
+        ctick["doctrina change tick (id) --all<br/>check boxes in bulk"]
+        ccheck["doctrina change check (id)<br/>pre-close dry-run"]
         cdiff["doctrina change diff (id)<br/>preview deltas"]
-        capply["doctrina change apply (id)<br/>merge deltas into specs"]
-        carchive["doctrina change archive (id)<br/>refuses unchecked work"]
+        capply["doctrina change apply (id...)<br/>merge deltas into specs"]
+        carchive["doctrina change archive (id...)<br/>refuses unchecked work"]
         cabandon["doctrina change abandon (id)<br/>discard cleanly"]
-        work --> context --> delta --> specset --> analyze --> cdiff --> capply --> carchive
+        work --> context --> delta --> specset --> ctick --> ccheck --> cdiff --> capply --> carchive
         delta -. "not viable" .-> cabandon
     end
 
@@ -43,7 +44,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>ambiguity smell-test"]
     end
 
-    close["doctrina close (id)<br/>analyze → apply → verify → coverage → trace → archive → validate"]
+    close["doctrina close (id...)<br/>analyze → ADR checkpoint → apply → verify → coverage → trace → archive → validate → skill suggest"]
 
     subgraph GOV["Decisions & integration surface"]
         direction TB
@@ -126,9 +127,12 @@ flowchart TD
 - `doctrina context [<cap>] --concat` — assemble the read pack in canonical
   order, with token estimates. Run it for any task, not only `work`
   (`--budget <n>` gates the size; `--diff <ref>` is the resume-session pack).
-- `doctrina analyze <id>` → `change diff <id>` → `change apply <id>` →
-  `change archive <id>` — pre-flight, preview, merge deltas into specs, then
-  archive (which refuses unchecked work). `change abandon <id>` discards.
+- `doctrina change tick <id> [--all]` → `change check <id>` → `analyze <id>` →
+  `change diff <id>` → `change apply <id...>` → `change archive <id...>` —
+  bulk-check the boxes, dry-run everything close would refuse, pre-flight,
+  preview, merge deltas into specs (ops blocks cover headers, criteria, and
+  EARS requirement bullets), then archive (which refuses unchecked work).
+  apply/archive/check take multiple ids. `change abandon <id>` discards.
 
 **Gates (ground truth).**
 - `doctrina validate` (`--fix`) — schema, structure, EARS, and index drift
@@ -142,8 +146,9 @@ flowchart TD
 - `doctrina clarify [--all]` — ambiguity smell-test on Markdown.
 
 **One-shot close.**
-- `doctrina close <id>` — runs analyze → apply → verify → coverage → trace →
-  archive → validate in one pass, stopping at the first failure.
+- `doctrina close <id...>` — runs analyze → ADR checkpoint (advisory) →
+  apply → verify → coverage → trace → archive → validate → skill suggest
+  (advisory) in one pass, stopping at the first failure. Takes multiple ids.
 
 **Decisions & contracts.**
 - `doctrina decision new → accept → land` (or `supersede`), `decision list` —

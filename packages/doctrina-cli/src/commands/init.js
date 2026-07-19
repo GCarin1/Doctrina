@@ -2,6 +2,7 @@ import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
+import { surfaceBlock, findSurfaceBlock } from "../lib/commands.js";
 import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString } from "../lib/args.js";
@@ -108,10 +109,13 @@ export async function run(_positional, flags) {
     FRAMEWORK_VERSION: cliVersion(),
   };
 
-  // Root AGENTS.md — with optional --from base content prepended.
+  // Root AGENTS.md — with optional --from base content prepended. The
+  // doctrina:surface block is regenerated from the installed catalog at init
+  // time, so a freshly scaffolded hub can never document a stale surface even
+  // if the static template lags a release (ADR 0015).
   const agentsTemplatePath = path.join(templatesDir, "AGENTS.md.template");
   const agentsTemplateBody = read(agentsTemplatePath);
-  const projectAgents = substitute(agentsTemplateBody, tokens);
+  const projectAgents = refreshSurfaceBlock(substitute(agentsTemplateBody, tokens));
   const finalAgents = fromAgentsContent
     ? fromAgentsContent.replace(/\n+$/, "") + "\n\n---\n\n## Project-specific\n\n" + projectAgents
     : projectAgents;
@@ -176,6 +180,15 @@ export async function run(_positional, flags) {
     console.log(`Next: edit ${c.cyan("AGENTS.md")} and ${c.cyan(".doctrina/product.md")} for your project.`);
   }
   return 0;
+}
+
+// Replace the template's doctrina:surface span with the one generated from
+// the running CLI's catalog; pass the text through untouched when the
+// template carries no markers (older custom templates).
+function refreshSurfaceBlock(text) {
+  const block = findSurfaceBlock(text);
+  if (!block) return text;
+  return text.slice(0, block.start) + surfaceBlock() + text.slice(block.end);
 }
 
 // First non-empty line of the intake, stripped of Markdown heading marks

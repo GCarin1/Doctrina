@@ -17,6 +17,99 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-07-19
+
+Operator-review follow-ups (external agent review of 2026-07-19, written
+from ~35 changes of end-to-end operation on a 0.12-era project) plus the
+upgrade-fidelity gap. Two structural themes: (1) the MODIFIED delta merge
+was still manual for the dominant case — inserting EARS bullets — which
+desiccated `close` into a hand-stepped sequence; (2) for an agent,
+AGENTS.md **is** the discovery interface, and ~15 commands (`prime`,
+`handoff`, `doctor`, `show`, `intent add`, `report`, ...) stayed
+invisible for 35 changes because the hub never named them and `upgrade`
+never refreshed it (ADR 0015).
+
+### Added
+
+- **EARS requirement ops** — `append-requirement <section>: <text>` and
+  `replace-requirement <section> <n>: <text>` in the delta ` ```ops `
+  block (sections `ubiquitous|event|state|unwanted|optional`). The verbs
+  now cover headers, criteria, and the requirement bullets, so a typical
+  MODIFIED delta applies mechanically end to end; `append-*` resolves
+  numbering at apply time, so concurrent changes appending to one spec
+  cannot collide (review §3.1/§3.6, suggestion #1).
+- **CLI-owned AGENTS.md surface block** (ADR 0015) — the command-surface
+  section is now a marker-delimited block
+  (`<!-- doctrina:surface:begin/end -->`) **generated from the command
+  catalog**: `init` writes it fresh, `templates check` flags it stale,
+  and `templates update --write` / `doctrina upgrade --write` regenerate
+  exactly that span (a legacy hand-written surface section is replaced;
+  everything outside the markers keeps the additive-only guarantee).
+  Closes the user-reported gap: `upgrade` bumped the stamp but never
+  rebuilt AGENTS.md, so agents never discovered new commands.
+- `doctrina change check <id...>` — read-only pre-close dry-run: analyze's
+  structural checks + every ops block executed in memory against its
+  target + the archive-gate preview + an advisory list of accepted ADRs
+  citing the touched capabilities (suggestion #4).
+- `doctrina change tick <id> [n... | --all]` — list/tick the unchecked
+  boxes of tasks.md + the proposal's `## Verification` in one ordinal
+  space; the missing checkbox command (suggestion #5).
+- **Batch ids** — `close`, `change apply`, `change archive`, and
+  `change check` accept multiple ids; each runs independently and the
+  worst exit code wins (suggestion #5).
+- **ADR checkpoint in `close`** (advisory step after analyze) — names the
+  accepted ADRs whose text cites the change's touched capabilities and
+  the amend commands; the playbook's "record an ADR" step is no longer
+  skippable in silence (suggestion #6).
+- **`skill suggest` at the end of `close`** (advisory) — fix-shaped
+  lessons not yet captured are surfaced at the moment of closing
+  (suggestion #7).
+- `doctrina work --capability <cap>` now **scaffolds the delta**
+  (`specs/<cap>/delta.md`) with `**Operation:**` prefilled — MODIFIED
+  when the spec exists, ADDED when not — killing the
+  missing-header-explodes-at-analyze class at the source (§3.2,
+  suggestion #2).
+- `doctrina work --quiet` — register a backlog change with a one-line
+  confirmation instead of the full playbook (§3.7, suggestion #10).
+- `doctrina clarify --lang pt|en` — force the lexicon over the config
+  and the per-file heuristic (matters on mixed-language files; §3.4,
+  suggestion #8).
+- `validate` warns on an open change's delta with a missing or malformed
+  `**Operation:**` header — the error now appears near the cause, not
+  days later at the closing analyze (§3.2).
+- **Hollow-change teeth** (user report: the agent runs `work`, leaves the
+  scaffolded artifacts empty, and starts implementing with no plan) — an
+  empty `- [ ]` scaffold placeholder in tasks.md (checked or not) is now
+  a hard `analyze` failure (so `change check` and `close` refuse), a
+  `validate` warning on every run ("opened but never planned"), and
+  `change tick` refuses to tick a textless box — the gate cannot be
+  gamed by ticking placeholders. The work playbook states the order
+  explicitly: plan the tasks/proposal BEFORE implementing.
+- `templates check` verifies every **installed agent adapter** (CLAUDE.md,
+  GEMINI.md, `.cursor/rules/…`, …) still references AGENTS.md. Adapters
+  are thin pointers at the hub — that is why a single
+  `doctrina upgrade --write` surface refresh reaches every installed
+  agent; a broken pointer is now a named finding.
+
+### Changed
+
+- The shipped `AGENTS.md` template's day-to-day guidance now names the
+  session bookends (`prime` at session start, `handoff` before
+  compaction/handover) and `change check` before `close` (review
+  meta-conclusion, suggestion #3).
+- `extractOps` ignores ops fences inside HTML comments — the scaffolded
+  delta template carries an *example* block in its instructional comment,
+  which apply must never execute.
+- The work playbook documents the requirement verbs, the
+  apply-time-numbering rule for concurrent changes, and a contract nudge
+  (ports/env/endpoints → `contract new` / `contract check`).
+
+### Fixed
+
+- `doctrina upgrade --write` now actually brings AGENTS.md up to the
+  installed CLI (via the regenerated surface block) instead of only
+  migrating the `framework_version` stamp and printing a hint.
+
 ## [0.12.0] — 2026-07-12
 
 Field-review follow-ups (external 0.11.0 review, project session of

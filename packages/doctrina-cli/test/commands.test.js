@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, existsSync
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands } from "../src/lib/commands.js";
+import { COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands, SURFACE_GROUPS, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "../src/lib/commands.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
@@ -239,6 +239,48 @@ test("COMMAND_NAMES and OPERATIONS agree on the top-level surface", () => {
   for (const [op] of OPERATIONS) {
     assert.match(help, new RegExp(`^  ${op}(\\s|$)`, "m"), `--help omits \`${op}\``);
   }
+});
+
+// The generated AGENTS.md surface block (ADR 0015): a command absent from
+// SURFACE_GROUPS would ship invisible to the hub agents read — the exact
+// discovery gap the operator review measured over ~35 changes. Three claims:
+// the grouping covers the surface exactly, the generated block names every
+// command and subcommand, and the block round-trips through its markers.
+test("SURFACE_GROUPS cover COMMAND_NAMES exactly and the block names every operation", () => {
+  const grouped = SURFACE_GROUPS.flatMap(([, cmds]) => cmds);
+  assert.deepEqual([...grouped].sort(), [...COMMAND_NAMES].sort());
+  const md = surfaceMarkdown();
+  for (const [op] of OPERATIONS) {
+    const [cmd, sub] = op.split(" ");
+    assert.ok(md.includes(`doctrina ${cmd}`), `surface block omits \`doctrina ${cmd}\``);
+    if (sub) {
+      assert.match(md, new RegExp(`doctrina ${cmd} [a-z|<>."'-]*\\b${sub}\\b`), `surface block omits \`${op}\``);
+    }
+  }
+  // The block satisfies the validate drift gate by construction: every
+  // top-level command is referenced in code context.
+  const referenced = referencedCommands(surfaceBlock());
+  for (const cmd of COMMAND_NAMES) {
+    assert.ok(referenced.has(cmd), `surface block does not reference \`doctrina ${cmd}\` in code context`);
+  }
+  const found = findSurfaceBlock(`before\n${surfaceBlock()}\nafter`);
+  assert.ok(found, "findSurfaceBlock must locate its own output");
+  assert.equal(found.inner.trim(), surfaceMarkdown().trim());
+});
+
+// The shipped AGENTS.md.template must carry the CURRENT generated block —
+// init regenerates it anyway (belt), but the template is what people read in
+// the repo, so it may not lag the catalog (suspenders).
+test("AGENTS.md.template embeds the current generated surface block", async () => {
+  const { locateTemplatesDir } = await import("../src/lib/templates.js");
+  const tplPath = path.join(locateTemplatesDir(), "AGENTS.md.template");
+  const block = findSurfaceBlock(readFileSync(tplPath, "utf8"));
+  assert.ok(block, "template has no doctrina:surface markers");
+  assert.equal(
+    block.inner.replace(/\r\n/g, "\n").trim(),
+    surfaceMarkdown().trim(),
+    "template surface block is stale — paste the output of surfaceMarkdown()",
+  );
 });
 
 // Every operation in the catalog must reach its dispatch switch — invoked

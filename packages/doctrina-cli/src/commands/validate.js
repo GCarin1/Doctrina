@@ -254,7 +254,12 @@ export async function run(_positional, flags) {
     }
   }
 
-  // 7. Every open change has a proposal
+  // 7. Every open change has a proposal, and its delta files carry a
+  //    well-formed **Operation:** header. The delta used to be the one
+  //    100% hand-authored file with no early check: a missing header passed
+  //    silently at creation and exploded days later in the closing analyze
+  //    (operator review 2026-07-19 §3.2). Warning-level — the change is
+  //    still a draft — but now every `validate` run names it.
   const changesDir = path.join(projectRoot, ".doctrina", "changes");
   if (isDir(changesDir)) {
     const { readdirSync } = await import("node:fs");
@@ -266,6 +271,35 @@ export async function run(_positional, flags) {
           `open change "${entry}" missing proposal.md ` +
             `(every dir under .doctrina/changes/ needs a proposal.md — that exact filename)`,
         );
+      }
+      // A change whose tasks are still the scaffold placeholders was opened
+      // but never planned — the agent is (or will be) implementing with no
+      // recorded plan. Early, every-run signal; analyze/close hard-fail it.
+      const tasksPath = path.join(changesDir, entry, "tasks.md");
+      if (isFile(tasksPath)) {
+        const ph = (read(tasksPath).match(/^\s*-\s*\[[ xX]\]\s*$/gm) ?? []).length;
+        if (ph > 0) {
+          warnings.push(
+            `open change "${entry}" tasks.md still carries ${ph} scaffold placeholder task${ph === 1 ? "" : "s"} — ` +
+              `the change was opened but never planned (replace them with real tasks; analyze/close refuse them)`,
+          );
+        }
+      }
+      for (const deltaPath of walk(path.join(changesDir, entry, "specs"))) {
+        if (!deltaPath.endsWith("delta.md")) continue;
+        const text = read(deltaPath);
+        const m = text.match(/^\*\*Operation:\*\*\s*(\S+)/m);
+        if (!m) {
+          warnings.push(
+            `${relPath(projectRoot, deltaPath)} has no **Operation:** header — ` +
+              `analyze/apply will refuse it at close time (add "**Operation:** ADDED|MODIFIED|REMOVED")`,
+          );
+        } else if (!["ADDED", "MODIFIED", "REMOVED"].includes(m[1])) {
+          warnings.push(
+            `${relPath(projectRoot, deltaPath)} Operation "${m[1]}" is not ADDED|MODIFIED|REMOVED — ` +
+              `analyze/apply will refuse it at close time`,
+          );
+        }
       }
     }
   }

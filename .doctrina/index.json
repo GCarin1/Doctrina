@@ -1,22 +1,22 @@
 {
   "$schema_version": "0.1.0",
-  "project": "doctrina",
+  "project": "Doctrina",
   "framework_version": "0.12.0",
-  "last_updated": "2026-07-12",
+  "last_updated": "2026-07-19",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
       "status": "active",
       "version": "0.1.0",
-      "last_updated": "2026-06-03"
+      "last_updated": "2026-07-19"
     },
     "specs": [
       {
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.25.0",
-        "last_updated": "2026-07-02",
+        "version": "0.27.0",
+        "last_updated": "2026-07-19",
         "implementation": "implemented"
       },
       {
@@ -62,8 +62,8 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.9.1",
-        "last_updated": "2026-07-02",
+        "version": "0.10.0",
+        "last_updated": "2026-07-19",
         "implementation": "implemented"
       },
       {
@@ -187,6 +187,14 @@
         "status": "accepted",
         "date": "2026-07-12",
         "landed": "2026-07-12 — `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/clarify.js`, `packages/doctrina-cli/src/commands/intent.js`, `packages/doctrina-cli/src/commands/upgrade.js`, `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/scan.js`"
+      },
+      {
+        "id": "0015",
+        "path": ".doctrina/decisions/0015-agents-md-command-surface-block-is-cli-owned-and-regenerated-from-the-catalog.md",
+        "title": "AGENTS.md command-surface block is CLI-owned and regenerated from the catalog",
+        "status": "accepted",
+        "date": "2026-07-19",
+        "landed": "2026-07-19 — shipped in 0.13.0; regeneration covered by `packages/doctrina-cli/test/integration.test.js` (init/templates/upgrade surface tests) and `packages/doctrina-cli/test/commands.test.js` (catalog↔block parity)"
       }
     ],
     "changes": [],
@@ -207,6 +215,36 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0002-operator-review-follow-ups-and-upgrade-surface",
+        "title": "operator review follow-ups and upgrade surface refresh",
+        "path": ".doctrina/changes/archive/2026-07-19-0002-operator-review-follow-ups-and-upgrade-surface",
+        "status": "applied",
+        "applied": "2026-07-19",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0003-hollow-change-teeth-and-adapter-pointer-check",
+        "title": "hollow change teeth and adapter pointer check",
+        "path": ".doctrina/changes/archive/2026-07-19-0003-hollow-change-teeth-and-adapter-pointer-check",
+        "status": "applied",
+        "applied": "2026-07-19",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [
@@ -214,37 +252,37 @@
         "id": "add-cli-command",
         "path": ".doctrina/skills/add-cli-command.md",
         "description": "Add or change a doctrina CLI command or subcommand without leaving any surface (help, hub, docs, tests) behind.",
-        "last_updated": "2026-07-02"
+        "last_updated": "2026-07-19"
       },
       {
         "id": "cut-a-release",
         "path": ".doctrina/skills/cut-a-release.md",
         "description": "Cut a doctrina-cli release with consistent version stamps, a Changelog entry, and every gate green.",
-        "last_updated": "2026-07-02"
+        "last_updated": "2026-07-19"
       },
       {
         "id": "keep-docs-en-pt-parity",
         "path": ".doctrina/skills/keep-docs-en-pt-parity.md",
         "description": "Keep docs/en and docs/pt as true mirrors — same files, same structure, EN as the source of truth.",
-        "last_updated": "2026-07-02"
+        "last_updated": "2026-07-19"
       },
       {
         "id": "ledger-abandoned-entries-are-ledger-only",
         "path": ".doctrina/skills/ledger-abandoned-entries-are-ledger-only.md",
         "description": "Two-source cross-checks must exempt entries that one source records by design and the other deletes — an abandoned change is ledger-only, never archived",
-        "last_updated": "2026-07-12"
+        "last_updated": "2026-07-19"
       },
       {
         "id": "split-an-oversized-spec",
         "path": ".doctrina/skills/split-an-oversized-spec.md",
         "description": "Split a capability spec that crossed the 400-line cap into two coherent capabilities without losing provenance.",
-        "last_updated": "2026-07-02"
+        "last_updated": "2026-07-19"
       },
       {
         "id": "write-acceptance-evidence",
         "path": ".doctrina/skills/write-acceptance-evidence.md",
         "description": "Write acceptance criteria whose evidence actually resolves, so coverage --strict stays green and honest.",
-        "last_updated": "2026-07-02"
+        "last_updated": "2026-07-19"
       }
     ],
     "contracts": [],

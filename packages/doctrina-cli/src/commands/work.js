@@ -2,11 +2,12 @@ import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, mkdirp, read, relPath, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
+import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { changeNew } from "./change.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -106,6 +107,26 @@ export async function run(positional, flags) {
     if (updated !== txt) write(proposalPath, updated, { force: true });
   }
 
+  // A pinned capability is an explicit statement of intent, so the delta —
+  // historically the only 100% hand-authored file in the flow, and the one
+  // whose missing **Operation:** header exploded days later at analyze
+  // (operator review 2026-07-19 §3.2) — is scaffolded from the template with
+  // the Operation prefilled: MODIFIED when the spec exists, ADDED when it
+  // does not. Never scaffolded from a ranked GUESS (that would put a wrong
+  // capability's delta in the change); only from --capability.
+  if (pinned && !chore) {
+    const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", pinned, "delta.md");
+    if (!exists(deltaPath)) {
+      const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
+      const op = isFile(path.join(projectRoot, ".doctrina", "specs", pinned, "spec.md")) ? "MODIFIED" : "ADDED";
+      const body = substitute(tpl, { CAPABILITY: pinned })
+        .replace(/^\*\*Operation:\*\*.*$/m, `**Operation:** ${op}`);
+      mkdirp(path.dirname(deltaPath));
+      write(deltaPath, body);
+      console.log(c.green("created") + ` ${relPath(projectRoot, deltaPath)}` + c.gray(` (Operation: ${op} prefilled)`));
+    }
+  }
+
   // Capability hint: term overlap for a prompt, changed-file overlap for a diff
   // (review F10 — rank by what the working tree touched, not just prompt words).
   const allChanged = fromDiff ? files : changedFiles(projectRoot);
@@ -113,6 +134,16 @@ export async function run(positional, flags) {
   const matches = pinned ? [] : (fromDiff ? diffMatches : rankCapabilities(projectRoot, effPrompt));
   const capability = pinned ?? matches[0]?.id ?? null;
   const clarity = assessBrief(effPrompt, { kind: "prompt" });
+
+  // --quiet: registering backlog, not starting now (operator review §3.7 — 19
+  // works printed 19 identical 50-line playbooks). One line per change; the
+  // playbook is reprintable on demand with --resume.
+  if (flagBool(flags, "quiet", false)) {
+    console.log("");
+    console.log(c.green("opened ") + c.cyan(id) +
+      c.gray(` — playbook on demand: doctrina work --resume ${id}`));
+    return 0;
+  }
 
   console.log("");
   if (chore) {
@@ -339,6 +370,8 @@ function printChorePlaybook(projectRoot, { id, prompt }) {
   console.log("");
   console.log(`1. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
   console.log("   with small, checkable steps; implement them, checking each box.");
+  console.log(c.gray("   (Do it before implementing — analyze/close refuse leftover scaffold"));
+  console.log(c.gray("   placeholders, and `change tick` will not tick an empty box.)"));
   console.log("2. Prove it (archive refuses unchecked boxes):");
   console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
   console.log(`       ${c.cyan("doctrina verify --clean")} — clean-checkout reproducibility lint`);
@@ -406,8 +439,14 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log(c.gray("   \"**Realizes:** SC1\" header (or \"n/a — <why>\"). `doctrina validate` warns"));
   console.log(c.gray("   on an active spec with no Realizes; `doctrina trace` reports the link."));
   console.log("");
-  console.log("3. Write one delta per affected capability at");
-  console.log(`   .doctrina/changes/${id}/specs/<capability>/delta.md:`);
+  if (pinned) {
+    console.log(`3. A delta is already scaffolded (Operation prefilled) at`);
+    console.log(`   .doctrina/changes/${id}/specs/${pinned}/delta.md — fill its body.`);
+    console.log("   Add one more delta per additional affected capability:");
+  } else {
+    console.log("3. Write one delta per affected capability at");
+    console.log(`   .doctrina/changes/${id}/specs/<capability>/delta.md:`);
+  }
   console.log(c.gray("       # Spec Delta — capability: <capability>"));
   console.log(c.gray("       **Operation:** ADDED | MODIFIED | REMOVED"));
   console.log(c.gray("       **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`"));
@@ -423,8 +462,12 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log(c.gray("       bump-version minor"));
   console.log(c.gray("       set-criterion 1: verified"));
   console.log(c.gray("       append-criterion [unverified] new signal — verified by `test/y.test.js`"));
+  console.log(c.gray("       append-requirement event: When <trigger>, the system shall <action>."));
+  console.log(c.gray("       replace-requirement ubiquitous 2: The system shall <action>."));
   console.log(c.gray("       ```"));
-  console.log(c.gray("   Only prose rewrites stay a by-hand merge."));
+  console.log(c.gray("   append-* ops number/position at APPLY time, so concurrent changes"));
+  console.log(c.gray("   appending to the same spec never collide. Only free-prose rewrites"));
+  console.log(c.gray("   (Purpose, Maturity, ...) stay a by-hand merge."));
   if (fromDiff) {
     console.log(c.gray("   --from-diff: the code already exists — describe its CURRENT behaviour, and"));
     console.log(c.gray("   mark each criterion [unverified] until a test proves it (don't assume the"));
@@ -432,7 +475,10 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   }
   console.log("");
   console.log(`4. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
-  console.log("   with small, checkable implementation tasks (a few hours each, max).");
+  console.log("   with small, checkable implementation tasks (a few hours each, max),");
+  console.log("   and record the change's What/Scope in its proposal.md. Do this BEFORE");
+  console.log("   implementing — analyze and close refuse a change whose scaffold");
+  console.log("   placeholders were never replaced, and `change tick` will not tick them.");
   console.log("");
   console.log("5. Implement task by task, checking each box as it lands. Advance the");
   console.log("   spec's Implementation: planned → partial → implemented as code lands.");
@@ -442,6 +488,10 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
   console.log("   (an architecture, a boundary, a trade-off a future session must");
   console.log(`   not relitigate)? If yes: ${c.cyan("doctrina decision new \"<title>\"")} now,`);
   console.log("   before closing — the definition of done requires it recorded.");
+  console.log(c.gray("   (close re-checks this: it warns when the change touches capabilities"));
+  console.log(c.gray("   cited by an accepted ADR — amend via decision supersede, not silence.)"));
+  console.log("   Touching an integration surface (ports, env vars, public endpoints)?");
+  console.log(`   Own it in a contract: ${c.cyan("doctrina contract new <id>")} · ${c.cyan("doctrina contract check")}.`);
   console.log("");
   console.log(`7. Close in one attested pass (preferred — runs every gate and stops`);
   console.log("   at the first failure with the exact rerun command):");
@@ -476,7 +526,12 @@ named after that word (review G1). Use --resume to do so directly.
 Options:
   --title "<short>"    Short display title: drives the slug and the proposal
                        H1; the full prompt still lands under ## Why
-  --capability <cap>   Pin the capability instead of ranking matches
+  --capability <cap>   Pin the capability instead of ranking matches. Also
+                       scaffolds specs/<cap>/delta.md in the change with the
+                       Operation header prefilled (MODIFIED when the spec
+                       exists, ADDED when it does not)
+  --quiet              Register the change and print one line — no playbook
+                       (backlog entry; reprint later with --resume <id>)
   --id <id>            Override the derived change id
   --resume <id>        Reprint the playbook for an open change; create nothing
   --from-diff          Backfill: scaffold from the working-tree changes (no

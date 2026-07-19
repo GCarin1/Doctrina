@@ -14,7 +14,7 @@
 
 > Framework spec-driven nativo de AGENTS.md para desenvolvimento multi-agente com IA.
 
-**Status:** v0.12.0 — lançado.
+**Status:** v0.13.0 — lançado.
 **Leia em [inglês](./README.md).**
 
 ---
@@ -34,13 +34,14 @@ flowchart TD
     C["doctrina context --concat<br/>(pacote de leitura)"]
     W --> C
     C --> E["spec delta → tasks → implementar"]
-    E --> AP["doctrina analyze → change apply"]
+    E --> CK["doctrina change check<br/>(dry-run pré-fechamento)"]
+    CK --> AP["doctrina analyze → change apply"]
     AP --> GATE{"gates verdes?<br/>verify · coverage · trace · review"}
     GATE -- "vermelho" --> E
     GATE -- "verde" --> AR["doctrina change archive → validate"]
     AR --> NX["doctrina next"]
     NX -. "retoma o loop" .-> W
-    AP -. "doctrina close id: gates → archive → validate numa passada" .-> AR
+    CK -. "doctrina close id...: checkpoint de ADR → gates → archive → validate → skill suggest" .-> AR
     STAT["doctrina status / why / watch<br/>(sempre-ativos, passivos)"] -.-> W
 ```
 
@@ -76,7 +77,10 @@ como um corpo de agentes age.
 
 ## O que está incluído
 
-- Um template `AGENTS.md` aderente ao padrão aberto.
+- Um template `AGENTS.md` aderente ao padrão aberto, com um bloco de
+  superfície de comandos de propriedade do CLI, gerado do CLI instalado e
+  regenerado por `doctrina upgrade --write` (ADR 0015) — agentes descobrem
+  comandos pelo hub, então o hub nunca fica atrás do CLI.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
 - O CLI `doctrina` (Node.js, zero deps de runtime) com 35 comandos
@@ -88,9 +92,10 @@ como um corpo de agentes age.
 - Adapters para 12 agentes AGENTS.md-aware (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Sete specs de capability e doze ADRs aceitos que descrevem o framework
-  (incluindo o ADR 0006, proveniência de intenção), mais cinco skills
-  on-demand capturando seus próprios procedimentos de manutenção.
+- Sete specs de capability e os ADRs 0001–0015 que descrevem o framework
+  (incluindo o ADR 0006, proveniência de intenção, e o ADR 0015, o bloco
+  de superfície do AGENTS.md), mais skills on-demand capturando seus
+  próprios procedimentos de manutenção.
 - Dois projetos exemplo de referência (Python FastAPI greenfield, TypeScript
   Express brownfield retrofit).
 - Documentação bilíngue em inglês e português.

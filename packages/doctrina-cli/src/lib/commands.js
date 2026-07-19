@@ -40,8 +40,10 @@ export const OPERATIONS = [
   ["spec list", "List specs with version, status, and size"],
   ["spec set", "Edit spec headers / a criterion mark and resync the index"],
   ["change new", "Open a change proposal"],
-  ["change apply", "Apply spec deltas (ADDED/REMOVED auto, MODIFIED manual)"],
-  ["change archive", "Archive an applied change"],
+  ["change apply", "Apply spec deltas (ops blocks mechanically; batch ids ok)"],
+  ["change archive", "Archive an applied change (batch ids ok)"],
+  ["change check", "Pre-close dry-run: everything close would refuse, listed first"],
+  ["change tick", "List/tick the unchecked boxes (tasks + verification; --all)"],
   ["change diff", "Preview spec deltas (line diff for MODIFIED)"],
   ["change abandon", "Discard an open change cleanly (recorded in the ledger)"],
   ["contract new", "Own the integration surface (ports, env, interfaces)"],
@@ -92,6 +94,102 @@ export const OPERATIONS = [
 // printed surface can never omit an operation the catalog knows about.
 export function surfaceHelp() {
   return OPERATIONS.map(([op, summary]) => `  ${op.padEnd(21)}${summary}`).join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// The CLI-owned AGENTS.md command-surface block (operator review 2026-07-19,
+// meta-conclusion): for an agent, AGENTS.md IS the discovery interface — it
+// never runs `--help` spontaneously — so every command absent from the hub
+// was invisible for ~35 changes (`prime`, `handoff`, `doctor`, `show`, ...).
+// The fix is a marker-delimited section GENERATED from OPERATIONS, so the
+// hub's catalog is the CLI's catalog by construction: `init` scaffolds it,
+// `templates check` flags it stale, and `templates update --write` (hence
+// `doctrina upgrade --write`) regenerates exactly the marked span and
+// nothing else. Content between the markers is CLI-owned; everything
+// outside remains the adopter's, under the additive-only guarantee.
+
+export const SURFACE_BEGIN =
+  "<!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->";
+export const SURFACE_END = "<!-- doctrina:surface:end -->";
+
+// Workflow grouping for the generated block. A test asserts the flattened
+// names equal COMMAND_NAMES, so a new command cannot ship ungrouped (and
+// therefore cannot ship invisible to AGENTS.md).
+export const SURFACE_GROUPS = [
+  ["Start", ["init", "intake", "work"]],
+  ["Author", ["spec", "change", "contract", "decision", "skill", "intent"]],
+  ["Read / orient", ["prime", "context", "show", "search", "status", "next", "why", "handoff", "constitution"]],
+  ["Gates", ["analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor"]],
+  ["Maintain", ["templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade"]],
+];
+
+// Per-command usage hints appended to the generated reference — arguments and
+// the flags an agent reaches for daily. Cosmetic only; the operation list
+// itself always comes from OPERATIONS.
+const SURFACE_HINTS = {
+  work: '"<prompt>" (--capability · --chore · --from-diff · --quiet)',
+  context: "[<cap>] --concat",
+  validate: "(--fix)",
+  coverage: "--strict",
+  trace: "--strict",
+  clarify: "--all (--lang pt|en)",
+  close: "<id...>",
+  upgrade: "--write",
+  prime: "(session start)",
+  handoff: "(before compaction/handover)",
+};
+
+// The full managed section, heading included, between the markers.
+export function surfaceMarkdown() {
+  const subsByCmd = new Map();
+  for (const [op] of OPERATIONS) {
+    const [cmd, sub] = op.split(" ");
+    if (!subsByCmd.has(cmd)) subsByCmd.set(cmd, []);
+    if (sub) subsByCmd.get(cmd).push(sub);
+  }
+  const renderCmd = (cmd) => {
+    const subs = subsByCmd.get(cmd) ?? [];
+    const hint = SURFACE_HINTS[cmd] ? ` ${SURFACE_HINTS[cmd]}` : "";
+    return subs.length > 0 ? `\`doctrina ${cmd} ${subs.join("|")}\`` : `\`doctrina ${cmd}${hint}\``;
+  };
+  const lines = [
+    "## Doctrina command surface (generated — reach for these, don't hand-author)",
+    "",
+    "Every operation of the installed CLI, grouped by workflow. The CLI",
+    "scaffolds from canonical templates and keeps `index.json` in sync, so",
+    "prefer it over writing artifacts by hand. Details: `doctrina --help`.",
+    "",
+  ];
+  for (const [label, cmds] of SURFACE_GROUPS) {
+    lines.push(`- **${label}:** ${cmds.map(renderCmd).join(" · ")}`);
+  }
+  lines.push("");
+  lines.push("Session bookends: `doctrina prime` to orient at session start;");
+  lines.push("`doctrina handoff` before compaction or handover. Continuous:");
+  lines.push("`doctrina watch`. Capture lessons: `doctrina skill suggest`.");
+  return lines.join("\n");
+}
+
+// The block as written to AGENTS.md: markers wrapping the generated section.
+export function surfaceBlock() {
+  return `${SURFACE_BEGIN}\n${surfaceMarkdown()}\n${SURFACE_END}`;
+}
+
+// Locate the managed block in an AGENTS.md text. Returns
+// { start, end, inner } (string offsets; inner excludes the marker lines)
+// or null when either marker is absent.
+export function findSurfaceBlock(text) {
+  const begin = text.match(/<!--\s*doctrina:surface:begin[\s\S]*?-->/);
+  if (!begin) return null;
+  const endRe = /<!--\s*doctrina:surface:end\s*-->/;
+  const end = endRe.exec(text.slice(begin.index + begin[0].length));
+  if (!end) return null;
+  const innerStart = begin.index + begin[0].length;
+  return {
+    start: begin.index,
+    end: innerStart + end.index + end[0].length,
+    inner: text.slice(innerStart, innerStart + end.index).replace(/^\r?\n|\r?\n$/g, ""),
+  };
 }
 
 // Extract the set of top-level `doctrina <command>` references that appear in

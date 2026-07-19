@@ -82,10 +82,12 @@ export async function run(_positional, flags) {
     }
   }
 
-  // 4. Full structural check — surfaces what an automatic, additive upgrade
-  //    cannot fix: an AGENTS.md documenting a stale command surface, new
-  //    validate checks the old scaffold fails, and so on. --fix under --write
-  //    so the mechanical part self-heals.
+  // 4. Full structural check — surfaces what the upgrade cannot fix by
+  //    itself (new validate checks the old scaffold fails, hand-authored
+  //    drift). The command surface in AGENTS.md is NOT in this bucket any
+  //    more: step 1 regenerates the doctrina:surface block from the
+  //    installed catalog (ADR 0015). --fix under --write so the mechanical
+  //    part self-heals.
   console.log("");
   console.log(c.gray("──── 3/3 validate" + (writeMode ? " --fix" : "")));
   const vFlags = writeMode ? new Map([["fix", true]]) : new Map();
@@ -102,7 +104,7 @@ export async function run(_positional, flags) {
   }
   if (vCode === 0) {
     console.log(c.green(`✓ project upgraded to ${running}`) + c.gray(" — review any warnings above; new commands: `doctrina --help`."));
-    console.log(c.gray("If AGENTS.md lists the command surface, refresh that section so agents see the new commands."));
+    console.log(c.gray("AGENTS.md's doctrina:surface block was regenerated from the installed catalog, so agents reading the hub now discover the current commands."));
   } else {
     console.log(c.yellow("upgraded with findings") + " — resolve the validate errors above (they predate or exceed what an additive upgrade can fix).");
   }
@@ -116,14 +118,16 @@ Bring an existing project up to the installed CLI after an npm update.
 The project keeps the scaffold of the version that init-ed it; this is
 the one command that closes the gap, orchestrating the existing pieces:
 
-  1. templates update   — append missing recommended sections to AGENTS.md
-                          / product.md and missing index.json fields
-                          (additive-only; never rewrites your content)
+  1. templates update   — regenerate the AGENTS.md doctrina:surface block
+                          from the installed command catalog (the block is
+                          CLI-owned, ADR 0015 — this is how agents reading
+                          the hub discover commands added since init), and
+                          append missing recommended sections / index.json
+                          fields (additive-only outside the block)
   2. index rebuild      — regenerate index.json from the tree and migrate
                           the framework_version stamp to the running CLI
-  3. validate (--fix)   — surface anything the additive upgrade cannot fix
-                          (e.g. an AGENTS.md documenting a stale command
-                          surface — refresh it so agents see new commands)
+  3. validate (--fix)   — surface anything the upgrade cannot fix
+                          (hand-authored drift, new validate checks)
 
 Preview by default (exits 1 when steps are pending); --write applies.
 `;

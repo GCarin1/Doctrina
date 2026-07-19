@@ -1,7 +1,8 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir } from "../lib/templates.js";
+import { locateTemplatesDir, loadTemplateTree } from "../lib/templates.js";
+import { surfaceBlock, findSurfaceBlock } from "../lib/commands.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
@@ -55,6 +56,50 @@ function updateTemplates(flags) {
   }
 
   const plan = [];
+
+  // AGENTS.md command-surface block: the one CLI-OWNED span of the file
+  // (marker-delimited, generated from the command catalog). Three cases:
+  // markers present but stale -> regenerate the span; a legacy hand-written
+  // "## Doctrina command surface" section without markers -> replace that
+  // section with the managed block (the section was CLI-scaffolded content
+  // to begin with — this is the one sanctioned exception to additive-only,
+  // see ADR 0015); neither -> append the block. This is what makes
+  // `doctrina upgrade --write` actually refresh AGENTS.md when the CLI
+  // gains commands, instead of only bumping the stamp.
+  const agentsMdPath = path.join(projectRoot, "AGENTS.md");
+  if (isFile(agentsMdPath)) {
+    const text = read(agentsMdPath);
+    const block = findSurfaceBlock(text);
+    const fresh = surfaceBlock();
+    if (block) {
+      if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(fresh)) {
+        plan.push({
+          describe: ["AGENTS.md: regenerate the doctrina:surface block (stale vs installed CLI)"],
+          apply() {
+            const cur = read(agentsMdPath);
+            const b = findSurfaceBlock(cur);
+            if (b) write(agentsMdPath, cur.slice(0, b.start) + fresh + cur.slice(b.end), { force: true });
+          },
+        });
+      }
+    } else {
+      const legacy = findLegacySurfaceSection(text);
+      plan.push({
+        describe: [legacy
+          ? "AGENTS.md: replace the hand-written \"## Doctrina command surface\" section with the generated doctrina:surface block"
+          : "AGENTS.md: append the generated doctrina:surface command block (agents discover commands through this file)"],
+        apply() {
+          const cur = read(agentsMdPath);
+          const l = findLegacySurfaceSection(cur);
+          if (l) {
+            write(agentsMdPath, cur.slice(0, l.start) + fresh + "\n\n" + cur.slice(l.end), { force: true });
+          } else {
+            write(agentsMdPath, cur + (cur.endsWith("\n") ? "" : "\n") + "\n" + fresh + "\n", { force: true });
+          }
+        },
+      });
+    }
+  }
 
   // Markdown files: append stub sections for missing recommended headings.
   for (const [rel, sections] of [
@@ -178,6 +223,15 @@ function checkTemplates() {
       if (hasHeading(text, heading)) ok.push(`AGENTS.md: ${heading}`);
       else findings.push(`AGENTS.md missing recommended section "${heading}"`);
     }
+    // Command-surface block: present and current vs the installed catalog.
+    const block = findSurfaceBlock(text);
+    if (!block) {
+      findings.push("AGENTS.md has no doctrina:surface block — agents discover commands through this file (`templates update --write` adds it)");
+    } else if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(surfaceBlock())) {
+      findings.push("AGENTS.md doctrina:surface block is stale vs the installed CLI (`templates update --write` or `doctrina upgrade --write` regenerates it)");
+    } else {
+      ok.push("AGENTS.md: doctrina:surface block current");
+    }
   } else {
     findings.push("AGENTS.md missing at project root");
   }
@@ -193,6 +247,32 @@ function checkTemplates() {
   } else {
     findings.push(".doctrina/product.md missing");
   }
+
+  // Installed agent adapters: every adapter is a thin POINTER at AGENTS.md
+  // (that is why one `upgrade --write` refresh of the hub reaches every
+  // installed agent). Verify the contract holds for each adapter file the
+  // project actually has: it must still reference AGENTS.md. The shipped
+  // adapter template tree is the inventory, so a new adapter is covered
+  // automatically.
+  try {
+    const templatesDir = locateTemplatesDir();
+    const adaptersRoot = path.join(templatesDir, "adapters");
+    if (isDir(adaptersRoot)) {
+      for (const agent of walk(adaptersRoot).map((f) => relPath(adaptersRoot, f))) {
+        const posix = agent.replace(/\\/g, "/");
+        if (posix.endsWith("README.md") || posix.endsWith(".gitkeep")) continue;
+        const rel = posix.split("/").slice(1).join("/").replace(/\.template$/, "");
+        if (!rel) continue;
+        const installed = path.join(projectRoot, rel);
+        if (!isFile(installed)) continue; // not installed — nothing to check
+        if (read(installed).includes("AGENTS.md")) {
+          ok.push(`adapter ${rel}: points at AGENTS.md`);
+        } else {
+          findings.push(`adapter ${rel} no longer references AGENTS.md — agents loading it will miss the hub (restore the pointer, e.g. re-run \`doctrina init --agent <name> --force\`)`);
+        }
+      }
+    }
+  } catch { /* no templates dir (unusual install) — skip the adapter pass */ }
 
   // index.json schema fields
   const indexPath = path.join(projectRoot, ".doctrina", "index.json");
@@ -227,6 +307,24 @@ function checkTemplates() {
   return 1;
 }
 
+// Whitespace/EOL-insensitive comparison for the surface block, so a CRLF
+// checkout is not eternally "stale".
+function normalizeBlock(s) {
+  return s.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").trim();
+}
+
+// A pre-marker AGENTS.md's hand-written surface section: from the
+// "## Doctrina command surface" heading up to (excluding) the next "## "
+// heading. The trailing "Continuous: ..." paragraph the old template put
+// after the bullets belongs to the section body, so it is replaced too.
+function findLegacySurfaceSection(text) {
+  const head = text.match(/^##\s+Doctrina command surface.*$/m);
+  if (!head) return null;
+  const after = text.slice(head.index + head[0].length);
+  const next = after.match(/^##\s+/m);
+  return { start: head.index, end: next ? head.index + head[0].length + next.index : text.length };
+}
+
 function hasHeading(text, heading) {
   // Match an exact h2 heading at line start (case-insensitive for the body
   // after "## ", so "## Vision" matches "## VISION" or "## vision" too).
@@ -245,15 +343,20 @@ Subcommands:
             their relative paths and line counts.
   check     Compare the current project's AGENTS.md, product.md,
             and index.json against the recommended sections and
-            schema fields shipped in this CLI version. Reports any
-            recommended section that is missing. Read-only; never
-            modifies any files. Exits 1 when recommendations exist,
-            0 when the project follows the current template shape.
-  update    Additive-only fixer for what check reports: appends
-            missing recommended sections as stubs and adds missing
-            index.json fields. Preview by default (exits 1 while
-            updates are pending); pass --write to apply. Never
-            rewrites or removes existing content.
+            schema fields shipped in this CLI version — including
+            whether the AGENTS.md doctrina:surface block (the
+            CLI-owned, generated command catalog) is present and
+            current. Read-only; never modifies any files. Exits 1
+            when recommendations exist, 0 otherwise.
+  update    Fixer for what check reports: appends missing
+            recommended sections as stubs, adds missing index.json
+            fields, and regenerates the AGENTS.md doctrina:surface
+            block from the installed command catalog. Preview by
+            default (exits 1 while updates are pending); pass
+            --write to apply. Additive-only outside the surface
+            block: the marker-delimited span is the one CLI-owned
+            region it rewrites (ADR 0015); your content is never
+            touched.
 
 Distinct from \`doctrina validate\`: validate answers "is this a
 well-formed Doctrina tree?"; templates check answers "does this

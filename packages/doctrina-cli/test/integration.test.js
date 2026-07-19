@@ -22,10 +22,21 @@ function makeTempProject() {
   return tmp;
 }
 
-// Check every GitHub-style checkbox in a change's tasks.md and proposal.md
-// so it clears the archive verification gate (3.3). Mirrors a real
-// operator finishing and verifying the work before archiving.
+// Fill the scaffold's placeholder tasks with real text, then check every
+// GitHub-style checkbox in a change's tasks.md and proposal.md so it clears
+// the archive verification gate (3.3). Mirrors a real operator planning,
+// finishing, and verifying the work before archiving — an empty "- [ ]"
+// left from the scaffold now FAILS analyze and cannot be ticked, so the
+// helper writes a real task line first.
+function planTasks(tmp, id) {
+  const p = path.join(tmp, ".doctrina", "changes", id, "tasks.md");
+  if (existsSync(p)) {
+    writeFileSync(p, readFileSync(p, "utf8").replace(/^(\s*-\s*\[[ xX]\])\s*$/gm, "$1 implement the change"));
+  }
+}
+
 function completeChange(tmp, id) {
+  planTasks(tmp, id);
   for (const f of ["tasks.md", "proposal.md"]) {
     const p = path.join(tmp, ".doctrina", "changes", id, f);
     if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
@@ -393,9 +404,29 @@ test("analyze passes on a well-formed change", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["change", "new", "0001-good", "good change"], { cwd: tmp });
+    planTasks(tmp, "0001-good");
     const r = runCli(["analyze", "0001-good"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     assert.match(r.stdout, /ready to apply/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("analyze fails while tasks.md still carries the scaffold placeholders", () => {
+  // The hollow-change failure mode: `work` opens the change, the agent
+  // starts implementing without ever writing the plan, and nothing barks
+  // until now. validate warns on every run; analyze (and so change check /
+  // close) refuses.
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    runCli(["change", "new", "0001-hollow", "hollow change"], { cwd: tmp });
+    const r = runCli(["analyze", "0001-hollow"], { cwd: tmp });
+    assert.equal(r.status, 1, r.stderr || r.stdout);
+    assert.match(r.stdout, /scaffold placeholder/);
+    const v = runCli(["validate"], { cwd: tmp });
+    assert.match(v.stdout, /opened but never planned/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1026,6 +1057,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     assert.match(r.stdout, /0001-x\/tasks\.md/);
 
     // Tasks done + a delta present: suggests analyze/apply.
+    planTasks(tmp, "0001-x");
     const tasksPath = path.join(tmp, ".doctrina", "changes", "0001-x", "tasks.md");
     writeFileSync(tasksPath, readFileSync(tasksPath, "utf8").replaceAll("- [ ]", "- [x]"));
     const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-x", "specs", "core", "delta.md");
@@ -3251,10 +3283,7 @@ test("change new scaffolds design.md only under --design; archive stamps a propo
     assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0002-b", "design.md")));
 
     // Archive 0001-a while still "proposed" (no apply): the file gets stamped.
-    for (const f of ["tasks.md", "proposal.md"]) {
-      const p = path.join(tmp, ".doctrina", "changes", "0001-a", f);
-      if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
-    }
+    completeChange(tmp, "0001-a");
     const r = runCli(["change", "archive", "0001-a"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const archived = readdirSync(path.join(tmp, ".doctrina", "changes", "archive")).find((n) => n.endsWith("0001-a"));
@@ -3479,16 +3508,255 @@ test("close scopes the coverage gate to the change's touched capabilities", () =
     mkdirSync(deltaDir, { recursive: true });
     writeFileSync(path.join(deltaDir, "delta.md"),
       "# Spec Delta — capability: touched\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/touched/spec.md`\n\n---\n\n# Spec — touched\n\n**Capability:** touched\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nTouch.\n\n## Acceptance criteria\n\n1. [verified] touched — verified by `.doctrina/index.json`.\n");
-    for (const f of ["tasks.md", "proposal.md"]) {
-      const p = path.join(tmp, ".doctrina", "changes", "0001-touch", f);
-      if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
-    }
+    completeChange(tmp, "0001-touch");
     runCli(["index", "rebuild"], { cwd: tmp });
 
     const r = runCli(["close", "0001-touch"], { cwd: tmp });
     assert.equal(r.status, 0, r.stdout + r.stderr);
     assert.match(r.stdout, /coverage \(scoped: touched\)/);
     assert.match(r.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// ── Operator-review follow-ups (2026-07-19): delta scaffold, quiet backlog,
+//    check/tick, batch close, ADR checkpoint, managed surface block. ──
+
+test("work --capability scaffolds a prefilled delta; --quiet suppresses the playbook", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const r = runCli(["work", "add refunds", "--capability", "billing"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-add-refunds", "specs", "billing", "delta.md");
+    assert.ok(existsSync(deltaPath), "delta.md must be scaffolded for a pinned capability");
+    const delta = readFileSync(deltaPath, "utf8");
+    assert.match(delta, /^\*\*Operation:\*\* MODIFIED$/m, "existing spec -> MODIFIED prefilled");
+    assert.match(r.stdout, /already scaffolded/);
+
+    // No spec yet -> ADDED prefilled; --quiet prints one line, no playbook.
+    const q = runCli(["work", "add invoices", "--capability", "invoicing", "--quiet"], { cwd: tmp });
+    assert.equal(q.status, 0, q.stdout + q.stderr);
+    const qDelta = readFileSync(path.join(tmp, ".doctrina", "changes", "0002-add-invoices", "specs", "invoicing", "delta.md"), "utf8");
+    assert.match(qDelta, /^\*\*Operation:\*\* ADDED$/m, "missing spec -> ADDED prefilled");
+    assert.match(q.stdout, /opened .*0002-add-invoices/);
+    assert.doesNotMatch(q.stdout, /Execute in order/, "--quiet must not print the playbook");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change tick lists unchecked boxes with ordinals and ticks them (--all)", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-x", "x"], { cwd: tmp });
+
+    // Scaffold placeholders: listed as such, and refused by tick — an empty
+    // box ticked is how a hollow change games the archive gate.
+    const raw = runCli(["change", "tick", "0001-x"], { cwd: tmp });
+    assert.match(raw.stdout, /scaffold placeholder/);
+    const refuseAll = runCli(["change", "tick", "0001-x", "--all"], { cwd: tmp });
+    assert.equal(refuseAll.status, 2, refuseAll.stdout + refuseAll.stderr);
+    assert.match(refuseAll.stderr, /placeholder/);
+    const refuseOne = runCli(["change", "tick", "0001-x", "1"], { cwd: tmp });
+    assert.equal(refuseOne.status, 2);
+
+    planTasks(tmp, "0001-x");
+    const list = runCli(["change", "tick", "0001-x"], { cwd: tmp });
+    assert.equal(list.status, 0, list.stdout + list.stderr);
+    assert.match(list.stdout, /1\./, "must list ordinals");
+    assert.match(list.stdout, /tasks\.md/);
+
+    const one = runCli(["change", "tick", "0001-x", "1"], { cwd: tmp });
+    assert.match(one.stdout, /ticked 1 box/);
+    const all = runCli(["change", "tick", "0001-x", "--all"], { cwd: tmp });
+    assert.match(all.stdout, /ticked \d+ box/);
+    const again = runCli(["change", "tick", "0001-x"], { cwd: tmp });
+    assert.match(again.stdout, /no unchecked boxes/);
+    // The archive verification gate is now clear.
+    const tasks = readFileSync(path.join(tmp, ".doctrina", "changes", "0001-x", "tasks.md"), "utf8");
+    assert.ok(!tasks.includes("- [ ]"), "tasks.md must have no unchecked boxes left");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("change check reports ops errors and archive blockers before close, then ok when ready", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    runCli(["work", "tighten billing", "--capability", "billing", "--quiet"], { cwd: tmp });
+    const id = "0001-tighten-billing";
+    const deltaPath = path.join(tmp, ".doctrina", "changes", id, "specs", "billing", "delta.md");
+    // An ops block with an op that must fail (no criterion #9).
+    writeFileSync(deltaPath, readFileSync(deltaPath, "utf8") +
+      "\n```ops\nset-criterion 9: verified\n```\n");
+    const bad = runCli(["change", "check", id], { cwd: tmp });
+    assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.match(bad.stdout, /scaffold placeholder/, "check must flag the never-planned tasks");
+    assert.match(bad.stdout, /apply would refuse/);
+    assert.match(bad.stdout, /unchecked task/);
+
+    // Fix the ops block, plan the tasks, tick everything: check goes green.
+    writeFileSync(deltaPath, readFileSync(deltaPath, "utf8").replace("set-criterion 9: verified", "bump-version patch"));
+    planTasks(tmp, id);
+    runCli(["change", "tick", id, "--all"], { cwd: tmp });
+    const good = runCli(["change", "check", id], { cwd: tmp });
+    assert.equal(good.status, 0, good.stdout + good.stderr);
+    assert.match(good.stdout, /ready to close/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close accepts multiple ids and runs the ADR checkpoint and skill-suggest advisories", () => {
+  const tmp = initedProject();
+  try {
+    // An accepted ADR whose text cites the capability the change touches.
+    runCli(["decision", "new", "Billing goes through the ledger"], { cwd: tmp });
+    const adrName = readdirSync(path.join(tmp, ".doctrina", "decisions")).find((f) => f.startsWith("0001"));
+    const adrFull = path.join(tmp, ".doctrina", "decisions", adrName);
+    writeFileSync(adrFull, readFileSync(adrFull, "utf8") + "\nAll billing writes go through the ledger.\n");
+    runCli(["decision", "accept", "0001"], { cwd: tmp });
+
+    const mkChange = (id, cap) => {
+      runCli(["change", "new", id, "touch " + cap], { cwd: tmp });
+      const deltaDir = path.join(tmp, ".doctrina", "changes", id, "specs", cap);
+      mkdirSync(deltaDir, { recursive: true });
+      writeFileSync(path.join(deltaDir, "delta.md"),
+        "# Spec Delta — capability: " + cap + "\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/" + cap + "/spec.md`\n\n---\n\n# Spec — " + cap + "\n\n**Capability:** " + cap + "\n**Status:** active\n**Implementation:** implemented\n**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nX.\n\n## Acceptance criteria\n\n1. [verified] present — verified by `.doctrina/index.json`.\n");
+      planTasks(tmp, id);
+      runCli(["change", "tick", id, "--all"], { cwd: tmp });
+    };
+    mkChange("0002-a", "billing");
+    mkChange("0003-b", "reporting");
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    const r = runCli(["close", "0002-a", "0003-b"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /ADR checkpoint/);
+    assert.match(r.stdout, /ADR 0001/, "close must name the accepted ADR citing billing");
+    assert.match(r.stdout, /decision supersede/);
+    assert.match(r.stdout, /skills \(advisory\)/);
+    assert.match(r.stdout, /all 2 changes closed/);
+    assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0002-a")));
+    assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0003-b")));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init writes a current surface block; templates update regenerates a stale or missing one", () => {
+  const tmp = initedProject();
+  try {
+    // Fresh init: check is clean on the surface block.
+    const fresh = runCli(["templates", "check"], { cwd: tmp });
+    assert.match(fresh.stdout, /doctrina:surface block current/);
+
+    // Corrupt the block (the in-block prime entry): check flags it,
+    // update --write regenerates it.
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    writeFileSync(agentsPath, readFileSync(agentsPath, "utf8").replace("`doctrina prime (session start)`", "`doctrina removed-cmd`"));
+    const stale = runCli(["templates", "check"], { cwd: tmp });
+    assert.equal(stale.status, 1, stale.stdout + stale.stderr);
+    assert.match(stale.stdout, /surface block is stale/);
+    const upd = runCli(["templates", "update", "--write"], { cwd: tmp });
+    assert.equal(upd.status, 0, upd.stdout + upd.stderr);
+    assert.match(readFileSync(agentsPath, "utf8"), /`doctrina prime \(session start\)`/);
+    assert.equal(runCli(["templates", "check"], { cwd: tmp }).status, 0);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("upgrade --write replaces a legacy hand-written surface section with the managed block", () => {
+  const tmp = initedProject();
+  try {
+    // Simulate a project scaffolded by an older CLI: no markers, a
+    // hand-written surface section that omits prime/handoff/doctor.
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const legacy = readFileSync(agentsPath, "utf8").replace(
+      /<!--\s*doctrina:surface:begin[\s\S]*?doctrina:surface:end\s*-->/,
+      "## Doctrina command surface (reach for these)\n\n- `doctrina status` and `doctrina validate --fix`\n\nFull list: `doctrina --help`.",
+    );
+    writeFileSync(agentsPath, legacy);
+
+    const preview = runCli(["upgrade"], { cwd: tmp });
+    assert.equal(preview.status, 1, "preview must report pending steps");
+    assert.match(preview.stdout, /replace the hand-written/);
+
+    const r = runCli(["upgrade", "--write"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    const upgraded = readFileSync(agentsPath, "utf8");
+    assert.match(upgraded, /doctrina:surface:begin/);
+    assert.match(upgraded, /`doctrina prime/, "upgraded hub must surface prime");
+    assert.match(upgraded, /`doctrina handoff/, "upgraded hub must surface handoff");
+    assert.ok(!upgraded.includes("## Doctrina command surface (reach for these)"),
+      "legacy section body must be replaced");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("index stays in sync after skill new/sync and spec new (no CLI-made drift)", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["skill", "new", "db-migration"], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    const skillPath = path.join(tmp, ".doctrina", "skills", "db-migration.md");
+    writeFileSync(skillPath, readFileSync(skillPath, "utf8").replace(/^description:.*$/m, "description: run DB migrations safely"));
+    runCli(["skill", "sync"], { cwd: tmp });
+    const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
+    assert.equal(check.status, 0, "CLI writes left the index drifted:\n" + check.stdout + check.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("clarify --lang forces the lexicon over detection", () => {
+  const tmp = initedProject();
+  try {
+    // Mostly-English file where PT "some" (the verb sumir) appears — the
+    // detection heuristic reads it as EN and flags it; --lang pt must not.
+    const p = path.join(tmp, "nota.md");
+    writeFileSync(p, "# Note\n\nThe button must not disappear: o botao nao pode simplesmente some da tela.\n");
+    const en = runCli(["clarify", "nota.md"], { cwd: tmp });
+    assert.equal(en.status, 1, "EN lexicon should flag 'some'");
+    const pt = runCli(["clarify", "nota.md", "--lang", "pt"], { cwd: tmp });
+    assert.equal(pt.status, 0, pt.stdout + pt.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("validate warns early on a delta with a missing or malformed Operation header", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-x", "x"], { cwd: tmp });
+    const deltaDir = path.join(tmp, ".doctrina", "changes", "0001-x", "specs", "billing");
+    mkdirSync(deltaDir, { recursive: true });
+    writeFileSync(path.join(deltaDir, "delta.md"), "# Spec Delta — capability: billing\n\nno operation header\n");
+    const r = runCli(["validate"], { cwd: tmp });
+    assert.match(r.stdout, /has no \*\*Operation:\*\* header/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("templates check verifies installed adapters still point at AGENTS.md", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme", "--agent", "claude"], { cwd: tmp });
+    const okRun = runCli(["templates", "check"], { cwd: tmp });
+    assert.match(okRun.stdout, /adapter CLAUDE\.md: points at AGENTS\.md/);
+
+    // Break the pointer: the adapter no longer references the hub.
+    const adapterPath = path.join(tmp, "CLAUDE.md");
+    writeFileSync(adapterPath, "# CLAUDE.md\n\nProject notes only.\n");
+    const broken = runCli(["templates", "check"], { cwd: tmp });
+    assert.equal(broken.status, 1, broken.stdout + broken.stderr);
+    assert.match(broken.stdout, /adapter CLAUDE\.md no longer references AGENTS\.md/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
