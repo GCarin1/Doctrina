@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.12.0",
+  "framework_version": "0.13.0",
   "last_updated": "2026-07-19",
   "artifacts": {
     "product": {
