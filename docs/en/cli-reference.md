@@ -1340,6 +1340,13 @@ An orchestrator over the pieces that already exist, in order:
    by the managed block), and append missing recommended sections /
    index.json fields (additive-only outside the block).
 
+   The block carries a **trigger per command** — what it does and the
+   moment you reach for it (ADR 0020) — and has a declared 40-line budget
+   that `templates check` enforces. Beside it, a generated
+   `## What changed in <version>` block of three to six lines states only
+   what alters agent behaviour, so an agent reading AGENTS.md after an
+   upgrade learns what is new without being told to look.
+
    The block has **one canonical position**, defined by the shipped
    template and used by both `init` and `upgrade`: immediately after
    "Working from intent". A project that has no block gets one placed

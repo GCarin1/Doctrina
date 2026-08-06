@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.13.0",
+  "framework_version": "0.14.0",
   "last_updated": "2026-08-06",
   "artifacts": {
     "product": {
@@ -62,7 +62,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.14.0",
+        "version": "0.15.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -227,17 +227,17 @@
         "status": "accepted",
         "date": "2026-08-06",
         "landed": "2026-08-06 — covered by the override tests in `packages/doctrina-cli/test/integration.test.js`"
-      }
-    ],
-    "changes": [
+      },
       {
-        "id": "0017-surface-triggers",
-        "title": "The command surface tells an agent when to reach for each command",
-        "path": ".doctrina/changes/0017-surface-triggers",
-        "status": "proposed",
-        "opened": "2026-08-06"
+        "id": "0020",
+        "path": ".doctrina/decisions/0020-the-command-surface-states-when-to-reach-for-each-command.md",
+        "title": "The command surface states when to reach for each command",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by the catalog tests in `packages/doctrina-cli/test/commands.test.js`"
       }
     ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -454,6 +454,19 @@
         "id": "0016-template-override",
         "title": "Project templates are a real override point, not a ghost directory",
         "path": ".doctrina/changes/archive/2026-08-06-0016-template-override",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0017-surface-triggers",
+        "title": "The command surface tells an agent when to reach for each command",
+        "path": ".doctrina/changes/archive/2026-08-06-0017-surface-triggers",
         "status": "applied",
         "applied": "2026-08-06",
         "specs_affected": [

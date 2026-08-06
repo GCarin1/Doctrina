@@ -68,7 +68,7 @@ hand-authoring. Flags and detail: `doctrina <command> --help`.
 - `doctrina verify` — the project's declared typecheck/test/build checks. *When:* the real build gate must run.
 - `doctrina close <id...>` — the whole closing sequence in one attested pass. *When:* a change is implemented and ready to finish.
 - `doctrina doctor` — aggregate diagnostic with per-finding remedies. *When:* something looks wrong and you do not know which gate to ask.
-**Maintain** (per-command triggers: `doctrina <command> --help`) — `templates list|check|update` · `hooks install` · `index rebuild` · `watch` · `metrics` · `report` · `completion` · `upgrade --write`
+**Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write`
 <!-- doctrina:surface:end -->
 
 ## Stack and tooling
@@ -101,55 +101,38 @@ hand-authoring. Flags and detail: `doctrina <command> --help`.
 - Archived changes in `.doctrina/changes/archive/` are out of the default
   read path; consult only when explicitly debugging history.
 
-## Artifact invariants (verbatim — `doctrina validate` enforces these)
+## Artifact invariants (`doctrina validate` enforces these)
 
-Scaffold artifacts with the CLI (`doctrina decision new`, `doctrina work`),
-which writes from the canonical templates. Do NOT hand-author these files
-from memory. If you must write one by hand, match these exactly:
+Scaffold with the CLI; do not hand-author from memory. If you must:
 
-- **Metadata headers come in two forms — do not mix them up:**
-  - ADRs, change proposals, and the intake use **list items**:
-    `- **Status:** accepted`, `- **Date:** 2026-06-13`.
-  - Specs use **bare bold** (no leading `- `):
-    `**Status:** active`, `**Version:** 0.1.0`.
-  Match the template for the artifact you are writing.
-- **ADR filename** must be `NNNN-slug.md` — four digits, e.g.
-  `0001-jwt-algorithm.md`. `ADR-001-...md` or `1-...md` is invisible to
-  `doctrina decision accept`, the index, and the orphan check.
-- **Change folder** at `.doctrina/changes/<id>/` must contain a file named
-  exactly `proposal.md` (not `change.md`, not `README.md`). `tasks.md` and
-  `design.md` are optional siblings.
-- **Spec** lives at `.doctrina/specs/<capability>/spec.md` and its
-  `**Version:**` header must equal the `version` recorded for it in
-  `.doctrina/index.json`.
-- **Every artifact on disk** must be registered in `.doctrina/index.json`,
-  and every path in `index.json` must exist on disk. Update the index in
-  the same change that adds or moves a file.
+- **Headers:** ADRs / proposals / intake use list items
+  (`- **Status:** accepted`); specs use bare bold (`**Status:** active`).
+- **ADR filename:** `NNNN-slug.md`, four digits. Other shapes are invisible
+  to `decision accept`, the index, and the orphan check.
+- **Change folder:** `.doctrina/changes/<id>/proposal.md`, that exact name.
+- **Spec:** `.doctrina/specs/<cap>/spec.md`; its `**Version:**` must equal
+  the version recorded in `index.json`.
+- **Every artifact** is registered in `index.json`, and every indexed path
+  exists. Update the index in the same change.
 
-Always finish by running `doctrina validate` and resolving every `error:`
-before considering work done.
+Finish by running `doctrina validate` and resolving every `error:`.
 
 ## How to read context efficiently
 
 `doctrina context [<capability>] --concat` assembles the read pack in one
-call, in order: this `AGENTS.md` → `.doctrina/product.md` → the capability
-spec → open `.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
-`Status: accepted`. Run it for ANY task, not only `doctrina work`; it skips
-`changes/archive/` (history — read only when debugging it).
+call: this `AGENTS.md` → `product.md` → the capability spec → open changes →
+accepted ADRs. Run it for ANY task. It skips `changes/archive/` (history).
 
-On demand only: if the task matches a skill in `.doctrina/skills/`, read its
-`description:` / `when:` frontmatter; load the full body when the trigger fires.
+Skills are on demand: read the `description:` / `when:` frontmatter in
+`.doctrina/skills/`; load a body only when its trigger fires.
 
-Keep this file under 150 lines. Density beats prose. Use exact commands.
+Keep this file under 150 lines. Density beats prose.
 
 ## Definition of done
 
-A change is done when:
-- All tasks in the change's `tasks.md` are checked.
-- Deltas have been merged into affected spec files.
-- The change folder has been moved to `.doctrina/changes/archive/`.
-- Any architectural decisions are recorded as ADRs with `Status: accepted`.
-- `.doctrina/index.json` has been updated.
+`doctrina close <id>` is the definition: tasks checked, deltas merged into
+specs, gates green, ADRs recorded and accepted, change archived, index
+updated. If close refuses, the change is not done.
 
 ## What never goes in this file
 

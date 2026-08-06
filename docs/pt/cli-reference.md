@@ -1384,6 +1384,13 @@ Um orquestrador sobre as peças que já existem, em ordem:
    seções recomendadas / campos do index.json faltantes (apenas-aditivo
    fora do bloco).
 
+   O bloco carrega um **gatilho por comando** — o que ele faz e o momento
+   em que você o usa (ADR 0020) — e tem um orçamento declarado de 40 linhas
+   que o `templates check` cobra. Ao lado dele, um bloco gerado
+   `## What changed in <versão>` de três a seis linhas diz apenas o que
+   altera o comportamento do agente, para que um agente lendo o AGENTS.md
+   após um upgrade descubra o que é novo sem que ninguém mande olhar.
+
    O bloco tem **uma posição canônica**, definida pelo template
    entregue e usada tanto pelo `init` quanto pelo `upgrade`: logo após
    "Working from intent". Um projeto sem bloco recebe um posicionado

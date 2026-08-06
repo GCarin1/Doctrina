@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.14.0
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -48,6 +48,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall define one canonical position for the doctrina:surface block, taken from the shipped AGENTS.md template, and shall use it for both `init` and `templates update`.
 - The system shall hold one definition of the artifact categories a well-formed index.json carries, and shall use it both to write the index at init and to measure a project in `templates check`.
 - The system shall resolve every template through a chain, per file: a template under the project's `.doctrina/templates/` wins, and anything absent falls back to the copy shipped with the installed CLI.
+- The system shall require every command to declare a purpose and a when-trigger, and shall generate the AGENTS.md surface block from those declarations, organised by the moment the command is reached for.
+- The system shall hold the generated surface block to a declared line budget, reporting an overrun as a finding rather than growing the block.
 
 ### Event-driven
 
@@ -73,6 +75,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When `templates update` previews a doctrina:surface change, the system shall show the differing lines, or the block body and its destination, rather than a one-line summary.
 - When a scaffolding command uses a project template rather than the bundled one, the system shall say so.
 - When `doctrina templates list` runs, the system shall label each template with the source it resolved from and mark a project file that shadows a bundled one.
+- When a project is scaffolded or upgraded, the system shall write a marker-delimited agent-facing changelog naming only what alters agent behaviour in the installed version.
 
 ### State-driven
 
@@ -92,6 +95,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not name a remedy that cannot resolve the finding it is attached to.
 - The system shall not scaffold a project that immediately reports a pending template update.
 - The system shall not require a project to vendor the whole template tree in order to override one file.
+- The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
 
 ### Optional
 
@@ -141,6 +145,8 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 13. [verified] `init` writes every artifact category the schema declares, stamped with the running CLI version — verified by `packages/doctrina-cli/test/integration.test.js`.
 14. [verified] A project-local template overrides the bundled one and its tokens still substitute, while a template with no local override falls back — verified by `packages/doctrina-cli/test/integration.test.js`.
 15. [verified] An empty project templates directory behaves exactly as before the chain existed — verified by `packages/doctrina-cli/test/integration.test.js`.
+16. [verified] Every command declares a purpose, a when-trigger, and a known moment, and the block carries those triggers within its declared budget — verified by `packages/doctrina-cli/test/commands.test.js`.
+17. [verified] The agent-facing changelog is three to six agent-scoped bullets for the running version, written at init and refreshed by upgrade — verified by `packages/doctrina-cli/test/commands.test.js`, `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 

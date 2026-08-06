@@ -238,8 +238,11 @@ export function surfaceMarkdown() {
     const cmds = COMMAND_NAMES.filter((n) => COMMAND_META[n]?.moment === moment);
     if (cmds.length === 0) continue;
     if (COMPACT_MOMENTS.has(moment)) {
-      lines.push(`**${moment}** (per-command triggers: \`doctrina <command> --help\`) — ` +
-        cmds.map((n) => `\`${invocation(n)}\``).join(" · "));
+      // Each name still carries the `doctrina ` prefix: the compact line is
+      // read by validate's drift gate too, which only recognises a command
+      // reference in that form.
+      lines.push(`**${moment}** (triggers: \`doctrina <command> --help\`) — ` +
+        cmds.map((n) => `\`doctrina ${invocation(n)}\``).join(" · "));
       continue;
     }
     lines.push(`**${moment}**`);
@@ -291,11 +294,19 @@ export function placeSurfaceBlock(text, block, anchors) {
   const headingIndex = (heading) =>
     heading ? lines.findIndex((l) => l.trim() === heading) : -1;
 
+  // A section ends at the next heading OR at the start of another CLI-owned
+  // block. The marker comment precedes that block's heading, so scanning for
+  // headings alone would place this block BETWEEN a marker and its own
+  // heading — nesting the two, after which the next regeneration treats the
+  // outer span as stale and deletes everything inside it. That corrupted a
+  // real file before this guard existed.
+  const isBoundary = (line) => /^##\s+/.test(line) || /^\s*<!--\s*doctrina:\w+:begin/.test(line);
+
   // Preferred: immediately after the section the template puts it after.
   const afterIdx = headingIndex(anchors.after);
   if (afterIdx >= 0) {
     let end = afterIdx + 1;
-    while (end < lines.length && !/^##\s+/.test(lines[end])) end += 1;
+    while (end < lines.length && !isBoundary(lines[end])) end += 1;
     const head = lines.slice(0, end).join("\n").replace(/\s+$/, "");
     const tail = lines.slice(end).join("\n");
     return `${head}\n\n${block}\n\n${tail}`.replace(/\n{3,}/g, "\n\n");
