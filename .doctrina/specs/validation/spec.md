@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
-**Last updated:** 2026-07-02
-**Version:** 0.2.0
+**Last updated:** 2026-08-06
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -43,6 +43,7 @@ treatment cohorts using the same definition in each cohort.
   any data is collected.
 - The protocol shall be re-runnable as Doctrina, the team, or the
   codebase evolves.
+- The system shall verify itself the way a user installs it, packing the CLI, installing the tarball outside the repository, and driving a project through the whole lifecycle with the installed binary.
 
 ### Event-driven
 
@@ -56,6 +57,7 @@ treatment cohorts using the same definition in each cohort.
 - When treatment data is collected, the team shall produce a
   comparison record listing every metric, baseline value, treatment
   value, and the outcome of every trigger.
+- When the end-to-end harness runs, the system shall assert that the structural, template, and diagnostic gates are green at each lifecycle step, and that every bundled adapter installs into a project that passes its own checks.
 
 ### State-driven
 
@@ -139,6 +141,8 @@ The validation capability is delivered when:
    `doctrina metrics` snapshots and diffs local git-derived metrics —
    `packages/doctrina-cli/src/commands/metrics.js`, proven by
    `packages/doctrina-cli/test/integration.test.js`.
+6. [verified] The packed-install harness drives init, spec, work, delta, check, close, and archive with the installed binary and asserts the gates at each step — `scripts/e2e-packed.mjs`.
+7. [verified] Pointed at the commit preceding the fixes, the harness reproduces the adapter data loss, the failing adapter check, the born-stale index, the ungated apply, and the git first-run error — `scripts/e2e-packed.mjs`.
 
 ## Out of scope for this spec
 

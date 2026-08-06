@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.30.0",
+        "version": "0.31.2",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -46,7 +46,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.4.1",
+        "version": "0.5.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -62,7 +62,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.13.2",
+        "version": "0.14.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -70,8 +70,8 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.2.0",
-        "last_updated": "2026-07-02",
+        "version": "0.3.0",
+        "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
           "SC1",
@@ -203,9 +203,41 @@
         "status": "accepted",
         "date": "2026-08-06",
         "landed": "2026-08-06 — covered by the adapter and `init --force` tests in `packages/doctrina-cli/test/integration.test.js`"
+      },
+      {
+        "id": "0017",
+        "path": ".doctrina/decisions/0017-one-gate-map-preconditions-belong-to-the-transition-not-the-command.md",
+        "title": "One gate map: preconditions belong to the transition, not the command",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by the table-driven parity suite in `packages/doctrina-cli/test/gate-parity.test.js`"
+      },
+      {
+        "id": "0018",
+        "path": ".doctrina/decisions/0018-exit-codes-are-a-machine-contract-with-five-classes.md",
+        "title": "Exit codes are a machine contract with five classes",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/exit-codes.test.js`"
+      },
+      {
+        "id": "0019",
+        "path": ".doctrina/decisions/0019-template-resolution-is-a-per-file-chain-project-overrides-bundled.md",
+        "title": "Template resolution is a per-file chain: project overrides bundled",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by the override tests in `packages/doctrina-cli/test/integration.test.js`"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0017-surface-triggers",
+        "title": "The command surface tells an agent when to reach for each command",
+        "path": ".doctrina/changes/0017-surface-triggers",
+        "status": "proposed",
+        "opened": "2026-08-06"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -344,6 +376,84 @@
         "id": "0010-one-index-definition",
         "title": "One definition of a correct index.json",
         "path": ".doctrina/changes/archive/2026-08-06-0010-one-index-definition",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0011-gate-parity",
+        "title": "One gate map: every lifecycle transition is guarded identically",
+        "path": ".doctrina/changes/archive/2026-08-06-0011-gate-parity",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0012-exit-codes",
+        "title": "Exit codes are a documented contract, not three meanings for 1",
+        "path": ".doctrina/changes/archive/2026-08-06-0012-exit-codes",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0013-git-first-run",
+        "title": "Git-dependent commands survive a repo with no commits",
+        "path": ".doctrina/changes/archive/2026-08-06-0013-git-first-run",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0014-consent-before-destruction",
+        "title": "Destructive and interactive paths ask, or refuse",
+        "path": ".doctrina/changes/archive/2026-08-06-0014-consent-before-destruction",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0015-packed-install-harness",
+        "title": "End-to-end harness that runs the CLI the way a user installs it",
+        "path": ".doctrina/changes/archive/2026-08-06-0015-packed-install-harness",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0016-template-override",
+        "title": "Project templates are a real override point, not a ghost directory",
+        "path": ".doctrina/changes/archive/2026-08-06-0016-template-override",
         "status": "applied",
         "applied": "2026-08-06",
         "specs_affected": [

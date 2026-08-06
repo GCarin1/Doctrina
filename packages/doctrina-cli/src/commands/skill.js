@@ -3,12 +3,13 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, mkdirp, read, relPath, walk, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
 
@@ -285,11 +286,11 @@ function skillNew(args, flags) {
     return 1;
   }
 
-  const templatesDir = locateTemplatesDir();
-  const tplPath = path.join(templatesDir, "skill.md.template");
-  const body = substitute(read(tplPath), { SKILL_NAME: name });
+  const tpl = readTemplate(projectRoot, "skill.md.template");
+  const body = substitute(tpl.body, { SKILL_NAME: name });
   write(targetPath, body, { force });
-  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}`);
+  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}` +
+    (tpl.source === "project" ? c.gray(" (project template)") : ""));
 
   const date = today();
   const index = idx.load(projectRoot);
@@ -400,7 +401,7 @@ function parseFrontmatter(text, key) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 

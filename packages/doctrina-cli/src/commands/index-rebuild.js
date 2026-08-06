@@ -8,6 +8,7 @@ import { today } from "../lib/dates.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["rebuild"];
 
@@ -33,7 +34,7 @@ function rebuild(flags) {
   const check = flagBool(flags, "check", false);
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   let current = null;

@@ -8,6 +8,7 @@ import { openChanges } from "./prime.js";
 import { flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Periodic digest in Markdown — the standup/PR-description view: what was
 // archived, where the gates stand, and what local git says about the period.
@@ -21,7 +22,7 @@ export const flags = { boolean: [], string: ["since"] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const sinceRaw = flagString(flags, "since") ?? "7";

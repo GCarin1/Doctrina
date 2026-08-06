@@ -5,7 +5,11 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, existsSync
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands, SURFACE_GROUPS, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "../src/lib/commands.js";
+import {
+  COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands, surfaceBlock, surfaceMarkdown,
+  findSurfaceBlock, COMMAND_META, MOMENTS, SURFACE_LINE_BUDGET,
+  agentChangelogMarkdown, agentChangelogBlock, findAgentChangelogBlock,
+} from "../src/lib/commands.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
@@ -246,31 +250,68 @@ test("COMMAND_NAMES and OPERATIONS agree on the top-level surface", () => {
 // discovery gap the operator review measured over ~35 changes. Three claims:
 // the grouping covers the surface exactly, the generated block names every
 // command and subcommand, and the block round-trips through its markers.
-test("SURFACE_GROUPS cover COMMAND_NAMES exactly and the block names every operation", () => {
-  const grouped = SURFACE_GROUPS.flatMap(([, cmds]) => cmds);
-  assert.deepEqual([...grouped].sort(), [...COMMAND_NAMES].sort());
-  const md = surfaceMarkdown();
-  for (const [op] of OPERATIONS) {
-    const [cmd, sub] = op.split(" ");
-    assert.ok(md.includes(`doctrina ${cmd}`), `surface block omits \`doctrina ${cmd}\``);
-    if (sub) {
-      assert.match(md, new RegExp(`doctrina ${cmd} [a-z|<>."'-]*\\b${sub}\\b`), `surface block omits \`${op}\``);
-    }
+test("every command declares a purpose, a when, and a known moment", () => {
+  // M2: an agent reading the surface block must learn WHEN to reach for a
+  // command, not only that it exists. A command that cannot state its
+  // trigger has not earned a place on the surface.
+  const problems = [];
+  for (const name of COMMAND_NAMES) {
+    const meta = COMMAND_META[name];
+    if (!meta) { problems.push(`${name}: no COMMAND_META entry`); continue; }
+    if (!meta.purpose) problems.push(`${name}: no purpose`);
+    if (!meta.when) problems.push(`${name}: no when trigger`);
+    if (!MOMENTS.includes(meta.moment)) problems.push(`${name}: unknown moment "${meta.moment}"`);
   }
-  // The block satisfies the validate drift gate by construction: every
-  // top-level command is referenced in code context.
-  const referenced = referencedCommands(surfaceBlock());
-  for (const cmd of COMMAND_NAMES) {
-    assert.ok(referenced.has(cmd), `surface block does not reference \`doctrina ${cmd}\` in code context`);
-  }
-  const found = findSurfaceBlock(`before\n${surfaceBlock()}\nafter`);
-  assert.ok(found, "findSurfaceBlock must locate its own output");
-  assert.equal(found.inner.trim(), surfaceMarkdown().trim());
+  assert.deepEqual(problems, [], problems.join("\n"));
+
+  // And nothing declares meta for a command that does not exist.
+  const extra = Object.keys(COMMAND_META).filter((n) => !COMMAND_NAMES.includes(n));
+  assert.deepEqual(extra, [], `COMMAND_META describes commands that do not exist: ${extra.join(", ")}`);
 });
 
-// The shipped AGENTS.md.template must carry the CURRENT generated block —
-// init regenerates it anyway (belt), but the template is what people read in
-// the repo, so it may not lag the catalog (suspenders).
+test("the generated surface block carries triggers, names every command, and fits its budget", () => {
+  const md = surfaceMarkdown();
+
+  // Every top-level command reachable, and the block references them in
+  // code context so validate's drift gate is satisfied by construction.
+  const referenced = referencedCommands(surfaceBlock());
+  for (const cmd of COMMAND_NAMES) {
+    assert.ok(referenced.has(cmd), `surface block does not reference \`doctrina ${cmd}\``);
+  }
+
+  // The triggers are the point of M2: the block must actually carry them.
+  assert.match(md, /\*When:\*/, "the block must carry when-triggers, not just names");
+  const triggerLines = md.split("\n").filter((l) => l.includes("*When:*")).length;
+  assert.ok(triggerLines >= 25,
+    `only ${triggerLines} commands carry a trigger in the block`);
+
+  // The budget is a forcing function: a surface that cannot describe itself
+  // in this many lines is too large, and the answer is to cut commands.
+  const lines = md.split("\n").length;
+  assert.ok(lines <= SURFACE_LINE_BUDGET,
+    `surface block is ${lines} lines, over the ${SURFACE_LINE_BUDGET}-line budget — cut commands, do not raise the budget`);
+
+  const found = findSurfaceBlock(`before\n${surfaceBlock()}\nafter`);
+  assert.ok(found, "findSurfaceBlock must locate its own output");
+  assert.equal(found.inner.trim(), md.trim());
+});
+
+test("the agent-facing changelog is short, agent-scoped, and round-trips", () => {
+  const version = JSON.parse(readFileSync(path.resolve(here, "..", "package.json"), "utf8")).version;
+  const md = agentChangelogMarkdown(version);
+  assert.ok(md, `no agent changelog entry for the current version ${version}`);
+  assert.match(md, new RegExp(`## What changed in ${version.replace(/\./g, "\\.")}`));
+
+  const bullets = md.split("\n").filter((l) => l.startsWith("- "));
+  assert.ok(bullets.length >= 3 && bullets.length <= 6,
+    `the agent changelog is ${bullets.length} bullets; keep it to 3-6 — CHANGELOG.md is the long form`);
+
+  const block = agentChangelogBlock(version);
+  const found = findAgentChangelogBlock(`x\n${block}\ny`);
+  assert.ok(found, "findAgentChangelogBlock must locate its own output");
+  assert.equal(found.inner.trim(), md.trim());
+});
+
 test("AGENTS.md.template embeds the current generated surface block", async () => {
   const { locateTemplatesDir } = await import("../src/lib/templates.js");
   const tplPath = path.join(locateTemplatesDir(), "AGENTS.md.template");

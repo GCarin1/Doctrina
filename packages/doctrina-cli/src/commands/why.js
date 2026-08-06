@@ -7,6 +7,7 @@ import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Provenance explainer (review 2026-06-27 passive-user feature #5): answer
 // "why does this capability exist / why was it built this way?" by assembling
@@ -25,7 +26,7 @@ export async function run(positional, _flags) {
   const cap = positional[0];
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   const known = isDir(specsDir) ? readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md"))) : [];

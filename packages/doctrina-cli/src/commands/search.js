@@ -3,6 +3,7 @@ import process from "node:process";
 import { exists, isDir, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Category-aware full-text search across the artifact tree. Answers
 // "where is X specified / decided / proposed?" without knowing the
@@ -32,7 +33,7 @@ export async function run(positional, flags) {
   const includeArchive = flagBool(flags, "archive", false);
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const categories = [

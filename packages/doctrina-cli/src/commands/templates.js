@@ -1,9 +1,14 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir } from "../lib/templates.js";
+import { locateTemplatesDir, listResolvedTemplates } from "../lib/templates.js";
 import { adapterFiles, isHubPointer, listAdapterNames } from "../lib/adapters.js";
-import { surfaceBlock, findSurfaceBlock, surfaceAnchors, placeSurfaceBlock } from "../lib/commands.js";
+import {
+  surfaceBlock, findSurfaceBlock, surfaceAnchors, placeSurfaceBlock,
+  COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceMarkdown,
+  agentChangelogBlock, findAgentChangelogBlock,
+} from "../lib/commands.js";
+import { cliVersion } from "../lib/version.js";
 import { ARTIFACT_CATEGORIES } from "../lib/index-json.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -116,6 +121,38 @@ function updateTemplates(flags) {
     }
   }
 
+  // The agent-facing changelog (M2): three to six lines stating only what
+  // alters agent behaviour in this version. An agent reading AGENTS.md after
+  // an upgrade learns what is new without being told to look — reported from
+  // real use, where a new command shipped and the driving LLM never knew.
+  if (isFile(agentsMdPath)) {
+    const cur = read(agentsMdPath);
+    const fresh = agentChangelogBlock(cliVersion());
+    const existing = findAgentChangelogBlock(cur);
+    if (fresh && (!existing || normalizeBlock(cur.slice(existing.start, existing.end)) !== normalizeBlock(fresh))) {
+      plan.push({
+        describe: [`AGENTS.md: ${existing ? "refresh" : "add"} the "What changed in ${cliVersion()}" block for agents`],
+        preview: () => fresh,
+        apply() {
+          const now = read(agentsMdPath);
+          const found = findAgentChangelogBlock(now);
+          if (found) {
+            write(agentsMdPath, now.slice(0, found.start) + fresh + now.slice(found.end), { force: true });
+            return;
+          }
+          // Place it immediately after the surface block, so "what exists"
+          // and "what just changed" are read together.
+          const sb = findSurfaceBlock(now);
+          if (sb) {
+            write(agentsMdPath, now.slice(0, sb.end) + "\n\n" + fresh + now.slice(sb.end), { force: true });
+          } else {
+            write(agentsMdPath, now.replace(/\s+$/, "") + "\n\n" + fresh + "\n", { force: true });
+          }
+        },
+      });
+    }
+  }
+
   // Markdown files: append stub sections for missing recommended headings.
   for (const [rel, sections] of [
     ["AGENTS.md", AGENTS_SECTIONS],
@@ -203,27 +240,32 @@ function updateTemplates(flags) {
 }
 
 function listTemplates() {
-  const dir = locateTemplatesDir();
-  const files = walk(dir).filter((f) => !f.endsWith(".gitkeep"));
-  if (files.length === 0) {
-    console.error(c.red("error:") + " no templates found at " + dir);
+  // Resolution is a CHAIN (M1): a template under the project's
+  // `.doctrina/templates/` wins over the bundled copy, per file. Printing
+  // WHERE each one resolved from is what turns the override from a hidden
+  // behaviour into a usable one.
+  const projectRoot = process.cwd();
+  const rows = listResolvedTemplates(isDir(path.join(projectRoot, ".doctrina")) ? projectRoot : null);
+  if (rows.length === 0) {
+    console.error(c.red("error:") + " no templates found");
     return 1;
   }
-  console.log(c.bold(`Templates shipped by the installed Doctrina CLI:`));
+
+  console.log(c.bold("Templates resolved for this project:"));
   console.log("");
-  let maxLen = 0;
-  const rows = [];
-  for (const f of files) {
-    const rel = relPath(dir, f);
-    const lines = lineCount(f);
-    rows.push({ rel, lines });
-    if (rel.length > maxLen) maxLen = rel.length;
-  }
+  const width = Math.max(...rows.map((r) => r.relativePath.length));
   for (const r of rows) {
-    console.log(`  ${r.rel.padEnd(maxLen + 2)}${String(r.lines).padStart(4)} lines`);
+    const source = r.source === "project"
+      ? c.cyan("project") + (r.overrides ? c.gray(" (overrides bundled)") : "")
+      : c.gray("bundled");
+    console.log(`  ${r.relativePath.padEnd(width + 2)}${String(lineCount(r.path)).padStart(4)} lines  ${source}`);
   }
   console.log("");
-  console.log(c.gray(`${rows.length} templates · location: ${dir}`));
+  const overridden = rows.filter((r) => r.source === "project").length;
+  console.log(c.gray(`${rows.length} templates · ${overridden} from this project's .doctrina/templates/`));
+  if (overridden === 0) {
+    console.log(c.gray("Drop a file there with the same relative path to override one — see docs/en/templates.md."));
+  }
   return 0;
 }
 
@@ -304,6 +346,28 @@ export function collectFindings(projectRoot) {
         });
       }
     }
+  }
+
+  // M2: a command that cannot state its trigger has not earned a place on
+  // the surface. The block is an agent's only discovery surface, so both
+  // fields are required and the block has a declared size budget.
+  for (const name of COMMAND_NAMES) {
+    const meta = COMMAND_META[name];
+    if (!meta || !meta.purpose || !meta.when) {
+      findings.push({
+        message: `command "${name}" declares no ${!meta ? "purpose or when" : (!meta.purpose ? "purpose" : "when")} — the surface block cannot say when to reach for it`,
+        remedy: null,
+      });
+    }
+  }
+  const surfaceLines = surfaceMarkdown().split("\n").length;
+  if (surfaceLines > SURFACE_LINE_BUDGET) {
+    findings.push({
+      message: `the generated surface block is ${surfaceLines} lines (budget ${SURFACE_LINE_BUDGET}) — cut commands rather than raising the budget`,
+      remedy: null,
+    });
+  } else {
+    ok.push(`surface block within budget (${surfaceLines}/${SURFACE_LINE_BUDGET} lines)`);
   }
 
   // index.json schema fields

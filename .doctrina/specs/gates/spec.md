@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.4.1
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -30,6 +30,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall treat `verify` as the build gate and `validate` as
   the structural gate; the shipped pre-commit hook runs only the
   latter.
+- The system shall declare in one place which gates guard which lifecycle transition, and every command that drives a transition shall consult that declaration rather than implementing its own preconditions.
 
 ### Event-driven
 
@@ -288,6 +289,8 @@ constraints (exit codes, zero-deps, no-network).
   exit semantics.
 - When `doctrina close` runs on a change that alters a documented surface — a command, a flag, or an exit code named in the change's own proposal or deltas — the system shall refuse to close unless the same work also touches `docs/` or a README, and `--force` shall close anyway and record the gap in the archive ledger.
 - When `doctrina doctor` reports the template row, the system shall describe the actual findings and name the remedy those findings carry, rather than assuming a missing recommended section.
+- When `doctrina change apply` runs on a change whose structural checks fail, the system shall refuse, name the blocking gate and the command that clears it, and write nothing.
+- When a lifecycle transition is forced with `--force`, the system shall proceed past the precondition, name the waived blockers, and record the gap in the archive ledger, creating the ledger when it does not yet exist.
 
 ### Unwanted-behavior (must-not)
 
@@ -300,6 +303,7 @@ constraints (exit codes, zero-deps, no-network).
   (ADR 0005, ADR 0008).
 - The system shall not raise the documentation gate from the scaffolded boilerplate of a change; only content the author wrote counts as a documented-surface signal.
 - The system shall not raise the documentation gate outside a git repository, where it cannot tell what moved.
+- The system shall not evaluate a gate at a transition where its question is not meaningful; the structural gate asks whether a change is safe to apply, so archiving shall not re-ask it.
 
 ## Acceptance criteria
 
@@ -320,6 +324,8 @@ The gate surface is spec-compliant when:
 5. [verified] A change altering a documented surface with no accompanying documentation is refused by `doctrina close`, closes under `--force`, and the gap is written to the ledger — verified by `packages/doctrina-cli/test/integration.test.js`.
 6. [verified] Scaffold boilerplate raises no documentation signal, so the gate stays quiet on a change that touches no documented surface — verified by `packages/doctrina-cli/test/docs-impact.test.js`, `packages/doctrina-cli/test/integration.test.js`.
 7. [verified] An adapter-pointer finding is reported by `doctor` with the remedy that resolves it, and is not labelled a missing section — verified by `packages/doctrina-cli/test/remedies.test.js`.
+8. [verified] Every lifecycle transition is guarded identically regardless of which command drives it, enumerated by a table-driven suite — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
+9. [verified] A refused transition mutates nothing, and a forced one records the waived blockers in the ledger — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
 
 ## Out of scope for this spec
 

@@ -7,6 +7,7 @@ import { cliVersion } from "../lib/version.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { today } from "../lib/dates.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as templates from "./templates.js";
 import * as validate from "./validate.js";
 
@@ -28,7 +29,7 @@ export const flags = { boolean: ["write"], string: [] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const writeMode = flagBool(flags, "write", false);
   const running = cliVersion();

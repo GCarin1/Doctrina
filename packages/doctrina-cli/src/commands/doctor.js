@@ -6,6 +6,7 @@ import { exists } from "../lib/fs-ops.js";
 import { collectStatus } from "./status.js";
 import { collectFindings } from "./templates.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
@@ -24,7 +25,7 @@ export const flags = { boolean: [], string: [] };
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   console.log(c.bold("Doctrina doctor") + c.gray(" — aggregate diagnostic (read-only):"));

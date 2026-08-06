@@ -22,11 +22,16 @@ next argument as its value and report a misleading error.
 
 ## Exit codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success (warnings allowed). |
-| 1 | A command-level error: validation failed, file refused to overwrite, change not found, etc. |
-| 2 | Misuse: unknown command, missing required argument, malformed input. |
+A five-class contract (ADR 0018) — full detail in
+[exit-codes.md](exit-codes.md).
+
+| Code | Class | Meaning | What to do |
+|------|-------|---------|------------|
+| 0 | OK | Success (warnings allowed). | Continue. |
+| 1 | GATE | A gate failed — the work is not ready. | Fix the work, retry. |
+| 2 | USAGE | Unknown command, missing or malformed argument. | Correct the invocation. |
+| 3 | PRECONDITION | The project is not set up for this yet. | Run the command named in the `hint:` line. |
+| 4 | ENVIRONMENT | The environment cannot run this. | Stop. |
 
 ## `doctrina init`
 
@@ -48,6 +53,11 @@ doctrina init [options]
 | `--force` | off | Re-scaffold a project that already exists. It re-writes only files that are still **pristine**: when `AGENTS.md` or `.doctrina/product.md` carries content you wrote, `init` refuses and names them (ADR 0016). |
 | `--overwrite-content` | off | The explicit second opt-in that lets `--force` discard authored `AGENTS.md` / `product.md`. Without it, `--force` alone cannot destroy them. |
 | `--non-interactive` | off | Fail instead of prompting for missing required values. |
+
+`init` needs a description. On a terminal it asks; off one it **refuses**
+(exit `2`) rather than accepting the empty string EOF returns — that used
+to scaffold a project with a blank description and no warning. Pass
+`--project-description` or `--intake`.
 
 `init` refuses to run if `AGENTS.md` or `.doctrina/` already exist
 unless `--force` is supplied.
@@ -224,6 +234,14 @@ Apply every spec delta found under `.doctrina/changes/<id>/specs/`.
 Multiple ids run in sequence, each independently (batch close of a
 backlog); the exit code is the worst per-id result.
 
+**Gated on `structure`** (ADR 0017): `apply` refuses when `analyze` would
+fail, and writes nothing. Preconditions attach to the transition, not to
+the command driving it, so `apply` enforces exactly what the `close` path
+enforces — an agent cannot reach through one path a state another path
+forbids. `--force` waives the *check* and records the gap in the ledger;
+it does not waive the operation, so a forced apply past a malformed delta
+still fails when it tries to read it.
+
 ```
 doctrina change apply 0042-add-saml
 doctrina change apply 0042-add-saml 0043-rate-limit 0044-audit-log
@@ -269,10 +287,13 @@ doctrina change archive 0042-add-saml
 doctrina change archive 0042-add-saml 0043-rate-limit
 ```
 
-Archiving is the act of declaring a change finished, so it enforces
-verification: the CLI **refuses** (exit 1) while any checkbox in
-`tasks.md` (the closing steps included) or in the proposal's
-`## Verification` section is still unchecked. Finish and check the
+Archiving is the act of declaring a change finished, so it is **gated on
+`verification`** (ADR 0017): the CLI **refuses** (exit 1) while any
+checkbox in `tasks.md` (the closing steps included) or in the proposal's
+`## Verification` section is still unchecked. It deliberately does not
+re-run the `structure` gate — that gate asks "is this safe to apply?",
+and after a successful apply its ADDED-target check would report the
+proof of success as a conflict. Finish and check the
 items, or pass `--force` to archive anyway — which prints the unmet
 items and records the gap. This is the difference between "boxes
 marked" and "verification passed".
@@ -377,6 +398,11 @@ rebuilds the index from the tree.
 | Flag | Purpose |
 |------|---------|
 | `--reason "<text>"` | Record why the change was abandoned in the ledger line. |
+| `--force` | Skip the confirmation. **Required off a terminal** — abandoning deletes work with no undo, and the CLI will not take silence as consent. |
+
+Without `--force`, `abandon` lists the files it would delete, states that
+the deletion cannot be undone, and asks. On a non-interactive stdin there
+is nobody to ask, so it refuses (exit `2`) rather than proceeding.
 
 ## `doctrina decision new "<title>"`
 
@@ -1120,6 +1146,13 @@ ignores the `index.json` the fix rewrites. Runs until interrupted (Ctrl-C);
 
 Derive adoption metrics from **local git history**. No network
 calls; nothing leaves the repository.
+
+**First-run states.** A repository with no commits, or a directory that is
+not a repository, is a valid state and not a failure: `metrics` reports
+"nothing to measure yet" and exits `0`. The same holds for `report`,
+`review`, and `skill suggest`. Only git being absent from the machine is an
+environment error (exit `4`). `context --diff` still fails when it cannot
+compute a diff, but names the condition rather than leaking git plumbing.
 
 ```
 doctrina metrics [--since <days|date>] [--save]

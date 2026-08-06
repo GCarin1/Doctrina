@@ -6,6 +6,7 @@ import { computeActions } from "./next.js";
 import { openChanges } from "./prime.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Session handoff note: everything the NEXT session (a fresh agent, a
 // teammate, tomorrow's you) needs to resume without re-reading the tree —
@@ -24,7 +25,7 @@ export const flags = { boolean: [], string: [] };
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const s = collectStatus(projectRoot);

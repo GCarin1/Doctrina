@@ -7,6 +7,7 @@ import { collectStatus } from "./status.js";
 import { computeActions } from "./next.js";
 import { acceptedDecisions, productSection } from "./constitution.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Session primer: the ~40-line read that orients an agent at the start of a
 // session — where things stand, what the standing rules are, what work is
@@ -23,7 +24,7 @@ export const flags = { boolean: [], string: [] };
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const s = collectStatus(projectRoot);

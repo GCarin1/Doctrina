@@ -14,3 +14,10 @@ One line per archived change, newest last. Appended by
 - 2026-08-06 — 0008-per-command-flags — Flag specs live with their command; a static test proves none is undeclared (specs: cli MODIFIED)
 - 2026-08-06 — 0009-surface-block-placement — Surface block has one canonical position, for init and upgrade alike (specs: templates MODIFIED)
 - 2026-08-06 — 0010-one-index-definition — One definition of a correct index.json (specs: templates MODIFIED)
+- 2026-08-06 — 0099-probe — abandoned
+- 2026-08-06 — 0011-gate-parity — One gate map: every lifecycle transition is guarded identically (specs: gates MODIFIED)
+- 2026-08-06 — 0012-exit-codes — Exit codes are a documented contract, not three meanings for 1 (specs: cli MODIFIED)
+- 2026-08-06 — 0013-git-first-run — Git-dependent commands survive a repo with no commits (specs: cli MODIFIED)
+- 2026-08-06 — 0014-consent-before-destruction — Destructive and interactive paths ask, or refuse (specs: cli MODIFIED)
+- 2026-08-06 — 0015-packed-install-harness — End-to-end harness that runs the CLI the way a user installs it (specs: validation MODIFIED)
+- 2026-08-06 — 0016-template-override — Project templates are a real override point, not a ghost directory (specs: templates MODIFIED)

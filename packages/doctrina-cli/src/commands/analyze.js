@@ -26,6 +26,25 @@ export async function run(positional, _flags) {
   console.log(`analyzing ${relPath(projectRoot, changeDir)}/`);
   console.log("");
 
+  const results = collectAnalysis(projectRoot, changeDir);
+  for (const r of results) console.log(r.line);
+  console.log("");
+
+  const failed = results.filter((r) => r.kind === "fail").length;
+  if (failed === 0) {
+    console.log(c.green("ok") + ` ready to apply`);
+  } else {
+    console.log(c.red("fail") + ` ${failed} issue${failed === 1 ? "" : "s"}`);
+  }
+  return failed === 0 ? 0 : 1;
+}
+
+// The structural findings for a change, as data. Exported so the shared
+// gate map (`lib/gates.js`) can enforce the SAME checks on every
+// transition that needs them, instead of each command deciding for itself
+// — `change apply` used to mutate a change that `analyze` had just
+// refused (audit item C6).
+export function collectAnalysis(projectRoot, changeDir) {
   const results = [];
 
   // proposal.md
@@ -116,16 +135,7 @@ export async function run(positional, _flags) {
     }
   }
 
-  for (const r of results) console.log(r.line);
-  console.log("");
-
-  const failed = results.filter((r) => r.kind === "fail").length;
-  if (failed === 0) {
-    console.log(c.green("ok") + ` ready to apply`);
-  } else {
-    console.log(c.red("fail") + ` ${failed} issue${failed === 1 ? "" : "s"}`);
-  }
-  return failed === 0 ? 0 : 1;
+  return results;
 }
 
 function pass(msg) {

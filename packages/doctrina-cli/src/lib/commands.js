@@ -93,6 +93,69 @@ export const OPERATIONS = [
   ["upgrade", "Bring an existing project up to the installed CLI (--write applies)"],
 ];
 
+// ---------------------------------------------------------------------------
+// Per-command PURPOSE and WHEN (audit item M2).
+//
+// The generated surface block was a name index. An agent reading
+// "`doctrina trace --strict`" learns that the command exists and nothing
+// about what triggers it, what it costs, or what it returns — so learning
+// the surface meant running `--help` 35 times, roughly the whole context
+// budget spent on a lookup.
+//
+// Doctrina already solved this for SKILLS: `context` prints a description
+// and a `when:` trigger per skill and tells the agent to load the body only
+// when the trigger fires. Commands get the same treatment.
+//
+// `when` is the moment you reach for it, in the agent's own terms.
+// `purpose` is one line on what it does. Both are required: a command that
+// cannot state its trigger has not earned a place on the surface, and
+// `templates check` fails when either is missing.
+export const COMMAND_META = {
+  init:         { moment: "Bootstrap",  when: "starting a project that has no AGENTS.md yet", purpose: "scaffold AGENTS.md and .doctrina/" },
+  intake:       { moment: "Bootstrap",  when: "you have a full project description and no specs yet", purpose: "store the intent and print the bootstrap playbook" },
+  adapter:      { moment: "Bootstrap",  when: "adding or removing an agent's pointer files", purpose: "install/remove agent adapters (additive)" },
+
+  prime:        { moment: "Orient",     when: "at the START of every session", purpose: "gates, standing rules, and open work in one read" },
+  status:       { moment: "Orient",     when: "you need the health of the tree at a glance", purpose: "index, coverage, trace, and artifact counts" },
+  next:         { moment: "Orient",     when: "you finished something and do not know what follows", purpose: "the recommended next workflow action" },
+  context:      { moment: "Orient",     when: "before working on any task, to load the right files", purpose: "the read pack in canonical order, with token estimates" },
+  show:         { moment: "Orient",     when: "you need one requirement, criterion, or ADR, not a file", purpose: "point-read a single artifact by reference" },
+  search:       { moment: "Orient",     when: "you do not know which artifact mentions a term", purpose: "search the artifact tree, grouped by category" },
+  why:          { moment: "Orient",     when: "you need to justify or trace a capability's existence", purpose: "provenance: intent, proof, ADRs, and history" },
+  constitution: { moment: "Orient",     when: "you need the standing rules before deciding something", purpose: "accepted ADRs and product non-goals" },
+  handoff:      { moment: "Orient",     when: "BEFORE compaction or handing over to another session", purpose: "a resume note: open work, task state, next command" },
+
+  work:         { moment: "Change",     when: "any request arrives that changes behaviour", purpose: "scaffold a change and print the playbook to execute" },
+  spec:         { moment: "Change",     when: "a capability needs creating or its headers advancing", purpose: "create, list, and edit capability specs" },
+  change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "new / apply / archive / check / tick / diff / abandon" },
+  decision:     { moment: "Change",     when: "the change decides something a later session must not relitigate", purpose: "record, accept, land, and supersede ADRs" },
+  contract:     { moment: "Change",     when: "the change touches ports, env vars, or public endpoints", purpose: "own and verify the integration surface" },
+  intent:       { moment: "Change",     when: "new product intent appears after the intake", purpose: "append and list product intent anchors" },
+  skill:        { moment: "Change",     when: "a lesson is worth not relearning", purpose: "capture on-demand procedural memory" },
+
+  analyze:      { moment: "Gate",       when: "before applying a change", purpose: "structural pre-flight on a change folder" },
+  clarify:      { moment: "Gate",       when: "before applying, or before opening a PR", purpose: "smell-test Markdown for ambiguity" },
+  validate:     { moment: "Gate",       when: "after any artifact edit, and before considering work done", purpose: "schema, structure, EARS, and index drift" },
+  coverage:     { moment: "Gate",       when: "before claiming a capability is proven", purpose: "acceptance criteria against cited evidence" },
+  trace:        { moment: "Gate",       when: "checking that product intent still maps to capabilities", purpose: "intent provenance across the tree" },
+  review:       { moment: "Gate",       when: "before handing work back, to self-review it", purpose: "conformance of your changes vs specs/ADRs/contracts" },
+  verify:       { moment: "Gate",       when: "the real build gate must run", purpose: "the project's declared typecheck/test/build checks" },
+  close:        { moment: "Gate",       when: "a change is implemented and ready to finish", purpose: "the whole closing sequence in one attested pass" },
+  doctor:       { moment: "Gate",       when: "something looks wrong and you do not know which gate to ask", purpose: "aggregate diagnostic with per-finding remedies" },
+
+  templates:    { moment: "Maintain",   when: "after upgrading the CLI, or to customise a scaffold", purpose: "inspect, check, and refresh the template shape" },
+  upgrade:      { moment: "Maintain",   when: "you just updated the doctrina-cli package", purpose: "bring this project up to the installed CLI" },
+  index:        { moment: "Maintain",   when: "the index drifted from the tree", purpose: "regenerate index.json from the artifacts on disk" },
+  hooks:        { moment: "Maintain",   when: "setting up a repo so drift cannot be committed", purpose: "install the pre-commit gate" },
+  watch:        { moment: "Maintain",   when: "you want the tree re-synced on every save", purpose: "re-run validate --fix and next continuously" },
+  metrics:      { moment: "Maintain",   when: "reporting adoption over a period", purpose: "local git-derived adoption metrics" },
+  report:       { moment: "Maintain",   when: "summarising a period for a human", purpose: "a Markdown digest of changes, gates, and git" },
+  completion:   { moment: "Maintain",   when: "setting up a human's shell", purpose: "print shell completions from the catalog" },
+};
+
+// The order moments appear in the generated block.
+export const MOMENTS = ["Bootstrap", "Orient", "Change", "Gate", "Maintain"];
+
 // The Commands block of `doctrina --help`, generated from OPERATIONS so the
 // printed surface can never omit an operation the catalog knows about.
 export function surfaceHelp() {
@@ -115,16 +178,6 @@ export const SURFACE_BEGIN =
   "<!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->";
 export const SURFACE_END = "<!-- doctrina:surface:end -->";
 
-// Workflow grouping for the generated block. A test asserts the flattened
-// names equal COMMAND_NAMES, so a new command cannot ship ungrouped (and
-// therefore cannot ship invisible to AGENTS.md).
-export const SURFACE_GROUPS = [
-  ["Start", ["init", "intake", "work"]],
-  ["Author", ["spec", "change", "contract", "decision", "skill", "intent", "adapter"]],
-  ["Read / orient", ["prime", "context", "show", "search", "status", "next", "why", "handoff", "constitution"]],
-  ["Gates", ["analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor"]],
-  ["Maintain", ["templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade"]],
-];
 
 // Per-command usage hints appended to the generated reference — arguments and
 // the flags an agent reaches for daily. Cosmetic only; the operation list
@@ -142,7 +195,25 @@ const SURFACE_HINTS = {
   handoff: "(before compaction/handover)",
 };
 
+// The declared size budget for the generated block. A surface that cannot
+// describe itself in this many lines is too large — the answer is to cut
+// commands (M8), never to raise the number.
+export const SURFACE_LINE_BUDGET = 40;
+
+// Moments an agent works IN get a trigger per command. "Maintain" is
+// compressed to one line: those commands are reached for by a human after
+// an upgrade or when wiring a repo, not by an agent mid-loop, and giving
+// each its own line pushed the block past its budget. The budget is the
+// forcing function — a surface that cannot describe itself in 40 lines is
+// too large, and the answer is to cut commands (M8), not to raise it.
+const COMPACT_MOMENTS = new Set(["Maintain"]);
+
 // The full managed section, heading included, between the markers.
+//
+// Organised by MOMENT rather than by category, and each line carries the
+// trigger: an agent scanning it learns WHEN to reach for a command, which
+// a name index never told it. Same shape `context` prints for skills —
+// description plus `when:`, body on demand.
 export function surfaceMarkdown() {
   const subsByCmd = new Map();
   for (const [op] of OPERATIONS) {
@@ -150,26 +221,33 @@ export function surfaceMarkdown() {
     if (!subsByCmd.has(cmd)) subsByCmd.set(cmd, []);
     if (sub) subsByCmd.get(cmd).push(sub);
   }
-  const renderCmd = (cmd) => {
+  const invocation = (cmd) => {
     const subs = subsByCmd.get(cmd) ?? [];
     const hint = SURFACE_HINTS[cmd] ? ` ${SURFACE_HINTS[cmd]}` : "";
-    return subs.length > 0 ? `\`doctrina ${cmd} ${subs.join("|")}\`` : `\`doctrina ${cmd}${hint}\``;
+    return subs.length > 0 ? `${cmd} ${subs.join("|")}` : `${cmd}${hint}`;
   };
+
   const lines = [
     "## Doctrina command surface (generated — reach for these, don't hand-author)",
     "",
-    "Every operation of the installed CLI, grouped by workflow. The CLI",
-    "scaffolds from canonical templates and keeps `index.json` in sync, so",
-    "prefer it over writing artifacts by hand. Details: `doctrina --help`.",
-    "",
+    "Every command, with the moment you reach for it. The CLI scaffolds from",
+    "canonical templates and keeps `index.json` in sync — prefer it over",
+    "hand-authoring. Flags and detail: `doctrina <command> --help`.",
   ];
-  for (const [label, cmds] of SURFACE_GROUPS) {
-    lines.push(`- **${label}:** ${cmds.map(renderCmd).join(" · ")}`);
+  for (const moment of MOMENTS) {
+    const cmds = COMMAND_NAMES.filter((n) => COMMAND_META[n]?.moment === moment);
+    if (cmds.length === 0) continue;
+    if (COMPACT_MOMENTS.has(moment)) {
+      lines.push(`**${moment}** (per-command triggers: \`doctrina <command> --help\`) — ` +
+        cmds.map((n) => `\`${invocation(n)}\``).join(" · "));
+      continue;
+    }
+    lines.push(`**${moment}**`);
+    for (const cmd of cmds) {
+      const meta = COMMAND_META[cmd];
+      lines.push(`- \`doctrina ${invocation(cmd)}\` — ${meta.purpose}. *When:* ${meta.when}.`);
+    }
   }
-  lines.push("");
-  lines.push("Session bookends: `doctrina prime` to orient at session start;");
-  lines.push("`doctrina handoff` before compaction or handover. Continuous:");
-  lines.push("`doctrina watch`. Capture lessons: `doctrina skill suggest`.");
   return lines.join("\n");
 }
 
@@ -239,9 +317,18 @@ export function placeSurfaceBlock(text, block, anchors) {
 // { start, end, inner } (string offsets; inner excludes the marker lines)
 // or null when either marker is absent.
 export function findSurfaceBlock(text) {
-  const begin = text.match(/<!--\s*doctrina:surface:begin[\s\S]*?-->/);
+  return findMarkedBlock(text, "surface");
+}
+
+// Shared locator for the CLI-owned marker blocks (surface, changed).
+// Returns { start, end, inner } as string offsets, or null when either
+// marker is missing.
+function findMarkedBlock(text, name) {
+  // Note the doubled backslashes: these are TEMPLATE literals, so `\s`
+  // would collapse to a bare "s" before the RegExp ever sees it.
+  const begin = text.match(new RegExp(`<!--\\s*doctrina:${name}:begin[\\s\\S]*?-->`));
   if (!begin) return null;
-  const endRe = /<!--\s*doctrina:surface:end\s*-->/;
+  const endRe = new RegExp(`<!--\\s*doctrina:${name}:end\\s*-->`);
   const end = endRe.exec(text.slice(begin.index + begin[0].length));
   if (!end) return null;
   const innerStart = begin.index + begin[0].length;
@@ -273,4 +360,57 @@ export function referencedCommands(markdown) {
     out.add(m[1]);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// The agent-facing changelog (M2, part 3).
+//
+// Reported from real use: when a new command shipped, the LLM driving
+// Doctrina had no idea the capability existed. It only found out by running
+// `doctrina --help` — which it had no reason to run, because nothing told
+// it anything had changed.
+//
+// CHANGELOG.md is 46 KB of human prose and far too large to carry into a
+// context window. This is three to six lines stating only what alters
+// AGENT behaviour: a new capability, a changed trigger, a removed command.
+// `upgrade --write` refreshes it, so an agent reading AGENTS.md after an
+// upgrade learns what is new without being told to look.
+
+export const AGENT_CHANGELOG_BEGIN =
+  "<!-- doctrina:changed:begin — CLI-owned. Regenerated by `doctrina upgrade --write`. -->";
+export const AGENT_CHANGELOG_END = "<!-- doctrina:changed:end -->";
+
+// What changed for an AGENT, per version. Keyed by the version that
+// introduced it. Only entries that alter what an agent should DO belong
+// here — a bug fix nobody's behaviour depends on does not.
+export const AGENT_CHANGELOG = {
+  "0.14.0": [
+    "`doctrina adapter add|remove|list` — add an agent without re-scaffolding; `init --force` no longer overwrites authored AGENTS.md/product.md.",
+    "`doctrina change apply` now refuses what `analyze` refuses; `change check` previews a close, `change tick` checks boxes in bulk.",
+    "Exit codes are a 5-class contract: 1 gate, 2 usage, 3 precondition, 4 environment. Branch on the code, not the prose.",
+    "A change that alters a documented surface must carry its docs — `close` refuses otherwise (`--force` records the gap).",
+    "Project templates under `.doctrina/templates/` now override the bundled ones, per file.",
+  ],
+};
+
+// The block written into AGENTS.md for a given version. Empty string when
+// that version has no agent-visible changes.
+export function agentChangelogMarkdown(version) {
+  const entries = AGENT_CHANGELOG[version];
+  if (!entries || entries.length === 0) return "";
+  return [
+    `## What changed in ${version}`,
+    "",
+    ...entries.map((e) => `- ${e}`),
+  ].join("\n");
+}
+
+export function agentChangelogBlock(version) {
+  const md = agentChangelogMarkdown(version);
+  if (!md) return "";
+  return `${AGENT_CHANGELOG_BEGIN}\n${md}\n${AGENT_CHANGELOG_END}`;
+}
+
+export function findAgentChangelogBlock(text) {
+  return findMarkedBlock(text, "changed");
 }

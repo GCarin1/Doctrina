@@ -7,6 +7,8 @@ import { listHeader, parseDependsOn } from "../lib/scan.js";
 import { parseFrontmatter } from "./skill.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { GIT_STATE, historyState } from "../lib/git.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
 // context pack for a task, in the order an agent should read it. This is
@@ -33,7 +35,7 @@ export async function run(positional, flags) {
   const diffRef = flagString(flags, "diff");
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   if (capability && !/^[a-z][a-z0-9-]*$/.test(capability)) {
@@ -198,10 +200,20 @@ function reportBudget(totalTokens, budget, log) {
 // ref is unavailable — the caller exits rather than silently showing a full
 // pack the user asked to narrow.
 function changedPaths(projectRoot, ref) {
+  // Explain the first-run states in the user's terms rather than leaking
+  // git plumbing ("fatal: bad revision 'HEAD'") — audit item C8.
+  const history = historyState(projectRoot);
+  if (!history.usable) {
+    console.error(c.red("error:") + ` cannot diff against "${ref}" — ${history.reason}`);
+    if (history.state === GIT_STATE.EMPTY) {
+      console.error(c.gray("hint: ") + "make a commit first, or drop --diff for the full pack");
+    }
+    return null;
+  }
   const run = (args) => spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
   const diff = run(["diff", "--name-only", ref, "--"]);
   if (diff.status !== 0) {
-    console.error(c.red("error:") + ` git diff against "${ref}" failed${diff.stderr ? `: ${diff.stderr.trim().split("\n")[0]}` : " (not a git repository?)"}`);
+    console.error(c.red("error:") + ` git diff against "${ref}" failed${diff.stderr ? `: ${diff.stderr.trim().split("\n")[0]}` : ""}`);
     return null;
   }
   const untracked = run(["ls-files", "--others", "--exclude-standard"]);

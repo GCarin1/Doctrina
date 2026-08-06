@@ -27,11 +27,16 @@ enganoso.
 
 ## Códigos de saída
 
-| Código | Significado |
-|--------|-------------|
-| 0 | Sucesso (warnings permitidos). |
-| 1 | Erro de comando: validação falhou, arquivo se recusou a sobrescrever, change não encontrado, etc. |
-| 2 | Uso incorreto: comando desconhecido, argumento obrigatório ausente, entrada malformada. |
+Um contrato de cinco classes (ADR 0018) — detalhe completo em
+[exit-codes.md](exit-codes.md).
+
+| Código | Classe | Significado | O que fazer |
+|--------|--------|-------------|-------------|
+| 0 | OK | Sucesso (warnings permitidos). | Continue. |
+| 1 | GATE | Um gate falhou — o trabalho não está pronto. | Corrija e repita. |
+| 2 | USAGE | Comando desconhecido, argumento ausente ou malformado. | Corrija a invocação. |
+| 3 | PRECONDITION | O projeto ainda não está preparado para isso. | Rode o comando da linha `hint:`. |
+| 4 | ENVIRONMENT | O ambiente não consegue executar. | Pare. |
 
 ## `doctrina init`
 
@@ -52,6 +57,11 @@ doctrina init [opções]
 | `--force` | off | Re-esqueletiza um projeto que já existe. Reescreve apenas arquivos ainda **intocados**: quando o `AGENTS.md` ou o `.doctrina/product.md` carrega conteúdo que você escreveu, o `init` recusa e os nomeia (ADR 0016). |
 | `--overwrite-content` | off | O segundo opt-in explícito que permite ao `--force` descartar `AGENTS.md` / `product.md` autorados. Sem ela, o `--force` sozinho não consegue destruí-los. |
 | `--non-interactive` | off | Falha em vez de perguntar. |
+
+O `init` precisa de uma descrição. Num terminal ele pergunta; fora de um
+ele **recusa** (saída `2`) em vez de aceitar a string vazia que o EOF
+devolve — isso esqueletizava um projeto com descrição em branco e sem
+aviso. Passe `--project-description` ou `--intake`.
 
 Num terminal interativo, o `init` também oferece a instalação de
 adapter como passo de wizard quando `--agent` não foi passado
@@ -233,6 +243,14 @@ Aplica cada delta encontrado em
 independente (fechamento em lote de backlog); o código de saída é o pior
 resultado por id.
 
+**Gateado por `structure`** (ADR 0017): o `apply` recusa quando o
+`analyze` reprovaria, e não escreve nada. As precondições pertencem à
+transição, não ao comando que a dirige, então o `apply` exige exatamente o
+que o caminho do `close` exige — um agente não consegue alcançar por um
+caminho um estado que outro caminho proíbe. O `--force` dispensa a
+*checagem* e registra o gap no ledger; não dispensa a operação, então um
+apply forçado por cima de um delta malformado ainda falha ao tentar lê-lo.
+
 ```
 doctrina change apply 0042-add-saml
 doctrina change apply 0042-add-saml 0043-rate-limit 0044-audit-log
@@ -278,10 +296,13 @@ doctrina change archive 0042-add-saml
 doctrina change archive 0042-add-saml 0043-rate-limit
 ```
 
-Arquivar é o ato de declarar um change terminado, então ele exige
-verificação: o CLI **recusa** (exit 1) enquanto qualquer caixa no
-`tasks.md` (incluindo os closing steps) ou na seção `## Verification`
-do proposal estiver desmarcada. Termine e marque os itens, ou passe
+Arquivar é o ato de declarar um change terminado, então ele é **gateado
+por `verification`** (ADR 0017): o CLI **recusa** (exit 1) enquanto
+qualquer caixa no `tasks.md` (incluindo os closing steps) ou na seção
+`## Verification` do proposal estiver desmarcada. Ele deliberadamente não
+re-roda o gate `structure` — aquele gate pergunta "isto é seguro de
+aplicar?", e depois de um apply bem-sucedido a checagem de alvo ADDED
+reportaria a prova do sucesso como conflito. Termine e marque os itens, ou passe
 `--force` para arquivar mesmo assim — o que imprime os itens pendentes
 e registra o gap. É a diferença entre "caixas marcadas" e "verificação
 passou".
@@ -391,6 +412,11 @@ partir da árvore.
 | Flag | Propósito |
 |------|-----------|
 | `--reason "<texto>"` | Registra na linha do ledger por que a change foi abandonada. |
+| `--force` | Pula a confirmação. **Obrigatória fora de um terminal** — abandonar deleta trabalho sem desfazer, e o CLI não trata silêncio como consentimento. |
+
+Sem `--force`, o `abandon` lista os arquivos que deletaria, diz que a
+deleção não pode ser desfeita, e pergunta. Num stdin não interativo não há
+a quem perguntar, então ele recusa (saída `2`) em vez de prosseguir.
 
 ## `doctrina decision new "<title>"`
 
@@ -1156,6 +1182,14 @@ drift, migra o carimbo) e reimprime o `doctrina next`. Com debounce; ignora o
 
 Deriva métricas de adoção do **histórico git local**. Zero
 chamadas de rede; nada sai do repositório.
+
+**Estados de primeira execução.** Um repositório sem commits, ou um
+diretório que não é repositório, é um estado válido e não uma falha: o
+`metrics` reporta "nada a medir ainda" e sai com `0`. O mesmo vale para
+`report`, `review` e `skill suggest`. Só a ausência do git na máquina é
+erro de ambiente (saída `4`). O `context --diff` ainda falha quando não
+consegue calcular o diff, mas nomeia a condição em vez de vazar plumbing
+do git.
 
 ```
 doctrina metrics [--since <dias|data>] [--save]

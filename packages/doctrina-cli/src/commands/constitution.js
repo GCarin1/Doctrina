@@ -4,6 +4,7 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { listHeader } from "../lib/scan.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // The project's standing rules in one read — Spec Kit parity for its
 // `constitution.md`, but ASSEMBLED, not a new home for facts. Doctrina's
@@ -24,7 +25,7 @@ export const flags = { boolean: [], string: [] };
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const project = projectName(projectRoot);

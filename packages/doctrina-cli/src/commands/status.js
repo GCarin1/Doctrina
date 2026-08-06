@@ -9,6 +9,7 @@ import { summarize as coverageSummary } from "./coverage.js";
 import { summarize as traceSummary } from "./trace.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // One-glance project health (review 2026-06-27 passive-user feature #1): a
 // dashboard that answers "where do things stand?" in a single read, so neither
@@ -28,7 +29,7 @@ export const flags = { boolean: ["json"], string: [] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const s = collectStatus(projectRoot);

@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.30.0
+**Version:** 0.31.2
 
 ## Purpose
 
@@ -38,6 +38,9 @@ owns the surface itself and the conventions every command shares.
 - The system shall support the EARS requirement verbs `append-requirement <section>: <text>` and `replace-requirement <section> <n>: <text>` in a MODIFIED delta's ops block, resolving bullet position and numbering at apply time so concurrent open changes appending to the same spec cannot collide.
 - The system shall declare each command's accepted flags in that command's own module, and shall parse an invocation in two passes — resolving the command name first, then re-parsing with that command's declared flags merged over the global set.
 - The system shall accept a declared flag in any position relative to the command's positional arguments, with identical results.
+- The system shall exit with one of five documented classes: 0 success, 1 a failed gate, 2 a wrong invocation, 3 a missing precondition, 4 an environment that cannot run the command.
+- The system shall define the exit-code classes in one module, print them in the top-level help from that same definition, and document them in the user-facing reference.
+- The system shall interpret git availability in one module, distinguishing a repository with no commits, a directory that is not a repository, and git being absent from the machine.
 
 ### Event-driven
 
@@ -360,6 +363,10 @@ owns the surface itself and the conventions every command shares.
 - When `doctrina adapter list` runs, the system shall report each adapter as installed, available, or native, where native means the agent reads `AGENTS.md` directly and the adapter installs no file.
 - When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, and shall keep any file edited since install unless `--force` is given.
 - When `doctrina init --force` would overwrite an `AGENTS.md` or `.doctrina/product.md` that carries authored content, the system shall refuse, name the files it declined to touch, point at `doctrina adapter add`, and write nothing; `--overwrite-content` shall be required to discard that content.
+- When a command cannot run because the project is not set up, the system shall exit with the precondition class and name the setup command that clears it.
+- When a history-reading command runs where there is no history, the system shall report that there is nothing to measure and exit successfully, rather than surfacing a git plumbing error.
+- When `doctrina change abandon` runs without `--force`, the system shall list the files it would delete, state that the deletion cannot be undone, and require confirmation; off a terminal it shall refuse rather than proceed.
+- When `doctrina init` has no project description and no terminal to ask on, the system shall refuse and name the flags that supply one, rather than scaffolding with an empty description.
 
 ### State-driven
 
@@ -390,6 +397,9 @@ owns the surface itself and the conventions every command shares.
 - The system shall not treat a token substitution as authorship when deciding whether a scaffolded file is pristine; comparison is by template shape, excluding the volatile date line and the CLI-owned surface block.
 - The system shall not treat a token substitution as authorship when deciding whether a scaffolded file is pristine; comparison is by template shape, excluding the volatile date line and the CLI-owned surface block.
 - The system shall not read a flag a command has not declared, and shall not document an undeclared flag in a command's Options block.
+- The system shall not report a missing precondition or an unusable environment with the same code as a failed gate.
+- The system shall not report a git invocation that exited non-zero as a successful empty result.
+- The system shall not treat a non-interactive stdin as consent for a destructive operation.
 
 ### Optional
 
@@ -436,6 +446,11 @@ The CLI is v0 spec-compliant when:
 13. [verified] `adapter list` distinguishes installed, available, and native, and a native adapter installs nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
 14. [verified] Every command declares a flag spec, every flag read is declared, and every flag documented in an Options block is declared — verified by `packages/doctrina-cli/test/flag-catalog.test.js`.
 15. [verified] A declared flag placed before the positionals behaves identically to one placed after — verified by `packages/doctrina-cli/test/flag-catalog.test.js`.
+16. [verified] A representative failure of each class returns its documented code, and the top-level help prints the contract — verified by `packages/doctrina-cli/test/exit-codes.test.js`.
+17. [verified] Every literal exit return in a command module maps to a documented class — verified by `packages/doctrina-cli/test/exit-codes.test.js`.
+18. [verified] Every history-reading command runs cleanly on a repository with no commits and on a directory that is not a repository, leaking no git plumbing — verified by `packages/doctrina-cli/test/integration.test.js`.
+19. [verified] `change abandon` without confirmation deletes nothing and names the non-interactive escape; `init` without a description scaffolds nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
+20. [verified] No mutating command alters authored `AGENTS.md` or `product.md` content, and `intent add`, whose contract is to append an anchor, preserves every authored line — verified by `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 

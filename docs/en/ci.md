@@ -76,3 +76,29 @@ clean. The two are complementary, not redundant.
 - [Gating](gating.md) — when the full pipeline pays for itself.
 - [CLI reference](cli-reference.md) — every command and flag.
 - [Validation](validation.md) — the A/B protocol CI numbers feed into.
+
+## End-to-end: the packed install
+
+The unit and integration suites run the CLI from its own repository, where
+templates resolve to Doctrina's own `.doctrina/`, adapters are already
+present, and `index.json` is the repo's rather than one `init` just wrote.
+Three real defects were invisible from that vantage point.
+
+`scripts/e2e-packed.mjs` runs the CLI the way a user installs it:
+
+```
+node scripts/e2e-packed.mjs          # full run
+node scripts/e2e-packed.mjs --quick  # skip the per-adapter sweep
+```
+
+It packs the tarball, installs it into a scratch directory **outside** the
+repo, and drives a real project through the whole lifecycle — `init` →
+`spec new` → `work` → delta → `change check` → `close` → archive — with the
+installed binary, asserting `validate`, `templates check` and `doctor` are
+green at each step. Then it installs every one of the twelve adapters into
+its own project and checks each.
+
+`--repo <path>` points it at another checkout, which is how it was proved:
+run against the commit before the fixes, it reproduces the defects it now
+guards. CI runs it on Linux and Windows, because path handling is a
+plausible failure the in-repo suite cannot see.

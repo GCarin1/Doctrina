@@ -6,6 +6,7 @@ import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
 import { surfaceHelp } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
+import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -62,6 +63,10 @@ ${surfaceHelp()}
 Global flags:
   --help, -h           Show this message (or per-command help if after a command)
   --version, -v        Print the version
+  --debug              On an unexpected error, also print the stack trace
+
+Exit codes (a contract — an agent reads these to decide what to do next):
+${exitCodeHelp()}
 `;
 
 async function main(argv) {
@@ -110,7 +115,7 @@ async function main(argv) {
     } else {
       console.error(c.gray("hint: ") + "try `doctrina --help` for the command surface");
     }
-    return 2;
+    return EXIT.USAGE;
   }
 
   if (flags.get("help") || flags.get("h")) {
@@ -122,10 +127,16 @@ async function main(argv) {
     return await command.run(positional.slice(1), flags);
   } catch (err) {
     console.error(c.red("error:") + ` ${err.message}`);
+    if (err.remedy) {
+      console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
+    }
     if (flags.get("debug") && err.stack) {
       console.error(c.gray(err.stack));
     }
-    return 1;
+    // A typed error carries its own class (precondition vs environment).
+    // An untyped throw is an unexpected failure of the work itself, which
+    // is the GATE class: something is wrong here, fix it and retry (C7).
+    return err.exitCode ?? EXIT.GATE;
   }
 }
 

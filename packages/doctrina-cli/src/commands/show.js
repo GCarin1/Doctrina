@@ -5,6 +5,7 @@ import { exists, isDir, isFile, read, relPath } from "../lib/fs-ops.js";
 import { parseAcceptanceCriteria } from "../lib/criteria.js";
 import { suggest } from "../lib/suggest.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Point reads. An agent that needs ONE requirement re-reads a whole spec —
 // hundreds of lines for a two-line fact. `show` resolves a compact reference
@@ -29,7 +30,7 @@ export async function run(positional, _flags) {
   const ref = positional[0];
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   if (!ref) {
     console.error(c.red("error:") + " show requires a reference");

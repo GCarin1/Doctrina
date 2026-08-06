@@ -3,6 +3,7 @@ import process from "node:process";
 import { exists, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Post-intake intent evolution (0.11.0 field review item 8). The intake is
 // converted once; capabilities born later — brainstorms, pivots, new asks —
@@ -34,7 +35,7 @@ export async function run(positional, _flags) {
   }
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   if (sub === "list") return intentList(projectRoot);
   return intentAdd(projectRoot, positional.slice(1).join(" ").trim());

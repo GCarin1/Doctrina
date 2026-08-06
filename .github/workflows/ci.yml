@@ -37,6 +37,31 @@ jobs:
       - name: Index drift gate (doctrina index rebuild --check)
         run: node packages/doctrina-cli/src/index.js index rebuild --check
 
+  e2e:
+    name: End-to-end (packed install, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux and Windows at minimum: path handling is a plausible failure
+        # the in-repo suite cannot see, because it never installs the package.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Packs the tarball, installs it OUTSIDE the repo, and drives a real
+      # project through the whole lifecycle with the installed binary. Three
+      # audit defects (C1, C2, C5) were invisible from a source checkout and
+      # obvious from a packed install.
+      - name: Run the packed-install harness
+        run: node scripts/e2e-packed.mjs
+
   gates:
     name: Doctrina gates (own action, strict)
     runs-on: ubuntu-latest

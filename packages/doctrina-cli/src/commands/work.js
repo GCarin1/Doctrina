@@ -8,6 +8,7 @@ import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew } from "./change.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -27,7 +28,7 @@ export async function run(positional, flags) {
   const prompt = positional.join(" ").trim();
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   // --resume <id>: reprint the playbook for an existing open change rather than

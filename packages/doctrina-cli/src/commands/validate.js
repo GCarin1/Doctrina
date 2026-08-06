@@ -8,6 +8,7 @@ import { cliVersion } from "../lib/version.js";
 import { today } from "../lib/dates.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { parseFrontmatter } from "./skill.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
@@ -26,6 +27,10 @@ export const flags = { boolean: ["fix", "json"], string: [] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
+  // Outside a Doctrina project this is a PRECONDITION, not a pile of
+  // gate failures about missing files: the remedy is `doctrina init`,
+  // not editing artifacts that do not exist yet (C7).
+  if (!isDir(path.join(projectRoot, ".doctrina"))) throw notADoctrinaProject();
   const errors = [];
   const warnings = [];
 

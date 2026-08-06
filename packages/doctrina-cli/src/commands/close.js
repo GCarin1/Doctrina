@@ -7,6 +7,7 @@ import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "./change.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { checkDocsImpact } from "../lib/docs-impact.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -35,7 +36,7 @@ export async function run(positional, flags) {
   }
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   // Batch close (operator review 2026-07-19 §4.5): each id closes

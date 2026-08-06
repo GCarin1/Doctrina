@@ -6,6 +6,7 @@ import { exists, isDir, isFile, read, relPath } from "../lib/fs-ops.js";
 import { specHeader } from "../lib/scan.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Traceability report: how many acceptance criteria cite an artifact or
 // test that actually exists on disk. Doctrina otherwise has no link
@@ -30,7 +31,7 @@ export const flags = { boolean: ["json", "run", "strict"], string: ["only"] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const strict = flagBool(flags, "strict", false);
   const json = flagBool(flags, "json", false);

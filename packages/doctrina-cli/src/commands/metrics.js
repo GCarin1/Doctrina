@@ -6,6 +6,9 @@ import { exists, isDir, read, relPath, write } from "../lib/fs-ops.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { EXIT } from "../lib/exit-codes.js";
+import { GIT_STATE, historyState } from "../lib/git.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Local-only adoption metrics derived from git history. No network calls,
 // no telemetry: the numbers stay in the repository, versioned like any
@@ -21,12 +24,24 @@ export const flags = { boolean: ["save"], string: ["since"] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const probe = git(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
-  if (probe.status !== 0) {
-    console.error(c.red("error:") + " not a git repository (metrics are derived from local git history)");
-    return 1;
+  // "No history yet" is a VALID state, not a failure — a brand-new project
+  // is the most common state in which someone explores this command, and it
+  // used to answer with a raw git plumbing error (C8). git missing entirely
+  // is the one genuine ENVIRONMENT condition here.
+  const history = historyState(projectRoot);
+  if (!history.usable) {
+    if (history.state === GIT_STATE.ABSENT) {
+      console.error(c.red("error:") + ` ${history.reason} — metrics are derived from local git history`);
+      return EXIT.ENVIRONMENT;
+    }
+    console.log(c.bold("Doctrina metrics") + c.gray(" (local git history)"));
+    console.log("");
+    console.log(c.gray(`no history to measure yet — ${history.reason}.`));
+    console.log(c.gray("Commit some work and run this again."));
+    return EXIT.OK;
   }
 
   const sinceRaw = flagString(flags, "since", "90");
@@ -39,7 +54,7 @@ export async function run(_positional, flags) {
   ]);
   if (log.status !== 0) {
     console.error(c.red("error:") + ` git log failed: ${log.stderr.trim()}`);
-    return 1;
+    return EXIT.ENVIRONMENT;
   }
 
   const commits = parseLog(log.stdout);

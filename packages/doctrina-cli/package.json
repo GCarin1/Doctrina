@@ -1,6 +1,6 @@
 {
   "name": "doctrina-cli",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Doctrina CLI — spec-driven, AGENTS.md-native framework for multi-agent AI development.",
   "license": "MIT",
   "keywords": [
@@ -19,7 +19,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "prepack": "node scripts/copy-templates.js"
+    "prepack": "node scripts/copy-templates.js",
+    "test:e2e": "node ../../scripts/e2e-packed.mjs"
   },
   "files": [
     "src",

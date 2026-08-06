@@ -4,6 +4,7 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
 // clarify is permanently red on a PT-BR project — "some" is the verb *sumir*,
@@ -143,7 +144,7 @@ export async function run(positional, flags) {
 // register from prose specs.
 function clarifyAll(projectRoot, lang = null) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const files = [];
   const productPath = path.join(projectRoot, ".doctrina", "product.md");

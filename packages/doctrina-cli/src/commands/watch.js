@@ -4,6 +4,7 @@ import { watch as fsWatch } from "node:fs";
 import { exists } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as validate from "./validate.js";
 import * as next from "./next.js";
 
@@ -24,7 +25,7 @@ export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   const dot = path.join(projectRoot, ".doctrina");
   if (!exists(dot)) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   if (flagBool(flags, "once", false)) {

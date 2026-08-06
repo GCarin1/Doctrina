@@ -19,6 +19,8 @@
 - Referência
 
   - [Referência do CLI](/pt/cli-reference.md)
+  - [Códigos de saída](/pt/exit-codes.md)
+  - [Templates](/pt/templates.md)
   - [Benchmarks](/pt/benchmarks.md)
   - [Glossário](/pt/glossary.md)
 

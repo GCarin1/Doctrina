@@ -5,6 +5,7 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { specHeader } from "../lib/scan.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Intent-provenance report (ADR 0006). `coverage` proves a criterion has a
 // test; `trace` proves a capability traces to a stated intent. Together they
@@ -34,7 +35,7 @@ export const flags = { boolean: ["json", "strict"], string: [] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const strict = flagBool(flags, "strict", false);
   const json = flagBool(flags, "json", false);

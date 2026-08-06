@@ -2,11 +2,12 @@ import path from "node:path";
 import process from "node:process";
 import { exists, read, relPath, write } from "../lib/fs-ops.js";
 import { walk } from "../lib/fs-ops.js";
-import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
 import { today, slugify, padNumber } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["new", "supersede", "accept", "land", "list"];
 
@@ -57,8 +58,7 @@ function decisionNew(args) {
     return 1;
   }
 
-  const templatesDir = locateTemplatesDir();
-  const tpl = read(path.join(templatesDir, "decision.md.template"));
+  const tpl = readTemplate(projectRoot, "decision.md.template").body;
   const body = substitute(tpl, {
     DECISION_NUMBER: next,
     DECISION_TITLE: title,
@@ -330,7 +330,7 @@ function nextDecisionNumber(projectRoot) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 

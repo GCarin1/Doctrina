@@ -8,7 +8,8 @@ import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { ask } from "../lib/prompt.js";
+import { EXIT } from "../lib/exit-codes.js";
+import { ask, isInteractive } from "../lib/prompt.js";
 import { writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "./intake.js";
 
 const SUPPORTED_AGENTS = [
@@ -59,8 +60,21 @@ export async function run(_positional, flags) {
   if (!description && intakeBody) {
     description = firstLineSummary(intakeBody);
   }
+  // The description prompt used to run unconditionally, without the
+  // isTTY check the adapter prompt already had. A non-interactive caller
+  // that forgot --non-interactive read EOF, got an empty answer, and
+  // scaffolded a project with a blank description — silently (C9).
   if (!description && !nonInteractive) {
-    description = await ask("One-sentence project description:");
+    if (isInteractive()) {
+      description = await ask("One-sentence project description:");
+    }
+    if (!description) {
+      console.error(c.red("error:") + " no project description given and no terminal to ask on");
+      console.error(c.gray("hint: ") +
+        "pass --project-description \"<text>\" (or --intake <file>); " +
+        "--non-interactive alone still needs one of those");
+      return EXIT.USAGE;
+    }
   }
 
   let agentSelector = flagString(flags, "agent");
@@ -68,7 +82,7 @@ export async function run(_positional, flags) {
   // terminal, offer the adapter install instead of silently skipping it —
   // first-run users rarely know the flag exists. Never fires in pipes/CI
   // (no TTY) or under --non-interactive, so scripted init is unchanged.
-  if (agentSelector === undefined && !nonInteractive && process.stdin.isTTY && process.stdout.isTTY) {
+  if (agentSelector === undefined && !nonInteractive && isInteractive()) {
     const answer = await ask(
       `Install an agent adapter? (${SUPPORTED_AGENTS.join("/")}/all/none)`,
       { defaultValue: "none" },

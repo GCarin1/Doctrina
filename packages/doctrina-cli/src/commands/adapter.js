@@ -8,6 +8,7 @@ import { flagBool } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // `doctrina adapter` — add, remove, and inventory agent adapters (audit
 // item C1).
@@ -171,7 +172,7 @@ function normalise(text) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 

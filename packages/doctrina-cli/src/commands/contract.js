@@ -2,13 +2,14 @@ import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import { specHeader } from "../lib/scan.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Contracts are the first-class home for the integration/runtime surface
 // no single capability owns: the port map, the env/dependency contract,
@@ -60,11 +61,12 @@ function contractNew(args, flags) {
     return 1;
   }
 
-  const templatesDir = locateTemplatesDir();
+  const tpl = readTemplate(projectRoot, "contract.md.template");
   const date = today();
-  const body = substitute(read(path.join(templatesDir, "contract.md.template")), { CONTRACT_NAME: name, DATE: date });
+  const body = substitute(tpl.body, { CONTRACT_NAME: name, DATE: date });
   write(targetPath, body, { force });
-  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}`);
+  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}` +
+    (tpl.source === "project" ? c.gray(" (project template)") : ""));
 
   const index = idx.load(projectRoot);
   idx.addContract(index, {
@@ -239,7 +241,7 @@ function referencedCapabilities(text) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 
