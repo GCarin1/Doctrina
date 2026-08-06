@@ -24,7 +24,7 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: [], string: [] };
+export const flags = { boolean: ["json"], string: [] };
 
 export async function run(positional, _flags) {
   const ref = positional[0];

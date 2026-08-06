@@ -1,3 +1,4 @@
+import { getSection } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
@@ -21,7 +22,7 @@ const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abando
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["all", "chore", "design", "force", "no-spec"], string: ["reason"] };
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec"], string: ["reason"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -832,27 +833,10 @@ function collectArchiveBlockers(changeDir) {
 
   const proposalPath = path.join(changeDir, "proposal.md");
   if (exists(proposalPath)) {
-    const n = countUnchecked(extractSection(read(proposalPath), "Verification"));
+    const n = countUnchecked(getSection(read(proposalPath), "Verification"));
     if (n > 0) blockers.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
   }
   return blockers;
-}
-
-// Return the body of a "## <name>" section (lines after the heading up to
-// the next "## " heading). Empty string when the section is absent.
-function extractSection(text, name) {
-  const lines = text.split(/\r?\n/);
-  const head = new RegExp(`^##\\s+${name}\\b`, "i");
-  let inSection = false;
-  const out = [];
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      inSection = head.test(line);
-      continue;
-    }
-    if (inSection) out.push(line);
-  }
-  return out.join("\n");
 }
 
 function ensureDoctrinaProject(projectRoot) {

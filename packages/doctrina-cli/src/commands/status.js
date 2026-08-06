@@ -9,6 +9,7 @@ import { summarize as coverageSummary } from "./coverage.js";
 import { summarize as traceSummary } from "./trace.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // One-glance project health (review 2026-06-27 passive-user feature #1): a
@@ -24,6 +25,10 @@ const CONFIG_REL = ".doctrina/verify.json";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
+// This command builds its own JSON payload; the entrypoint must not
+// wrap it in the generic envelope.
+export const jsonNative = true;
+
 export const flags = { boolean: ["json"], string: [] };
 
 export async function run(_positional, flags) {
@@ -35,7 +40,7 @@ export async function run(_positional, flags) {
   const s = collectStatus(projectRoot);
 
   if (flagBool(flags, "json", false)) {
-    console.log(JSON.stringify(s, null, 2));
+    emitJson("status", s);
     return 0;
   }
 

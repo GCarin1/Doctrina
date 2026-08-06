@@ -22,3 +22,5 @@ One line per archived change, newest last. Appended by
 - 2026-08-06 — 0015-packed-install-harness — End-to-end harness that runs the CLI the way a user installs it (specs: validation MODIFIED)
 - 2026-08-06 — 0016-template-override — Project templates are a real override point, not a ghost directory (specs: templates MODIFIED)
 - 2026-08-06 — 0017-surface-triggers — The command surface tells an agent when to reach for each command (specs: templates MODIFIED)
+- 2026-08-06 — 0018-json-everywhere — Every command speaks JSON, with a versioned envelope (specs: cli MODIFIED)
+- 2026-08-06 — 0019-one-document-model — One document model owns the on-disk grammar (specs: validation MODIFIED)

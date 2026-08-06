@@ -5,6 +5,7 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { specHeader } from "../lib/scan.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Intent-provenance report (ADR 0006). `coverage` proves a criterion has a
@@ -30,6 +31,10 @@ const ANCHOR_RE = /[A-Z]+\d+/g;
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
+// This command builds its own JSON payload; the entrypoint must not
+// wrap it in the generic envelope.
+export const jsonNative = true;
+
 export const flags = { boolean: ["json", "strict"], string: [] };
 
 export async function run(_positional, flags) {
@@ -49,7 +54,7 @@ export async function run(_positional, flags) {
   // The feature is unused: do not nag a project that never opted in.
   if (anchors.length === 0 && !anyRealizes) {
     if (json) {
-      console.log(JSON.stringify({ anchors: [], dangling: [], untraceable: [], summary: summarize(projectRoot) }, null, 2));
+      emitJson("trace", { anchors: [], dangling: [], untraceable: [], summary: summarize(projectRoot) });
       return 0;
     }
     console.log(
@@ -83,7 +88,7 @@ export async function run(_positional, flags) {
   if (json) {
     const rows = anchors.map((a) => ({ id: a.id, realizedBy: (realizedBy.get(a.id) ?? []).sort() }));
     const clean = rows.every((r) => r.realizedBy.length > 0) && dangling.length === 0 && untraceable.length === 0;
-    console.log(JSON.stringify({ anchors: rows, dangling, untraceable, summary: summarize(projectRoot) }, null, 2));
+    emitJson("trace", { anchors: rows, dangling, untraceable, summary: summarize(projectRoot) });
     return clean ? 0 : strict ? 1 : 0;
   }
 

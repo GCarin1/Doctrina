@@ -23,7 +23,7 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["list", "add", "remove"];
 
-export const flags = { boolean: ["force"], string: [] };
+export const flags = { boolean: ["json", "force"], string: [] };
 
 export async function run(positional, cmdFlags) {
   const sub = positional[0];

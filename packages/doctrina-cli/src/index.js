@@ -7,6 +7,7 @@ import { cliVersion } from "./lib/version.js";
 import { surfaceHelp } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
+import { wantsJson, emitJson, captureOutput, stripAnsi } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -124,6 +125,19 @@ async function main(argv) {
   }
 
   try {
+    // --json on a command that builds no payload of its own still answers in
+    // JSON: its output is captured into a versioned envelope beside `ok` and
+    // `exit_code`. Branch on those; the lines are for completeness (M7).
+    if (wantsJson(flags) && !command.jsonNative) {
+      const { code, stdout, stderr } = await captureOutput(
+        () => command.run(positional.slice(1), flags),
+      );
+      emitJson([commandName, ...positional.slice(1)].join(" "), {
+        stdout: stdout.map(stripAnsi),
+        stderr: stderr.map(stripAnsi),
+      }, { ok: code === EXIT.OK, exitCode: code });
+      return code;
+    }
     return await command.run(positional.slice(1), flags);
   } catch (err) {
     console.error(c.red("error:") + ` ${err.message}`);

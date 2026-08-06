@@ -1,3 +1,4 @@
+import { getSection } from "./doc-model.js";
 import path from "node:path";
 import { appendFileSync, writeFileSync } from "node:fs";
 import { exists, isFile, mkdirp, read } from "./fs-ops.js";
@@ -49,7 +50,7 @@ export const GATES = {
       }
       const proposalPath = path.join(changeDir, "proposal.md");
       if (isFile(proposalPath)) {
-        const n = countUnchecked(extractSection(read(proposalPath), "Verification"));
+        const n = countUnchecked(getSection(read(proposalPath), "Verification"));
         if (n > 0) out.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
       }
       return out;
@@ -113,21 +114,6 @@ export function recordForcedGap(projectRoot, id, transition, blockers) {
     `blocker${blockers.length === 1 ? "" : "s"} (${summary})\n`,
   );
   return true;
-}
-
-function extractSection(text, name) {
-  const lines = text.split(/\r?\n/);
-  const head = new RegExp(`^##\\s+${name}\\b`, "i");
-  let inSection = false;
-  const out = [];
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      inSection = head.test(line);
-      continue;
-    }
-    if (inSection) out.push(line);
-  }
-  return out.join("\n");
 }
 
 function stripAnsi(s) {

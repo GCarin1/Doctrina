@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.31.2",
+        "version": "0.32.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -70,7 +70,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -235,6 +235,14 @@
         "status": "accepted",
         "date": "2026-08-06",
         "landed": "2026-08-06 — covered by the catalog tests in `packages/doctrina-cli/test/commands.test.js`"
+      },
+      {
+        "id": "0021",
+        "path": ".doctrina/decisions/0021-one-document-model-owns-the-doctrina-on-disk-grammar.md",
+        "title": "One document model owns the .doctrina on-disk grammar",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/doc-model.test.js`"
       }
     ],
     "changes": [],
@@ -472,6 +480,32 @@
         "specs_affected": [
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0018-json-everywhere",
+        "title": "Every command speaks JSON, with a versioned envelope",
+        "path": ".doctrina/changes/archive/2026-08-06-0018-json-everywhere",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0019-one-document-model",
+        "title": "One document model owns the on-disk grammar",
+        "path": ".doctrina/changes/archive/2026-08-06-0019-one-document-model",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]

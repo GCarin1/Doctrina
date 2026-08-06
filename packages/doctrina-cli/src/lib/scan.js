@@ -1,3 +1,4 @@
+import { getHeader } from "./doc-model.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
@@ -5,29 +6,18 @@ import { today } from "./dates.js";
 import { parseFrontmatter } from "../commands/skill.js";
 import { parseOperation, parseCapabilityFromDelta } from "../commands/change.js";
 
-// Parse a metadata header line, tolerating BOTH conventions:
-//   **Name:** value        (spec style)
-//   - **Name:** value      (ADR / proposal / intake style)
-// The leading "- " is optional so a one-character convention slip (an
-// agent hand-authoring an ADR with the bare spec form, or vice versa)
-// still parses instead of silently falling back to a default value.
-const HEADER_PREFIX = "(?:-\\s+)?";
-
-// Parse a spec-style header line: **Name:** value (dash optional).
+// Header reading lives in ONE place now (lib/doc-model.js, audit item M3).
+// These two names survive because dozens of call sites use them and the
+// distinction they once encoded — spec style vs list style — is now the
+// document model's job, not the caller's.
 export function specHeader(text, name) {
-  const m = text.match(new RegExp(`^${HEADER_PREFIX}\\*\\*${name}:\\*\\*\\s+(.+)$`, "m"));
-  return m ? m[1].trim() : null;
+  return getHeader(text, name);
 }
 
-// Parse an ADR/proposal-style header line: - **Name:** value (dash optional).
 export function listHeader(text, name) {
-  const m = text.match(new RegExp(`^${HEADER_PREFIX}\\*\\*${name}:\\*\\*\\s+(.+)$`, "m"));
-  return m ? m[1].trim() : null;
+  return getHeader(text, name);
 }
 
-// The machine-readable "**Depends on:** defects, decisions" spec header: the
-// sibling capabilities this spec builds on. Returns [] when absent, "n/a", or
-// empty. One parser so index, why, context, and review agree.
 export function parseDependsOn(text) {
   const raw = specHeader(text, "Depends on");
   if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];

@@ -30,7 +30,7 @@ const SUPPORTED_AGENTS = [
 ];
 
 export const flags = {
-  boolean: ["force", "non-interactive", "overwrite-content"],
+  boolean: ["json", "force", "non-interactive", "overwrite-content"],
   string: ["project-name", "project-description", "agent", "intake", "from", "date"],
 };
 

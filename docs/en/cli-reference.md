@@ -33,6 +33,35 @@ A five-class contract (ADR 0018) — full detail in
 | 3 | PRECONDITION | The project is not set up for this yet. | Run the command named in the `hint:` line. |
 | 4 | ENVIRONMENT | The environment cannot run this. | Stop. |
 
+## Machine-readable output (`--json`)
+
+Every command accepts `--json`. Paired with the [exit-code
+contract](exit-codes.md), the two form the machine interface: structured
+output plus a meaningful status, so an autonomous loop never parses English.
+
+Every payload carries the same envelope:
+
+| Field | Meaning |
+|-------|---------|
+| `$schema_version` | The payload contract version. Currently `1.0.0`. |
+| `command` | The invocation this payload describes. |
+| `ok` | `true` when the command succeeded. |
+| `exit_code` | The process exit status — the class documented in [exit-codes.md](exit-codes.md). |
+
+Two levels of support, stated rather than hidden:
+
+- **Structured** — `validate`, `status`, `next`, `coverage`, `trace` build a
+  payload describing their result, alongside the envelope fields.
+- **Envelope** — every other command returns its human output as
+  `stdout` / `stderr` string arrays inside the envelope, with ANSI stripped.
+  Branch on `ok` and `exit_code`; the lines are there for completeness, not
+  for parsing.
+
+A command with nothing better to say is still machine-consumable, which is
+what makes "`--json` on every command" a fact rather than an intention. More
+commands gain structured payloads over time; the envelope fields never
+change shape without a `$schema_version` bump.
+
 ## `doctrina init`
 
 Scaffold `AGENTS.md` and the `.doctrina/` skeleton in the current

@@ -1,3 +1,4 @@
+import { getHeader, setHeader } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, read, relPath, write } from "../lib/fs-ops.js";
@@ -14,7 +15,7 @@ const SUBCOMMANDS = ["new", "supersede", "accept", "land", "list"];
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: [], string: [] };
+export const flags = { boolean: ["json"], string: [] };
 
 export async function run(positional, _flags) {
   const sub = positional[0];
@@ -100,12 +101,12 @@ function decisionSupersede(args) {
     return 1;
   }
   const oldText = read(oldFile);
-  const oldStatusMatch = oldText.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
-  if (!oldStatusMatch) {
+  const oldStatusValue = getHeader(oldText, "Status");
+  if (oldStatusValue === null) {
     console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, oldFile)} has no Status: header`);
     return 1;
   }
-  const oldStatus = oldStatusMatch[1].trim();
+  const oldStatus = oldStatusValue;
   if (oldStatus.toLowerCase().startsWith("superseded")) {
     console.error(c.red("error:") + ` ADR ${padded} is already superseded`);
     return 1;
@@ -137,10 +138,11 @@ function decisionSupersede(args) {
   write(newPath, body, { force: false });
   console.log(c.green("created") + ` ${relPath(projectRoot, newPath)}`);
 
-  // Mutate ONLY the Status: and Superseded by: headers of the old ADR
-  const updated = oldText
-    .replace(/^(-\s+\*\*Status:\*\*)\s+.+$/m, `$1 superseded by ${next}`)
-    .replace(/^(-\s+\*\*Superseded by:\*\*)\s+.+$/m, `$1 ${next}`);
+  // Mutate ONLY the Status: and Superseded by: headers of the old ADR.
+  // Both go through the document model, so an ADR written with a slightly
+  // off header form is still updated rather than silently skipped (M3).
+  const withStatus = setHeader(oldText, "Status", `superseded by ${next}`) ?? oldText;
+  const updated = setHeader(withStatus, "Superseded by", String(next)) ?? withStatus;
   write(oldFile, updated, { force: true });
   console.log(c.green("updated") + ` ${relPath(projectRoot, oldFile)} status -> superseded by ${next}`);
 
@@ -181,19 +183,19 @@ function decisionAccept(args) {
     return 1;
   }
   const text = read(file);
-  const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
-  if (!statusMatch) {
+  const statusValue = getHeader(text, "Status");
+  if (statusValue === null) {
     console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, file)} has no Status: header`);
     return 1;
   }
-  const status = statusMatch[1].trim().toLowerCase();
+  const status = statusValue.toLowerCase();
   if (status !== "proposed") {
-    console.error(c.red("error:") + ` ADR ${padded} is "${statusMatch[1].trim()}", not "proposed" — nothing to accept`);
+    console.error(c.red("error:") + ` ADR ${padded} is "${statusValue}", not "proposed" — nothing to accept`);
     return 1;
   }
 
   // Mutate ONLY the Status: header; the body stays immutable.
-  write(file, text.replace(/^(-\s+\*\*Status:\*\*)\s+.+$/m, "$1 accepted"), { force: true });
+  write(file, setHeader(text, "Status", "accepted") ?? text, { force: true });
   console.log(c.green("accepted") + ` ${relPath(projectRoot, file)}`);
 
   const date = today();
@@ -229,16 +231,16 @@ function decisionLand(args) {
     return 1;
   }
   const text = read(file);
-  const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
-  if (!statusMatch) {
+  const statusValue = getHeader(text, "Status");
+  if (statusValue === null) {
     console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, file)} has no Status: header`);
     return 1;
   }
-  const status = statusMatch[1].trim().toLowerCase();
+  const status = statusValue.toLowerCase();
   if (status !== "accepted") {
     console.error(
       c.red("error:") +
-        ` ADR ${padded} is "${statusMatch[1].trim()}", not "accepted" — accept it before recording that it landed`,
+        ` ADR ${padded} is "${statusValue}", not "accepted" — accept it before recording that it landed`,
     );
     return 1;
   }
@@ -256,7 +258,7 @@ function decisionLand(args) {
   } else if (/^-\s+\*\*Evidence:\*\*.*$/m.test(text)) {
     updated = text.replace(/^(-\s+\*\*Evidence:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
   } else {
-    updated = text.replace(/^(-\s+\*\*Status:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
+    updated = text.replace(/^(\s*-\s+\*\*Status:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
   }
   write(file, updated, { force: true });
   console.log(c.green("landed") + ` ${relPath(projectRoot, file)} on ${date}`);
@@ -291,11 +293,11 @@ function decisionList() {
     if (!m) continue;
     const text = read(f);
     const titleMatch = text.match(/^#\s+ADR\s+\d{4}\s*[—-]\s*(.+)$/m);
-    const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
+    const listedStatus = getHeader(text, "Status");
     const dateMatch = text.match(/^-\s+\*\*Date:\*\*\s+(\S+)/m);
     rows.push({
       id: m[1],
-      status: statusMatch ? statusMatch[1].trim() : "?",
+      status: listedStatus ?? "?",
       date: dateMatch ? dateMatch[1] : "—",
       title: titleMatch ? titleMatch[1].trim() : path.basename(f),
     });

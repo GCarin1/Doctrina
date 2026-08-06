@@ -38,6 +38,36 @@ Um contrato de cinco classes (ADR 0018) — detalhe completo em
 | 3 | PRECONDITION | O projeto ainda não está preparado para isso. | Rode o comando da linha `hint:`. |
 | 4 | ENVIRONMENT | O ambiente não consegue executar. | Pare. |
 
+## Saída legível por máquina (`--json`)
+
+Todo comando aceita `--json`. Junto com o [contrato de códigos de
+saída](exit-codes.md), os dois formam a interface de máquina: saída
+estruturada mais um status com significado, para que um loop autônomo nunca
+precise interpretar inglês.
+
+Todo payload carrega o mesmo envelope:
+
+| Campo | Significado |
+|-------|-------------|
+| `$schema_version` | A versão do contrato do payload. Hoje `1.0.0`. |
+| `command` | A invocação que este payload descreve. |
+| `ok` | `true` quando o comando teve sucesso. |
+| `exit_code` | O status de saída do processo — a classe documentada em [exit-codes.md](exit-codes.md). |
+
+Dois níveis de suporte, declarados em vez de escondidos:
+
+- **Estruturado** — `validate`, `status`, `next`, `coverage`, `trace` montam
+  um payload que descreve o resultado, ao lado dos campos do envelope.
+- **Envelope** — todo outro comando devolve sua saída humana como arrays de
+  strings `stdout` / `stderr` dentro do envelope, com ANSI removido.
+  Ramifique por `ok` e `exit_code`; as linhas estão ali por completude, não
+  para parsing.
+
+Um comando sem nada melhor a dizer continua consumível por máquina, e é isso
+que torna "`--json` em todo comando" um fato e não uma intenção. Mais
+comandos ganham payloads estruturados com o tempo; os campos do envelope não
+mudam de forma sem um bump de `$schema_version`.
+
 ## `doctrina init`
 
 Esqueletiza `AGENTS.md` e a árvore `.doctrina/` no diretório atual.

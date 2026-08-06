@@ -20,7 +20,7 @@ const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: [], string: [] };
+export const flags = { boolean: ["json"], string: [] };
 
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();

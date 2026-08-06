@@ -1,3 +1,4 @@
+import { getSection } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -24,7 +25,7 @@ const SUBCOMMANDS = ["new", "list", "check"];
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["force"], string: [] };
+export const flags = { boolean: ["json", "force"], string: [] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -142,7 +143,7 @@ function contractCheck(args, _flags) {
     console.log(c.bold(name) + c.gray(` (${relPath(projectRoot, file)})`));
 
     // 1. Port collisions — two services must not claim the same port.
-    const ports = parseTable(sectionOf(text, "Ports"));
+    const ports = parseTable(getSection(text, "Ports"));
     if (ports) {
       const portCol = colIndex(ports.headers, "port");
       const svcCol = colIndex(ports.headers, "service");
@@ -162,7 +163,7 @@ function contractCheck(args, _flags) {
 
     // 2. Environment drift — every declared variable must exist in
     //    .env.example (when present), so code, example, and infra agree.
-    const env = parseTable(sectionOf(text, "Environment"));
+    const env = parseTable(getSection(text, "Environment"));
     if (env && envExample !== null) {
       const varCol = colIndex(env.headers, "variable");
       for (const row of env.rows) {
@@ -177,7 +178,7 @@ function contractCheck(args, _flags) {
     }
 
     // 3. Referenced capability specs must exist.
-    for (const refCap of referencedCapabilities(sectionOf(text, "References"))) {
+    for (const refCap of referencedCapabilities(getSection(text, "References"))) {
       const specPath = path.join(projectRoot, ".doctrina", "specs", refCap, "spec.md");
       if (!isFile(specPath)) {
         console.log(c.red("  ✗ ") + `references spec "${refCap}" but ${relPath(projectRoot, specPath)} does not exist`);
@@ -194,22 +195,6 @@ function contractCheck(args, _flags) {
   const summary = `${errors} error${errors === 1 ? "" : "s"}, ${warnings} warning${warnings === 1 ? "" : "s"}`;
   console.log((errors === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
   return errors === 0 ? 0 : 1;
-}
-
-// Return the body of a "## <name>" section, up to the next "## " heading.
-function sectionOf(text, name) {
-  const lines = text.split(/\r?\n/);
-  const head = new RegExp(`^##\\s+${name}\\b`, "i");
-  let inSection = false;
-  const out = [];
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      inSection = head.test(line);
-      continue;
-    }
-    if (inSection) out.push(line);
-  }
-  return out.join("\n");
 }
 
 // Parse a GitHub-flavoured Markdown table into { headers, rows }.

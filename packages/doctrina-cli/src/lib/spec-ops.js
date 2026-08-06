@@ -32,6 +32,9 @@
 // no ops block, apply falls back to the manual-merge pointer (backward
 // compatible).
 
+// The read grammar is the document model's (M3); this local pattern exists
+// only because the ops verbs REWRITE headers in place and need the prefix
+// captured to preserve it.
 const HEADER_RE = (name) =>
   new RegExp(`^(\\s*(?:-\\s+)?\\*\\*${escapeRe(name)}:\\*\\*)\\s*(.*)$`, "m");
 

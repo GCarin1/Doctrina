@@ -1,13 +1,15 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { exists, isDir, isFile, lineCount, read, relPath, walk } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, lineCount, read, relPath, walk , write} from "../lib/fs-ops.js";
 import * as idx from "../lib/index-json.js";
 import { SCHEMA_VERSION } from "../lib/index-json.js";
 import { cliVersion } from "../lib/version.js";
 import { today } from "../lib/dates.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { kindFromPath, nonConformingHeaders, repairHeaders } from "../lib/doc-model.js";
+import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { parseFrontmatter } from "./skill.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
@@ -23,6 +25,10 @@ const CATALOG_THRESHOLD = 8;
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
+// This command builds its own JSON payload; the entrypoint must not
+// wrap it in the generic envelope.
+export const jsonNative = true;
+
 export const flags = { boolean: ["fix", "json"], string: [] };
 
 export async function run(_positional, flags) {
@@ -96,6 +102,45 @@ export async function run(_positional, flags) {
   // 2. product.md
   const productMd = path.join(projectRoot, ".doctrina", "product.md");
   if (!isFile(productMd)) errors.push(".doctrina/product.md missing");
+
+  // Header repair (M3). One grammar means a non-canonical header can be
+  // REWRITTEN, not just reported: `- **Status**: x` becomes
+  // `- **Status:** x`, and a spec written with list-style headers is
+  // normalised to the bare-bold form its kind uses. Content is never
+  // touched — only the header's own punctuation and style.
+  const doFix = flagBool(flags, "fix", false);
+  {
+    const artifacts = [];
+    const dot = path.join(projectRoot, ".doctrina");
+    for (const f of walk(dot)) {
+      if (!f.endsWith(".md")) continue;
+      const rel = relPath(projectRoot, f).replace(/\\/g, "/");
+      if (rel.includes("/changes/archive/")) continue; // history is immutable
+      artifacts.push({ file: f, rel, kind: kindFromPath(rel) });
+    }
+    let repairedFiles = 0;
+    for (const a of artifacts) {
+      const text = read(a.file);
+      const bad = nonConformingHeaders(text, a.kind);
+      if (bad.length === 0) continue;
+      if (doFix) {
+        const { text: fixed, repaired } = repairHeaders(text, a.kind);
+        if (repaired > 0 && fixed !== text) {
+          write(a.file, fixed, { force: true });
+          repairedFiles += 1;
+        }
+      } else {
+        for (const h of bad) {
+          warnings.push(
+            `${a.rel}:${h.line} header "${h.name}" is ${h.wrongStyle ? `in ${h.style} style but a ${a.kind} uses ${h.expectedStyle} style` : "not in canonical form"} — run \`doctrina validate --fix\``,
+          );
+        }
+      }
+    }
+    if (doFix && repairedFiles > 0) {
+      console.log(c.green("fixed") + ` normalised headers in ${repairedFiles} artifact${repairedFiles === 1 ? "" : "s"}`);
+    }
+  }
 
   // 3. index.json
   let index = null;
@@ -584,7 +629,7 @@ export async function run(_positional, flags) {
 
   // Output
   if (flagBool(flags, "json", false)) {
-    console.log(JSON.stringify({ ok: errors.length === 0, errors, warnings }, null, 2));
+    emitJson("validate", { ok: errors.length === 0, errors, warnings });
     return errors.length === 0 ? 0 : 1;
   }
   for (const w of warnings) console.log(c.yellow("warn:  ") + w);

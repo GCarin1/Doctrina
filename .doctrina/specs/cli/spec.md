@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.31.2
+**Version:** 0.32.0
 
 ## Purpose
 
@@ -41,6 +41,7 @@ owns the surface itself and the conventions every command shares.
 - The system shall exit with one of five documented classes: 0 success, 1 a failed gate, 2 a wrong invocation, 3 a missing precondition, 4 an environment that cannot run the command.
 - The system shall define the exit-code classes in one module, print them in the top-level help from that same definition, and document them in the user-facing reference.
 - The system shall interpret git availability in one module, distinguishing a repository with no commits, a directory that is not a repository, and git being absent from the machine.
+- The system shall accept a JSON output flag on every command and emit a payload carrying a schema version, the invocation, a success flag, and the exit code.
 
 ### Event-driven
 
@@ -367,6 +368,7 @@ owns the surface itself and the conventions every command shares.
 - When a history-reading command runs where there is no history, the system shall report that there is nothing to measure and exit successfully, rather than surfacing a git plumbing error.
 - When `doctrina change abandon` runs without `--force`, the system shall list the files it would delete, state that the deletion cannot be undone, and require confirmation; off a terminal it shall refuse rather than proceed.
 - When `doctrina init` has no project description and no terminal to ask on, the system shall refuse and name the flags that supply one, rather than scaffolding with an empty description.
+- When a command with no structured payload of its own runs with the JSON flag, the system shall return its human output as string arrays inside the versioned envelope, with terminal colour removed.
 
 ### State-driven
 
@@ -400,6 +402,7 @@ owns the surface itself and the conventions every command shares.
 - The system shall not report a missing precondition or an unusable environment with the same code as a failed gate.
 - The system shall not report a git invocation that exited non-zero as a successful empty result.
 - The system shall not treat a non-interactive stdin as consent for a destructive operation.
+- The system shall not emit terminal colour codes in JSON output, and shall not let a command writing directly to the output stream escape the envelope.
 
 ### Optional
 
@@ -451,6 +454,8 @@ The CLI is v0 spec-compliant when:
 18. [verified] Every history-reading command runs cleanly on a repository with no commits and on a directory that is not a repository, leaking no git plumbing — verified by `packages/doctrina-cli/test/integration.test.js`.
 19. [verified] `change abandon` without confirmation deletes nothing and names the non-interactive escape; `init` without a description scaffolds nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
 20. [verified] No mutating command alters authored `AGENTS.md` or `product.md` content, and `intent add`, whose contract is to append an anchor, preserves every authored line — verified by `packages/doctrina-cli/test/integration.test.js`.
+21. [verified] Every command declares the JSON flag and emits parseable output carrying the schema version, the command, and the exit code — verified by `packages/doctrina-cli/test/json-output.test.js`.
+22. [verified] The envelope's success flag and exit code agree with the process exit status, and JSON output carries no ANSI escapes even when colour is forced — verified by `packages/doctrina-cli/test/json-output.test.js`.
 
 ## Out of scope for this spec
 
