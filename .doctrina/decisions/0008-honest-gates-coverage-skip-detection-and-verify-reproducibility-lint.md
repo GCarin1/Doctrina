@@ -1,6 +1,7 @@
 # ADR 0008 — Honest gates — coverage skip detection and verify reproducibility lint
 
 - **Status:** accepted
+- **Scope:** gates, validation
 - **Date:** 2026-06-22
 - **Deciders:**
 - **Supersedes:** —

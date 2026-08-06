@@ -511,6 +511,44 @@ doctrina decision list
 
 Read-only.
 
+## `doctrina decision scope [<número>]`
+
+Mostra quais capabilities cada ADR governa e propõe uma para todo
+ADR sem escopo.
+
+```
+doctrina decision scope
+doctrina decision scope 0007
+doctrina decision scope --write
+```
+
+Um ADR sem header `- **Scope:**` é **global**: ele entra em todo
+pack de contexto, para sempre, porque ADRs são imutáveis e nunca se
+aposentam. É isso que faz um pack de leitura padrão crescer com a
+idade do projeto em vez de com a tarefa (ADR 0022). Escopo é a
+correção — mas só se for adotado, e ninguém anota à mão quarenta
+documentos imutáveis.
+
+Então o escopo é proposto a partir de evidência que a árvore já
+guarda. O change arquivado que cita um ADR registra quais specs
+tocou (`changes_archive[].specs_affected`), e esse é o sinal mais
+forte disponível: é o que de fato se moveu. Quando nenhum change
+arquivado cita o ADR, o próprio texto dele é varrido em busca de
+ids de capability e a sugestão vem marcada como
+`text — confirm before writing`, porque ids de capability são
+palavras comuns e um escopo de "tudo" equivale a nenhum escopo.
+
+| Flag | Função |
+|------|--------|
+| `--write` | Aplica as sugestões, inserindo `- **Scope:**` após o header `Status:` de cada ADR. Sem ela, o comando apenas reporta. |
+
+Revise o que ele escreve. Um escopo estreito demais esconde uma
+decisão do pack que precisava dela, e nada detecta isso
+automaticamente — a ferramenta propõe, você decide. Deixar um ADR
+global é uma resposta legítima para decisões sobre a postura do
+projeto e não sobre uma capability. Rode `doctrina index rebuild`
+depois para refletir os escopos no `index.json`.
+
 ## `doctrina skill new <name>`
 
 Esqueletiza uma nova skill (memória procedural on-demand) em
@@ -1259,17 +1297,39 @@ Skills são listadas à parte como nome + description apenas: são
 on-demand por design, o corpo carrega só quando a tarefa casa. O
 archive de changes e ADRs não-aceitos ficam de fora.
 
-Cada arquivo carrega uma estimativa de tokens (chars/4) e o pack
-reporta o total — a tese de context engineering tornada mensurável.
+Cada arquivo carrega uma estimativa de tokens (chars/4), e o pack é
+**montado para caber num orçamento de tokens** em vez de apenas ser
+medido contra um (ADR 0022). O orçamento resolve como `--budget` >
+`config.context_budget` no `index.json` > `15000`.
+
+Acima do orçamento, artefatos degradam antes de qualquer um ser
+descartado, do menos relevante primeiro: um ADR aceito para título
++ sua decisão em uma frase, a spec de uma capability não nomeada
+para título + propósito. Toda degradação e omissão é nomeada no
+relatório. O core — regras raiz, verdade de produto, a spec da
+capability nomeada, changes abertas — nunca é degradado nem
+descartado; quando só ele já estoura o orçamento, o comando diz
+isso e sai com 1.
+
+Nomear uma capability também exclui os ADRs cujo escopo a deixa de
+fora. Um ADR sem header `- **Scope:**` é global e aparece em todo
+pack; veja [`doctrina decision scope`](#doctrina-decision-scope-number).
 
 | Flag | Função |
 |------|--------|
-| `--concat` | Imprime o conteúdo dos arquivos com separadores em vez da lista — pronto para entregar a um agente. O veredito de budget (se houver) vai para stderr, mantendo o stdout puro. |
-| `--budget <n>` | Orçamento de tokens do pack: imprime acima/abaixo e sai 1 quando a estimativa estoura (um gate de contexto para scripts/CI). |
+| `--for "<tarefa>"` | Ranqueia o pack por relevância a uma descrição de tarefa, para que o que sobrevive ao orçamento seja o que a tarefa é. O ranqueamento é cobertura de termos e depois densidade, nunca tamanho do documento. |
+| `--concat` | Imprime o conteúdo dos arquivos com separadores em vez da lista — pronto para entregar a um agente. O veredito de budget vai para stderr, mantendo o stdout puro. Artefatos degradados saem como título + resumo + um ponteiro para o texto completo. |
+| `--budget <n>` | Teto de tokens desta chamada, sobrepondo o `config.context_budget` do projeto. |
 | `--diff <ref>` | Restringe os artefatos estáveis (AGENTS.md, product.md, specs, ADRs) aos alterados desde o ref do git; changes abertas entram sempre. A leitura de retomada de sessão. |
 
+Sem capability e sem `--for` não há sobre o que recuperar, então o
+pack degrada para um índice de orientação: cada capability por
+título e propósito, cada decisão por título e resumo. Nomear uma
+capability é como você pede a verdade dela por inteiro.
+
 É a seção de ordem de leitura do AGENTS.md virada em tooling:
-seleção em vez de despejo. Read-only; sai 0 (ou 1 acima do `--budget`).
+seleção em vez de despejo. Read-only; sai 0, ou 1 quando só o core
+do pack não cabe no orçamento.
 
 ## `doctrina search <termo> [...]`
 

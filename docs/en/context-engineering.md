@@ -61,10 +61,97 @@ code-graph level:
   context is reachable but not loaded by default.
 - Size caps on AGENTS.md, specs, and ADRs are budget enforcement
   in disguise.
+- `doctrina context` **assembles a pack to fit a token budget**
+  rather than concatenating a list. See below.
 
 We do not ship a code-graph ranker today. If a future change does,
 it lives next to AGENTS.md as a refinement of the same principle,
 not as a replacement.
+
+## The context budget
+
+For a long time `doctrina context` printed a token estimate and
+did nothing with it. That was the gap between the thesis and the
+tool: on this repository, `doctrina context cli` was 23 files and
+~37,900 tokens, of which twenty accepted ADRs were ~26,200 —
+**69% of the pack**, none of it selected for the task.
+
+The cause is structural. **ADRs are immutable and never retire**,
+so every accepted decision joins every pack, forever. The pack
+grows with the project's *age* rather than with the *task*, and
+nothing decays out of it.
+
+Three mechanisms bound it (ADR 0022):
+
+**1. Scope.** An ADR may declare which capabilities it governs:
+
+```markdown
+- **Status:** accepted
+- **Scope:** billing, reporting
+```
+
+A scoped pack carries the ADRs that govern that capability plus
+every unscoped one. **Unscoped means global**, so a project that
+never adds the header gets exactly the pack it got before —
+adoption is opt-in, not a migration.
+
+Nobody hand-annotates a folder of immutable documents, so
+`doctrina decision scope` proposes a scope for each unscoped ADR
+from the archived change that cites it (that change already
+records which specs it touched). It prints suggestions; `--write`
+applies them. Review them: a scope that is too narrow hides a
+decision from the pack that needed it.
+
+**2. Budget.** A ceiling always applies, resolved in this order:
+
+```
+--budget <n>  >  index.json "config": { "context_budget": <n> }  >  15000
+```
+
+**3. Degradation, not truncation.** Over budget, an ADR falls
+back to its decision in one sentence and a spec to its purpose —
+least relevant first — before anything is dropped. A decision
+reduced to a sentence still carries the decision; an omitted one
+carries nothing. Truncating to the first N lines would keep an
+ADR's Context section, the part that matters least.
+
+Every degradation and omission is named in the report:
+
+```
+within budget ~14511 of 15000 tokens (97%) after assembly:
+  14 ADRs reduced to title + summary (least relevant first)
+  scope an ADR to shrink this permanently: doctrina decision scope --write
+```
+
+The **core** — root rules, product truth, the named capability's
+spec, open changes — is never degraded and never dropped. When
+the core alone exceeds the budget, the command says so and exits
+1. That is a real finding (an oversized spec, a stale open
+change), and hiding it behind a silently oversized pack helps
+nobody.
+
+### Retrieval by task
+
+`--for "<task>"` ranks by relevance to a task description, so
+what survives the budget is what the task is about:
+
+```bash
+doctrina context --for "add a gate that checks exit codes"
+```
+
+Ranking is a readable tuple — terms in the title, terms in the
+body, then hits per 1000 characters — not one blended score.
+Density rather than raw hit count is load-bearing: raw hits
+reward a document for being long, which had a 473-line spec
+out-ranking the right one purely on volume.
+
+### Without a task, an index
+
+With no capability and no `--for`, there is nothing to retrieve
+*on*, so the honest answer is a map rather than a dump: every
+capability by title and purpose, every decision by title and
+summary. Naming a capability is how you ask for its truth in
+full.
 
 ## Hierarchy and scope
 

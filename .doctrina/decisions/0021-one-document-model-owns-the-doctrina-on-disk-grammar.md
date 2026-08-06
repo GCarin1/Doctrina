@@ -1,6 +1,7 @@
 # ADR 0021 — One document model owns the .doctrina on-disk grammar
 
 - **Status:** accepted
+- **Scope:** cli, validation
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —

@@ -1,6 +1,7 @@
 # ADR 0016 — Adapters are their own additive concern, not a side effect of init
 
 - **Status:** accepted
+- **Scope:** cli, templates
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —

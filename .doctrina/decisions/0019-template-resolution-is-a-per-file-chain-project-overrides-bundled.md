@@ -1,6 +1,7 @@
 # ADR 0019 — Template resolution is a per-file chain: project overrides bundled
 
 - **Status:** accepted
+- **Scope:** cli, templates
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —

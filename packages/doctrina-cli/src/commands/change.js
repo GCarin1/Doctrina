@@ -1,4 +1,4 @@
-import { getSection } from "../lib/doc-model.js";
+import { getSection, getHeader } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
@@ -200,6 +200,23 @@ function changeApply(args, flags) {
   // The preconditions now come from the shared map, so what guards a
   // transition does not depend on which command drove it.
   if (!enforceTransition(projectRoot, id, changeDir, "apply", flags)) return 1;
+
+  // Applying twice is silent corruption. The ops verbs are ADDITIVE —
+  // `append-requirement` appends, `bump-version` bumps — so a second pass
+  // duplicates every requirement and criterion the delta carries and bumps
+  // the version again. `apply` stamps the proposal `applied` on success, so
+  // that stamp is the guard. (Found by `close` re-running apply on an
+  // already-applied change and doubling 15 requirements on this repo.)
+  const proposalPath = path.join(changeDir, "proposal.md");
+  const alreadyApplied = isFile(proposalPath)
+    && (getHeader(read(proposalPath), "Status") ?? "").trim().toLowerCase() === "applied";
+  if (alreadyApplied && !flagBool(flags, "force", false)) {
+    console.log(c.gray("skip ") + `change "${id}" is already applied — nothing to do`);
+    console.log(c.gray("The ops verbs are additive: applying twice duplicates every"));
+    console.log(c.gray("requirement this delta carries. Re-apply anyway with --force"));
+    console.log(c.gray("only after reverting the specs to their pre-apply state."));
+    return 0;
+  }
 
   const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
   const date = today();

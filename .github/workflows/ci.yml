@@ -37,6 +37,19 @@ jobs:
       - name: Index drift gate (doctrina index rebuild --check)
         run: node packages/doctrina-cli/src/index.js index rebuild --check
 
+      # The context budget is a gate, not a report (ADR 0022). It fails when
+      # a pack's irreducible core — root rules, product truth, the capability
+      # spec, open changes — no longer fits, which is the signal that a spec
+      # has outgrown itself or a change has gone stale. The packs that merely
+      # degrade to fit stay green; this catches the ones that cannot.
+      - name: Context budget gate (every capability pack fits)
+        shell: bash
+        run: |
+          node packages/doctrina-cli/src/index.js context >/dev/null
+          for cap in $(ls .doctrina/specs); do
+            node packages/doctrina-cli/src/index.js context "$cap" >/dev/null
+          done
+
   e2e:
     name: End-to-end (packed install, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}

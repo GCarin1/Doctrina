@@ -42,7 +42,7 @@ hand-authoring. Flags and detail: `doctrina <command> --help`.
 - `doctrina adapter list|add|remove` — install/remove agent adapters (additive). *When:* adding or removing an agent's pointer files.
 **Orient**
 - `doctrina prime (session start)` — gates, standing rules, and open work in one read. *When:* at the START of every session.
-- `doctrina context [<cap>] --concat` — the read pack in canonical order, with token estimates. *When:* before working on any task, to load the right files.
+- `doctrina context [<cap>] --for "<task>" --concat` — the read pack, assembled to fit a token budget. *When:* before working on any task, to load the right files.
 - `doctrina show` — point-read a single artifact by reference. *When:* you need one requirement, criterion, or ADR, not a file.
 - `doctrina search` — search the artifact tree, grouped by category. *When:* you do not know which artifact mentions a term.
 - `doctrina status` — index, coverage, trace, and artifact counts. *When:* you need the health of the tree at a glance.
@@ -55,7 +55,7 @@ hand-authoring. Flags and detail: `doctrina <command> --help`.
 - `doctrina spec new|list|set` — create, list, and edit capability specs. *When:* a capability needs creating or its headers advancing.
 - `doctrina change new|apply|archive|check|tick|diff|abandon` — new / apply / archive / check / tick / diff / abandon. *When:* driving a change through its lifecycle by hand.
 - `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.
-- `doctrina decision new|accept|land|supersede|list` — record, accept, land, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
+- `doctrina decision new|accept|land|supersede|list|scope` — record, accept, land, scope, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
 - `doctrina skill new|list|sync|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
 - `doctrina intent add|list` — append and list product intent anchors. *When:* new product intent appears after the intake.
 **Gate**

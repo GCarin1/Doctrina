@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -31,6 +31,8 @@ constraints (exit codes, zero-deps, no-network).
   the structural gate; the shipped pre-commit hook runs only the
   latter.
 - The system shall declare in one place which gates guard which lifecycle transition, and every command that drives a transition shall consult that declaration rather than implementing its own preconditions.
+- The system shall assemble a context pack within a token budget, resolved as the --budget flag, then the project's index.json config.context_budget, then a built-in default.
+- The system shall treat an ADR with no Scope: header as global, including it in every capability pack, and shall include a scoped ADR only in the packs of the capabilities it names.
 
 ### Event-driven
 
@@ -291,6 +293,12 @@ constraints (exit codes, zero-deps, no-network).
 - When `doctrina doctor` reports the template row, the system shall describe the actual findings and name the remedy those findings carry, rather than assuming a missing recommended section.
 - When `doctrina change apply` runs on a change whose structural checks fail, the system shall refuse, name the blocking gate and the command that clears it, and write nothing.
 - When a lifecycle transition is forced with `--force`, the system shall proceed past the precondition, name the waived blockers, and record the gap in the archive ledger, creating the ledger when it does not yet exist.
+- When the pack's irreducible core alone exceeds the budget, the system shall report which artifacts cannot be reduced and exit 1 rather than return a pack over budget.
+- When a task description is supplied via --for, the system shall rank artifacts by term coverage and density rather than by document length.
+
+### State-driven
+
+- While a pack exceeds its budget, the system shall reduce accepted ADRs to title plus summary, and unnamed capability specs to title plus purpose, least relevant first, before omitting any artifact.
 
 ### Unwanted-behavior (must-not)
 
@@ -304,6 +312,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not raise the documentation gate from the scaffolded boilerplate of a change; only content the author wrote counts as a documented-surface signal.
 - The system shall not raise the documentation gate outside a git repository, where it cannot tell what moved.
 - The system shall not evaluate a gate at a transition where its question is not meaningful; the structural gate asks whether a change is safe to apply, so archiving shall not re-ask it.
+- The system shall not silently omit an artifact from a pack; every degradation and omission shall be named in the report.
 
 ## Acceptance criteria
 
@@ -326,6 +335,11 @@ The gate surface is spec-compliant when:
 7. [verified] An adapter-pointer finding is reported by `doctor` with the remedy that resolves it, and is not labelled a missing section — verified by `packages/doctrina-cli/test/remedies.test.js`.
 8. [verified] Every lifecycle transition is guarded identically regardless of which command drives it, enumerated by a table-driven suite — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
 9. [verified] A refused transition mutates nothing, and a forced one records the waived blockers in the ledger — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
+10. [verified] Every capability pack in this repository fits the default budget, and `context cli` is under 15,000 tokens (was ~37,900) — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+11. [verified] A tighter budget never yields a bigger pack, and a budget the core cannot meet exits 1 with an explanation — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+12. [verified] Degradation order is deterministic: the same tree and budget produce the same pack, everything degrades before anything drops, and the core is never touched — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+13. [verified] An ADR with no Scope: header appears in every scoped pack, and a scoped one appears only where it governs — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+14. [verified] A pre-change tree with no config block reads, rebuilds, and packs unchanged — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 
 ## Out of scope for this spec
 

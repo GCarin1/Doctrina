@@ -1,6 +1,7 @@
 # ADR 0011 — Pull passive features into the default flow
 
 - **Status:** accepted
+- **Scope:** cli, gates, skills
 - **Date:** 2026-06-27
 - **Deciders:**
 - **Supersedes:** —

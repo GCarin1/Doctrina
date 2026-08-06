@@ -496,6 +496,44 @@ doctrina decision list
 
 Read-only.
 
+## `doctrina decision scope [<number>]`
+
+Show which capabilities each ADR governs, and propose one for
+every unscoped ADR.
+
+```
+doctrina decision scope
+doctrina decision scope 0007
+doctrina decision scope --write
+```
+
+An ADR with no `- **Scope:**` header is **global**: it loads into
+every context pack, forever, because ADRs are immutable and never
+retire. That is what makes a default read pack grow with the
+project's age rather than with the task (ADR 0022). Scoping is the
+fix — but only if it gets adopted, and nobody hand-annotates forty
+immutable documents.
+
+So the scope is proposed from evidence the tree already holds. The
+archived change that cites an ADR records which specs it touched
+(`changes_archive[].specs_affected`), and that is the strongest
+signal available: it is what actually moved. When no archived
+change cites the ADR, its own text is scanned for capability ids
+and the suggestion is labelled `text — confirm before writing`,
+because capability ids are ordinary words and a scope of
+"everything" is the same as no scope at all.
+
+| Flag | Purpose |
+|------|---------|
+| `--write` | Apply the suggestions, inserting `- **Scope:**` after each ADR's `Status:` header. Without it, the command only reports. |
+
+Review what it writes. A scope that is too narrow hides a decision
+from the pack that needed it, and nothing detects that
+automatically — the tool proposes, you decide. Leaving an ADR
+global is a legitimate answer for decisions about the project's
+stance rather than one capability. Run `doctrina index rebuild`
+afterwards to surface the scopes in `index.json`.
+
 ## `doctrina skill new <name>`
 
 Scaffold a new on-demand procedural memory skill at
@@ -1220,17 +1258,38 @@ separately as name + description only: they are on-demand by
 design, the body loads only when the task matches. The change
 archive and non-accepted ADRs are excluded.
 
-Every file carries a token estimate (chars/4) and the pack reports
-its total — the context-engineering thesis made measurable.
+Every file carries a token estimate (chars/4), and the pack is
+**assembled to fit a token budget** rather than merely measured
+against one (ADR 0022). The budget resolves as `--budget` >
+`config.context_budget` in `index.json` > `15000`.
+
+Over budget, artifacts degrade before any is dropped, least
+relevant first: an accepted ADR to title + its decision in one
+sentence, an unnamed capability's spec to title + purpose. Every
+degradation and omission is named in the report. The core — root
+rules, product truth, the named capability's spec, open changes —
+is never degraded and never dropped; when it alone exceeds the
+budget the command says so and exits 1.
+
+Naming a capability also excludes the ADRs scoped away from it. An
+ADR with no `- **Scope:**` header is global and appears in every
+pack; see [`doctrina decision scope`](#doctrina-decision-scope-number).
 
 | Flag | Purpose |
 |------|---------|
-| `--concat` | Print the file contents with path separators instead of the list — ready to hand to an agent. The budget verdict (if any) goes to stderr, keeping stdout pure. |
-| `--budget <n>` | Token budget for the pack: prints over/under and exits 1 when the estimate exceeds it (a context gate for scripts/CI). |
+| `--for "<task>"` | Rank the pack by relevance to a task description, so what survives the budget is what the task is about. Ranking is term coverage then density, never document length. |
+| `--concat` | Print the file contents with path separators instead of the list — ready to hand to an agent. The budget verdict goes to stderr, keeping stdout pure. Degraded artifacts print as title + summary + a pointer to the full text. |
+| `--budget <n>` | Token ceiling for this call, overriding the project's `config.context_budget`. |
 | `--diff <ref>` | Scope the stable artifacts (AGENTS.md, product.md, specs, ADRs) to those changed since the git ref; open changes are always included. The resume-session read. |
 
+With no capability and no `--for` there is nothing to retrieve on,
+so the pack degrades to an orientation index: every capability by
+title and purpose, every decision by title and summary. Naming a
+capability is how you ask for its truth in full.
+
 This is the read-order section of AGENTS.md turned into tooling:
-selection over dumping. Read-only; exits 0 (or 1 when over `--budget`).
+selection over dumping. Read-only; exits 0, or 1 when the pack's
+core alone cannot meet the budget.
 
 ## `doctrina search <term> [...]`
 

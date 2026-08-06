@@ -82,6 +82,15 @@ export function flagString(flags, name, fallback = undefined) {
   return String(v);
 }
 
+// True when a value-taking flag was written WITHOUT one — `--budget` at the
+// end of the line, or `--budget -100`, where the parser cannot tell a value
+// from the next flag. `flagString` reports both as absent, so without this
+// a mistyped number silently becomes "use the default", which is the one
+// outcome the author definitely did not ask for.
+export function flagGivenWithoutValue(flags, name) {
+  return flags.get(name) === true;
+}
+
 export function flagBool(flags, name, fallback = false) {
   const v = flags.get(name);
   if (v === undefined) return fallback;

@@ -24,3 +24,5 @@ One line per archived change, newest last. Appended by
 - 2026-08-06 — 0017-surface-triggers — The command surface tells an agent when to reach for each command (specs: templates MODIFIED)
 - 2026-08-06 — 0018-json-everywhere — Every command speaks JSON, with a versioned envelope (specs: cli MODIFIED)
 - 2026-08-06 — 0019-one-document-model — One document model owns the on-disk grammar (specs: validation MODIFIED)
+- 2026-08-06 — 0020-retrieval-context — Context assembly is retrieval, not a dump (specs: cli MODIFIED, gates MODIFIED)
+- 2026-08-06 — 0021-split-the-cli-spec-scaffolding-and-project — Split the cli spec: scaffolding and project maintenance become their own capability (specs: cli MODIFIED, scaffolding MODIFIED)

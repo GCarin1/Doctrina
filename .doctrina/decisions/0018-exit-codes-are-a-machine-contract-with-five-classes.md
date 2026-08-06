@@ -1,6 +1,7 @@
 # ADR 0018 — Exit codes are a machine contract with five classes
 
 - **Status:** accepted
+- **Scope:** cli
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —

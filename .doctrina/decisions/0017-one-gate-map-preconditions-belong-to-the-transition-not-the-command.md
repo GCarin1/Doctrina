@@ -1,6 +1,7 @@
 # ADR 0017 — One gate map: preconditions belong to the transition, not the command
 
 - **Status:** accepted
+- **Scope:** gates
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —

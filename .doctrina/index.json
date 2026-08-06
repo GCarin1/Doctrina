@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.32.0",
+        "version": "0.33.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -46,9 +46,20 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
+      },
+      {
+        "id": "scaffolding",
+        "path": ".doctrina/specs/scaffolding/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-08-06",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli"
+        ]
       },
       {
         "id": "skills",
@@ -86,35 +97,45 @@
         "path": ".doctrina/decisions/0001-adopt-agents-md-standard.md",
         "title": "Adopt the open AGENTS.md standard as the portable substrate",
         "status": "accepted",
-        "date": "2026-06-03"
+        "date": "2026-06-03",
+        "summary": "Doctrina adopts the open AGENTS.md standard as the primary, agent-readable"
       },
       {
         "id": "0002",
         "path": ".doctrina/decisions/0002-reserved-number-never-published.md",
         "title": "Reserved number, never published",
         "status": "withdrawn",
-        "date": "2026-06-11"
+        "date": "2026-06-11",
+        "summary": "Record this tombstone under the reserved number."
       },
       {
         "id": "0003",
         "path": ".doctrina/decisions/0003-defer-memory-folder.md",
         "title": "Defer the `memory/` folder to a post-v1 milestone",
         "status": "accepted",
-        "date": "2026-06-03"
+        "date": "2026-06-03",
+        "summary": "Doctrina v0 and v1 will not ship a `.doctrina/memory/` folder."
       },
       {
         "id": "0004",
         "path": ".doctrina/decisions/0004-single-linear-orchestrator.md",
         "title": "Adopt a single linear orchestrator instead of role-based parallel agents",
         "status": "accepted",
-        "date": "2026-06-03"
+        "date": "2026-06-03",
+        "summary": "Doctrina's reference orchestration is a single linear orchestrator that:"
       },
       {
         "id": "0005",
         "path": ".doctrina/decisions/0005-agent-executed-playbooks.md",
         "title": "Agent-executed playbooks for `intake` and `work`",
         "status": "accepted",
-        "date": "2026-06-12"
+        "date": "2026-06-12",
+        "scope": [
+          "cli",
+          "docs",
+          "gates"
+        ],
+        "summary": "The CLI does the deterministic half and prints a playbook for the"
       },
       {
         "id": "0006",
@@ -122,7 +143,12 @@
         "title": "Intent provenance — trace specs to product intent",
         "status": "accepted",
         "date": "2026-06-19",
-        "landed": "2026-06-19 — `packages/doctrina-cli/src/commands/trace.js`, `packages/doctrina-cli/src/lib/scan.js`"
+        "landed": "2026-06-19 — `packages/doctrina-cli/src/commands/trace.js`, `packages/doctrina-cli/src/lib/scan.js`",
+        "scope": [
+          "core",
+          "validation"
+        ],
+        "summary": "Introduce intent provenance as an opt-in, deterministic link from"
       },
       {
         "id": "0007",
@@ -130,7 +156,12 @@
         "title": "Structured spec deltas — mechanically applicable ops",
         "status": "accepted",
         "date": "2026-06-22",
-        "landed": "2026-06-22 — `packages/doctrina-cli/src/lib/spec-ops.js`, `packages/doctrina-cli/src/commands/change.js`"
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/lib/spec-ops.js`, `packages/doctrina-cli/src/commands/change.js`",
+        "scope": [
+          "cli",
+          "core"
+        ],
+        "summary": "Introduce a small, declarative operation set that a MODIFIED delta may carry"
       },
       {
         "id": "0008",
@@ -138,7 +169,12 @@
         "title": "Honest gates — coverage skip detection and verify reproducibility lint",
         "status": "accepted",
         "date": "2026-06-22",
-        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/verify.js`"
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/verify.js`",
+        "scope": [
+          "gates",
+          "validation"
+        ],
+        "summary": "Make both gates honest about their own limits, with cheap static checks:"
       },
       {
         "id": "0009",
@@ -146,7 +182,12 @@
         "title": "Validate is the single source of drift truth — metadata-drift error, --fix, spec set",
         "status": "accepted",
         "date": "2026-06-22",
-        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/spec.js`"
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/spec.js`",
+        "scope": [
+          "gates",
+          "validation"
+        ],
+        "summary": "Make `validate` the single place that says whether the project is OK, by"
       },
       {
         "id": "0010",
@@ -154,7 +195,12 @@
         "title": "Adoption ergonomics — code-first backfill, chore lane, diff-ranked hint, header lint",
         "status": "accepted",
         "date": "2026-06-22",
-        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/validate.js`"
+        "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/validate.js`",
+        "scope": [
+          "cli",
+          "docs"
+        ],
+        "summary": "Add four targeted ergonomics, all opt-in, all deterministic:"
       },
       {
         "id": "0011",
@@ -162,7 +208,13 @@
         "title": "Pull passive features into the default flow",
         "status": "accepted",
         "date": "2026-06-27",
-        "landed": "2026-06-27 — `.doctrina/templates/hooks/pre-commit.sample`, `.doctrina/templates/AGENTS.md.template`, `.doctrina/templates/spec.md.template`, `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/commands/hooks.js`"
+        "landed": "2026-06-27 — `.doctrina/templates/hooks/pre-commit.sample`, `.doctrina/templates/AGENTS.md.template`, `.doctrina/templates/spec.md.template`, `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/commands/hooks.js`",
+        "scope": [
+          "cli",
+          "gates",
+          "skills"
+        ],
+        "summary": "Pull the passive loop-closers into the default path, all deterministic, all with"
       },
       {
         "id": "0012",
@@ -170,7 +222,13 @@
         "title": "Passive-user command set — status, close, review, why, watch, skill suggest, qualitative gate",
         "status": "accepted",
         "date": "2026-06-27",
-        "landed": "2026-06-27 — `packages/doctrina-cli/src/commands/status.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/review.js`, `packages/doctrina-cli/src/commands/why.js`, `packages/doctrina-cli/src/commands/watch.js`, `packages/doctrina-cli/src/commands/skill.js`, `packages/doctrina-cli/src/commands/verify.js`"
+        "landed": "2026-06-27 — `packages/doctrina-cli/src/commands/status.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/review.js`, `packages/doctrina-cli/src/commands/why.js`, `packages/doctrina-cli/src/commands/watch.js`, `packages/doctrina-cli/src/commands/skill.js`, `packages/doctrina-cli/src/commands/verify.js`",
+        "scope": [
+          "cli",
+          "gates",
+          "skills"
+        ],
+        "summary": "Add seven net-new capabilities, all deterministic, none breaking the existing"
       },
       {
         "id": "0013",
@@ -178,7 +236,11 @@
         "title": "Broaden skill suggest signal source to git history",
         "status": "accepted",
         "date": "2026-06-28",
-        "landed": "2026-06-28 — `packages/doctrina-cli/src/commands/skill.js`"
+        "landed": "2026-06-28 — `packages/doctrina-cli/src/commands/skill.js`",
+        "scope": [
+          "skills"
+        ],
+        "summary": "Add the git commit history as a second deterministic source for"
       },
       {
         "id": "0014",
@@ -186,7 +248,13 @@
         "title": "Field-review follow-ups — scoped gates, linter i18n, live provenance, project upgrade",
         "status": "accepted",
         "date": "2026-07-12",
-        "landed": "2026-07-12 — `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/clarify.js`, `packages/doctrina-cli/src/commands/intent.js`, `packages/doctrina-cli/src/commands/upgrade.js`, `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/scan.js`"
+        "landed": "2026-07-12 — `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/close.js`, `packages/doctrina-cli/src/commands/clarify.js`, `packages/doctrina-cli/src/commands/intent.js`, `packages/doctrina-cli/src/commands/upgrade.js`, `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/scan.js`",
+        "scope": [
+          "cli",
+          "gates",
+          "templates"
+        ],
+        "summary": "Close the mechanical-delta gap."
       },
       {
         "id": "0015",
@@ -194,7 +262,12 @@
         "title": "AGENTS.md command-surface block is CLI-owned and regenerated from the catalog",
         "status": "accepted",
         "date": "2026-07-19",
-        "landed": "2026-07-19 — shipped in 0.13.0; regeneration covered by `packages/doctrina-cli/test/integration.test.js` (init/templates/upgrade surface tests) and `packages/doctrina-cli/test/commands.test.js` (catalog↔block parity)"
+        "landed": "2026-07-19 — shipped in 0.13.0; regeneration covered by `packages/doctrina-cli/test/integration.test.js` (init/templates/upgrade surface tests) and `packages/doctrina-cli/test/commands.test.js` (catalog↔block parity)",
+        "scope": [
+          "cli",
+          "templates"
+        ],
+        "summary": "The command-surface section of AGENTS.md is a CLI-owned block,"
       },
       {
         "id": "0016",
@@ -202,7 +275,12 @@
         "title": "Adapters are their own additive concern, not a side effect of init",
         "status": "accepted",
         "date": "2026-08-06",
-        "landed": "2026-08-06 — covered by the adapter and `init --force` tests in `packages/doctrina-cli/test/integration.test.js`"
+        "landed": "2026-08-06 — covered by the adapter and `init --force` tests in `packages/doctrina-cli/test/integration.test.js`",
+        "scope": [
+          "cli",
+          "templates"
+        ],
+        "summary": "Adapters are a first-class concern with their own command, and scaffolding"
       },
       {
         "id": "0017",
@@ -210,7 +288,11 @@
         "title": "One gate map: preconditions belong to the transition, not the command",
         "status": "accepted",
         "date": "2026-08-06",
-        "landed": "2026-08-06 — covered by the table-driven parity suite in `packages/doctrina-cli/test/gate-parity.test.js`"
+        "landed": "2026-08-06 — covered by the table-driven parity suite in `packages/doctrina-cli/test/gate-parity.test.js`",
+        "scope": [
+          "gates"
+        ],
+        "summary": "Preconditions attach to the transition, not to the command that drives"
       },
       {
         "id": "0018",
@@ -218,7 +300,11 @@
         "title": "Exit codes are a machine contract with five classes",
         "status": "accepted",
         "date": "2026-08-06",
-        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/exit-codes.test.js`"
+        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/exit-codes.test.js`",
+        "scope": [
+          "cli"
+        ],
+        "summary": "Five classes, defined once in `src/lib/exit-codes.js`, referenced by every"
       },
       {
         "id": "0019",
@@ -226,7 +312,12 @@
         "title": "Template resolution is a per-file chain: project overrides bundled",
         "status": "accepted",
         "date": "2026-08-06",
-        "landed": "2026-08-06 — covered by the override tests in `packages/doctrina-cli/test/integration.test.js`"
+        "landed": "2026-08-06 — covered by the override tests in `packages/doctrina-cli/test/integration.test.js`",
+        "scope": [
+          "cli",
+          "templates"
+        ],
+        "summary": "Template resolution is a chain, resolved per file:"
       },
       {
         "id": "0020",
@@ -234,7 +325,12 @@
         "title": "The command surface states when to reach for each command",
         "status": "accepted",
         "date": "2026-08-06",
-        "landed": "2026-08-06 — covered by the catalog tests in `packages/doctrina-cli/test/commands.test.js`"
+        "landed": "2026-08-06 — covered by the catalog tests in `packages/doctrina-cli/test/commands.test.js`",
+        "scope": [
+          "cli",
+          "templates"
+        ],
+        "summary": "Every command declares `purpose` (one line: what it does) and `when`"
       },
       {
         "id": "0021",
@@ -242,7 +338,25 @@
         "title": "One document model owns the .doctrina on-disk grammar",
         "status": "accepted",
         "date": "2026-08-06",
-        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/doc-model.test.js`"
+        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/doc-model.test.js`",
+        "scope": [
+          "cli",
+          "validation"
+        ],
+        "summary": "`src/lib/doc-model.js` owns the grammar."
+      },
+      {
+        "id": "0022",
+        "path": ".doctrina/decisions/0022-context-assembly-is-retrieval-not-a-dump.md",
+        "title": "Context assembly is retrieval, not a dump",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/context-retrieval.test.js`",
+        "scope": [
+          "gates",
+          "cli"
+        ],
+        "summary": "Assembly is retrieval."
       }
     ],
     "changes": [],
@@ -506,6 +620,40 @@
         "specs_affected": [
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0020-retrieval-context",
+        "title": "Context assembly is retrieval, not a dump",
+        "path": ".doctrina/changes/archive/2026-08-06-0020-retrieval-context",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0021-split-the-cli-spec-scaffolding-and-project",
+        "title": "Split the cli spec: scaffolding and project maintenance become their own capability",
+        "path": ".doctrina/changes/archive/2026-08-06-0021-split-the-cli-spec-scaffolding-and-project",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
             "operation": "MODIFIED"
           }
         ]

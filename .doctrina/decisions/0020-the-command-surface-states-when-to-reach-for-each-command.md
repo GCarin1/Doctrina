@@ -1,6 +1,7 @@
 # ADR 0020 — The command surface states when to reach for each command
 
 - **Status:** accepted
+- **Scope:** cli, templates
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —
