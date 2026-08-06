@@ -178,10 +178,20 @@ const earlyApply = doctrina(["change", "apply", changeId], proj);
 assert(earlyApply.status !== 0 && /\[structure\]/.test(earlyApply.out),
   "change apply refuses an unplanned change (gate parity)", earlyApply.out);
 
-// Plan, tick, then close.
+// Plan, tick, then close. Planning means BOTH files: real tasks in place of
+// the placeholder boxes, and a proposal that says why the change exists and
+// what it does. `analyze` refuses either left as scaffold, so a harness that
+// filled only tasks.md would be driving a flow the framework rejects.
 const tasksPath = path.join(proj, ".doctrina", "changes", changeId, "tasks.md");
 writeFileSync(tasksPath, readFileSync(tasksPath, "utf8")
   .replace(/^(\s*-\s*\[[ xX]\])\s*$/gm, "$1 implement refunds"));
+
+const proposalPath = path.join(proj, ".doctrina", "changes", changeId, "proposal.md");
+writeFileSync(proposalPath, readFileSync(proposalPath, "utf8")
+  .replace(/^(##[ \t]+Why[ \t]*)$/m, "$1\n\nCustomers need refunds on cancelled orders.")
+  .replace(/^(##[ \t]+What[ \t]*)$/m, "$1\n\nA refunds endpoint and its spec delta."));
+const planned = doctrina(["analyze", changeId], proj);
+assert(planned.status === 0, "analyze passes once the proposal states why and what", planned.out);
 assert(doctrina(["change", "tick", changeId, "--all"], proj).status === 0, "change tick --all");
 
 const check = doctrina(["change", "check", changeId], proj);
