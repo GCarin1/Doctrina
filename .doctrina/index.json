@@ -359,7 +359,15 @@
         "summary": "Assembly is retrieval."
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0022-typecheck-the-cli-with-checkjs-no-build-step",
+        "title": "Typecheck the CLI with checkJs, no build step",
+        "path": ".doctrina/changes/0022-typecheck-the-cli-with-checkjs-no-build-step",
+        "status": "proposed",
+        "opened": "2026-08-06"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",

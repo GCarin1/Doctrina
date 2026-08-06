@@ -99,11 +99,11 @@ export function collectAnalysis(projectRoot, changeDir) {
       const cap = capMatch ? capMatch[1] : path.basename(path.dirname(deltaPath));
 
       if (!op) {
-        results.push(fail(`  ${rel}: Operation header missing or malformed`, "  "));
+        results.push(fail(`  ${rel}: Operation header missing or malformed`));
         continue;
       }
       if (!["ADDED", "MODIFIED", "REMOVED"].includes(op)) {
-        results.push(fail(`  ${rel}: Operation "${op}" is not one of ADDED|MODIFIED|REMOVED`, "  "));
+        results.push(fail(`  ${rel}: Operation "${op}" is not one of ADDED|MODIFIED|REMOVED`));
         continue;
       }
       const targetSpec = path.join(projectRoot, ".doctrina", "specs", cap, "spec.md");
@@ -113,23 +113,23 @@ export function collectAnalysis(projectRoot, changeDir) {
         // untouched `spec new` scaffold is the canonical flow (spec new →
         // ADDED delta), so it passes as a replacement; only real content fails.
         if (exists(targetSpec) && !isUntouchedScaffold(read(targetSpec), cap)) {
-          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`, "  "));
+          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`));
         } else if (exists(targetSpec)) {
-          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (replaces the untouched scaffold)`, "  "));
+          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (replaces the untouched scaffold)`));
         } else {
-          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (new)`, "  "));
+          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (new)`));
         }
       } else if (op === "MODIFIED") {
         if (!exists(targetSpec)) {
-          results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`, "  "));
+          results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`));
         } else {
-          results.push(pass(`  ${cap} (MODIFIED) → ${targetRel}`, "  "));
+          results.push(pass(`  ${cap} (MODIFIED) → ${targetRel}`));
         }
       } else {
         if (!exists(targetSpec)) {
-          results.push(fail(`  ${cap} (REMOVED) but target ${targetRel} does not exist`, "  "));
+          results.push(fail(`  ${cap} (REMOVED) but target ${targetRel} does not exist`));
         } else {
-          results.push(pass(`  ${cap} (REMOVED) → ${targetRel}`, "  "));
+          results.push(pass(`  ${cap} (REMOVED) → ${targetRel}`));
         }
       }
     }
