@@ -38,7 +38,7 @@ scaffolds from canonical templates and keeps `index.json` in sync, so
 prefer it over writing artifacts by hand. Details: `doctrina --help`.
 
 - **Start:** `doctrina init` · `doctrina intake` · `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)`
-- **Author:** `doctrina spec new|list|set` · `doctrina change new|apply|archive|check|tick|diff|abandon` · `doctrina contract new|list|check` · `doctrina decision new|accept|land|supersede|list` · `doctrina skill new|list|sync|suggest` · `doctrina intent add|list`
+- **Author:** `doctrina spec new|list|set` · `doctrina change new|apply|archive|check|tick|diff|abandon` · `doctrina contract new|list|check` · `doctrina decision new|accept|land|supersede|list` · `doctrina skill new|list|sync|suggest` · `doctrina intent add|list` · `doctrina adapter list|add|remove`
 - **Read / orient:** `doctrina prime (session start)` · `doctrina context [<cap>] --concat` · `doctrina show` · `doctrina search` · `doctrina status` · `doctrina next` · `doctrina why` · `doctrina handoff (before compaction/handover)` · `doctrina constitution`
 - **Gates:** `doctrina analyze` · `doctrina clarify --all (--lang pt|en)` · `doctrina validate (--fix)` · `doctrina coverage --strict` · `doctrina trace --strict` · `doctrina review` · `doctrina verify` · `doctrina close <id...>` · `doctrina doctor`
 - **Maintain:** `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write`

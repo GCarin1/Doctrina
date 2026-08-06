@@ -16,6 +16,11 @@ import { suggest } from "../lib/suggest.js";
 // asks; the tool answers from the artifacts, instead of grepping by hand.
 // Read-only. Builds on the Realizes:/trace provenance (ADR 0006/0011).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: [], string: [] };
+
 export async function run(positional, _flags) {
   const cap = positional[0];
   const projectRoot = process.cwd();

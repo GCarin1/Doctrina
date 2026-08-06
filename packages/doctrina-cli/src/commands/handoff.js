@@ -16,6 +16,11 @@ import { c } from "../lib/colors.js";
 // a stored file: a saved note goes stale the moment work continues, the
 // tree never does (no new home for facts).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: [], string: [] };
+
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {

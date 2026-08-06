@@ -3761,3 +3761,313 @@ test("templates check verifies installed adapters still point at AGENTS.md", () 
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test("close refuses a change that alters a documented surface with no docs change", () => {
+  // D2: the docs phase scheduled after the work never happens, so the gate
+  // sits inside the close. Needs a git repo — the gate reads what moved.
+  const tmp = initedProject();
+  try {
+    spawnSync("git", ["init", "-q"], { cwd: tmp });
+    spawnSync("git", ["add", "-A"], { cwd: tmp });
+    spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"], { cwd: tmp });
+
+    runCli(["change", "new", "0001-flagged", "add a flag"], { cwd: tmp });
+    const proposalPath = path.join(tmp, ".doctrina", "changes", "0001-flagged", "proposal.md");
+    writeFileSync(proposalPath, readFileSync(proposalPath, "utf8").replace(
+      "## Why", "## Why\n\nTeach `doctrina validate` the `--frobnicate` flag.\n\n## Why (cont)",
+    ));
+    completeChange(tmp, "0001-flagged");
+
+    const blocked = runCli(["close", "0001-flagged"], { cwd: tmp });
+    assert.equal(blocked.status, 1, blocked.stdout + blocked.stderr);
+    assert.match(blocked.stdout + blocked.stderr, /documented surface/);
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0001-flagged")),
+      "a refused close must not archive the change");
+
+    // --force closes anyway and records the gap, matching archive --force.
+    const forced = runCli(["close", "0001-flagged", "--force"], { cwd: tmp });
+    assert.equal(forced.status, 0, forced.stdout + forced.stderr);
+    assert.match(forced.stdout, /recorded the docs gap/);
+    const ledger = readFileSync(path.join(tmp, ".doctrina", "changes", "archive", "LEDGER.md"), "utf8");
+    assert.match(ledger, /docs gap: 0001-flagged/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close passes the docs gate when documentation moves with the change", () => {
+  const tmp = initedProject();
+  try {
+    spawnSync("git", ["init", "-q"], { cwd: tmp });
+    spawnSync("git", ["add", "-A"], { cwd: tmp });
+    spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"], { cwd: tmp });
+
+    runCli(["change", "new", "0001-documented", "add a flag"], { cwd: tmp });
+    const proposalPath = path.join(tmp, ".doctrina", "changes", "0001-documented", "proposal.md");
+    writeFileSync(proposalPath, readFileSync(proposalPath, "utf8").replace(
+      "## Why", "## Why\n\nTeach `doctrina validate` the `--frobnicate` flag.\n\n## Why (cont)",
+    ));
+    completeChange(tmp, "0001-documented");
+
+    // The docs move with it.
+    mkdirSync(path.join(tmp, "docs", "en"), { recursive: true });
+    writeFileSync(path.join(tmp, "docs", "en", "cli-reference.md"), "# CLI reference\n\n`--frobnicate`\n");
+
+    const r = runCli(["close", "0001-documented"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /documentation moved with it/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close's docs gate stays quiet on a change touching no documented surface", () => {
+  const tmp = initedProject();
+  try {
+    spawnSync("git", ["init", "-q"], { cwd: tmp });
+    runCli(["change", "new", "0001-internal", "internal tidy"], { cwd: tmp });
+    completeChange(tmp, "0001-internal");
+    const r = runCli(["close", "0001-internal"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /touches no documented surface/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// ── C1: adding an adapter must not destroy project content ──
+
+test("adapter add is strictly additive: AGENTS.md and product.md stay byte-identical", () => {
+  const tmp = initedProject();
+  try {
+    // Author content into both sources of truth.
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const productPath = path.join(tmp, ".doctrina", "product.md");
+    writeFileSync(agentsPath, readFileSync(agentsPath, "utf8") + "\nCUSTOM RULE: never use float for money\n");
+    writeFileSync(productPath, readFileSync(productPath, "utf8") + "\n## Vision\n\nReal product vision.\n");
+    const agentsBefore = readFileSync(agentsPath);
+    const productBefore = readFileSync(productPath);
+
+    const r = runCli(["adapter", "add", "gemini"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.ok(existsSync(path.join(tmp, "GEMINI.md")));
+    assert.deepEqual(readFileSync(agentsPath), agentsBefore, "AGENTS.md must be byte-identical");
+    assert.deepEqual(readFileSync(productPath), productBefore, "product.md must be byte-identical");
+
+    // Round trip returns the tree to its exact prior state.
+    const rm = runCli(["adapter", "remove", "gemini"], { cwd: tmp });
+    assert.equal(rm.status, 0, rm.stdout + rm.stderr);
+    assert.ok(!existsSync(path.join(tmp, "GEMINI.md")));
+    assert.deepEqual(readFileSync(agentsPath), agentsBefore);
+    assert.deepEqual(readFileSync(productPath), productBefore);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init --force refuses to overwrite authored content and names what it declined", () => {
+  const tmp = initedProject();
+  try {
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    const productPath = path.join(tmp, ".doctrina", "product.md");
+    writeFileSync(agentsPath, readFileSync(agentsPath, "utf8") + "\nCUSTOM RULE: never use float for money\n");
+    writeFileSync(productPath, readFileSync(productPath, "utf8") + "\n## Vision\n\nReal product vision.\n");
+    const agentsBefore = readFileSync(agentsPath);
+    const productBefore = readFileSync(productPath);
+
+    const r = runCli(["init", "--agent", "gemini", "--force", "--non-interactive"], { cwd: tmp });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stderr, /would overwrite content you wrote/);
+    assert.match(r.stderr, /AGENTS\.md/);
+    assert.match(r.stderr, /product\.md/);
+    assert.match(r.stderr, /adapter add/, "it must point at the additive command");
+    assert.deepEqual(readFileSync(agentsPath), agentsBefore, "nothing may be written on refusal");
+    assert.deepEqual(readFileSync(productPath), productBefore);
+
+    // The explicit opt-in still works, so the escape hatch exists.
+    const forced = runCli(
+      ["init", "--force", "--overwrite-content", "--non-interactive", "--project-name", "X", "--project-description", "y"],
+      { cwd: tmp },
+    );
+    assert.equal(forced.status, 0, forced.stdout + forced.stderr);
+    assert.ok(!readFileSync(agentsPath, "utf8").includes("CUSTOM RULE"));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init --force still re-scaffolds a pristine project", () => {
+  const tmp = initedProject();
+  try {
+    const r = runCli(["init", "--force", "--non-interactive", "--project-name", "P", "--project-description", "d"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("adapter list distinguishes installed, available, and native", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["adapter", "add", "gemini"], { cwd: tmp });
+    const r = runCli(["adapter", "list"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /installed\s+gemini/);
+    assert.match(r.stdout, /available\s+claude/);
+    // amp/codex/devin/factory/jules read AGENTS.md natively and install nothing;
+    // "no adapter installed" and "no adapter needed" used to be indistinguishable.
+    assert.match(r.stdout, /native\s+codex/);
+    assert.match(r.stdout, /reads AGENTS\.md directly/);
+
+    const nativeAdd = runCli(["adapter", "add", "codex"], { cwd: tmp });
+    assert.equal(nativeAdd.status, 0);
+    assert.match(nativeAdd.stdout, /nothing to install/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("adapter add resolves a project-local adapter and prefers it over a bundled one", () => {
+  const tmp = initedProject();
+  try {
+    const dir = path.join(tmp, ".doctrina", "templates", "adapters", "my-agent");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "MY-AGENT.md.template"), "# MY-AGENT — {{PROJECT_NAME}}\n\n@{{AGENTS_MD_PATH}}\n");
+
+    const list = runCli(["adapter", "list"], { cwd: tmp });
+    assert.match(list.stdout, /my-agent/);
+    assert.match(list.stdout, /project template/);
+
+    const r = runCli(["adapter", "add", "my-agent"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    const body = readFileSync(path.join(tmp, "MY-AGENT.md"), "utf8");
+    assert.match(body, /@AGENTS\.md/, "the pointer token must be substituted");
+
+    // A project adapter overriding a bundled name wins.
+    const override = path.join(tmp, ".doctrina", "templates", "adapters", "gemini");
+    mkdirSync(override, { recursive: true });
+    writeFileSync(path.join(override, "GEMINI.md.template"), "# custom gemini\n\n@{{AGENTS_MD_PATH}}\n");
+    runCli(["adapter", "add", "gemini"], { cwd: tmp });
+    assert.match(readFileSync(path.join(tmp, "GEMINI.md"), "utf8"), /custom gemini/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("adapter remove keeps a file the user edited unless --force", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["adapter", "add", "gemini"], { cwd: tmp });
+    const p = path.join(tmp, "GEMINI.md");
+    writeFileSync(p, readFileSync(p, "utf8") + "\nMY OWN NOTE\n");
+
+    const kept = runCli(["adapter", "remove", "gemini"], { cwd: tmp });
+    assert.equal(kept.status, 0, kept.stdout + kept.stderr);
+    assert.ok(existsSync(p), "an edited adapter file is the user's now");
+    assert.match(kept.stdout, /kept/);
+
+    const forced = runCli(["adapter", "remove", "gemini", "--force"], { cwd: tmp });
+    assert.equal(forced.status, 0, forced.stdout + forced.stderr);
+    assert.ok(!existsSync(p));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// ── C4: the surface block has one canonical position ──
+
+test("init and upgrade place the surface block at the same position, idempotently", () => {
+  const fresh = initedProject();
+  const upgraded = initedProject();
+  try {
+    // Simulate a pre-0.13 tree: no block at all, older framework stamp.
+    const agentsPath = path.join(upgraded, "AGENTS.md");
+    writeFileSync(agentsPath, readFileSync(agentsPath, "utf8").replace(
+      /<!--\s*doctrina:surface:begin[\s\S]*?doctrina:surface:end\s*-->\n*/, ""));
+    const idxPath = path.join(upgraded, ".doctrina", "index.json");
+    const idx = JSON.parse(readFileSync(idxPath, "utf8"));
+    idx.framework_version = "0.11.0";
+    writeFileSync(idxPath, JSON.stringify(idx, null, 2) + "\n");
+
+    const r = runCli(["upgrade", "--write"], { cwd: upgraded });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+
+    // Same section order, block included — not appended at the end.
+    const order = (root) => readFileSync(path.join(root, "AGENTS.md"), "utf8")
+      .split(/\r?\n/)
+      .filter((l) => /^##\s+/.test(l) || /doctrina:surface:begin/.test(l))
+      .map((l) => (/doctrina:surface:begin/.test(l) ? "<<surface>>" : l.trim()));
+    assert.deepEqual(order(upgraded), order(fresh),
+      "upgrade must produce the same layout as a fresh init");
+
+    // And the block is not last: sections follow it.
+    const o = order(upgraded);
+    assert.ok(o.indexOf("<<surface>>") < o.length - 1, "the block must not land at the end of the file");
+
+    // Idempotent: a second upgrade changes nothing.
+    const before = readFileSync(path.join(upgraded, "AGENTS.md"));
+    runCli(["upgrade", "--write"], { cwd: upgraded });
+    assert.deepEqual(readFileSync(path.join(upgraded, "AGENTS.md")), before,
+      "a second upgrade must be a no-op");
+  } finally {
+    rmSync(fresh, { recursive: true, force: true });
+    rmSync(upgraded, { recursive: true, force: true });
+  }
+});
+
+test("upgrade preview shows the block content and its destination, not a one-liner", () => {
+  const tmp = initedProject();
+  try {
+    // Stale block: the preview must show which lines change.
+    const agentsPath = path.join(tmp, "AGENTS.md");
+    writeFileSync(agentsPath, readFileSync(agentsPath, "utf8")
+      .replace("`doctrina prime (session start)`", "`doctrina gone`"));
+    const stale = runCli(["templates", "update"], { cwd: tmp });
+    assert.equal(stale.status, 1, "preview exits 1 while updates are pending");
+    assert.match(stale.stdout, /- .*doctrina gone/, "preview must show the removed line");
+    assert.match(stale.stdout, /\+ .*doctrina prime/, "preview must show the added line");
+
+    // Missing block: the preview must name the destination.
+    writeFileSync(agentsPath, readFileSync(agentsPath, "utf8").replace(
+      /<!--\s*doctrina:surface:begin[\s\S]*?doctrina:surface:end\s*-->\n*/, ""));
+    const missing = runCli(["templates", "update"], { cwd: tmp });
+    assert.match(missing.stdout, /insert the generated doctrina:surface command block after "## Working from intent/);
+    assert.match(missing.stdout, /doctrina:surface:begin/, "preview must show the block body");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// ── C5: one definition of a correct index.json ──
+
+test("a freshly inited tree needs zero templates update operations", () => {
+  // The invariant that stops the next artifact category drifting the same
+  // way: `init` writes from the same schema `templates check` measures.
+  const tmp = initedProject();
+  try {
+    const update = runCli(["templates", "update"], { cwd: tmp });
+    assert.equal(update.status, 0,
+      `a new project is born needing a scaffold update:\n${update.stdout}`);
+    assert.match(update.stdout, /already follows the current template shape/);
+    assert.equal(runCli(["templates", "check"], { cwd: tmp }).status, 0);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("init writes every artifact category the schema declares", async () => {
+  const { ARTIFACT_CATEGORIES } = await import("../src/lib/index-json.js");
+  const tmp = initedProject();
+  try {
+    const idx = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
+    for (const cat of ARTIFACT_CATEGORIES) {
+      assert.ok(Array.isArray(idx.artifacts[cat]),
+        `init wrote no "${cat}" category, but the schema declares it`);
+    }
+    assert.equal(idx.framework_version, JSON.parse(
+      readFileSync(path.resolve(here, "..", "package.json"), "utf8")).version,
+      "the framework stamp must be the running CLI's version");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

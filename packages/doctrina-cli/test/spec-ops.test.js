@@ -67,6 +67,39 @@ test("extractOps does not mistake a normal code fence for ops", () => {
   assert.deepEqual(extractOps(delta), []);
 });
 
+test("extractOps skips an example block inside a comment without mutating real op values", () => {
+  // Two halves of one guard. The scaffolded template carries an EXAMPLE ops
+  // block inside its instructional comment, which apply must never execute.
+  // But the comment must be skipped BY POSITION: stripping comment text
+  // first corrupted an op whose own value contains a comment — an
+  // `<!-- illustrative -->` marker reached the spec with the marker gutted.
+  const delta = [
+    "# Spec Delta — capability: docs",
+    "",
+    "**Operation:** MODIFIED",
+    "",
+    "<!--",
+    "For MODIFIED, prefer an ops block:",
+    "```ops",
+    "bump-version major",
+    "```",
+    "-->",
+    "",
+    "---",
+    "",
+    "```ops",
+    "append-criterion [verified] Output blocks carry an `<!-- illustrative -->` marker — `test/x.test.js`.",
+    "```",
+    "",
+  ].join("\n");
+
+  const ops = extractOps(delta);
+  assert.equal(ops.length, 1, "the commented example must not be executed");
+  assert.equal(ops[0].verb, "append-criterion");
+  assert.match(ops[0].value, /<!-- illustrative -->/, "the op's own comment must survive verbatim");
+  assert.ok(!ops.some((o) => o.verb === "bump-version"), "the example op must not leak through");
+});
+
 test("setHeader replaces a dash-optional header and errors when absent", () => {
   const r = setHeader(SPEC, "Implementation", "verified — durable");
   assert.match(r.text, /^\*\*Implementation:\*\* verified — durable$/m);

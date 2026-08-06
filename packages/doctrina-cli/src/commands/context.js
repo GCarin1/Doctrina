@@ -21,6 +21,11 @@ import { c } from "../lib/colors.js";
 
 const TOKEN_DIVISOR = 4;
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["concat"], string: ["budget", "diff"] };
+
 export async function run(positional, flags) {
   const capability = positional[0] ?? null;
   const concat = flagBool(flags, "concat", false);

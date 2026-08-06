@@ -5,6 +5,7 @@ import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
 import { surfaceHelp } from "./lib/commands.js";
+import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -41,6 +42,7 @@ import * as report from "./commands/report.js";
 import * as completion from "./commands/completion.js";
 import * as intent from "./commands/intent.js";
 import * as upgrade from "./commands/upgrade.js";
+import * as adapter from "./commands/adapter.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
@@ -48,7 +50,7 @@ const COMMANDS = {
   intake, work, coverage, verify, contract, trace,
   status, close, review, watch, why, constitution,
   prime, handoff, show, doctor, report, completion,
-  intent, upgrade,
+  intent, upgrade, adapter,
 };
 
 const TOP_HELP = `
@@ -69,8 +71,23 @@ async function main(argv) {
   // version and exit, looking exactly like the spec's version had been set
   // (0.11.0 field-review papercut). `-v` stays global either way.
   const versionOnly = argv.every((t) => t === "--version" || t === "-v") && argv.length > 0;
+
+  // Two passes. The first resolves only the command name, using the global
+  // flags; the second re-parses with THAT command's declared flags merged in.
+  //
+  // One global boolean list used to serve every command, and six flags read
+  // via flagBool were missing from it. An undeclared flag whose next token
+  // does not start with "-" swallows that token as its value, so
+  // `change new --chore ajuste-ci "Ajustar CI"` lost the id AND silently
+  // ignored the flag, reporting "requires a title" for a quoted title (C3).
+  // Declarations now live with the command, so a new command cannot
+  // reintroduce the gap by forgetting to edit this file.
+  const bootstrap = parseArgs(argv, { boolean: [...GLOBAL_FLAGS.boolean] });
+  const commandModule = COMMANDS[bootstrap.positional[0]];
+  const spec = commandModule?.flags;
   const { positional, flags } = parseArgs(argv, {
-    boolean: ["help", "h", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init", "fix", "once", "clean", "json"],
+    boolean: [...GLOBAL_FLAGS.boolean, ...(spec?.boolean ?? [])],
+    string: [...GLOBAL_FLAGS.string, ...(spec?.string ?? [])],
   });
 
   if (versionOnly || flags.get("v") === true) {

@@ -57,14 +57,28 @@ export function extractOps(deltaText) {
 
 // Find the body of the first ```ops fenced block, or null if absent. The
 // info string must be exactly "ops" (case-insensitive) so a normal code
-// fence in the prose is never mistaken for operations. HTML comments are
-// stripped first: the scaffolded delta template carries an EXAMPLE ops block
-// inside its instructional comment, and executing an example against a real
-// spec is exactly the surprise this guard removes.
+// fence in the prose is never mistaken for operations.
+//
+// A fence sitting INSIDE an HTML comment is skipped: the scaffolded delta
+// template carries an EXAMPLE ops block in its instructional comment, and
+// executing an example against a real spec is exactly the surprise this
+// guard removes. The comment is skipped by POSITION, never by deleting the
+// comment text first — stripping mutated ops values that legitimately
+// contain a comment (an `<!-- illustrative -->` marker inside an
+// append-criterion landed in the spec with the marker silently gutted).
 function matchOpsBlock(text) {
-  const visible = text.replace(/<!--[\s\S]*?-->/g, "");
-  const m = visible.match(/^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/m);
-  return m ? m[1] : null;
+  const commentRanges = [];
+  for (const m of text.matchAll(/<!--[\s\S]*?-->/g)) {
+    commentRanges.push([m.index, m.index + m[0].length]);
+  }
+  const insideComment = (offset) => commentRanges.some(([a, b]) => offset >= a && offset < b);
+
+  const fenceRe = /^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
+  let m;
+  while ((m = fenceRe.exec(text))) {
+    if (!insideComment(m.index)) return m[1];
+  }
+  return null;
 }
 
 function parseOpLine(line) {

@@ -20,6 +20,11 @@ import { c } from "../lib/colors.js";
 
 const CONFIG_REL = ".doctrina/verify.json";
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {

@@ -16,6 +16,11 @@ import { c } from "../lib/colors.js";
 // To change a principle, supersede its ADR; to change a non-goal, edit
 // product.md. The command never writes — it has nothing of its own to own.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: [], string: [] };
+
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {

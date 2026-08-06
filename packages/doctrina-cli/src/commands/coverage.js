@@ -22,6 +22,11 @@ import { c } from "../lib/colors.js";
 // proves nothing — review G3: existence ≠ a passing test), "dangling" when
 // a cited path does not resolve, and "bare" when nothing is cited.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "run", "strict"], string: ["only"] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {

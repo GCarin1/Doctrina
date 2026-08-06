@@ -20,6 +20,11 @@ import { summarize as traceSummary } from "./trace.js";
 // ceiling as `trace`/`clarify` (ADR 0005). Read-only; exits 0 as a report, 1
 // under --strict when any break exists (CI gate).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["strict"], string: ["diff"] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {

@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3
-**Last updated:** 2026-07-02
-**Version:** 0.3.0
+**Last updated:** 2026-08-06
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -31,6 +31,7 @@ this spec; humans and agents do.
   `scripts/check-docs.js` (run by `doctrina verify`) checks parity,
   H1 shape, line caps, and the PT source note.
 - The system shall include a single H1 at the top of every document.
+- The system shall hold documentation to accuracy as well as shape: `scripts/check-docs.js` shall verify that every documented command resolves to the CLI catalog, that every flag documented in a reference flag table is declared by that command, that every relative link resolves, that every fenced block showing CLI output carries an explicit illustrative marker, and that paired EN and PT pages stay within a declared length ratio.
 
 ### Event-driven
 
@@ -39,6 +40,7 @@ this spec; humans and agents do.
   other is incomplete.
 - When a new topic earns a doc, both EN and PT files shall be added in
   the same change.
+- When a command is removed from the CLI catalog or a flag is renamed, `scripts/check-docs.js` shall fail until the documentation follows.
 
 ### State-driven
 
@@ -59,6 +61,7 @@ this spec; humans and agents do.
 - Site infrastructure files (`index.html`, `_sidebar.md`, `.nojekyll`,
   `assets/`) shall not carry documentation prose of their own; prose
   lives in the per-language Markdown files only.
+- The system shall not treat filename parity as content parity; a page that has diverged in length from its counterpart shall be reported.
 
 ### Optional
 
@@ -84,6 +87,13 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
    `scripts/check-docs.js`.
 5. [verified] The two READMEs link to the docs trees: `README.md` to
    `docs/en/` and `README.pt.md` to `docs/pt/` — `scripts/check-docs.js`.
+6. [verified] Every documented `doctrina <command>` resolves to the CLI catalog, and a page naming a command that does not exist fails the gate — `scripts/check-docs.js`, `packages/doctrina-cli/test/check-docs.test.js`.
+7. [verified] Every flag documented in a `cli-reference.md` flag table is declared in that command's exported flag spec, via the catalog shared with the source-side test — `packages/doctrina-cli/src/lib/flag-catalog.js`, `packages/doctrina-cli/test/check-docs.test.js`.
+8. [verified] Every relative link in the documented surfaces resolves; docsify router paths and fenced sample links are exempt — `packages/doctrina-cli/test/check-docs.test.js`.
+9. [verified] Every fenced block showing CLI output carries an
+   `<!-- illustrative -->` marker; invocation-only blocks do not need one —
+   `packages/doctrina-cli/test/check-docs.test.js`.
+10. [verified] Paired EN and PT pages stay within the declared length ratio, so a divergence filename parity cannot see is reported — `packages/doctrina-cli/test/check-docs.test.js`.
 
 ## Out of scope for this spec
 

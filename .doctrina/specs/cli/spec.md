@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-07-19
-**Version:** 0.27.0
+**Last updated:** 2026-08-06
+**Version:** 0.30.0
 
 ## Purpose
 
@@ -36,6 +36,8 @@ owns the surface itself and the conventions every command shares.
 - The system shall prefix every error line with `error:` and may
   emit an optional `hint:` line with an actionable next step.
 - The system shall support the EARS requirement verbs `append-requirement <section>: <text>` and `replace-requirement <section> <n>: <text>` in a MODIFIED delta's ops block, resolving bullet position and numbering at apply time so concurrent open changes appending to the same spec cannot collide.
+- The system shall declare each command's accepted flags in that command's own module, and shall parse an invocation in two passes — resolving the command name first, then re-parsing with that command's declared flags merged over the global set.
+- The system shall accept a declared flag in any position relative to the command's positional arguments, with identical results.
 
 ### Event-driven
 
@@ -350,6 +352,14 @@ owns the surface itself and the conventions every command shares.
 - When `doctrina analyze` finds `tasks.md` still carrying a scaffold placeholder task (`- [ ]` with no text, checked or not), the system shall fail, telling the operator to plan the change before implementing; `change check` and `close` inherit the refusal.
 - When `doctrina change tick` targets a box whose text is empty, the system shall refuse without ticking anything and shall name the fix; the tick listing shall mark such boxes as scaffold placeholders.
 - When `doctrina validate` finds an open change whose `tasks.md` still carries scaffold placeholder tasks, the system shall warn that the change was opened but never planned.
+- When `doctrina adapter add <name>` runs, the system shall write only that adapter's own files and shall leave `AGENTS.md`, `.doctrina/product.md`, and every other project artifact byte-identical.
+- When `doctrina adapter list` runs, the system shall report each adapter as installed, available, or native, where native means the agent reads `AGENTS.md` directly and the adapter installs no file.
+- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, and shall keep any file edited since install unless `--force` is given.
+- When `doctrina init --force` would overwrite an `AGENTS.md` or `.doctrina/product.md` that carries authored content, the system shall refuse, name the files it declined to touch, point at `doctrina adapter add`, and write nothing; `--overwrite-content` shall be required to discard that content.
+- When `doctrina adapter add <name>` runs, the system shall write only that adapter's own files and shall leave `AGENTS.md`, `.doctrina/product.md`, and every other project artifact byte-identical.
+- When `doctrina adapter list` runs, the system shall report each adapter as installed, available, or native, where native means the agent reads `AGENTS.md` directly and the adapter installs no file.
+- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, and shall keep any file edited since install unless `--force` is given.
+- When `doctrina init --force` would overwrite an `AGENTS.md` or `.doctrina/product.md` that carries authored content, the system shall refuse, name the files it declined to touch, point at `doctrina adapter add`, and write nothing; `--overwrite-content` shall be required to discard that content.
 
 ### State-driven
 
@@ -377,6 +387,9 @@ owns the surface itself and the conventions every command shares.
   `.doctrina/index.json` when the fix rewrites it. Lint, tests, and
   project-specific checks are out of scope for the shipped hook.
 - The system shall not execute an ops block that sits inside an HTML comment of a delta (the scaffolded template carries an example block in its instructional comment).
+- The system shall not treat a token substitution as authorship when deciding whether a scaffolded file is pristine; comparison is by template shape, excluding the volatile date line and the CLI-owned surface block.
+- The system shall not treat a token substitution as authorship when deciding whether a scaffolded file is pristine; comparison is by template shape, excluding the volatile date line and the CLI-owned surface block.
+- The system shall not read a flag a command has not declared, and shall not document an undeclared flag in a command's Options block.
 
 ### Optional
 
@@ -415,6 +428,14 @@ The CLI is v0 spec-compliant when:
    or `{}` — see `packages/doctrina-cli/package.json`.
 6. [verified] Operator-review follow-ups behave as specified: change check/tick, batch ids on close/apply/archive/check, the prefilled work delta and `--quiet`, the close advisories, `clarify --lang`, the regenerated doctrina:surface block, and the EARS requirement verbs — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/spec-ops.test.js`, `packages/doctrina-cli/test/commands.test.js`.
 7. [verified] A hollow change cannot close: analyze fails on scaffold placeholders, `change tick` refuses empty boxes, validate warns on every run — verified by `packages/doctrina-cli/test/integration.test.js`.
+8. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
+9. [verified] `init --agent <name> --force` on a project with authored content exits non-zero, names the files, and writes nothing; `--overwrite-content` still allows the discard — verified by `packages/doctrina-cli/test/integration.test.js`.
+10. [verified] `adapter list` distinguishes installed, available, and native, and a native adapter installs nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
+11. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
+12. [verified] `init --agent <name> --force` on a project with authored content exits non-zero, names the files, and writes nothing; `--overwrite-content` still allows the discard — verified by `packages/doctrina-cli/test/integration.test.js`.
+13. [verified] `adapter list` distinguishes installed, available, and native, and a native adapter installs nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
+14. [verified] Every command declares a flag spec, every flag read is declared, and every flag documented in an Options block is declared — verified by `packages/doctrina-cli/test/flag-catalog.test.js`.
+15. [verified] A declared flag placed before the positionals behaves identically to one placed after — verified by `packages/doctrina-cli/test/flag-catalog.test.js`.
 
 ## Out of scope for this spec
 

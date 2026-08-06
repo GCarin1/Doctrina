@@ -18,6 +18,11 @@ import { changeNew } from "./change.js";
 // unproven verification). The CLI's own language processing stops at
 // slugging and term counting; everything semantic is the agent's job.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["chore", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
+
 export async function run(positional, flags) {
   const prompt = positional.join(" ").trim();
   const projectRoot = process.cwd();

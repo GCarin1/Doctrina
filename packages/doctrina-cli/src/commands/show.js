@@ -20,6 +20,11 @@ import { c } from "../lib/colors.js";
 // conversation, not as immutable identifiers. C-refs use the criteria's own
 // explicit numbers and are as stable as the spec keeps them.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: [], string: [] };
+
 export async function run(positional, _flags) {
   const ref = positional[0];
   const projectRoot = process.cwd();

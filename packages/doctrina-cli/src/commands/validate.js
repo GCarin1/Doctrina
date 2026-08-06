@@ -19,6 +19,11 @@ import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 // `doctrina --help` and is never nagged about omissions.
 const CATALOG_THRESHOLD = 8;
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["fix", "json"], string: [] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   const errors = [];

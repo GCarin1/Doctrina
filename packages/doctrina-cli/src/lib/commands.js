@@ -13,7 +13,7 @@ export const COMMAND_NAMES = [
   // bootstrap / day-to-day
   "init", "intake", "work",
   // authoring
-  "spec", "change", "contract", "decision", "skill", "intent",
+  "spec", "change", "contract", "decision", "skill", "intent", "adapter",
   // read / orient
   "prime", "context", "show", "search", "status", "next", "why", "handoff", "constitution",
   // gates
@@ -58,6 +58,9 @@ export const OPERATIONS = [
   ["skill list", "List skills with their descriptions"],
   ["skill sync", "Mirror skill frontmatter descriptions into index.json"],
   ["skill suggest", "Surface fix-shaped lessons worth a skill (--write scaffolds)"],
+  ["adapter list", "Inventory agent adapters: installed / available / native"],
+  ["adapter add", "Install one agent adapter (additive; never touches AGENTS.md)"],
+  ["adapter remove", "Delete the files an adapter installed"],
   ["intent add", "Append a new product intent anchor post-intake (- [SC5] ...)"],
   ["intent list", "List product.md intent anchors in document order"],
   ["analyze", "Inspect a change folder before applying"],
@@ -117,7 +120,7 @@ export const SURFACE_END = "<!-- doctrina:surface:end -->";
 // therefore cannot ship invisible to AGENTS.md).
 export const SURFACE_GROUPS = [
   ["Start", ["init", "intake", "work"]],
-  ["Author", ["spec", "change", "contract", "decision", "skill", "intent"]],
+  ["Author", ["spec", "change", "contract", "decision", "skill", "intent", "adapter"]],
   ["Read / orient", ["prime", "context", "show", "search", "status", "next", "why", "handoff", "constitution"]],
   ["Gates", ["analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor"]],
   ["Maintain", ["templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade"]],
@@ -173,6 +176,63 @@ export function surfaceMarkdown() {
 // The block as written to AGENTS.md: markers wrapping the generated section.
 export function surfaceBlock() {
   return `${SURFACE_BEGIN}\n${surfaceMarkdown()}\n${SURFACE_END}`;
+}
+
+// The block's CANONICAL POSITION, defined once — by the shipped template,
+// which is the only place the intended layout exists.
+//
+// `templates update` used to APPEND the block, so the same CLI produced two
+// different AGENTS.md layouts: third section on a fresh `init`, dead last
+// after an `upgrade` — behind 117 lines the agent reads first, which is the
+// attention problem design principle #2 exists to prevent, and with no
+// heading of its own before it, so a hierarchical parse read the command
+// surface as content of "## What never goes in this file" (audit item C4).
+//
+// Returns { after, before }: the heading text the block follows in the
+// template, and the heading it precedes. Either may be null.
+export function surfaceAnchors(templateText) {
+  const block = findSurfaceBlock(templateText);
+  if (!block) return { after: null, before: null };
+  const headingsBefore = [...templateText.slice(0, block.start).matchAll(/^##\s+.*$/gm)];
+  const headingAfter = templateText.slice(block.end).match(/^##\s+.*$/m);
+  return {
+    after: headingsBefore.length > 0 ? headingsBefore[headingsBefore.length - 1][0].trim() : null,
+    before: headingAfter ? headingAfter[0].trim() : null,
+  };
+}
+
+// Place `block` into `text` at the canonical position, returning the new
+// text. Used by both `init` (via the template, which already has it there)
+// and `templates update` (on a project that has none), so the two produce
+// the same layout and running it twice is a no-op.
+export function placeSurfaceBlock(text, block, anchors) {
+  const existing = findSurfaceBlock(text);
+  if (existing) return text.slice(0, existing.start) + block + text.slice(existing.end);
+
+  const lines = text.split("\n");
+  const headingIndex = (heading) =>
+    heading ? lines.findIndex((l) => l.trim() === heading) : -1;
+
+  // Preferred: immediately after the section the template puts it after.
+  const afterIdx = headingIndex(anchors.after);
+  if (afterIdx >= 0) {
+    let end = afterIdx + 1;
+    while (end < lines.length && !/^##\s+/.test(lines[end])) end += 1;
+    const head = lines.slice(0, end).join("\n").replace(/\s+$/, "");
+    const tail = lines.slice(end).join("\n");
+    return `${head}\n\n${block}\n\n${tail}`.replace(/\n{3,}/g, "\n\n");
+  }
+
+  // Next: immediately before the section the template puts it before.
+  const beforeIdx = headingIndex(anchors.before);
+  if (beforeIdx >= 0) {
+    const head = lines.slice(0, beforeIdx).join("\n").replace(/\s+$/, "");
+    const tail = lines.slice(beforeIdx).join("\n");
+    return `${head}\n\n${block}\n\n${tail}`.replace(/\n{3,}/g, "\n\n");
+  }
+
+  // Last resort: append, with a trailing newline so the file stays well-formed.
+  return `${text.replace(/\s+$/, "")}\n\n${block}\n`;
 }
 
 // Locate the managed block in an AGENTS.md text. Returns

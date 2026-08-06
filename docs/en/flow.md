@@ -44,7 +44,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>ambiguity smell-test"]
     end
 
-    close["doctrina close (id...)<br/>analyze → ADR checkpoint → apply → verify → coverage → trace → archive → validate → skill suggest"]
+    close["doctrina close (id...)<br/>analyze → ADR checkpoint → apply → verify → coverage → trace → docs → archive → validate → skill suggest"]
 
     subgraph GOV["Decisions & integration surface"]
         direction TB
@@ -147,8 +147,10 @@ flowchart TD
 
 **One-shot close.**
 - `doctrina close <id...>` — runs analyze → ADR checkpoint (advisory) →
-  apply → verify → coverage → trace → archive → validate → skill suggest
-  (advisory) in one pass, stopping at the first failure. Takes multiple ids.
+  apply → verify → coverage → trace → **docs** → archive → validate → skill
+  suggest (advisory) in one pass, stopping at the first failure. Takes
+  multiple ids. The docs gate refuses a change that alters a documented
+  surface with no documentation beside it; `--force` records the gap.
 
 **Decisions & contracts.**
 - `doctrina decision new → accept → land` (or `supersede`), `decision list` —

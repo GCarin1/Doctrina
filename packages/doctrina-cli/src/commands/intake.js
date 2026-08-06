@@ -14,6 +14,11 @@ import { c } from "../lib/colors.js";
 // and capability specs. The CLI does no interpretation — it scaffolds and
 // instructs; the agent thinks.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["force"], string: ["text"] };
+
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {

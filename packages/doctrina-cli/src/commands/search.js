@@ -17,6 +17,11 @@ import { c } from "../lib/colors.js";
 
 const MAX_MATCHES_PER_FILE = 5;
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["archive"], string: [] };
+
 export async function run(positional, flags) {
   const terms = positional.map((t) => t.toLowerCase()).filter(Boolean);
   if (terms.length === 0) {

@@ -4,6 +4,18 @@ import { cliVersion } from "./version.js";
 
 export const SCHEMA_VERSION = "0.1.0";
 
+// The artifact categories a well-formed index.json carries. ONE definition,
+// consumed by `blank()` (what `init` writes) and by `templates check` /
+// `templates update` (what a project is measured against).
+//
+// There used to be two: the shape `init` materialised from a template file
+// and the shape `templates check` required. Nothing compared them, so when
+// `contracts` was added to the expected shape and not to the template,
+// every project was born needing a scaffold update (audit item C5).
+export const ARTIFACT_CATEGORIES = Object.freeze([
+  "specs", "decisions", "changes", "changes_archive", "skills", "contracts",
+]);
+
 export function indexPath(projectRoot) {
   return path.join(projectRoot, ".doctrina", "index.json");
 }
@@ -46,12 +58,7 @@ export function blank(projectName, date) {
         version: "0.1.0",
         last_updated: date,
       },
-      specs: [],
-      decisions: [],
-      changes: [],
-      changes_archive: [],
-      skills: [],
-      contracts: [],
+      ...Object.fromEntries(ARTIFACT_CATEGORIES.map((cat) => [cat, []])),
     },
   };
 }

@@ -9,6 +9,16 @@ Every command of the `doctrina` CLI, with flags and exit codes. Run
 |------|--------|
 | `--help`, `-h` | Print top-level usage, or per-command help if placed after a command. |
 | `--version`, `-v` | Print the package version. |
+| `--debug` | On an unexpected error, also print the stack trace. |
+
+**Flag position does not matter.** Each command declares the flags it
+accepts, and the CLI parses in two passes — first to resolve the command
+name, then with that command's declared flags. So
+`doctrina change new --chore my-id "Title"` and
+`doctrina change new my-id "Title" --chore` are identical. A static test
+asserts every flag a command reads, and every flag its `--help` documents
+in the Options block, is declared — an undeclared flag used to swallow the
+next argument as its value and report a misleading error.
 
 ## Exit codes
 
@@ -35,11 +45,17 @@ doctrina init [options]
 | `--from <path>` | none | Local conventions directory; folds its `AGENTS.md` and `.doctrina/product.md` (when present) into the new project before scaffolding. Filesystem paths only — no URLs. |
 | `--intake <file>` | none | Full project description; stored verbatim at `.doctrina/intake.md`, used to derive the one-line description when `--project-description` is absent, and the bootstrap playbook is printed inline — no second command needed. The scaffolded `AGENTS.md` also tells any agent to run that playbook on its own when it sees a pending intake. |
 | `--date <YYYY-MM-DD>` | system date | Override the date written into artifacts. |
-| `--force` | off | Overwrite existing files. |
+| `--force` | off | Re-scaffold a project that already exists. It re-writes only files that are still **pristine**: when `AGENTS.md` or `.doctrina/product.md` carries content you wrote, `init` refuses and names them (ADR 0016). |
+| `--overwrite-content` | off | The explicit second opt-in that lets `--force` discard authored `AGENTS.md` / `product.md`. Without it, `--force` alone cannot destroy them. |
 | `--non-interactive` | off | Fail instead of prompting for missing required values. |
 
 `init` refuses to run if `AGENTS.md` or `.doctrina/` already exist
 unless `--force` is supplied.
+
+**To add an agent to an existing project, use `doctrina adapter add
+<name>`** — not `init --force`. `adapter add` is additive and never
+touches `AGENTS.md` or `product.md`; `init --force` re-scaffolds and now
+refuses when either carries authored content.
 
 On an interactive terminal, `init` also offers the adapter install as
 a wizard step when `--agent` was not given (answer `none` to skip);
@@ -498,6 +514,46 @@ indexes it — so authoring a skill is "fill in", not "start from blank".
 200; the git source degrades silently to archive-only when there is no
 repo. Read-only without `--write`.
 
+## `doctrina adapter list` / `add` / `remove`
+
+Add, remove, and inventory the per-agent adapter files that point at
+`AGENTS.md` (ADR 0016).
+
+```
+doctrina adapter list
+doctrina adapter add gemini
+doctrina adapter remove gemini
+```
+
+Before this command, adding an adapter to an existing project meant
+`doctrina init --agent <name> --force` — and that regenerated `AGENTS.md`
+and `.doctrina/product.md` from blank templates, destroying hand-authored
+rules and the product definition with no warning. `adapter add` is
+**strictly additive**: it writes that adapter's own files and never reads
+or writes `AGENTS.md`, `.doctrina/product.md`, or any other artifact.
+
+`adapter list` reports three states, because "no adapter installed" and
+"no adapter needed" used to be indistinguishable:
+
+| State | Meaning |
+|-------|---------|
+| `installed` | The adapter's files are present in this project. |
+| `available` | It ships files and none are installed. |
+| `native` | The agent reads `AGENTS.md` directly and needs no file at all (`amp`, `codex`, `devin`, `factory`, `jules`). |
+
+`adapter remove` deletes only the files that adapter created. A file you
+edited after install is yours — it is kept, and named, unless `--force`.
+
+**Custom adapters.** A directory at `.doctrina/templates/adapters/<name>/`
+is installable by name and takes precedence over a bundled adapter of the
+same name. Templates there use the same tokens as the bundled ones; the
+`AGENTS_MD_PATH` token resolves to the correct relative path for the file's
+depth, so a nested command file points at `../../AGENTS.md` on its own.
+
+| Flag | Purpose |
+|------|---------|
+| `--force` | With `add`, overwrite an existing file; with `remove`, delete a file that was edited after install. |
+
 ## `doctrina intent add "<text>"` / `list`
 
 Post-intake intent evolution. Capabilities born after the intake —
@@ -605,11 +661,20 @@ Walks `AGENTS.md`, `.doctrina/product.md`, and
 schema field that is missing — including whether the AGENTS.md
 **doctrina:surface block** (the CLI-owned, marker-delimited command
 catalog generated from the installed CLI; ADR 0015) is present and
-current. It also verifies every **installed agent adapter** (CLAUDE.md,
-GEMINI.md, `.cursor/rules/…`, …) still references `AGENTS.md`: adapters
-are thin pointers at the hub, which is why one surface-block refresh
-reaches every installed agent — a broken pointer is reported with the
-fix. Read-only; never modifies any files. Exits 0 when every
+current. It also verifies every installed **hub pointer** still references
+`AGENTS.md`. A hub pointer is an adapter file whose template declares the
+`{{AGENTS_MD_PATH}}` token — `CLAUDE.md`, `GEMINI.md`,
+`.cursor/rules/00-doctrina.mdc`, and so on. Those are the files that route
+an agent at the hub, which is why one surface-block refresh reaches every
+installed agent. Slash-command shims (`.claude/commands/doctrina-*.md`)
+are **not** pointers: they invoke the CLI and reach the hub through their
+parent pointer file, so requiring them to name `AGENTS.md` was a false
+failure on every clean install.
+
+Every finding names the command that resolves it, or says plainly that
+repair is manual. A test executes each printed remedy and asserts the
+finding clears — a remedy the CLI cannot execute and verify is not a
+remedy. Read-only; never modifies any files. Exits 0 when every
 recommended section is present, 1 otherwise.
 
 Distinct from `validate`: `validate` answers "is this a
@@ -967,7 +1032,7 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Drives analyze → **ADR checkpoint** (advisory: the accepted ADRs whose
 text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
-`change apply` → verify → `coverage --strict` → trace →
+`change apply` → verify → `coverage --strict` → trace → **docs** →
 `change archive` → validate → **skill suggest** (advisory: fix-shaped
 lessons not yet captured, surfaced while they are fresh), stopping at
 the first failure with the exact command to rerun. The coverage gate is
@@ -976,8 +1041,21 @@ under the hood), so a deliberately deferred spec elsewhere in the tree
 cannot block an unrelated close; a change with no deltas gates on the
 whole tree. verify is skipped (with a note) when no `verify.json` is
 declared; trace and both advisories never block. A driver over the
-existing commands — it adds no checks of its own — so the agent makes
-one call instead of nine.
+existing commands — it adds one check of its own, the docs gate — so
+the agent makes one call instead of nine.
+
+**The docs gate.** A change that alters a documented surface — a
+command, a flag, an exit code — closes only when documentation moved
+with it. A docs phase scheduled *after* the work never happens, so the
+requirement sits inside the close. Detection is deterministic on both
+sides: the surface signals are read from the change's own proposal and
+deltas (with the scaffold's boilerplate subtracted, so the template's
+own command references are not mistaken for authored intent), and
+whether docs moved is read from git — the working tree plus this
+branch's commits against the default branch. Outside a git repository
+the gate cannot see what moved and stays silent rather than accusing.
+`--force` closes anyway and records the gap in the ledger, exactly as
+`change archive --force` does.
 
 Multiple ids close in sequence, each independently; the exit code is
 the worst per-id result. Preview what close would refuse with
@@ -985,7 +1063,7 @@ the worst per-id result. Preview what close would refuse with
 
 | Flag | Purpose |
 |------|---------|
-| `--force` | Pass through to `change archive` (archive even if verification is incomplete; records the gap). |
+| `--force` | Pass through to `change archive` (archive even if verification is incomplete), and close past a failed docs gate — both record the gap. |
 
 ## `doctrina why <capability>`
 
@@ -1228,6 +1306,15 @@ An orchestrator over the pieces that already exist, in order:
    added since init; a legacy hand-written surface section is replaced
    by the managed block), and append missing recommended sections /
    index.json fields (additive-only outside the block).
+
+   The block has **one canonical position**, defined by the shipped
+   template and used by both `init` and `upgrade`: immediately after
+   "Working from intent". A project that has no block gets one placed
+   there rather than appended, so upgrading does not bury the command
+   surface behind everything the agent reads first. Running it twice is
+   a no-op. In preview, the pending change is shown as a real diff —
+   the lines that would change, or the block body and its destination —
+   rather than a one-line summary.
 2. `index rebuild` — regenerate index.json from the tree and migrate the
    `framework_version` stamp to the running CLI.
 3. `validate` (`--fix` under `--write`) — surface anything the upgrade

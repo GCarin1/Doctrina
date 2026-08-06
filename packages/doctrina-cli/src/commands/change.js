@@ -14,6 +14,11 @@ import { suggest } from "../lib/suggest.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["all", "chore", "design", "force", "no-spec"], string: ["reason"] };
+
 export async function run(positional, flags) {
   const sub = positional[0];
   switch (sub) {

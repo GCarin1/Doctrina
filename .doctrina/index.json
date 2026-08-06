@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.13.0",
-  "last_updated": "2026-07-19",
+  "last_updated": "2026-08-06",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,8 +15,8 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.27.0",
-        "last_updated": "2026-07-19",
+        "version": "0.30.0",
+        "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
       {
@@ -35,8 +35,8 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.3.0",
-        "last_updated": "2026-07-02",
+        "version": "0.4.0",
+        "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
           "SC3"
@@ -46,8 +46,8 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.3.0",
-        "last_updated": "2026-07-02",
+        "version": "0.4.1",
+        "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
       {
@@ -62,8 +62,8 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.10.0",
-        "last_updated": "2026-07-19",
+        "version": "0.13.2",
+        "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
       {
@@ -195,6 +195,14 @@
         "status": "accepted",
         "date": "2026-07-19",
         "landed": "2026-07-19 — shipped in 0.13.0; regeneration covered by `packages/doctrina-cli/test/integration.test.js` (init/templates/upgrade surface tests) and `packages/doctrina-cli/test/commands.test.js` (catalog↔block parity)"
+      },
+      {
+        "id": "0016",
+        "path": ".doctrina/decisions/0016-adapters-are-their-own-additive-concern-not-a-side-effect-of-init.md",
+        "title": "Adapters are their own additive concern, not a side effect of init",
+        "status": "accepted",
+        "date": "2026-08-06",
+        "landed": "2026-08-06 — covered by the adapter and `init --force` tests in `packages/doctrina-cli/test/integration.test.js`"
       }
     ],
     "changes": [],
@@ -240,6 +248,105 @@
             "capability": "cli",
             "operation": "MODIFIED"
           },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0004-docs-accuracy-gate",
+        "title": "Docs accuracy gate: check truth, not only shape",
+        "path": ".doctrina/changes/archive/2026-08-06-0004-docs-accuracy-gate",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0005-docs-ship-with-change",
+        "title": "Docs ship inside the change, never after it",
+        "path": ".doctrina/changes/archive/2026-08-06-0005-docs-ship-with-change",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0006-adapter-command",
+        "title": "Adapter command: adding an agent stops destroying project content",
+        "path": ".doctrina/changes/archive/2026-08-06-0006-adapter-command",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0007-remedies-that-resolve",
+        "title": "Adapter pointer check targets hub pointers; every remedy resolves its finding",
+        "path": ".doctrina/changes/archive/2026-08-06-0007-remedies-that-resolve",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0008-per-command-flags",
+        "title": "Flag specs live with their command; a static test proves none is undeclared",
+        "path": ".doctrina/changes/archive/2026-08-06-0008-per-command-flags",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0009-surface-block-placement",
+        "title": "Surface block has one canonical position, for init and upgrade alike",
+        "path": ".doctrina/changes/archive/2026-08-06-0009-surface-block-placement",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0010-one-index-definition",
+        "title": "One definition of a correct index.json",
+        "path": ".doctrina/changes/archive/2026-08-06-0010-one-index-definition",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
           {
             "capability": "templates",
             "operation": "MODIFIED"
