@@ -1,3 +1,4 @@
+// @ts-check
 // The exit-code contract (audit item C7).
 //
 // Code 1 used to mean three different things, and an agent driving the

@@ -1,3 +1,4 @@
+// @ts-check
 import { spawnSync } from "node:child_process";
 
 // One place that knows how to ask git a question and how to interpret not

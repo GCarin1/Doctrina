@@ -1,12 +1,14 @@
 #!/usr/bin/env node
+// @ts-check
 import process from "node:process";
 import { parseArgs } from "./lib/args.js";
 import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
-import { surfaceHelp } from "./lib/commands.js";
+import { surfaceHelp, OPERATIONS } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
+import { recordUsage } from "./lib/usage.js";
 import { wantsJson, emitJson, captureOutput, stripAnsi } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
@@ -154,4 +156,14 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).then((code) => process.exit(code ?? 0));
+main(process.argv.slice(2)).then((code) => {
+  // Record which operation ran, if and only if the operator asked for it
+  // by setting DOCTRINA_USAGE_LOG (M8). Off by default, local file only,
+  // no arguments captured, and never fatal. See lib/usage.js.
+  recordUsage(
+    process.argv.slice(2).filter((a) => !a.startsWith("-")),
+    code,
+    new Set(OPERATIONS.map((o) => o[0])),
+  );
+  process.exit(code ?? 0);
+});

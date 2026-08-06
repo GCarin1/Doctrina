@@ -1,3 +1,4 @@
+// @ts-check
 import { OPERATIONS, COMMAND_NAMES } from "../lib/commands.js";
 import { c } from "../lib/colors.js";
 

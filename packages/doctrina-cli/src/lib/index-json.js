@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import { read, write, exists } from "./fs-ops.js";
 import { cliVersion } from "./version.js";

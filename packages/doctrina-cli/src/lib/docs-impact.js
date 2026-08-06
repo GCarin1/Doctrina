@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { isFile, read, walk } from "./fs-ops.js";

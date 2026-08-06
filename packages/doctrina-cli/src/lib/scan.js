@@ -1,3 +1,4 @@
+// @ts-check
 import { getHeader, getSection } from "./doc-model.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
@@ -93,6 +94,7 @@ export function decisionEntry(text, basename, prev, date) {
   if (summary) entry.summary = summary;
   return entry;
 }
+
 
 // Regenerate the index object from the artifacts on disk. The files are
 // the source of truth; fields with no on-disk source (project name,

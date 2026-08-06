@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { appendFileSync } from "node:fs";
@@ -64,6 +65,7 @@ async function closeOne(projectRoot, id, flags) {
   const archiveFlags = force ? new Map([["force", true]]) : new Map();
   // Set by the docs gate when it fails, so a --force close can record the
   // gap in the ledger after the archive lands.
+  /** @type {{ signals: string[] } | null} */
   let docsGap = null;
 
   // Scope the coverage gate to the capabilities THIS change touches (its
@@ -72,6 +74,7 @@ async function closeOne(projectRoot, id, flags) {
   // item 4). A change with no deltas (chore / metadata-only) falls back to
   // the whole-tree gate — there is no narrower honest scope for it.
   const touched = touchedCapabilities(projectRoot, id);
+  /** @type {FlagMap} */
   const coverageFlags = new Map([["strict", true]]);
   let coverageRerun = "doctrina coverage --strict";
   if (touched.length > 0) {

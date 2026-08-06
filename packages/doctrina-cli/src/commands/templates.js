@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "../lib/fs-ops.js";
@@ -154,10 +155,12 @@ function updateTemplates(flags) {
   }
 
   // Markdown files: append stub sections for missing recommended headings.
-  for (const [rel, sections] of [
+  /** @type {Array<[string, string[]]>} */
+  const markdownTargets = [
     ["AGENTS.md", AGENTS_SECTIONS],
     [path.join(".doctrina", "product.md"), PRODUCT_SECTIONS],
-  ]) {
+  ];
+  for (const [rel, sections] of markdownTargets) {
     const filePath = path.join(projectRoot, rel);
     if (!isFile(filePath)) continue;
     const text = read(filePath);

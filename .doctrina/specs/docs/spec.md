@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** SC3
 **Last updated:** 2026-08-06
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -32,6 +32,8 @@ this spec; humans and agents do.
   H1 shape, line caps, and the PT source note.
 - The system shall include a single H1 at the top of every document.
 - The system shall hold documentation to accuracy as well as shape: `scripts/check-docs.js` shall verify that every documented command resolves to the CLI catalog, that every flag documented in a reference flag table is declared by that command, that every relative link resolves, that every fenced block showing CLI output carries an explicit illustrative marker, and that paired EN and PT pages stay within a declared length ratio.
+- The system shall reject a CLI reference that documents a command absent from the catalog, as well as a catalog command absent from the reference, so drift is caught in both directions.
+- The system shall reject a README whose stated command or operation count differs from the catalog.
 
 ### Event-driven
 
@@ -41,6 +43,7 @@ this spec; humans and agents do.
 - When a new topic earns a doc, both EN and PT files shall be added in
   the same change.
 - When a command is removed from the CLI catalog or a flag is renamed, `scripts/check-docs.js` shall fail until the documentation follows.
+- When the documentation gate runs, the system shall validate every project under examples/ against the installed CLI.
 
 ### State-driven
 
@@ -94,6 +97,10 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
    `<!-- illustrative -->` marker; invocation-only blocks do not need one —
    `packages/doctrina-cli/test/check-docs.test.js`.
 10. [verified] Paired EN and PT pages stay within the declared length ratio, so a divergence filename parity cannot see is reported — `packages/doctrina-cli/test/check-docs.test.js`.
+11. [verified] A reference section naming a command the catalog does not carry fails the docs gate — `scripts/check-docs.js` check 11, exercised by `packages/doctrina-cli/test/check-docs.test.js`.
+12. [verified] A README stating the wrong command count fails the docs gate — `scripts/check-docs.js` check 12.
+13. [verified] Every project under `examples/` validates against the installed CLI — the "Examples validate" job in `.github/workflows/ci.yml`.
+14. [verified] An upgrade guide exists in both languages and states what `upgrade` does and does not touch — `docs/en/upgrading.md`, `docs/pt/upgrading.md`.
 
 ## Out of scope for this spec
 

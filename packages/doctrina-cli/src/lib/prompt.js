@@ -1,3 +1,4 @@
+// @ts-check
 import readline from "node:readline";
 import process from "node:process";
 

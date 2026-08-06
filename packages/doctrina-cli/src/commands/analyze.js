@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
@@ -56,6 +57,37 @@ export function collectAnalysis(projectRoot, changeDir) {
     const text = read(proposalPath);
     if (/^##\s+Why\b/m.test(text)) results.push(pass(`proposal.md has a "## Why" section`));
     else results.push(fail(`proposal.md missing "## Why" section`));
+
+    // A section that still holds only its scaffold comment was never
+    // written. The check above only proved the HEADING survived, which is
+    // why six changes closed in one session with every rationale section
+    // empty: the planning step wrote to the file with a pattern that did
+    // not match its line endings, and nothing downstream looked inside.
+    // For a framework whose whole premise is recoverable provenance, an
+    // archived change that cannot say why it happened is the defect.
+    // Only `Why` and `What` are required. They are what makes a change
+    // recoverable a year later — the reason it exists and the shape it
+    // took. `Scope boundaries` and `Open questions` are legitimately empty
+    // on a change that has neither, and demanding the word "None." there
+    // is friction that buys nothing.
+    const hollow = [];
+    for (const m of text.matchAll(/^##\s+(.+?)[ \t]*\r?$/gm)) {
+      const heading = m[1].trim();
+      if (!/^(Why|What)$/i.test(heading)) continue;
+      const start = m.index + m[0].length;
+      const next = text.slice(start).search(/^##\s+/m);
+      const body = (next < 0 ? text.slice(start) : text.slice(start, start + next));
+      // Strip comments; anything left that is not whitespace is real prose.
+      if (body.replace(/<!--[\s\S]*?-->/g, "").trim() === "") hollow.push(heading);
+    }
+    if (hollow.length > 0) {
+      results.push(fail(
+        `proposal.md has ${hollow.length} unwritten section${hollow.length === 1 ? "" : "s"} ` +
+        `(${hollow.join(", ")}) — a heading that survived is not a section that was written`,
+      ));
+    } else {
+      results.push(pass("proposal.md states why and what"));
+    }
   }
 
   // tasks.md

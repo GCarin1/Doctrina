@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -87,6 +88,7 @@ function skillSuggest(args, flags) {
 
   // Two deterministic sources, deduped by slug. `seen` guards against a lesson
   // appearing twice (e.g. a fix committed and later archived as a change).
+  /** @type {SkillCandidate[]} */
   const candidates = [];
   const seen = new Set();
 
@@ -99,6 +101,7 @@ function skillSuggest(args, flags) {
       if (!FIX_SHAPED.test(id)) continue;
       const slug = skillSlug(id);
       if (seen.has(slug)) continue;
+      /** @type {SkillCandidate} */
       const cand = { id, slug, source: "change", from: name };
       if (captured(cand)) continue; // captured (any slug) or cited by an existing skill
       const proposal = path.join(archiveDir, name, "proposal.md");
@@ -204,6 +207,7 @@ function gitFixCommits(projectRoot, { since, limit }) {
   const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
   if (r.error || r.status !== 0 || !r.stdout) return [];
 
+  /** @type {SkillCandidate[]} */
   const out = [];
   const seen = new Set();
   for (const record of r.stdout.split("\x1e")) {

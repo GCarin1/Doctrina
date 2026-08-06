@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.33.0
+**Version:** 0.35.0
 
 ## Purpose
 
@@ -56,6 +56,9 @@ owns the surface itself and the conventions every command shares.
 - The system shall accept a JSON output flag on every command and emit a payload carrying a schema version, the invocation, a success flag, and the exit code.
 
 - The system shall derive a decision's index record in exactly one place, so that creating an ADR and rebuilding the index produce the same record.
+- The system shall typecheck its own source with checkJs and shall emit nothing, so the published package stays plain ESM that node runs with no transpile step.
+- The system shall declare the shapes it passes between modules — the index record, the flag map, the artifact model, the context pack item — rather than relying on inference from a first use.
+- The system shall record which operation ran only when the operator names a log file, shall record the operation alone and never its arguments, and shall make no network call.
 
 ### Event-driven
 
@@ -313,6 +316,9 @@ owns the surface itself and the conventions every command shares.
 - When a command with no structured payload of its own runs with the JSON flag, the system shall return its human output as string arrays inside the versioned envelope, with terminal colour removed.
 
 - When `doctrina decision scope` runs, the system shall report the capabilities each ADR governs and propose one for each unscoped ADR from the archived change that cites it, applying them only under --write.
+- When the declared verification checks run, the system shall run the typecheck first, before the test suite.
+- When recording a usage sample fails for any reason, the system shall continue and report the command's own result unchanged.
+- When `doctrina metrics --commands` runs, the system shall report the operations invoked and the catalog operations never invoked in that sample.
 
 ### State-driven
 
@@ -407,6 +413,12 @@ The CLI is v0 spec-compliant when:
 16. [verified] The envelope's success flag and exit code agree with the process exit status, and JSON output carries no ANSI escapes even when colour is forced — verified by `packages/doctrina-cli/test/json-output.test.js`.
 17. [verified] `decision scope` proposes from the ledger, prefers it over text matching, and writes only under --write — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 18. [verified] `decision new` and `index rebuild` produce the same record, so a freshly created ADR is never index drift — verified by `packages/doctrina-cli/test/integration.test.js`.
+19. [verified] `tsc --noEmit` reports zero errors across every file under `packages/doctrina-cli/src/` and `scripts/` — run by `doctrina verify` and by CI.
+20. [verified] Every source file under `src/` carries `// @ts-check`, so the file stays checked in an editor that does not load the project tsconfig — `packages/doctrina-cli/test/typecheck.test.js`.
+21. [verified] The published tarball contains no TypeScript configuration or type declarations, and the package declares no runtime dependencies — `packages/doctrina-cli/package.json`.
+22. [verified] No usage file appears unless DOCTRINA_USAGE_LOG names one, and no argument, path, id or prompt reaches the log — `packages/doctrina-cli/test/usage.test.js`.
+23. [verified] An unwritable log target does not throw and does not change the command's exit code — `packages/doctrina-cli/test/usage.test.js`.
+24. [verified] A sub-operation is recorded only when the catalog carries it, so a capability argument is not mistaken for one — `packages/doctrina-cli/test/usage.test.js`.
 
 ## Out of scope for this spec
 

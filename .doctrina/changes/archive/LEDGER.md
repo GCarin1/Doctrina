@@ -26,3 +26,8 @@ One line per archived change, newest last. Appended by
 - 2026-08-06 — 0019-one-document-model — One document model owns the on-disk grammar (specs: validation MODIFIED)
 - 2026-08-06 — 0020-retrieval-context — Context assembly is retrieval, not a dump (specs: cli MODIFIED, gates MODIFIED)
 - 2026-08-06 — 0021-split-the-cli-spec-scaffolding-and-project — Split the cli spec: scaffolding and project maintenance become their own capability (specs: cli MODIFIED, scaffolding MODIFIED)
+- 2026-08-06 — 0022-typecheck-the-cli-with-checkjs-no-build-step — Typecheck the CLI with checkJs, no build step (specs: cli MODIFIED)
+- 2026-08-06 — 0023-close-the-documentation-gaps-reference-drift — Close the documentation gaps: reference drift both ways, an upgrade guide, examples in CI, and honest README claims (specs: docs MODIFIED)
+- 2026-08-06 — 0024-cut-the-0-14-0-release-changelog-version-stamps — Cut the 0.14.0 release: changelog, version stamps, and a gate that keeps them honest
+- 2026-08-06 — 0025-instrument-the-command-surface-before-shrinking — Instrument the command surface before shrinking it (specs: cli MODIFIED)
+- 2026-08-06 — 0026-proposal-sections-must-be-written-not-scaffold — Proposal sections must be written, not scaffold (specs: gates MODIFIED)

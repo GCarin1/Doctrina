@@ -1,14 +1,17 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
-import { exists, isDir, read, relPath, write } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { GIT_STATE, historyState } from "../lib/git.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { USAGE_ENV, summarise } from "../lib/usage.js";
+import { OPERATIONS } from "../lib/commands.js";
 
 // Local-only adoption metrics derived from git history. No network calls,
 // no telemetry: the numbers stay in the repository, versioned like any
@@ -19,13 +22,17 @@ const REEDIT_WINDOW_DAYS = 21;
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "save"], string: ["since"] };
+export const flags = { boolean: ["json", "save", "commands"], string: ["since"] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
+  // --commands reads the usage log rather than git history: which parts of
+  // the command surface are actually reached for (M8). Separate report,
+  // separate source, so it never dilutes the adoption metrics.
+  if (flagBool(flags, "commands", false)) return commandUsage();
   const probe = git(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
   // "No history yet" is a VALID state, not a failure — a brand-new project
   // is the most common state in which someone explores this command, and it
@@ -191,14 +198,60 @@ function pct(x) {
   return `${(x * 100).toFixed(1)}%`;
 }
 
+// Which operations were actually invoked, from the opt-in usage log. The
+// surface is 36 commands and 59 operations; the audit's charge is that some
+// exist because they were easy to add rather than because anyone reaches for
+// them. This is the evidence for that argument — or against it. Zero samples
+// is a CANDIDATE for cutting, never a verdict: a command used once a quarter
+// and a command nobody wants look identical over one week.
+function commandUsage() {
+  const target = process.env[USAGE_ENV];
+  if (!target) {
+    console.log(c.bold("Command usage") + c.gray(" — not recording"));
+    console.log("");
+    console.log(c.gray("Instrumentation is off unless you ask for it. To start a sample:"));
+    console.log("  " + c.cyan(`export ${USAGE_ENV}=$PWD/.doctrina/usage.jsonl`));
+    console.log("");
+    console.log(c.gray("One local append-only file. The operation only — never arguments,"));
+    console.log(c.gray("paths, ids or prompts. No network calls, here or anywhere in the CLI."));
+    console.log(c.gray("Run three real changes through it, then come back."));
+    return 0;
+  }
+  if (!isFile(target)) {
+    console.log(c.bold("Command usage") + c.gray(` — ${USAGE_ENV} set, no samples yet`));
+    return 0;
+  }
+  const catalog = OPERATIONS.map((o) => o[0]);
+  const { samples, used, unused } = summarise(read(target), catalog);
+  console.log(c.bold("Command usage") + c.gray(` — ${samples} invocation${samples === 1 ? "" : "s"} recorded`));
+  console.log("");
+  for (const [op, n] of used) {
+    console.log(`  ${String(n).padStart(5)}  ${c.cyan(op)}`);
+  }
+  console.log("");
+  console.log(c.gray(`${unused.length} of ${catalog.length} operations never invoked in this sample:`));
+  for (let i = 0; i < unused.length; i += 4) {
+    console.log("  " + c.gray(unused.slice(i, i + 4).map((o) => o.padEnd(22)).join("")));
+  }
+  console.log("");
+  console.log(c.gray("Never-invoked is a question, not an answer. Before cutting one, ask"));
+  console.log(c.gray("whether it went unused because nobody wants it or because nobody"));
+  console.log(c.gray("could find it — the second is what AGENTS.md discovery fixed in 0.13."));
+  return 0;
+}
+
 export const help = `
-Usage: doctrina metrics [--since <days|date>] [--save]
+Usage: doctrina metrics [--since <days|date>] [--save] [--commands]
 
 Derive adoption metrics from LOCAL git history: commit count, revert
 count and rate, Conventional-Commit fix share, top-churn files, and a
 ${REEDIT_WINDOW_DAYS}-day re-edit proxy rate. No network calls; nothing leaves the repo.
 
 Flags:
+  --commands         Report which operations were actually invoked, from the
+                     opt-in usage log. Recording is OFF unless DOCTRINA_USAGE_LOG
+                     names a file; only the operation is recorded, never
+                     arguments, and nothing leaves the machine.
   --since <n|date>   Window: a day count (default 90) or any git-parseable
                      date ("2026-01-01", "3 months ago").
   --save             Write .doctrina/metrics/YYYY-MM-DD.json and print the

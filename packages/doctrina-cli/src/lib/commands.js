@@ -1,3 +1,4 @@
+// @ts-check
 // Single canonical list of top-level `doctrina` commands.
 //
 // This is the one place the command surface is named. `src/index.js` builds

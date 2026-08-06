@@ -27,6 +27,13 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      # TypeScript as a CHECKER, never a build step (audit item M5): the CLI
+      # still ships plain ESM that node runs directly, and `noEmit` keeps it
+      # that way. This catches the class of typo a test suite only finds when
+      # it happens to execute the branch.
+      - name: Typecheck (tsc --noEmit over checkJs)
+        run: npx tsc --noEmit
+
       - name: Run CLI test suite
         run: node --test
         working-directory: packages/doctrina-cli
@@ -36,6 +43,20 @@ jobs:
 
       - name: Index drift gate (doctrina index rebuild --check)
         run: node packages/doctrina-cli/src/index.js index rebuild --check
+
+      # The shipped examples are documentation that happens to be executable
+      # (audit item D5). Both had rotted to two errors each — indexes written
+      # by 0.10.0, and an EARS state-driven requirement in the retrofit
+      # example that stated its invariant as a fact instead of a `shall`,
+      # which is precisely the mistake the example exists to teach against.
+      - name: Examples validate against the installed CLI
+        shell: bash
+        run: |
+          for dir in examples/*/; do
+            [ -d "$dir/.doctrina" ] || continue
+            echo "──── $dir"
+            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate )
+          done
 
       # The context budget is a gate, not a report (ADR 0022). It fails when
       # a pack's irreducible core — root rules, product truth, the capability

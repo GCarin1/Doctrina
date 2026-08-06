@@ -12,11 +12,26 @@ Split the cli spec: scaffolding and project maintenance become their own capabil
 
 ## What
 
-<!-- The shape of the change: artifacts created or modified, specs affected. -->
+- **Deduplicated** 9 requirements and 6 acceptance criteria — artefacts of
+  `change apply` not being idempotent when a delta is re-applied.
+- **Split** along the seam the spec's own Purpose already named: the
+  commands that materialise and maintain a project (`init`, `adapter`,
+  `templates`, `hooks`, `index`, `upgrade`, `watch`, `metrics`,
+  `completion`) become the `scaffolding` capability. 30 requirements and 4
+  acceptance criteria moved VERBATIM.
+- Both specs point at each other in Purpose and Out of scope, so no fact
+  lives in two files.
+
+486 → 431 lines for `cli`, 206 for `scaffolding`, and every capability
+pack in the repository fits the default budget.
 
 ## Scope boundaries
 
-<!-- Anything adjacent that this change deliberately does NOT touch. -->
+- No requirement was rewritten while moving. One change, one intent — the
+  cap is a reading budget, not permission to lose the contract.
+- `cli` remains over its soft cap. A second seam exists (the surface
+  contract vs the authoring commands) and is left for its own change rather
+  than compounded into this one.
 
 ## Verification
 
@@ -33,4 +48,4 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 
 ## Open questions
 
-<!-- List unresolved decisions. Empty if none. -->
+None.

@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -367,6 +368,7 @@ export function fitToBudget(pack, budget, capability = null) {
   // summarising the whole corpus costs less than deleting any of it. The
   // first ordering here dropped all twenty ADRs to keep seven specs whole,
   // then had to summarise the specs anyway — the worst of both.
+  /** @type {Array<[number, (item: PackItem) => void]>} */
   const ladder = [
     [TIER.DECISION, degrade],   // 1. every decision to title + summary
     [TIER.SPEC, degrade],       // 2. every unnamed capability to title + purpose

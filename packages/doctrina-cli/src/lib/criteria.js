@@ -1,3 +1,4 @@
+// @ts-check
 // Shared parser for the "## Acceptance criteria" section of a spec.
 //
 // A criterion is a numbered item that MAY span several lines (continuation

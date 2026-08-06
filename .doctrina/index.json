@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.33.0",
+        "version": "0.35.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -35,7 +35,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -46,7 +46,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.6.1",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -359,15 +359,7 @@
         "summary": "Assembly is retrieval."
       }
     ],
-    "changes": [
-      {
-        "id": "0022-typecheck-the-cli-with-checkjs-no-build-step",
-        "title": "Typecheck the CLI with checkJs, no build step",
-        "path": ".doctrina/changes/0022-typecheck-the-cli-with-checkjs-no-build-step",
-        "status": "proposed",
-        "opened": "2026-08-06"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -662,6 +654,66 @@
           },
           {
             "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0022-typecheck-the-cli-with-checkjs-no-build-step",
+        "title": "Typecheck the CLI with checkJs, no build step",
+        "path": ".doctrina/changes/archive/2026-08-06-0022-typecheck-the-cli-with-checkjs-no-build-step",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0023-close-the-documentation-gaps-reference-drift",
+        "title": "Close the documentation gaps: reference drift both ways, an upgrade guide, examples in CI, and honest README claims",
+        "path": ".doctrina/changes/archive/2026-08-06-0023-close-the-documentation-gaps-reference-drift",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0024-cut-the-0-14-0-release-changelog-version-stamps",
+        "title": "Cut the 0.14.0 release: changelog, version stamps, and a gate that keeps them honest",
+        "path": ".doctrina/changes/archive/2026-08-06-0024-cut-the-0-14-0-release-changelog-version-stamps",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": []
+      },
+      {
+        "id": "0025-instrument-the-command-surface-before-shrinking",
+        "title": "Instrument the command surface before shrinking it",
+        "path": ".doctrina/changes/archive/2026-08-06-0025-instrument-the-command-surface-before-shrinking",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0026-proposal-sections-must-be-written-not-scaffold",
+        "title": "Proposal sections must be written, not scaffold",
+        "path": ".doctrina/changes/archive/2026-08-06-0026-proposal-sections-must-be-written-not-scaffold",
+        "status": "applied",
+        "applied": "2026-08-06",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

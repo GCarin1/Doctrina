@@ -1,3 +1,4 @@
+// @ts-check
 // The one owner of the on-disk artifact grammar (audit item M3).
 //
 // `.doctrina/` is Doctrina's public API, and its specification had ten
@@ -84,6 +85,10 @@ function headerPattern(name) {
 }
 
 // Read one header. Returns { value, style, conforming, line } or null.
+/**
+ * @returns {{ value: string, style: string, indent: string, raw: string,
+ *             line: number, conforming: boolean } | null}
+ */
 export function readHeader(text, name) {
   const m = headerPattern(name).exec(String(text));
   if (!m) return null;
@@ -111,7 +116,15 @@ export function getHeader(text, name) {
 // already present when the header exists. Returns the new text, or null
 // when the header is absent — a set that silently does nothing is exactly
 // the drift this prevents.
-export function setHeader(text, name, value, { style } = {}) {
+/**
+ * @param {string} text
+ * @param {string} name
+ * @param {string} value
+ * @param {{ style?: string }} [opts] Force a header style; defaults to the
+ *   style already present, so a set never silently reformats the artifact.
+ */
+export function setHeader(text, name, value, opts = {}) {
+  const { style } = opts;
   const existing = readHeader(text, name);
   if (!existing) return null;
   const useStyle = style ?? existing.style;
@@ -154,6 +167,7 @@ export function readAllHeaders(fullText) {
 // Headers whose written form is recognised but not canonical, optionally
 // also flagging the wrong style for a known artifact kind. This is what
 // `validate` reports and `validate --fix` repairs.
+/** @param {string} text @param {string} [kind] */
 export function nonConformingHeaders(text, kind = ARTIFACT_KIND.UNKNOWN) {
   const want = canonicalStyle(kind);
   const out = [];
@@ -169,6 +183,7 @@ export function nonConformingHeaders(text, kind = ARTIFACT_KIND.UNKNOWN) {
 // Rewrite every recognised header into the canonical form for `kind`.
 // Content is never touched — only the header's own punctuation and, when
 // the kind is known, its style.
+/** @param {string} text @param {string} [kind] */
 export function repairHeaders(text, kind = ARTIFACT_KIND.UNKNOWN) {
   const want = canonicalStyle(kind);
   const lines = String(text).split("\n");

@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, read, relPath, walk } from "../lib/fs-ops.js";

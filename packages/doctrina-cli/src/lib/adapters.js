@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "./fs-ops.js";

@@ -1,3 +1,4 @@
+// @ts-check
 // Structural EARS checks for capability specs. The clarify command catches
 // word-level smells; this catches grammar-shape problems per EARS section.
 // All findings are warnings: specs evolve, validation should not block.

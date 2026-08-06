@@ -3,7 +3,7 @@
 // acceptance criteria (.doctrina/specs/docs/spec.md). Zero deps.
 //
 // Two families of check. SHAPE (1-5) asks "is this file laid out right?".
-// ACCURACY (6-10) asks "is what it says true?" — the family that was
+// ACCURACY (6-13) asks "is what it says true?" — the family that was
 // missing, which let a page document a removed command, a renamed flag, or
 // a stale exit code while `doctrina verify` stayed green (audit item D1).
 //
@@ -31,6 +31,14 @@
 //      paths (`/en/...`) are routes, not filesystem paths, and are exempt.
 //  10. EN and PT files for the same page stay within a length ratio.
 //      Filename parity is not content parity.
+//  11. The cli-reference documents no command that no longer exists — the
+//      reverse of check 6, and the direction that lets a page outlive the
+//      command it describes.
+//  12. A README that states a command COUNT states it correctly. Both
+//      READMEs had drifted (35 claimed, 36 real) with every gate green.
+//  13. Every "**Status:** vX.Y.Z" stamp equals the package version. The
+//      canonical version has one home; every other mention is a copy, and
+//      the copies have drifted to three different values twice.
 //
 // Wired into `doctrina verify` via .doctrina/verify.json. Exits 1 on any
 // violation, 0 when clean.
@@ -40,9 +48,10 @@
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { COMMAND_NAMES } from "../packages/doctrina-cli/src/lib/commands.js";
+import { COMMAND_NAMES, OPERATIONS } from "../packages/doctrina-cli/src/lib/commands.js";
 import { declaredFlags } from "../packages/doctrina-cli/src/lib/flag-catalog.js";
 
+const OPERATION_NAMES = OPERATIONS.map((o) => o[0]);
 const INFRASTRUCTURE = new Set(["_sidebar.md"]);
 const CAP_EXEMPT = new Set(["cli-reference.md"]); // lookup reference, read per-section
 const LINE_CAP = 250;
@@ -69,7 +78,9 @@ const pt = mdFiles(ptDir);
 for (const f of en) if (!pt.includes(f)) problems.push(`parity: docs/en/${f} has no docs/pt/${f}`);
 for (const f of pt) if (!en.includes(f)) problems.push(`parity: docs/pt/${f} has no docs/en/${f}`);
 
-for (const [dir, files, isPt] of [[enDir, en, false], [ptDir, pt, true]]) {
+/** @type {Array<[string, string[], boolean]>} */
+const localePasses = [[enDir, en, false], [ptDir, pt, true]];
+for (const [dir, files, isPt] of localePasses) {
   for (const f of files) {
     if (INFRASTRUCTURE.has(f)) continue;
     const rel = `docs/${isPt ? "pt" : "en"}/${f}`;
@@ -219,6 +230,74 @@ for (const f of en) {
       `content-parity: docs/pt/${f} is ${t} lines against docs/en/${f}'s ${e} ` +
         `(ratio ${ratio.toFixed(2)}, outside ${RATIO_MIN}-${RATIO_MAX}) — the pages have diverged`,
     );
+  }
+}
+
+// 11. The cli-reference documents no command that no longer exists (D3).
+//     The suite already checks the FORWARD direction — every catalog
+//     operation has a section — which catches a command shipped without
+//     docs. It could not catch the reverse: a section surviving a command's
+//     removal or rename, which is worse, because a reader following it gets
+//     "unknown command" from a page that looks authoritative. Generating the
+//     whole reference from the catalog was the other option and was
+//     rejected: it is 1,400 lines of hand-written rationale, examples and
+//     flag tables that no generator produces, and generated English
+//     summaries in the PT copy would break the parity rule above.
+for (const lang of ["en", "pt"]) {
+  const refPath = path.join(root, "docs", lang, "cli-reference.md");
+  if (!existsSync(refPath)) continue;
+  const text = readFileSync(refPath, "utf8");
+  for (const m of text.matchAll(/^##\s+`(?:npx\s+doctrina-cli|doctrina)\s+([a-z][a-z0-9-]*)/gm)) {
+    if (!known.has(m[1])) {
+      problems.push(
+        `stale: docs/${lang}/cli-reference.md documents \`doctrina ${m[1]}\`, ` +
+          "which is not in the command catalog (renamed or removed?)",
+      );
+    }
+  }
+}
+
+// 12. A README that states a command COUNT states it correctly (D6). The
+//     count is the claim most likely to rot — it changes every time a
+//     command ships and nothing reads it — and both READMEs had drifted
+//     (35 claimed, 36 real) while every other gate stayed green.
+const counts = { commands: COMMAND_NAMES.length, operations: OPERATION_NAMES.length };
+for (const readme of ["README.md", "README.pt.md"]) {
+  const p = path.join(root, readme);
+  if (!existsSync(p)) continue;
+  const text = readFileSync(p, "utf8");
+  for (const [noun, actual] of [["commands", counts.commands], ["operations", counts.operations]]) {
+    // Match "with 36 commands" / "com 36 comandos", the claim form only —
+    // prose that merely contains a number near the word is not a claim.
+    const re = new RegExp(`(?:with|com)\\s+(\\d+)\\s+(?:${noun}|${noun === "commands" ? "comandos" : "opera\\u00e7\\u00f5es"})`, "gi");
+    for (const m of text.matchAll(re)) {
+      if (Number.parseInt(m[1], 10) !== actual) {
+        problems.push(
+          `count: ${readme} claims ${m[1]} ${noun}, but the catalog has ${actual}`,
+        );
+      }
+    }
+  }
+}
+
+// 13. Every version stamp quotes packages/doctrina-cli/package.json. The
+//     canonical version lives in exactly one place and every other mention
+//     is a copy; copies drift. They have drifted to three different values
+//     twice now — fixed in 0.10.0 by hand, and found at 0.13.0 / 0.13.0 /
+//     0.11.0 while cutting 0.14.0, with every other gate green. The
+//     `cut-a-release` skill lists reconciling them as a manual step, which
+//     is precisely the kind of step that gets skipped.
+const pkgPath = path.join(root, "packages", "doctrina-cli", "package.json");
+if (existsSync(pkgPath)) {
+  const version = JSON.parse(readFileSync(pkgPath, "utf8")).version;
+  for (const stamped of ["README.md", "README.pt.md", "packages/doctrina-cli/README.md"]) {
+    const p = path.join(root, stamped);
+    if (!existsSync(p)) continue;
+    for (const m of readFileSync(p, "utf8").matchAll(/\*\*Status:\*\*\s+v(\d+\.\d+\.\d+)/g)) {
+      if (m[1] !== version) {
+        problems.push(`version: ${stamped} is stamped v${m[1]}, but the package is ${version}`);
+      }
+    }
   }
 }
 

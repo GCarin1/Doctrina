@@ -1,3 +1,4 @@
+// @ts-check
 // ANSI colour helpers. Falls back to plain text when:
 //   - stdout is not a TTY, OR
 //   - the NO_COLOR environment variable is set (any value), OR

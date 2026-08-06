@@ -28,10 +28,33 @@ function makeTempProject() {
 // finishing, and verifying the work before archiving — an empty "- [ ]"
 // left from the scaffold now FAILS analyze and cannot be ticked, so the
 // helper writes a real task line first.
+// Plan a scaffolded change the way an agent is required to: real tasks in
+// place of the placeholder boxes, and a proposal that actually says why the
+// change exists and what it does. Both are gates (`analyze` refuses either
+// left as scaffold), so a fixture that skips them is not testing the flow
+// the framework prescribes — it is testing a state the framework rejects.
 function planTasks(tmp, id) {
-  const p = path.join(tmp, ".doctrina", "changes", id, "tasks.md");
-  if (existsSync(p)) {
-    writeFileSync(p, readFileSync(p, "utf8").replace(/^(\s*-\s*\[[ xX]\])\s*$/gm, "$1 implement the change"));
+  const dir = path.join(tmp, ".doctrina", "changes", id);
+  const tasks = path.join(dir, "tasks.md");
+  if (existsSync(tasks)) {
+    writeFileSync(tasks, readFileSync(tasks, "utf8").replace(/^(\s*-\s*\[[ xX]\])\s*$/gm, "$1 implement the change"));
+  }
+  const proposal = path.join(dir, "proposal.md");
+  if (existsSync(proposal)) {
+    let text = readFileSync(proposal, "utf8");
+    const nl = text.includes("\r\n") ? "\r\n" : "\n";
+    for (const [heading, prose] of [["Why", "Because the fixture needs a reason."],
+                                    ["What", "The shape of the change under test."]]) {
+      const at = text.search(new RegExp(`^##[ \\t]+${heading}[ \\t]*\\r?$`, "m"));
+      if (at < 0) continue;
+      const headEnd = text.indexOf("\n", at) + 1;
+      const rest = text.slice(headEnd);
+      const nextAt = rest.search(/^##[ \t]/m);
+      const body = nextAt < 0 ? rest : rest.slice(0, nextAt);
+      if (body.replace(/<!--[\s\S]*?-->/g, "").trim() !== "") continue;
+      text = text.slice(0, headEnd) + nl + prose + nl + nl + (nextAt < 0 ? "" : rest.slice(nextAt));
+    }
+    writeFileSync(proposal, text);
   }
 }
 

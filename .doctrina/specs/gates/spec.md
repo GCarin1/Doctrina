@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.6.0
+**Version:** 0.6.1
 
 ## Purpose
 
@@ -313,6 +313,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not raise the documentation gate outside a git repository, where it cannot tell what moved.
 - The system shall not evaluate a gate at a transition where its question is not meaningful; the structural gate asks whether a change is safe to apply, so archiving shall not re-ask it.
 - The system shall not silently omit an artifact from a pack; every degradation and omission shall be named in the report.
+- The system shall not pass a change whose proposal carries a section holding only its scaffold comment; a heading that survived is not a section that was written.
 
 ## Acceptance criteria
 
@@ -340,6 +341,7 @@ The gate surface is spec-compliant when:
 12. [verified] Degradation order is deterministic: the same tree and budget produce the same pack, everything degrades before anything drops, and the core is never touched — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 13. [verified] An ADR with no Scope: header appears in every scoped pack, and a scoped one appears only where it governs — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 14. [verified] A pre-change tree with no config block reads, rebuilds, and packs unchanged — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+15. [verified] A freshly scaffolded change fails analyze naming each unwritten section, and passes once they carry prose — `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 

@@ -1,3 +1,4 @@
+// @ts-check
 // Date helpers. Single source so the CLI emits consistent YYYY-MM-DD strings.
 
 export function today(now = new Date()) {

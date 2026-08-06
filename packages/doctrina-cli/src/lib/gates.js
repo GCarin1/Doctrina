@@ -1,3 +1,4 @@
+// @ts-check
 import { getSection } from "./doc-model.js";
 import path from "node:path";
 import { appendFileSync, writeFileSync } from "node:fs";

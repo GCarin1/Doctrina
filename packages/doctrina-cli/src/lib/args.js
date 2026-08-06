@@ -1,3 +1,4 @@
+// @ts-check
 // Tiny argv parser. Returns { positional: string[], flags: Map<string, string|boolean> }.
 // Supports:
 //   --flag                          -> flags.set("flag", true)

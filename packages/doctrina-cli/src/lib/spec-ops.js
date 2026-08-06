@@ -1,3 +1,4 @@
+// @ts-check
 // Structured spec operations (ADR 0007 / review F3). A MODIFIED spec delta
 // historically carried prose ("flip criterion 2 to verified", "bump to
 // 0.3.0") that a human merged by hand — the single most error-prone step in

@@ -1,3 +1,4 @@
+// @ts-check
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, renameSync, unlinkSync, rmdirSync } from "node:fs";
 import path from "node:path";
 
