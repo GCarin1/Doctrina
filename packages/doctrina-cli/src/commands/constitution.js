@@ -1,9 +1,11 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { listHeader } from "../lib/scan.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // The project's standing rules in one read — Spec Kit parity for its
 // `constitution.md`, but ASSEMBLED, not a new home for facts. Doctrina's
@@ -16,10 +18,15 @@ import { c } from "../lib/colors.js";
 // To change a principle, supersede its ADR; to change a non-goal, edit
 // product.md. The command never writes — it has nothing of its own to own.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
+
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const project = projectName(projectRoot);

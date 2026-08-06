@@ -14,5 +14,12 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/gcarin1/doctrina.git"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   }
 }

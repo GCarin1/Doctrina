@@ -1,16 +1,23 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, mkdirp, read, relPath, walk, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
+
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "force", "write"], string: ["since"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -81,6 +88,7 @@ function skillSuggest(args, flags) {
 
   // Two deterministic sources, deduped by slug. `seen` guards against a lesson
   // appearing twice (e.g. a fix committed and later archived as a change).
+  /** @type {SkillCandidate[]} */
   const candidates = [];
   const seen = new Set();
 
@@ -93,6 +101,7 @@ function skillSuggest(args, flags) {
       if (!FIX_SHAPED.test(id)) continue;
       const slug = skillSlug(id);
       if (seen.has(slug)) continue;
+      /** @type {SkillCandidate} */
       const cand = { id, slug, source: "change", from: name };
       if (captured(cand)) continue; // captured (any slug) or cited by an existing skill
       const proposal = path.join(archiveDir, name, "proposal.md");
@@ -198,6 +207,7 @@ function gitFixCommits(projectRoot, { since, limit }) {
   const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
   if (r.error || r.status !== 0 || !r.stdout) return [];
 
+  /** @type {SkillCandidate[]} */
   const out = [];
   const seen = new Set();
   for (const record of r.stdout.split("\x1e")) {
@@ -280,11 +290,11 @@ function skillNew(args, flags) {
     return 1;
   }
 
-  const templatesDir = locateTemplatesDir();
-  const tplPath = path.join(templatesDir, "skill.md.template");
-  const body = substitute(read(tplPath), { SKILL_NAME: name });
+  const tpl = readTemplate(projectRoot, "skill.md.template");
+  const body = substitute(tpl.body, { SKILL_NAME: name });
   write(targetPath, body, { force });
-  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}`);
+  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}` +
+    (tpl.source === "project" ? c.gray(" (project template)") : ""));
 
   const date = today();
   const index = idx.load(projectRoot);
@@ -395,7 +405,7 @@ function parseFrontmatter(text, key) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 

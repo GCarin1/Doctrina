@@ -1,3 +1,5 @@
+// @ts-check
+import { getSectionParagraph } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -7,6 +9,7 @@ import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Provenance explainer (review 2026-06-27 passive-user feature #5): answer
 // "why does this capability exist / why was it built this way?" by assembling
@@ -16,11 +19,16 @@ import { suggest } from "../lib/suggest.js";
 // asks; the tool answers from the artifacts, instead of grepping by hand.
 // Read-only. Builds on the Realizes:/trace provenance (ADR 0006/0011).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
+
 export async function run(positional, _flags) {
   const cap = positional[0];
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   const known = isDir(specsDir) ? readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md"))) : [];
@@ -72,7 +80,7 @@ export async function run(positional, _flags) {
   const status = specHeader(text, "Status") ?? "—";
   const impl = specHeader(text, "Implementation") ?? "—";
   console.log(`    ${c.gray("status:")} ${status}   ${c.gray("implementation:")} ${impl}`);
-  const purpose = sectionParagraph(text, "Purpose");
+  const purpose = getSectionParagraph(text, "Purpose");
   if (purpose) console.log("    " + purpose.replace(/\s+/g, " ").trim());
 
   // Dependency graph, both directions (the machine-readable **Depends on:**
@@ -227,28 +235,6 @@ function productAnchors(projectRoot) {
     if (m && !out.has(m[1])) out.set(m[1], m[2].trim());
   }
   return out;
-}
-
-// First non-comment paragraph under a "## <name>" heading.
-function sectionParagraph(text, name) {
-  const lines = text.split(/\r?\n/);
-  let inSection = false;
-  const buf = [];
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      if (inSection) break;
-      if (new RegExp(`^##\\s+${name}\\b`, "i").test(line)) inSection = true;
-      continue;
-    }
-    if (!inSection) continue;
-    if (/^\s*<!--/.test(line) || /-->/.test(line)) continue;
-    if (line.trim() === "") {
-      if (buf.length) break;
-      continue;
-    }
-    buf.push(line.trim());
-  }
-  return buf.join(" ");
 }
 
 // Accepted ADRs whose body names the capability (word-ish boundary).

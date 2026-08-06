@@ -1,8 +1,9 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import { specHeader, deriveIndex } from "../lib/scan.js";
 import { setHeader, bumpVersion, setCriterionMark } from "../lib/spec-ops.js";
 import * as idx from "../lib/index-json.js";
@@ -10,8 +11,14 @@ import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["new", "list", "set"];
+
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "bug", "force"], string: ["bump", "criterion", "implementation", "status", "version"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -44,13 +51,13 @@ export async function run(positional, flags) {
     return 1;
   }
 
-  const templatesDir = locateTemplatesDir();
   const tplName = bug ? "spec-bug.md.template" : "spec.md.template";
-  const tplPath = path.join(templatesDir, tplName);
+  const tpl = readTemplate(projectRoot, tplName);
   const date = today();
-  const body = substitute(read(tplPath), { CAPABILITY: capability, DATE: date });
+  const body = substitute(tpl.body, { CAPABILITY: capability, DATE: date });
   write(targetPath, body, { force });
-  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}${bug ? " (bug-spec shape)" : ""}`);
+  console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}${bug ? " (bug-spec shape)" : ""}` +
+    (tpl.source === "project" ? c.gray(" (project template)") : ""));
 
   const index = idx.load(projectRoot);
   // Two axes: a fresh capability scaffold is a draft document for a
@@ -197,7 +204,7 @@ function specSet(args, flags) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 

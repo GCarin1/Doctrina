@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -6,6 +7,7 @@ import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // The build/verify gate `validate` is not. `validate` checks the shape of
 // the artifact tree; it never runs the project, so a repo that does not
@@ -29,10 +31,15 @@ const STARTER = {
   ],
 };
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "clean", "force", "init", "list", "strict"], string: ["signoff"] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   // --clean is the reproducibility lint (review G4): `verify` runs the
@@ -66,7 +73,10 @@ export async function run(_positional, flags) {
     // the false confidence this command exists to prevent. Fail loudly.
     console.error(c.red("error:") + ` no ${CONFIG_REL} — nothing to verify`);
     console.error(c.gray("hint: ") + "scaffold one with `doctrina verify --init`, then declare your typecheck/test/build commands");
-    return 1;
+    // PRECONDITION, not a gate failure: the work may be perfect; this
+    // project has simply never declared a build gate. An agent reading
+    // exit 1 would iterate on the code forever (C7).
+    return EXIT.PRECONDITION;
   }
 
   let config;

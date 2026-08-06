@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina-example-urls",
-  "framework_version": "0.10.0",
-  "last_updated": "2026-06-29",
+  "framework_version": "0.14.0",
+  "last_updated": "2026-08-06",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -32,14 +32,16 @@
         "path": ".doctrina/decisions/0001-adopt-fastapi.md",
         "title": "Adopt FastAPI for the v0",
         "status": "accepted",
-        "date": "2026-06-01"
+        "date": "2026-06-01",
+        "summary": "The v0 of this example uses FastAPI."
       },
       {
         "id": "0002",
         "path": ".doctrina/decisions/0002-use-sqlite-for-v0.md",
         "title": "Use SQLite for v0 storage",
         "status": "accepted",
-        "date": "2026-06-01"
+        "date": "2026-06-01",
+        "summary": "Use SQLite, single file at the project working directory"
       }
     ],
     "changes": [],

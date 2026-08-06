@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Last updated:** 2026-07-19
-**Version:** 0.10.0
+**Last updated:** 2026-08-06
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -44,6 +44,12 @@ The CLI consumes this spec to drive `doctrina init` and the
   braces around an uppercase/digit/underscore token).
 - The system shall reserve and document the canonical token set in the
   templates `README.md` so users and CLI authors share one vocabulary.
+- The system shall treat an adapter file as a hub pointer only when its template declares the AGENTS_MD_PATH token; slash-command shims reach the hub through their parent pointer file and shall not be required to name it.
+- The system shall define one canonical position for the doctrina:surface block, taken from the shipped AGENTS.md template, and shall use it for both `init` and `templates update`.
+- The system shall hold one definition of the artifact categories a well-formed index.json carries, and shall use it both to write the index at init and to measure a project in `templates check`.
+- The system shall resolve every template through a chain, per file: a template under the project's `.doctrina/templates/` wins, and anything absent falls back to the copy shipped with the installed CLI.
+- The system shall require every command to declare a purpose and a when-trigger, and shall generate the AGENTS.md surface block from those declarations, organised by the moment the command is reached for.
+- The system shall hold the generated surface block to a declared line budget, reporting an overrun as a finding rather than growing the block.
 
 ### Event-driven
 
@@ -62,6 +68,14 @@ The CLI consumes this spec to drive `doctrina init` and the
   to the CLI. Each command is a thin prompt that invokes the CLI, which stays
   the single source of truth.
 - When `doctrina templates check` runs, the system shall verify each installed agent adapter (inventoried from the shipped adapter template tree) still references `AGENTS.md`, and shall report a finding with the fix when the pointer is gone.
+- When an adapter is resolved by name, the system shall prefer a project-local directory at `.doctrina/templates/adapters/<name>/` over a bundled adapter of the same name, and shall report which source it used.
+- When an adapter is resolved by name, the system shall prefer a project-local directory at `.doctrina/templates/adapters/<name>/` over a bundled adapter of the same name, and shall report which source it used.
+- When `doctrina templates check` reports a finding, the system shall name the command that resolves that finding, or state that repair is manual.
+- When `templates update` inserts a missing doctrina:surface block, the system shall place it at the canonical position rather than appending it, and a second run shall change nothing.
+- When `templates update` previews a doctrina:surface change, the system shall show the differing lines, or the block body and its destination, rather than a one-line summary.
+- When a scaffolding command uses a project template rather than the bundled one, the system shall say so.
+- When `doctrina templates list` runs, the system shall label each template with the source it resolved from and mark a project file that shadows a bundled one.
+- When a project is scaffolded or upgraded, the system shall write a marker-delimited agent-facing changelog naming only what alters agent behaviour in the installed version.
 
 ### State-driven
 
@@ -78,6 +92,10 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not introduce conditional logic, loops, or includes
   into the template syntax. Anything richer is a CLI concern, not a
   template concern.
+- The system shall not name a remedy that cannot resolve the finding it is attached to.
+- The system shall not scaffold a project that immediately reports a pending template update.
+- The system shall not require a project to vendor the whole template tree in order to override one file.
+- The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
 
 ### Optional
 
@@ -117,6 +135,18 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
    each token in `.doctrina/templates/README.md`; a template using an
    undocumented token fails `packages/doctrina-cli/test/templates.test.js`.
 5. [verified] A broken adapter pointer is a named `templates check` finding — verified by `packages/doctrina-cli/test/integration.test.js`.
+6. [verified] A project-local adapter is installable by name and overrides a bundled adapter of the same name — verified by `packages/doctrina-cli/test/integration.test.js`.
+7. [verified] A project-local adapter is installable by name and overrides a bundled adapter of the same name — verified by `packages/doctrina-cli/test/integration.test.js`.
+8. [verified] A fresh `doctrina init --agent <name>` passes `templates check` for every bundled adapter — verified by `packages/doctrina-cli/test/remedies.test.js`.
+9. [verified] Every finding's printed remedy, executed verbatim, clears that finding — verified by `packages/doctrina-cli/test/remedies.test.js`.
+10. [verified] A fresh `init` and an `upgrade --write` of a block-less tree produce the same section order, and a second upgrade is a no-op — verified by `packages/doctrina-cli/test/integration.test.js`.
+11. [verified] The preview names the destination and shows the block content or the changed lines — verified by `packages/doctrina-cli/test/integration.test.js`.
+12. [verified] A freshly initialised tree needs zero `templates update` operations and passes `templates check` — verified by `packages/doctrina-cli/test/integration.test.js`.
+13. [verified] `init` writes every artifact category the schema declares, stamped with the running CLI version — verified by `packages/doctrina-cli/test/integration.test.js`.
+14. [verified] A project-local template overrides the bundled one and its tokens still substitute, while a template with no local override falls back — verified by `packages/doctrina-cli/test/integration.test.js`.
+15. [verified] An empty project templates directory behaves exactly as before the chain existed — verified by `packages/doctrina-cli/test/integration.test.js`.
+16. [verified] Every command declares a purpose, a when-trigger, and a known moment, and the block carries those triggers within its declared budget — verified by `packages/doctrina-cli/test/commands.test.js`.
+17. [verified] The agent-facing changelog is three to six agent-scoped bullets for the running version, written at init and refreshed by upgrade — verified by `packages/doctrina-cli/test/commands.test.js`, `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 

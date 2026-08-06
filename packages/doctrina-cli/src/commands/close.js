@@ -1,10 +1,14 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
+import { appendFileSync } from "node:fs";
 import { exists, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "./change.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
+import { checkDocsImpact } from "../lib/docs-impact.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -21,6 +25,11 @@ import * as skill from "./skill.js";
 // rerun, so the agent makes one call and the human approves once. It is a
 // driver over the existing commands; it adds no new checks of its own.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "force"], string: [] };
+
 export async function run(positional, flags) {
   if (positional.length === 0) {
     console.error(c.red("error:") + " close requires a change <id> (e.g. doctrina close 0001-add-login)");
@@ -28,7 +37,7 @@ export async function run(positional, flags) {
   }
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   // Batch close (operator review 2026-07-19 §4.5): each id closes
@@ -54,6 +63,10 @@ export async function run(positional, flags) {
 async function closeOne(projectRoot, id, flags) {
   const force = flagBool(flags, "force", false);
   const archiveFlags = force ? new Map([["force", true]]) : new Map();
+  // Set by the docs gate when it fails, so a --force close can record the
+  // gap in the ledger after the archive lands.
+  /** @type {{ signals: string[] } | null} */
+  let docsGap = null;
 
   // Scope the coverage gate to the capabilities THIS change touches (its
   // deltas), so one deliberately deferred spec elsewhere in the tree cannot
@@ -61,6 +74,7 @@ async function closeOne(projectRoot, id, flags) {
   // item 4). A change with no deltas (chore / metadata-only) falls back to
   // the whole-tree gate — there is no narrower honest scope for it.
   const touched = touchedCapabilities(projectRoot, id);
+  /** @type {FlagMap} */
   const coverageFlags = new Map([["strict", true]]);
   let coverageRerun = "doctrina coverage --strict";
   if (touched.length > 0) {
@@ -100,11 +114,35 @@ async function closeOne(projectRoot, id, flags) {
     // trace is advisory (provenance is a warning, not a hard gate): report it,
     // never let it block the close.
     { label: "trace", rerun: "doctrina trace", run: async () => { await trace.run([], new Map()); return 0; } },
+    // Docs ship inside the change (D2): a change that alters a documented
+    // surface — a command, a flag, an exit code — closes only with the
+    // documentation that describes it. A blocking gate, because a docs
+    // phase scheduled after the work never happens; --force is the same
+    // escape hatch archive offers, and records the gap in the ledger.
+    {
+      label: "docs",
+      forceable: true,
+      rerun: "edit docs/ (EN + PT), then rerun",
+      run: async () => {
+        const r = checkDocsImpact(projectRoot, path.join(projectRoot, ".doctrina", "changes", id));
+        if (r.ok) {
+          console.log(c.green("ok") + ` ${r.reason}`);
+          return 0;
+        }
+        console.error(c.red("error:") + ` this change ${r.reason}:`);
+        for (const s of r.signals) console.error(`  - ${s}`);
+        console.error(c.gray("hint: ") +
+          "document it in docs/en/ AND docs/pt/ (the `keep-docs-en-pt-parity` skill), " +
+          "or pass --force to close anyway (records the gap)");
+        docsGap = r;
+        return 1;
+      },
+    },
     { label: "archive", rerun: `doctrina change archive ${id}${force ? " --force" : ""}`, run: () => change.run(["archive", id], archiveFlags) },
     { label: "validate", rerun: "doctrina validate", run: () => validate.run([], new Map()) },
   ];
 
-  console.log(c.bold(`Closing change ${id}`) + c.gray(" — analyze → ADR checkpoint → apply → verify → coverage → trace → archive → validate"));
+  console.log(c.bold(`Closing change ${id}`) + c.gray(" — analyze → ADR checkpoint → apply → verify → coverage → trace → docs → archive → validate"));
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
@@ -122,12 +160,29 @@ async function closeOne(projectRoot, id, flags) {
       console.error(c.red("error:") + ` ${err.message}`);
     }
     if (code !== 0) {
+      // A forceable gate under --force warns and continues, matching how
+      // `change archive --force` handles incomplete verification: the gap
+      // is recorded, not hidden.
+      if (code !== 0 && step.forceable && force) {
+        console.log(c.yellow("warn:") + ` proceeding past "${step.label}" (--force) — the gap is recorded in the ledger`);
+        continue;
+      }
       console.log("");
       console.log(c.red(`✗ close stopped at "${step.label}"`) + c.gray(` (step ${i + 1}/${steps.length})`));
       console.log(c.gray("Fix it, then rerun the step or the whole close:"));
       console.log(`    ${c.cyan(step.rerun)}`);
       console.log(`    ${c.cyan(`doctrina close ${id}`)}`);
       return 1;
+    }
+  }
+
+  // Record a forced docs gap in the ledger, so history shows the change
+  // shipped without its documentation rather than showing nothing.
+  if (docsGap) {
+    const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
+    if (isFile(ledgerPath)) {
+      appendFileSync(ledgerPath, `  - docs gap: ${id} closed with --force; ${docsGap.signals.join("; ")} documented nowhere\n`);
+      console.log(c.yellow("ledger") + " recorded the docs gap");
     }
   }
 

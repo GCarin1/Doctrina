@@ -1,10 +1,15 @@
 #!/usr/bin/env node
+// @ts-check
 import process from "node:process";
 import { parseArgs } from "./lib/args.js";
 import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
-import { surfaceHelp } from "./lib/commands.js";
+import { surfaceHelp, OPERATIONS } from "./lib/commands.js";
+import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
+import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
+import { recordUsage } from "./lib/usage.js";
+import { wantsJson, emitJson, captureOutput, stripAnsi } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -41,6 +46,7 @@ import * as report from "./commands/report.js";
 import * as completion from "./commands/completion.js";
 import * as intent from "./commands/intent.js";
 import * as upgrade from "./commands/upgrade.js";
+import * as adapter from "./commands/adapter.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
@@ -48,7 +54,7 @@ const COMMANDS = {
   intake, work, coverage, verify, contract, trace,
   status, close, review, watch, why, constitution,
   prime, handoff, show, doctor, report, completion,
-  intent, upgrade,
+  intent, upgrade, adapter,
 };
 
 const TOP_HELP = `
@@ -60,6 +66,10 @@ ${surfaceHelp()}
 Global flags:
   --help, -h           Show this message (or per-command help if after a command)
   --version, -v        Print the version
+  --debug              On an unexpected error, also print the stack trace
+
+Exit codes (a contract — an agent reads these to decide what to do next):
+${exitCodeHelp()}
 `;
 
 async function main(argv) {
@@ -69,8 +79,23 @@ async function main(argv) {
   // version and exit, looking exactly like the spec's version had been set
   // (0.11.0 field-review papercut). `-v` stays global either way.
   const versionOnly = argv.every((t) => t === "--version" || t === "-v") && argv.length > 0;
+
+  // Two passes. The first resolves only the command name, using the global
+  // flags; the second re-parses with THAT command's declared flags merged in.
+  //
+  // One global boolean list used to serve every command, and six flags read
+  // via flagBool were missing from it. An undeclared flag whose next token
+  // does not start with "-" swallows that token as its value, so
+  // `change new --chore ajuste-ci "Ajustar CI"` lost the id AND silently
+  // ignored the flag, reporting "requires a title" for a quoted title (C3).
+  // Declarations now live with the command, so a new command cannot
+  // reintroduce the gap by forgetting to edit this file.
+  const bootstrap = parseArgs(argv, { boolean: [...GLOBAL_FLAGS.boolean] });
+  const commandModule = COMMANDS[bootstrap.positional[0]];
+  const spec = commandModule?.flags;
   const { positional, flags } = parseArgs(argv, {
-    boolean: ["help", "h", "v", "force", "non-interactive", "check", "save", "bug", "write", "all", "concat", "archive", "strict", "list", "init", "fix", "once", "clean", "json"],
+    boolean: [...GLOBAL_FLAGS.boolean, ...(spec?.boolean ?? [])],
+    string: [...GLOBAL_FLAGS.string, ...(spec?.string ?? [])],
   });
 
   if (versionOnly || flags.get("v") === true) {
@@ -93,7 +118,7 @@ async function main(argv) {
     } else {
       console.error(c.gray("hint: ") + "try `doctrina --help` for the command surface");
     }
-    return 2;
+    return EXIT.USAGE;
   }
 
   if (flags.get("help") || flags.get("h")) {
@@ -102,14 +127,43 @@ async function main(argv) {
   }
 
   try {
+    // --json on a command that builds no payload of its own still answers in
+    // JSON: its output is captured into a versioned envelope beside `ok` and
+    // `exit_code`. Branch on those; the lines are for completeness (M7).
+    if (wantsJson(flags) && !command.jsonNative) {
+      const { code, stdout, stderr } = await captureOutput(
+        () => command.run(positional.slice(1), flags),
+      );
+      emitJson([commandName, ...positional.slice(1)].join(" "), {
+        stdout: stdout.map(stripAnsi),
+        stderr: stderr.map(stripAnsi),
+      }, { ok: code === EXIT.OK, exitCode: code });
+      return code;
+    }
     return await command.run(positional.slice(1), flags);
   } catch (err) {
     console.error(c.red("error:") + ` ${err.message}`);
+    if (err.remedy) {
+      console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
+    }
     if (flags.get("debug") && err.stack) {
       console.error(c.gray(err.stack));
     }
-    return 1;
+    // A typed error carries its own class (precondition vs environment).
+    // An untyped throw is an unexpected failure of the work itself, which
+    // is the GATE class: something is wrong here, fix it and retry (C7).
+    return err.exitCode ?? EXIT.GATE;
   }
 }
 
-main(process.argv.slice(2)).then((code) => process.exit(code ?? 0));
+main(process.argv.slice(2)).then((code) => {
+  // Record which operation ran, if and only if the operator asked for it
+  // by setting DOCTRINA_USAGE_LOG (M8). Off by default, local file only,
+  // no arguments captured, and never fatal. See lib/usage.js.
+  recordUsage(
+    process.argv.slice(2).filter((a) => !a.startsWith("-")),
+    code,
+    new Set(OPERATIONS.map((o) => o[0])),
+  );
+  process.exit(code ?? 0);
+});

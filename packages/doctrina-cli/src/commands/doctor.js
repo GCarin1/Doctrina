@@ -1,10 +1,13 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { exists } from "../lib/fs-ops.js";
 import { collectStatus } from "./status.js";
+import { collectFindings } from "./templates.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
@@ -15,10 +18,15 @@ import { c } from "../lib/colors.js";
 
 const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
+
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   console.log(c.bold("Doctrina doctor") + c.gray(" — aggregate diagnostic (read-only):"));
@@ -84,12 +92,35 @@ export async function run(_positional, _flags) {
   if (clean.status === 0) row("ok", "clean-checkout", "no reproducibility footguns detected");
   else row("fail", "clean-checkout", "a fresh clone would not build/run as-is", "doctrina verify --clean   (fix the listed package.json footguns)");
 
-  // 5. Template shape vs the running CLI's recommendation.
-  const tmpl = runSelf(["templates", "check"], projectRoot);
-  if (tmpl.status === 0) row("ok", "templates", "project follows the current template shape");
-  else {
-    row("warn", "templates", "recommended sections/fields are missing", "doctrina templates update   (--write applies)");
-    warningsTotal += 1;
+  // 5. Template shape vs the running CLI's recommendation. The row reports
+  //    the ACTUAL findings and the remedy each one names, rather than
+  //    assuming every failure is a missing section — an adapter pointer
+  //    break was reported as "recommended sections/fields are missing" and
+  //    sent the user to `templates update`, which does not touch adapters
+  //    and so could never clear it (C2).
+  {
+    let tmplFindings = [];
+    try {
+      tmplFindings = collectFindings(projectRoot).findings;
+    } catch {
+      tmplFindings = [];
+    }
+    if (tmplFindings.length === 0) {
+      row("ok", "templates", "project follows the current template shape");
+    } else {
+      // Group by remedy so the row names what actually fixes what.
+      const byRemedy = new Map();
+      for (const f of tmplFindings) {
+        const key = f.remedy ?? "(manual repair)";
+        byRemedy.set(key, (byRemedy.get(key) ?? 0) + 1);
+      }
+      const summary = tmplFindings.length === 1
+        ? tmplFindings[0].message
+        : `${tmplFindings.length} template findings`;
+      const remedy = [...byRemedy.keys()].filter((k) => k !== "(manual repair)");
+      row("warn", "templates", summary, remedy.length === 1 ? remedy[0] : "doctrina templates check   (each finding names its own fix)");
+      warningsTotal += 1;
+    }
   }
 
   // 6. Verify configuration (the real build gate must exist to be run).

@@ -14,7 +14,7 @@
 
 > Spec-driven, AGENTS.md-native framework for multi-agent AI development.
 
-**Status:** v0.13.0 — released.
+**Status:** v0.14.0 — released.
 **Read this in [Portuguese](./README.pt.md).**
 
 ---
@@ -34,7 +34,8 @@ flowchart TD
     W --> C["doctrina context --concat<br/>(read pack)"]
     C --> E["spec delta → tasks → implement"]
     E --> CK["doctrina change check<br/>(pre-close dry-run)"]
-    CK --> AP["doctrina analyze → change apply"]
+    CK --> AN["doctrina analyze"]
+    AN -- "structural gate" --> AP["doctrina change apply"]
     AP --> GATE{"gates green?<br/>verify · coverage · trace · review"}
     GATE -- "red" --> E
     GATE -- "green" --> AR["doctrina change archive → validate"]
@@ -61,9 +62,15 @@ governs how a body of agents acts.
 
 1. **Single ownership of every fact.** Specs hold current truth. Changes hold
    transient deltas that merge into specs and disappear. ADRs hold immutable
-   decisions. No information has two homes.
+   decisions. No information has two homes. *Enforced:* the on-disk grammar
+   has one owner (ADR 0021), the command surface one catalog (ADR 0020), and
+   `index.json` one definition — each with a drift test.
 2. **Active truth stays small and dense.** Files the AI reads on every turn
-   are size-capped to fight the "lost in the middle" effect.
+   are size-capped to fight the "lost in the middle" effect. *Enforced:*
+   `doctrina context` assembles the read pack to fit a token budget rather
+   than measuring it after the fact, degrading decisions to a one-sentence
+   summary before dropping anything (ADR 0022). CI fails when a pack no
+   longer fits.
 3. **Status, not folder migration.** Items are retired by status + link, not by
    moving files (with the exception of transient changes that archive).
 4. **Single linear orchestrator by default.** Multi-agent parallelism is the
@@ -82,19 +89,21 @@ governs how a body of agents acts.
   the hub, so the hub can never lag the CLI.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 35 commands
-  covering init, intake, work, prime, spec, change, decision, contract,
-  skill, intent, analyze, clarify, context, show, search, validate, coverage,
-  trace, review, verify, close, doctor, status, why, handoff, constitution,
-  watch, templates, hooks, index, next, metrics, report, completion, and
-  upgrade.
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 36 commands
+  and 59 operations covering init, intake, adapter, work, prime, spec,
+  change, decision, contract, skill, intent, analyze, clarify, context,
+  show, search, validate, coverage, trace, review, verify, close, doctor,
+  status, why, handoff, constitution, watch, templates, hooks, index, next,
+  metrics, report, completion, and upgrade. The count is checked against
+  the catalog by `scripts/check-docs.js`, so this line cannot drift.
 - Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Seven capability specs and the ADRs 0001–0015 that describe the framework
-  (including ADR 0006, intent provenance, and ADR 0015, the CLI-owned
-  AGENTS.md surface block), plus on-demand skills capturing its own
-  maintenance procedures.
+- Eight capability specs and the ADRs 0001–0022 that describe the framework
+  (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
+  ADR 0021, the one document model; and ADR 0022, context assembly as
+  retrieval), plus on-demand skills capturing its own maintenance
+  procedures.
 - Two reference example projects (Python FastAPI greenfield, TypeScript
   Express brownfield retrofit).
 - Bilingual documentation in English and Portuguese.

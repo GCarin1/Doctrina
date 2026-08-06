@@ -1,8 +1,14 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { c } from "../lib/colors.js";
 import { isUntouchedScaffold } from "./change.js";
+
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
 
 export async function run(positional, _flags) {
   const id = positional[0];
@@ -21,6 +27,25 @@ export async function run(positional, _flags) {
   console.log(`analyzing ${relPath(projectRoot, changeDir)}/`);
   console.log("");
 
+  const results = collectAnalysis(projectRoot, changeDir);
+  for (const r of results) console.log(r.line);
+  console.log("");
+
+  const failed = results.filter((r) => r.kind === "fail").length;
+  if (failed === 0) {
+    console.log(c.green("ok") + ` ready to apply`);
+  } else {
+    console.log(c.red("fail") + ` ${failed} issue${failed === 1 ? "" : "s"}`);
+  }
+  return failed === 0 ? 0 : 1;
+}
+
+// The structural findings for a change, as data. Exported so the shared
+// gate map (`lib/gates.js`) can enforce the SAME checks on every
+// transition that needs them, instead of each command deciding for itself
+// — `change apply` used to mutate a change that `analyze` had just
+// refused (audit item C6).
+export function collectAnalysis(projectRoot, changeDir) {
   const results = [];
 
   // proposal.md
@@ -32,6 +57,37 @@ export async function run(positional, _flags) {
     const text = read(proposalPath);
     if (/^##\s+Why\b/m.test(text)) results.push(pass(`proposal.md has a "## Why" section`));
     else results.push(fail(`proposal.md missing "## Why" section`));
+
+    // A section that still holds only its scaffold comment was never
+    // written. The check above only proved the HEADING survived, which is
+    // why six changes closed in one session with every rationale section
+    // empty: the planning step wrote to the file with a pattern that did
+    // not match its line endings, and nothing downstream looked inside.
+    // For a framework whose whole premise is recoverable provenance, an
+    // archived change that cannot say why it happened is the defect.
+    // Only `Why` and `What` are required. They are what makes a change
+    // recoverable a year later — the reason it exists and the shape it
+    // took. `Scope boundaries` and `Open questions` are legitimately empty
+    // on a change that has neither, and demanding the word "None." there
+    // is friction that buys nothing.
+    const hollow = [];
+    for (const m of text.matchAll(/^##\s+(.+?)[ \t]*\r?$/gm)) {
+      const heading = m[1].trim();
+      if (!/^(Why|What)$/i.test(heading)) continue;
+      const start = m.index + m[0].length;
+      const next = text.slice(start).search(/^##\s+/m);
+      const body = (next < 0 ? text.slice(start) : text.slice(start, start + next));
+      // Strip comments; anything left that is not whitespace is real prose.
+      if (body.replace(/<!--[\s\S]*?-->/g, "").trim() === "") hollow.push(heading);
+    }
+    if (hollow.length > 0) {
+      results.push(fail(
+        `proposal.md has ${hollow.length} unwritten section${hollow.length === 1 ? "" : "s"} ` +
+        `(${hollow.join(", ")}) — a heading that survived is not a section that was written`,
+      ));
+    } else {
+      results.push(pass("proposal.md states why and what"));
+    }
   }
 
   // tasks.md
@@ -75,11 +131,11 @@ export async function run(positional, _flags) {
       const cap = capMatch ? capMatch[1] : path.basename(path.dirname(deltaPath));
 
       if (!op) {
-        results.push(fail(`  ${rel}: Operation header missing or malformed`, "  "));
+        results.push(fail(`  ${rel}: Operation header missing or malformed`));
         continue;
       }
       if (!["ADDED", "MODIFIED", "REMOVED"].includes(op)) {
-        results.push(fail(`  ${rel}: Operation "${op}" is not one of ADDED|MODIFIED|REMOVED`, "  "));
+        results.push(fail(`  ${rel}: Operation "${op}" is not one of ADDED|MODIFIED|REMOVED`));
         continue;
       }
       const targetSpec = path.join(projectRoot, ".doctrina", "specs", cap, "spec.md");
@@ -89,38 +145,29 @@ export async function run(positional, _flags) {
         // untouched `spec new` scaffold is the canonical flow (spec new →
         // ADDED delta), so it passes as a replacement; only real content fails.
         if (exists(targetSpec) && !isUntouchedScaffold(read(targetSpec), cap)) {
-          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`, "  "));
+          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`));
         } else if (exists(targetSpec)) {
-          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (replaces the untouched scaffold)`, "  "));
+          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (replaces the untouched scaffold)`));
         } else {
-          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (new)`, "  "));
+          results.push(pass(`  ${cap} (ADDED) → ${targetRel} (new)`));
         }
       } else if (op === "MODIFIED") {
         if (!exists(targetSpec)) {
-          results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`, "  "));
+          results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`));
         } else {
-          results.push(pass(`  ${cap} (MODIFIED) → ${targetRel}`, "  "));
+          results.push(pass(`  ${cap} (MODIFIED) → ${targetRel}`));
         }
       } else {
         if (!exists(targetSpec)) {
-          results.push(fail(`  ${cap} (REMOVED) but target ${targetRel} does not exist`, "  "));
+          results.push(fail(`  ${cap} (REMOVED) but target ${targetRel} does not exist`));
         } else {
-          results.push(pass(`  ${cap} (REMOVED) → ${targetRel}`, "  "));
+          results.push(pass(`  ${cap} (REMOVED) → ${targetRel}`));
         }
       }
     }
   }
 
-  for (const r of results) console.log(r.line);
-  console.log("");
-
-  const failed = results.filter((r) => r.kind === "fail").length;
-  if (failed === 0) {
-    console.log(c.green("ok") + ` ready to apply`);
-  } else {
-    console.log(c.red("fail") + ` ${failed} issue${failed === 1 ? "" : "s"}`);
-  }
-  return failed === 0 ? 0 : 1;
+  return results;
 }
 
 function pass(msg) {

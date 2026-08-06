@@ -1,3 +1,4 @@
+// @ts-check
 // Structured spec operations (ADR 0007 / review F3). A MODIFIED spec delta
 // historically carried prose ("flip criterion 2 to verified", "bump to
 // 0.3.0") that a human merged by hand — the single most error-prone step in
@@ -32,6 +33,9 @@
 // no ops block, apply falls back to the manual-merge pointer (backward
 // compatible).
 
+// The read grammar is the document model's (M3); this local pattern exists
+// only because the ops verbs REWRITE headers in place and need the prefix
+// captured to preserve it.
 const HEADER_RE = (name) =>
   new RegExp(`^(\\s*(?:-\\s+)?\\*\\*${escapeRe(name)}:\\*\\*)\\s*(.*)$`, "m");
 
@@ -57,14 +61,28 @@ export function extractOps(deltaText) {
 
 // Find the body of the first ```ops fenced block, or null if absent. The
 // info string must be exactly "ops" (case-insensitive) so a normal code
-// fence in the prose is never mistaken for operations. HTML comments are
-// stripped first: the scaffolded delta template carries an EXAMPLE ops block
-// inside its instructional comment, and executing an example against a real
-// spec is exactly the surprise this guard removes.
+// fence in the prose is never mistaken for operations.
+//
+// A fence sitting INSIDE an HTML comment is skipped: the scaffolded delta
+// template carries an EXAMPLE ops block in its instructional comment, and
+// executing an example against a real spec is exactly the surprise this
+// guard removes. The comment is skipped by POSITION, never by deleting the
+// comment text first — stripping mutated ops values that legitimately
+// contain a comment (an `<!-- illustrative -->` marker inside an
+// append-criterion landed in the spec with the marker silently gutted).
 function matchOpsBlock(text) {
-  const visible = text.replace(/<!--[\s\S]*?-->/g, "");
-  const m = visible.match(/^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/m);
-  return m ? m[1] : null;
+  const commentRanges = [];
+  for (const m of text.matchAll(/<!--[\s\S]*?-->/g)) {
+    commentRanges.push([m.index, m.index + m[0].length]);
+  }
+  const insideComment = (offset) => commentRanges.some(([a, b]) => offset >= a && offset < b);
+
+  const fenceRe = /^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
+  let m;
+  while ((m = fenceRe.exec(text))) {
+    if (!insideComment(m.index)) return m[1];
+  }
+  return null;
 }
 
 function parseOpLine(line) {
@@ -322,15 +340,82 @@ function endOfItem(lines, startIndex) {
   return i;
 }
 
+// The EARS subsections in the order the spec template lays them out. A
+// created subsection goes where a reader expects it, not at the end.
+const EARS_ORDER = ["ubiquitous", "event", "state", "unwanted", "optional"];
+const EARS_HEADINGS = {
+  ubiquitous: "### Ubiquitous",
+  event: "### Event-driven",
+  state: "### State-driven",
+  unwanted: "### Unwanted-behavior (must-not)",
+  optional: "### Optional",
+};
+
+// Create an absent `### <EARS>` subsection under `## Requirements (EARS)`,
+// carrying its first requirement, in canonical order: after the last
+// existing subsection that precedes it, or ahead of them all when none
+// does. The requirement goes in with the heading rather than in a second
+// pass, so the blank lines around the new block are exact.
+function createEarsSubsection(loc, section, value) {
+  const heading = EARS_HEADINGS[section];
+  if (!heading) return { error: `append-requirement: unknown EARS subsection "${section}"` };
+  const lines = [...loc.lines];
+
+  let insertAt = null;
+  const rank = EARS_ORDER.indexOf(section);
+  for (const token of EARS_ORDER.slice(0, rank).reverse()) {
+    const prior = loc.sections[token];
+    if (prior) {
+      // End of that subsection, trimmed back past the blank lines it trails.
+      let end = Math.min(prior.endIndex, lines.length);
+      while (end > prior.headingIndex + 1 && lines[end - 1].trim() === "") end -= 1;
+      insertAt = end;
+      break;
+    }
+  }
+  if (insertAt === null) {
+    // Nothing precedes it: place it ahead of whichever subsection currently
+    // comes first, or directly under the Requirements heading.
+    const first = EARS_ORDER.map((t) => loc.sections[t]).find(Boolean);
+    if (first) {
+      insertAt = first.headingIndex;
+    } else {
+      const reqIndex = lines.findIndex((l) => /^##\s+Requirements\b/i.test(l));
+      if (reqIndex < 0) return { error: "append-requirement: spec has no '## Requirements (EARS)' section" };
+      insertAt = reqIndex + 1;
+    }
+  }
+
+  // Exactly one blank line on each side, borrowing whichever the
+  // insertion point already provides rather than adding a second.
+  const block = [heading, "", `- ${value}`];
+  if (insertAt > 0 && lines[insertAt - 1].trim() !== "") block.unshift("");
+  if (lines[insertAt] !== undefined && lines[insertAt].trim() !== "") block.push("");
+  lines.splice(insertAt, 0, ...block);
+  return { text: lines.join("\n") };
+}
+
 // append-requirement <section>: <text> — add "- <text>" at the end of the
 // EARS subsection. A lone "-" placeholder bullet (the untouched scaffold) is
 // replaced instead of appended after, so the first real requirement does not
 // land under an empty stub.
 export function appendRequirement(text, section, value) {
-  const loc = locateRequirements(text);
+  let loc = locateRequirements(text);
   if (!loc) return { error: "append-requirement: spec has no '## Requirements (EARS)' section" };
+  if (!loc.sections[section]) {
+    // The subsection does not exist yet. Refusing here is a dead end: the
+    // author cannot hand-edit the spec (AGENTS.md forbids editing specs
+    // outside a delta) and no op creates a subsection, so a spec that was
+    // split — losing the EARS headings it had no requirements for — could
+    // never receive one again. Create it, in canonical EARS order.
+    const created = createEarsSubsection(loc, section, value);
+    if (created.error) return created;
+    return {
+      text: created.text,
+      summary: `append-requirement ${section} (created subsection): ${value.slice(0, 44)}`,
+    };
+  }
   const sec = loc.sections[section];
-  if (!sec) return { error: `append-requirement: no '### ${section}...' subsection found under Requirements` };
   const placeholder = sec.bullets.length === 1 && /^\s*-\s*$/.test(loc.lines[sec.bullets[0]]);
   if (placeholder) {
     loc.lines[sec.bullets[0]] = `- ${value}`;

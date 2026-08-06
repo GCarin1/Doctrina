@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -6,20 +7,31 @@ import * as idx from "../lib/index-json.js";
 import { deriveIndex, indexesMatch, listHeader } from "../lib/scan.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { emitJson } from "../lib/json-out.js";
+
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+// This command builds its own JSON payload; the entrypoint must not
+// wrap it in the generic envelope.
+export const jsonNative = true;
+
+export const flags = { boolean: ["json"], string: [] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   const json = flagBool(flags, "json", false);
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     const first = "doctrina init — this directory is not a Doctrina project yet";
-    console.log(json ? JSON.stringify({ actions: [first] }, null, 2) : `1. ${first}`);
+    if (json) emitJson("next", { actions: [first] });
+    else console.log(`1. ${first}`);
     return 0;
   }
 
   const actions = computeActions(projectRoot);
 
   if (json) {
-    console.log(JSON.stringify({ actions }, null, 2));
+    emitJson("next", { actions });
     return 0;
   }
 

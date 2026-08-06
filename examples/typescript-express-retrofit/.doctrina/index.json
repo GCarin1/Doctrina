@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina-example-express-retrofit",
-  "framework_version": "0.10.0",
-  "last_updated": "2026-06-29",
+  "framework_version": "0.14.0",
+  "last_updated": "2026-08-06",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -25,14 +25,16 @@
         "path": ".doctrina/decisions/0001-retain-express.md",
         "title": "Retain Express (discovered, not authored)",
         "status": "accepted (rationale recovered from team interviews)",
-        "date": "2026-06-02 (discovered while reading code)"
+        "date": "2026-06-02 (discovered while reading code)",
+        "summary": "Retain Express 4 for the v0 of the retrofit."
       },
       {
         "id": "0002",
         "path": ".doctrina/decisions/0002-in-memory-rate-limit-v0.md",
         "title": "In-memory rate-limit for v0 (discovered)",
         "status": "accepted (rationale partially recovered)",
-        "date": "2026-06-02 (discovered while reading code)"
+        "date": "2026-06-02 (discovered while reading code)",
+        "summary": "Document the in-memory choice as accepted for v0, with the two"
       }
     ],
     "changes": [],

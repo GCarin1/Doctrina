@@ -1,9 +1,11 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
 // clarify is permanently red on a PT-BR project — "some" is the verb *sumir*,
@@ -98,6 +100,11 @@ function forcedLang(flags) {
   return null;
 }
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "all"], string: ["lang"] };
+
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
 
@@ -138,7 +145,7 @@ export async function run(positional, flags) {
 // register from prose specs.
 function clarifyAll(projectRoot, lang = null) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const files = [];
   const productPath = path.join(projectRoot, ".doctrina", "product.md");

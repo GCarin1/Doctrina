@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -8,6 +9,7 @@ import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew } from "./change.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -18,11 +20,16 @@ import { changeNew } from "./change.js";
 // unproven verification). The CLI's own language processing stops at
 // slugging and term counting; everything semantic is the agent's job.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "chore", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
+
 export async function run(positional, flags) {
   const prompt = positional.join(" ").trim();
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   // --resume <id>: reprint the playbook for an existing open change rather than

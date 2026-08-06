@@ -1,6 +1,7 @@
 # ADR 0006 — Intent provenance — trace specs to product intent
 
 - **Status:** accepted
+- **Scope:** core, validation
 - **Date:** 2026-06-19
 - **Deciders:**
 - **Supersedes:** —

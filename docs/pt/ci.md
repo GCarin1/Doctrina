@@ -79,3 +79,30 @@ são complementares, não redundantes.
 - [Gating](gating.md) — quando o pipeline completo se paga.
 - [Referência do CLI](cli-reference.md) — todos os comandos e flags.
 - [Validação](validation.md) — o protocolo A/B que os números do CI alimentam.
+
+## Ponta a ponta: a instalação empacotada
+
+As suítes unitária e de integração rodam o CLI a partir do próprio
+repositório, onde os templates resolvem para o `.doctrina/` do Doctrina, os
+adapters já estão presentes e o `index.json` é o do repo, não um que o
+`init` acabou de escrever. Três defeitos reais eram invisíveis desse ponto
+de vista.
+
+O `scripts/e2e-packed.mjs` roda o CLI do jeito que um usuário instala:
+
+```
+node scripts/e2e-packed.mjs          # execução completa
+node scripts/e2e-packed.mjs --quick  # pula a varredura por adapter
+```
+
+Ele empacota o tarball, instala num diretório temporário **fora** do repo e
+conduz um projeto real por todo o ciclo — `init` → `spec new` → `work` →
+delta → `change check` → `close` → archive — com o binário instalado,
+verificando que `validate`, `templates check` e `doctor` estão verdes em
+cada passo. Depois instala cada um dos doze adapters em seu próprio projeto
+e checa todos.
+
+O `--repo <caminho>` o aponta para outro checkout, que foi como ele se
+provou: rodado contra o commit anterior às correções, ele reproduz os
+defeitos que agora guarda. O CI o executa em Linux e Windows, porque
+tratamento de caminhos é uma falha plausível que a suíte in-repo não vê.

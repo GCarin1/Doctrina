@@ -1,8 +1,10 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Category-aware full-text search across the artifact tree. Answers
 // "where is X specified / decided / proposed?" without knowing the
@@ -17,6 +19,11 @@ import { c } from "../lib/colors.js";
 
 const MAX_MATCHES_PER_FILE = 5;
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "archive"], string: [] };
+
 export async function run(positional, flags) {
   const terms = positional.map((t) => t.toLowerCase()).filter(Boolean);
   if (terms.length === 0) {
@@ -27,7 +34,7 @@ export async function run(positional, flags) {
   const includeArchive = flagBool(flags, "archive", false);
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const categories = [

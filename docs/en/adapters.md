@@ -187,10 +187,28 @@ For these five, AGENTS.md alone is sufficient. The Doctrina
 adapter directory only exists to mark the support contract
 explicitly.
 
+## Adding an adapter to an existing project
+
+Use `doctrina adapter add <name>`. It is additive: it writes that
+adapter's own files and never touches `AGENTS.md` or
+`.doctrina/product.md` (ADR 0016).
+
+```
+doctrina adapter list          # installed / available / native
+doctrina adapter add gemini
+doctrina adapter remove gemini
+```
+
+`doctrina init --agent <name>` installs an adapter while **scaffolding a
+new project**. On a project that already exists, reach for `adapter add`
+— `init --force` re-scaffolds, and it now refuses when `AGENTS.md` or
+`product.md` carries content you wrote.
+
 ## Installing more than one
 
 ```
-doctrina init --agent all
+doctrina init --agent all      # while scaffolding a new project
+doctrina adapter add claude    # on a project that already exists
 ```
 
 Installs every adapter in one pass. There is no conflict: each agent

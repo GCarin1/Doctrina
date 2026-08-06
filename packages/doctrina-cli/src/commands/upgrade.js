@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
@@ -7,6 +8,7 @@ import { cliVersion } from "../lib/version.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { today } from "../lib/dates.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as templates from "./templates.js";
 import * as validate from "./validate.js";
 
@@ -20,10 +22,15 @@ import * as validate from "./validate.js";
 // step. Preview by default; --write applies. Never rewrites user content
 // (the same additive-only bound as `templates update`).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "write"], string: [] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const writeMode = flagBool(flags, "write", false);
   const running = cliVersion();

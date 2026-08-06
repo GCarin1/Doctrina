@@ -1,3 +1,4 @@
+// @ts-check
 // Deterministic under-specification detector for free-text briefs and
 // intakes — the clarification gate (review Topic A). It does NOT judge
 // meaning (that stays the agent's job, ADR 0005); it flags input that is

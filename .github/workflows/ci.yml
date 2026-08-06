@@ -27,6 +27,13 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      # TypeScript as a CHECKER, never a build step (audit item M5): the CLI
+      # still ships plain ESM that node runs directly, and `noEmit` keeps it
+      # that way. This catches the class of typo a test suite only finds when
+      # it happens to execute the branch.
+      - name: Typecheck (tsc --noEmit over checkJs)
+        run: npx tsc --noEmit
+
       - name: Run CLI test suite
         run: node --test
         working-directory: packages/doctrina-cli
@@ -36,6 +43,58 @@ jobs:
 
       - name: Index drift gate (doctrina index rebuild --check)
         run: node packages/doctrina-cli/src/index.js index rebuild --check
+
+      # The shipped examples are documentation that happens to be executable
+      # (audit item D5). Both had rotted to two errors each — indexes written
+      # by 0.10.0, and an EARS state-driven requirement in the retrofit
+      # example that stated its invariant as a fact instead of a `shall`,
+      # which is precisely the mistake the example exists to teach against.
+      - name: Examples validate against the installed CLI
+        shell: bash
+        run: |
+          for dir in examples/*/; do
+            [ -d "$dir/.doctrina" ] || continue
+            echo "──── $dir"
+            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate )
+          done
+
+      # The context budget is a gate, not a report (ADR 0022). It fails when
+      # a pack's irreducible core — root rules, product truth, the capability
+      # spec, open changes — no longer fits, which is the signal that a spec
+      # has outgrown itself or a change has gone stale. The packs that merely
+      # degrade to fit stay green; this catches the ones that cannot.
+      - name: Context budget gate (every capability pack fits)
+        shell: bash
+        run: |
+          node packages/doctrina-cli/src/index.js context >/dev/null
+          for cap in $(ls .doctrina/specs); do
+            node packages/doctrina-cli/src/index.js context "$cap" >/dev/null
+          done
+
+  e2e:
+    name: End-to-end (packed install, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux and Windows at minimum: path handling is a plausible failure
+        # the in-repo suite cannot see, because it never installs the package.
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Packs the tarball, installs it OUTSIDE the repo, and drives a real
+      # project through the whole lifecycle with the installed binary. Three
+      # audit defects (C1, C2, C5) were invisible from a source checkout and
+      # obvious from a packed install.
+      - name: Run the packed-install harness
+        run: node scripts/e2e-packed.mjs
 
   gates:
     name: Doctrina gates (own action, strict)

@@ -13,14 +13,60 @@ terminal.
 |------|--------|
 | `--help`, `-h` | Imprime a ajuda no topo, ou ajuda por-comando se vier depois de um comando. |
 | `--version`, `-v` | Imprime a versão do pacote. |
+| `--debug` | Em erro inesperado, também imprime o stack trace. |
+
+**A posição da flag não importa.** Cada comando declara as flags que
+aceita, e o CLI faz duas passadas — a primeira resolve o nome do comando,
+a segunda reinterpreta com as flags declaradas por ele. Então
+`doctrina change new --chore meu-id "Título"` e
+`doctrina change new meu-id "Título" --chore` são idênticos. Um teste
+estático garante que toda flag que um comando lê, e toda flag que o
+`--help` dele documenta no bloco Options, está declarada — uma flag não
+declarada engolia o próximo argumento como valor e reportava um erro
+enganoso.
 
 ## Códigos de saída
 
-| Código | Significado |
-|--------|-------------|
-| 0 | Sucesso (warnings permitidos). |
-| 1 | Erro de comando: validação falhou, arquivo se recusou a sobrescrever, change não encontrado, etc. |
-| 2 | Uso incorreto: comando desconhecido, argumento obrigatório ausente, entrada malformada. |
+Um contrato de cinco classes (ADR 0018) — detalhe completo em
+[exit-codes.md](exit-codes.md).
+
+| Código | Classe | Significado | O que fazer |
+|--------|--------|-------------|-------------|
+| 0 | OK | Sucesso (warnings permitidos). | Continue. |
+| 1 | GATE | Um gate falhou — o trabalho não está pronto. | Corrija e repita. |
+| 2 | USAGE | Comando desconhecido, argumento ausente ou malformado. | Corrija a invocação. |
+| 3 | PRECONDITION | O projeto ainda não está preparado para isso. | Rode o comando da linha `hint:`. |
+| 4 | ENVIRONMENT | O ambiente não consegue executar. | Pare. |
+
+## Saída legível por máquina (`--json`)
+
+Todo comando aceita `--json`. Junto com o [contrato de códigos de
+saída](exit-codes.md), os dois formam a interface de máquina: saída
+estruturada mais um status com significado, para que um loop autônomo nunca
+precise interpretar inglês.
+
+Todo payload carrega o mesmo envelope:
+
+| Campo | Significado |
+|-------|-------------|
+| `$schema_version` | A versão do contrato do payload. Hoje `1.0.0`. |
+| `command` | A invocação que este payload descreve. |
+| `ok` | `true` quando o comando teve sucesso. |
+| `exit_code` | O status de saída do processo — a classe documentada em [exit-codes.md](exit-codes.md). |
+
+Dois níveis de suporte, declarados em vez de escondidos:
+
+- **Estruturado** — `validate`, `status`, `next`, `coverage`, `trace` montam
+  um payload que descreve o resultado, ao lado dos campos do envelope.
+- **Envelope** — todo outro comando devolve sua saída humana como arrays de
+  strings `stdout` / `stderr` dentro do envelope, com ANSI removido.
+  Ramifique por `ok` e `exit_code`; as linhas estão ali por completude, não
+  para parsing.
+
+Um comando sem nada melhor a dizer continua consumível por máquina, e é isso
+que torna "`--json` em todo comando" um fato e não uma intenção. Mais
+comandos ganham payloads estruturados com o tempo; os campos do envelope não
+mudam de forma sem um bump de `$schema_version`.
 
 ## `doctrina init`
 
@@ -38,8 +84,14 @@ doctrina init [opções]
 | `--from <path>` | nenhum | Diretório local de conventions; faz fold do `AGENTS.md` e do `.doctrina/product.md` (quando presentes) no novo projeto antes do scaffold. Só caminhos de filesystem — sem URLs. |
 | `--intake <file>` | nenhum | Descrição completa do projeto; armazenada literalmente em `.doctrina/intake.md`, usada para derivar a descrição de uma linha quando `--project-description` está ausente, e o playbook de bootstrap é impresso na hora — sem segundo comando. O `AGENTS.md` gerado também instrui qualquer agente a executar esse playbook sozinho ao ver um intake pendente. |
 | `--date <YYYY-MM-DD>` | data do sistema | Sobrescreve a data nos artefatos. |
-| `--force` | off | Sobrescreve arquivos existentes. |
+| `--force` | off | Re-esqueletiza um projeto que já existe. Reescreve apenas arquivos ainda **intocados**: quando o `AGENTS.md` ou o `.doctrina/product.md` carrega conteúdo que você escreveu, o `init` recusa e os nomeia (ADR 0016). |
+| `--overwrite-content` | off | O segundo opt-in explícito que permite ao `--force` descartar `AGENTS.md` / `product.md` autorados. Sem ela, o `--force` sozinho não consegue destruí-los. |
 | `--non-interactive` | off | Falha em vez de perguntar. |
+
+O `init` precisa de uma descrição. Num terminal ele pergunta; fora de um
+ele **recusa** (saída `2`) em vez de aceitar a string vazia que o EOF
+devolve — isso esqueletizava um projeto com descrição em branco e sem
+aviso. Passe `--project-description` ou `--intake`.
 
 Num terminal interativo, o `init` também oferece a instalação de
 adapter como passo de wizard quando `--agent` não foi passado
@@ -48,6 +100,11 @@ o prompt nunca dispara.
 
 `init` recusa se `AGENTS.md` ou `.doctrina/` já existem, a menos
 que `--force` seja passado.
+
+**Para adicionar um agente a um projeto existente, use `doctrina adapter
+add <nome>`** — não `init --force`. O `adapter add` é aditivo e nunca
+toca em `AGENTS.md` ou `product.md`; o `init --force` re-esqueletiza e
+agora recusa quando qualquer um dos dois carrega conteúdo autorado.
 
 ## `doctrina intake [<file>]`
 
@@ -216,6 +273,14 @@ Aplica cada delta encontrado em
 independente (fechamento em lote de backlog); o código de saída é o pior
 resultado por id.
 
+**Gateado por `structure`** (ADR 0017): o `apply` recusa quando o
+`analyze` reprovaria, e não escreve nada. As precondições pertencem à
+transição, não ao comando que a dirige, então o `apply` exige exatamente o
+que o caminho do `close` exige — um agente não consegue alcançar por um
+caminho um estado que outro caminho proíbe. O `--force` dispensa a
+*checagem* e registra o gap no ledger; não dispensa a operação, então um
+apply forçado por cima de um delta malformado ainda falha ao tentar lê-lo.
+
 ```
 doctrina change apply 0042-add-saml
 doctrina change apply 0042-add-saml 0043-rate-limit 0044-audit-log
@@ -261,10 +326,13 @@ doctrina change archive 0042-add-saml
 doctrina change archive 0042-add-saml 0043-rate-limit
 ```
 
-Arquivar é o ato de declarar um change terminado, então ele exige
-verificação: o CLI **recusa** (exit 1) enquanto qualquer caixa no
-`tasks.md` (incluindo os closing steps) ou na seção `## Verification`
-do proposal estiver desmarcada. Termine e marque os itens, ou passe
+Arquivar é o ato de declarar um change terminado, então ele é **gateado
+por `verification`** (ADR 0017): o CLI **recusa** (exit 1) enquanto
+qualquer caixa no `tasks.md` (incluindo os closing steps) ou na seção
+`## Verification` do proposal estiver desmarcada. Ele deliberadamente não
+re-roda o gate `structure` — aquele gate pergunta "isto é seguro de
+aplicar?", e depois de um apply bem-sucedido a checagem de alvo ADDED
+reportaria a prova do sucesso como conflito. Termine e marque os itens, ou passe
 `--force` para arquivar mesmo assim — o que imprime os itens pendentes
 e registra o gap. É a diferença entre "caixas marcadas" e "verificação
 passou".
@@ -374,6 +442,11 @@ partir da árvore.
 | Flag | Propósito |
 |------|-----------|
 | `--reason "<texto>"` | Registra na linha do ledger por que a change foi abandonada. |
+| `--force` | Pula a confirmação. **Obrigatória fora de um terminal** — abandonar deleta trabalho sem desfazer, e o CLI não trata silêncio como consentimento. |
+
+Sem `--force`, o `abandon` lista os arquivos que deletaria, diz que a
+deleção não pode ser desfeita, e pergunta. Num stdin não interativo não há
+a quem perguntar, então ele recusa (saída `2`) em vez de prosseguir.
 
 ## `doctrina decision new "<title>"`
 
@@ -437,6 +510,44 @@ doctrina decision list
 ```
 
 Read-only.
+
+## `doctrina decision scope [<número>]`
+
+Mostra quais capabilities cada ADR governa e propõe uma para todo
+ADR sem escopo.
+
+```
+doctrina decision scope
+doctrina decision scope 0007
+doctrina decision scope --write
+```
+
+Um ADR sem header `- **Scope:**` é **global**: ele entra em todo
+pack de contexto, para sempre, porque ADRs são imutáveis e nunca se
+aposentam. É isso que faz um pack de leitura padrão crescer com a
+idade do projeto em vez de com a tarefa (ADR 0022). Escopo é a
+correção — mas só se for adotado, e ninguém anota à mão quarenta
+documentos imutáveis.
+
+Então o escopo é proposto a partir de evidência que a árvore já
+guarda. O change arquivado que cita um ADR registra quais specs
+tocou (`changes_archive[].specs_affected`), e esse é o sinal mais
+forte disponível: é o que de fato se moveu. Quando nenhum change
+arquivado cita o ADR, o próprio texto dele é varrido em busca de
+ids de capability e a sugestão vem marcada como
+`text — confirm before writing`, porque ids de capability são
+palavras comuns e um escopo de "tudo" equivale a nenhum escopo.
+
+| Flag | Função |
+|------|--------|
+| `--write` | Aplica as sugestões, inserindo `- **Scope:**` após o header `Status:` de cada ADR. Sem ela, o comando apenas reporta. |
+
+Revise o que ele escreve. Um escopo estreito demais esconde uma
+decisão do pack que precisava dela, e nada detecta isso
+automaticamente — a ferramenta propõe, você decide. Deixar um ADR
+global é uma resposta legítima para decisões sobre a postura do
+projeto e não sobre uma capability. Rode `doctrina index rebuild`
+depois para refletir os escopos no `index.json`.
 
 ## `doctrina skill new <name>`
 
@@ -510,6 +621,49 @@ indexa — para que escrever a skill seja "preencher", não "começar do zero".
 `--since <ref>` varre commits em `<ref>..HEAD` em vez dos últimos 200; a
 fonte git degrada silenciosamente para apenas-archive quando não há repo.
 Read-only sem `--write`.
+
+## `doctrina adapter list` / `add` / `remove`
+
+Adiciona, remove e inventaria os arquivos de adapter por agente que
+apontam para o `AGENTS.md` (ADR 0016).
+
+```
+doctrina adapter list
+doctrina adapter add gemini
+doctrina adapter remove gemini
+```
+
+Antes deste comando, adicionar um adapter a um projeto existente
+significava `doctrina init --agent <nome> --force` — e isso regenerava o
+`AGENTS.md` e o `.doctrina/product.md` a partir de templates em branco,
+destruindo regras escritas à mão e a definição de produto sem aviso. O
+`adapter add` é **estritamente aditivo**: escreve apenas os arquivos
+daquele adapter e nunca lê ou escreve `AGENTS.md`, `.doctrina/product.md`
+ou qualquer outro artefato.
+
+O `adapter list` reporta três estados, porque "nenhum adapter instalado" e
+"nenhum adapter necessário" eram indistinguíveis:
+
+| Estado | Significado |
+|--------|-------------|
+| `installed` | Os arquivos do adapter estão presentes neste projeto. |
+| `available` | Ele entrega arquivos e nenhum está instalado. |
+| `native` | O agente lê o `AGENTS.md` direto e não precisa de arquivo nenhum (`amp`, `codex`, `devin`, `factory`, `jules`). |
+
+O `adapter remove` deleta apenas os arquivos que aquele adapter criou. Um
+arquivo que você editou depois da instalação é seu — ele é mantido, e
+nomeado, a menos que venha `--force`.
+
+**Adapters customizados.** Um diretório em
+`.doctrina/templates/adapters/<nome>/` é instalável por nome e tem
+precedência sobre um adapter empacotado de mesmo nome. Os templates de lá
+usam os mesmos tokens dos empacotados; o token `AGENTS_MD_PATH` resolve
+para o caminho relativo correto conforme a profundidade do arquivo, então
+um arquivo de comando aninhado aponta para `../../AGENTS.md` sozinho.
+
+| Flag | Função |
+|------|--------|
+| `--force` | Com `add`, sobrescreve um arquivo existente; com `remove`, deleta um arquivo editado após a instalação. |
 
 ## `doctrina intent add "<texto>"` / `list`
 
@@ -619,12 +773,21 @@ Caminha por `AGENTS.md`, `.doctrina/product.md` e
 campo de schema que esteja faltando — inclusive se o **bloco
 doctrina:surface** do AGENTS.md (o catálogo de comandos delimitado por
 marcadores, propriedade do CLI, gerado do CLI instalado; ADR 0015)
-está presente e atual. Também verifica cada **adapter de agente
-instalado** (CLAUDE.md, GEMINI.md, `.cursor/rules/…`, …): adapters são
-ponteiros finos para o hub, e é por isso que um refresh do bloco de
-superfície alcança todos os agentes instalados — um ponteiro quebrado é
-reportado com o conserto. Read-only; nunca modifica arquivos. Sai 0
-quando toda seção recomendada está presente, 1 caso contrário.
+está presente e atual. Também verifica cada **ponteiro de hub**
+instalado. Um ponteiro de hub é um arquivo de adapter cujo template
+declara o token `{{AGENTS_MD_PATH}}` — `CLAUDE.md`, `GEMINI.md`,
+`.cursor/rules/00-doctrina.mdc` e afins. São esses os arquivos que
+roteiam o agente até o hub, e é por isso que um refresh do bloco de
+superfície alcança todos os agentes instalados. Shims de slash command
+(`.claude/commands/doctrina-*.md`) **não** são ponteiros: eles invocam o
+CLI e chegam ao hub pelo arquivo-ponteiro pai, então exigir que citassem
+`AGENTS.md` era uma falha falsa em toda instalação limpa.
+
+Cada achado nomeia o comando que o resolve, ou diz claramente que o
+reparo é manual. Um teste executa cada remédio impresso e verifica que o
+achado sumiu — um remédio que o CLI não consegue executar e verificar não
+é um remédio. Read-only; nunca modifica arquivos. Sai 0 quando toda seção
+recomendada está presente, 1 caso contrário.
 
 Distinto de `validate`: `validate` responde "esta é uma árvore
 Doctrina bem-formada?"; `templates check` responde "esta árvore
@@ -999,7 +1162,7 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
 texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
-`change apply` → verify → `coverage --strict` → trace →
+`change apply` → verify → `coverage --strict` → trace → **docs** →
 `change archive` → validate → **skill suggest** (advisory: lições
 fix-shaped ainda não capturadas, sugeridas enquanto estão frescas),
 parando na primeira falha com o comando exato para reexecutar. O gate de
@@ -1008,8 +1171,21 @@ coverage é **escopado às capabilities que os deltas da change tocam**
 canto da árvore não bloqueia um close que nunca a tocou; uma change sem
 deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
 não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
-driver sobre os comandos existentes — não adiciona checagens próprias —
-então o agente faz uma chamada em vez de nove.
+driver sobre os comandos existentes — adiciona uma checagem própria, o
+gate de docs — então o agente faz uma chamada em vez de nove.
+
+**O gate de docs.** Uma change que altera uma superfície documentada —
+um comando, uma flag, um código de saída — só fecha quando a
+documentação anda junto. Uma fase de docs agendada *depois* do trabalho
+nunca acontece, então a exigência mora dentro do close. A detecção é
+determinística dos dois lados: os sinais de superfície são lidos do
+proposal e dos deltas da própria change (com o boilerplate do esqueleto
+subtraído, para que as referências a comandos do próprio template não
+sejam confundidas com intenção do autor), e se as docs andaram é lido do
+git — a árvore de trabalho mais os commits deste branch contra o branch
+padrão. Fora de um repositório git o gate não tem como ver o que mudou e
+fica em silêncio em vez de acusar. O `--force` fecha mesmo assim e
+registra o gap no ledger, exatamente como o `change archive --force`.
 
 Vários ids fecham em sequência, cada um independente; o código de saída
 é o pior resultado por id. Pré-visualize o que o close recusaria com
@@ -1017,7 +1193,7 @@ Vários ids fecham em sequência, cada um independente; o código de saída
 
 | Flag | Função |
 |------|--------|
-| `--force` | Repassa ao `change archive` (arquiva mesmo com verificação incompleta; registra o gap). |
+| `--force` | Repassa ao `change archive` (arquiva mesmo com verificação incompleta) e fecha por cima de um gate de docs reprovado — ambos registram o gap. |
 
 ## `doctrina why <capability>`
 
@@ -1075,6 +1251,14 @@ drift, migra o carimbo) e reimprime o `doctrina next`. Com debounce; ignora o
 Deriva métricas de adoção do **histórico git local**. Zero
 chamadas de rede; nada sai do repositório.
 
+**Estados de primeira execução.** Um repositório sem commits, ou um
+diretório que não é repositório, é um estado válido e não uma falha: o
+`metrics` reporta "nada a medir ainda" e sai com `0`. O mesmo vale para
+`report`, `review` e `skill suggest`. Só a ausência do git na máquina é
+erro de ambiente (saída `4`). O `context --diff` ainda falha quando não
+consegue calcular o diff, mas nomeia a condição em vez de vazar plumbing
+do git.
+
 ```
 doctrina metrics [--since <dias|data>] [--save]
 ```
@@ -1113,17 +1297,39 @@ Skills são listadas à parte como nome + description apenas: são
 on-demand por design, o corpo carrega só quando a tarefa casa. O
 archive de changes e ADRs não-aceitos ficam de fora.
 
-Cada arquivo carrega uma estimativa de tokens (chars/4) e o pack
-reporta o total — a tese de context engineering tornada mensurável.
+Cada arquivo carrega uma estimativa de tokens (chars/4), e o pack é
+**montado para caber num orçamento de tokens** em vez de apenas ser
+medido contra um (ADR 0022). O orçamento resolve como `--budget` >
+`config.context_budget` no `index.json` > `15000`.
+
+Acima do orçamento, artefatos degradam antes de qualquer um ser
+descartado, do menos relevante primeiro: um ADR aceito para título
++ sua decisão em uma frase, a spec de uma capability não nomeada
+para título + propósito. Toda degradação e omissão é nomeada no
+relatório. O core — regras raiz, verdade de produto, a spec da
+capability nomeada, changes abertas — nunca é degradado nem
+descartado; quando só ele já estoura o orçamento, o comando diz
+isso e sai com 1.
+
+Nomear uma capability também exclui os ADRs cujo escopo a deixa de
+fora. Um ADR sem header `- **Scope:**` é global e aparece em todo
+pack; veja [`doctrina decision scope`](#doctrina-decision-scope-number).
 
 | Flag | Função |
 |------|--------|
-| `--concat` | Imprime o conteúdo dos arquivos com separadores em vez da lista — pronto para entregar a um agente. O veredito de budget (se houver) vai para stderr, mantendo o stdout puro. |
-| `--budget <n>` | Orçamento de tokens do pack: imprime acima/abaixo e sai 1 quando a estimativa estoura (um gate de contexto para scripts/CI). |
+| `--for "<tarefa>"` | Ranqueia o pack por relevância a uma descrição de tarefa, para que o que sobrevive ao orçamento seja o que a tarefa é. O ranqueamento é cobertura de termos e depois densidade, nunca tamanho do documento. |
+| `--concat` | Imprime o conteúdo dos arquivos com separadores em vez da lista — pronto para entregar a um agente. O veredito de budget vai para stderr, mantendo o stdout puro. Artefatos degradados saem como título + resumo + um ponteiro para o texto completo. |
+| `--budget <n>` | Teto de tokens desta chamada, sobrepondo o `config.context_budget` do projeto. |
 | `--diff <ref>` | Restringe os artefatos estáveis (AGENTS.md, product.md, specs, ADRs) aos alterados desde o ref do git; changes abertas entram sempre. A leitura de retomada de sessão. |
 
+Sem capability e sem `--for` não há sobre o que recuperar, então o
+pack degrada para um índice de orientação: cada capability por
+título e propósito, cada decisão por título e resumo. Nomear uma
+capability é como você pede a verdade dela por inteiro.
+
 É a seção de ordem de leitura do AGENTS.md virada em tooling:
-seleção em vez de despejo. Read-only; sai 0 (ou 1 acima do `--budget`).
+seleção em vez de despejo. Read-only; sai 0, ou 1 quando só o core
+do pack não cabe no orçamento.
 
 ## `doctrina search <termo> [...]`
 
@@ -1267,6 +1473,22 @@ Um orquestrador sobre as peças que já existem, em ordem:
    legada escrita à mão é substituída pelo bloco gerenciado), e anexa
    seções recomendadas / campos do index.json faltantes (apenas-aditivo
    fora do bloco).
+
+   O bloco carrega um **gatilho por comando** — o que ele faz e o momento
+   em que você o usa (ADR 0020) — e tem um orçamento declarado de 40 linhas
+   que o `templates check` cobra. Ao lado dele, um bloco gerado
+   `## What changed in <versão>` de três a seis linhas diz apenas o que
+   altera o comportamento do agente, para que um agente lendo o AGENTS.md
+   após um upgrade descubra o que é novo sem que ninguém mande olhar.
+
+   O bloco tem **uma posição canônica**, definida pelo template
+   entregue e usada tanto pelo `init` quanto pelo `upgrade`: logo após
+   "Working from intent". Um projeto sem bloco recebe um posicionado
+   ali, em vez de anexado ao fim, para o upgrade não enterrar a
+   superfície de comandos atrás de tudo que o agente lê primeiro. Rodar
+   duas vezes é no-op. No preview, a mudança pendente aparece como um
+   diff real — as linhas que mudariam, ou o corpo do bloco e seu
+   destino — em vez de um resumo de uma linha.
 2. `index rebuild` — regenera o index.json a partir da árvore e migra o
    carimbo `framework_version` para o CLI em execução.
 3. `validate` (`--fix` sob `--write`) — mostra o que o upgrade não

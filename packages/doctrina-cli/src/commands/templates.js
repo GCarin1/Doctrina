@@ -1,8 +1,16 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir, loadTemplateTree } from "../lib/templates.js";
-import { surfaceBlock, findSurfaceBlock } from "../lib/commands.js";
+import { locateTemplatesDir, listResolvedTemplates } from "../lib/templates.js";
+import { adapterFiles, isHubPointer, listAdapterNames } from "../lib/adapters.js";
+import {
+  surfaceBlock, findSurfaceBlock, surfaceAnchors, placeSurfaceBlock,
+  COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceMarkdown,
+  agentChangelogBlock, findAgentChangelogBlock,
+} from "../lib/commands.js";
+import { cliVersion } from "../lib/version.js";
+import { ARTIFACT_CATEGORIES } from "../lib/index-json.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
@@ -27,6 +35,11 @@ const PRODUCT_SECTIONS = [
   "## Success criteria",
 ];
 const INDEX_FIELDS = ["$schema_version", "project", "artifacts"];
+
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "write"], string: [] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -75,6 +88,7 @@ function updateTemplates(flags) {
       if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(fresh)) {
         plan.push({
           describe: ["AGENTS.md: regenerate the doctrina:surface block (stale vs installed CLI)"],
+          preview: () => diffPreview(text.slice(block.start, block.end), fresh),
           apply() {
             const cur = read(agentsMdPath);
             const b = findSurfaceBlock(cur);
@@ -84,17 +98,56 @@ function updateTemplates(flags) {
       }
     } else {
       const legacy = findLegacySurfaceSection(text);
+      const anchors = templateAnchors();
       plan.push({
         describe: [legacy
           ? "AGENTS.md: replace the hand-written \"## Doctrina command surface\" section with the generated doctrina:surface block"
-          : "AGENTS.md: append the generated doctrina:surface command block (agents discover commands through this file)"],
+          : `AGENTS.md: insert the generated doctrina:surface command block${anchors.after ? ` after "${anchors.after}"` : ""} (agents discover commands through this file)`],
+        preview: () => fresh,
         apply() {
           const cur = read(agentsMdPath);
           const l = findLegacySurfaceSection(cur);
           if (l) {
+            // The legacy section already sits where the CLI put it, so
+            // replacing it in place preserves the layout.
             write(agentsMdPath, cur.slice(0, l.start) + fresh + "\n\n" + cur.slice(l.end), { force: true });
           } else {
-            write(agentsMdPath, cur + (cur.endsWith("\n") ? "" : "\n") + "\n" + fresh + "\n", { force: true });
+            // Neither block nor legacy section: PLACE it at the canonical
+            // position instead of appending, so `upgrade` and `init` produce
+            // the same layout (C4).
+            write(agentsMdPath, placeSurfaceBlock(cur, fresh, anchors), { force: true });
+          }
+        },
+      });
+    }
+  }
+
+  // The agent-facing changelog (M2): three to six lines stating only what
+  // alters agent behaviour in this version. An agent reading AGENTS.md after
+  // an upgrade learns what is new without being told to look — reported from
+  // real use, where a new command shipped and the driving LLM never knew.
+  if (isFile(agentsMdPath)) {
+    const cur = read(agentsMdPath);
+    const fresh = agentChangelogBlock(cliVersion());
+    const existing = findAgentChangelogBlock(cur);
+    if (fresh && (!existing || normalizeBlock(cur.slice(existing.start, existing.end)) !== normalizeBlock(fresh))) {
+      plan.push({
+        describe: [`AGENTS.md: ${existing ? "refresh" : "add"} the "What changed in ${cliVersion()}" block for agents`],
+        preview: () => fresh,
+        apply() {
+          const now = read(agentsMdPath);
+          const found = findAgentChangelogBlock(now);
+          if (found) {
+            write(agentsMdPath, now.slice(0, found.start) + fresh + now.slice(found.end), { force: true });
+            return;
+          }
+          // Place it immediately after the surface block, so "what exists"
+          // and "what just changed" are read together.
+          const sb = findSurfaceBlock(now);
+          if (sb) {
+            write(agentsMdPath, now.slice(0, sb.end) + "\n\n" + fresh + now.slice(sb.end), { force: true });
+          } else {
+            write(agentsMdPath, now.replace(/\s+$/, "") + "\n\n" + fresh + "\n", { force: true });
           }
         },
       });
@@ -102,10 +155,12 @@ function updateTemplates(flags) {
   }
 
   // Markdown files: append stub sections for missing recommended headings.
-  for (const [rel, sections] of [
+  /** @type {Array<[string, string[]]>} */
+  const markdownTargets = [
     ["AGENTS.md", AGENTS_SECTIONS],
     [path.join(".doctrina", "product.md"), PRODUCT_SECTIONS],
-  ]) {
+  ];
+  for (const [rel, sections] of markdownTargets) {
     const filePath = path.join(projectRoot, rel);
     if (!isFile(filePath)) continue;
     const text = read(filePath);
@@ -134,7 +189,7 @@ function updateTemplates(flags) {
       if (idx.$schema_version === undefined) describe.push('index.json: add "$schema_version": "0.1.0"');
       if (idx.project === undefined) describe.push(`index.json: add "project": "${path.basename(projectRoot)}"`);
       if (idx.artifacts === undefined) describe.push('index.json: add empty "artifacts" object');
-      const categories = ["specs", "decisions", "changes", "changes_archive", "skills", "contracts"];
+      const categories = ARTIFACT_CATEGORIES;
       for (const cat of categories) {
         if (idx.artifacts && idx.artifacts[cat] === undefined) {
           describe.push(`index.json: add empty artifact category "${cat}"`);
@@ -165,8 +220,16 @@ function updateTemplates(flags) {
     return 0;
   }
 
-  for (const s of steps) {
-    console.log((writeMode ? c.green("update ") : c.yellow("would  ")) + s);
+  for (const p of plan) {
+    for (const s of p.describe) {
+      console.log((writeMode ? c.green("update ") : c.yellow("would  ")) + s);
+    }
+    // A one-line "would append" told the operator nothing about what was
+    // about to land in the file they read first. In preview, show the
+    // content and where it goes (C4).
+    if (!writeMode && p.preview) {
+      for (const line of p.preview().split("\n")) console.log(c.gray("       │ ") + line);
+    }
   }
   console.log("");
   if (!writeMode) {
@@ -180,27 +243,32 @@ function updateTemplates(flags) {
 }
 
 function listTemplates() {
-  const dir = locateTemplatesDir();
-  const files = walk(dir).filter((f) => !f.endsWith(".gitkeep"));
-  if (files.length === 0) {
-    console.error(c.red("error:") + " no templates found at " + dir);
+  // Resolution is a CHAIN (M1): a template under the project's
+  // `.doctrina/templates/` wins over the bundled copy, per file. Printing
+  // WHERE each one resolved from is what turns the override from a hidden
+  // behaviour into a usable one.
+  const projectRoot = process.cwd();
+  const rows = listResolvedTemplates(isDir(path.join(projectRoot, ".doctrina")) ? projectRoot : null);
+  if (rows.length === 0) {
+    console.error(c.red("error:") + " no templates found");
     return 1;
   }
-  console.log(c.bold(`Templates shipped by the installed Doctrina CLI:`));
+
+  console.log(c.bold("Templates resolved for this project:"));
   console.log("");
-  let maxLen = 0;
-  const rows = [];
-  for (const f of files) {
-    const rel = relPath(dir, f);
-    const lines = lineCount(f);
-    rows.push({ rel, lines });
-    if (rel.length > maxLen) maxLen = rel.length;
-  }
+  const width = Math.max(...rows.map((r) => r.relativePath.length));
   for (const r of rows) {
-    console.log(`  ${r.rel.padEnd(maxLen + 2)}${String(r.lines).padStart(4)} lines`);
+    const source = r.source === "project"
+      ? c.cyan("project") + (r.overrides ? c.gray(" (overrides bundled)") : "")
+      : c.gray("bundled");
+    console.log(`  ${r.relativePath.padEnd(width + 2)}${String(lineCount(r.path)).padStart(4)} lines  ${source}`);
   }
   console.log("");
-  console.log(c.gray(`${rows.length} templates · location: ${dir}`));
+  const overridden = rows.filter((r) => r.source === "project").length;
+  console.log(c.gray(`${rows.length} templates · ${overridden} from this project's .doctrina/templates/`));
+  if (overridden === 0) {
+    console.log(c.gray("Drop a file there with the same relative path to override one — see docs/en/templates.md."));
+  }
   return 0;
 }
 
@@ -211,7 +279,16 @@ function checkTemplates() {
     console.error(c.gray("hint: ") + "run `doctrina init` first");
     return 1;
   }
+  const { findings, ok } = collectFindings(projectRoot);
 
+  return report(findings, ok);
+}
+
+// The findings `templates check` reports, as structured records with an
+// executable remedy. Exported so a test can seed each finding, run the
+// remedy it names, and assert the finding clears — a remedy that cannot
+// resolve its own finding is not a remedy (C2).
+export function collectFindings(projectRoot) {
   const findings = [];
   const ok = [];
 
@@ -221,19 +298,19 @@ function checkTemplates() {
     const text = read(agentsPath);
     for (const heading of AGENTS_SECTIONS) {
       if (hasHeading(text, heading)) ok.push(`AGENTS.md: ${heading}`);
-      else findings.push(`AGENTS.md missing recommended section "${heading}"`);
+      else findings.push({ message: `AGENTS.md missing recommended section "${heading}"`, remedy: "doctrina templates update --write" });
     }
     // Command-surface block: present and current vs the installed catalog.
     const block = findSurfaceBlock(text);
     if (!block) {
-      findings.push("AGENTS.md has no doctrina:surface block — agents discover commands through this file (`templates update --write` adds it)");
+      findings.push({ message: "AGENTS.md has no doctrina:surface block — agents discover commands through this file", remedy: "doctrina templates update --write" });
     } else if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(surfaceBlock())) {
-      findings.push("AGENTS.md doctrina:surface block is stale vs the installed CLI (`templates update --write` or `doctrina upgrade --write` regenerates it)");
+      findings.push({ message: "AGENTS.md doctrina:surface block is stale vs the installed CLI", remedy: "doctrina templates update --write" });
     } else {
       ok.push("AGENTS.md: doctrina:surface block current");
     }
   } else {
-    findings.push("AGENTS.md missing at project root");
+    findings.push({ message: "AGENTS.md missing at project root", remedy: "doctrina init --force" });
   }
 
   // product.md sections
@@ -242,37 +319,59 @@ function checkTemplates() {
     const text = read(productPath);
     for (const heading of PRODUCT_SECTIONS) {
       if (hasHeading(text, heading)) ok.push(`product.md: ${heading}`);
-      else findings.push(`.doctrina/product.md missing recommended section "${heading}"`);
+      else findings.push({ message: `.doctrina/product.md missing recommended section "${heading}"`, remedy: "doctrina templates update --write" });
     }
   } else {
-    findings.push(".doctrina/product.md missing");
+    findings.push({ message: ".doctrina/product.md missing", remedy: "doctrina init --force" });
   }
 
-  // Installed agent adapters: every adapter is a thin POINTER at AGENTS.md
-  // (that is why one `upgrade --write` refresh of the hub reaches every
-  // installed agent). Verify the contract holds for each adapter file the
-  // project actually has: it must still reference AGENTS.md. The shipped
-  // adapter template tree is the inventory, so a new adapter is covered
-  // automatically.
-  try {
-    const templatesDir = locateTemplatesDir();
-    const adaptersRoot = path.join(templatesDir, "adapters");
-    if (isDir(adaptersRoot)) {
-      for (const agent of walk(adaptersRoot).map((f) => relPath(adaptersRoot, f))) {
-        const posix = agent.replace(/\\/g, "/");
-        if (posix.endsWith("README.md") || posix.endsWith(".gitkeep")) continue;
-        const rel = posix.split("/").slice(1).join("/").replace(/\.template$/, "");
-        if (!rel) continue;
-        const installed = path.join(projectRoot, rel);
-        if (!isFile(installed)) continue; // not installed — nothing to check
-        if (read(installed).includes("AGENTS.md")) {
-          ok.push(`adapter ${rel}: points at AGENTS.md`);
-        } else {
-          findings.push(`adapter ${rel} no longer references AGENTS.md — agents loading it will miss the hub (restore the pointer, e.g. re-run \`doctrina init --agent <name> --force\`)`);
-        }
+  // Installed agent adapters: a HUB POINTER file must still reference
+  // AGENTS.md (that is why one `upgrade --write` refresh of the hub reaches
+  // every installed agent). Only files whose template declares the
+  // {{AGENTS_MD_PATH}} token are pointers; a slash-command shim reaches the
+  // hub through its parent pointer file and is not checked (C2).
+  for (const name of listAdapterNames(projectRoot)) {
+    const spec = adapterFiles(projectRoot, name);
+    if (!spec) continue;
+    for (const file of spec.files) {
+      const installed = path.join(projectRoot, file.relativePath);
+      if (!isFile(installed)) continue; // not installed — nothing to check
+      if (!isHubPointer(file)) continue; // command shim, not a pointer
+      if (read(installed).includes("AGENTS.md")) {
+        ok.push(`adapter ${file.relativePath}: points at AGENTS.md`);
+      } else {
+        findings.push({
+          message: `adapter ${file.relativePath} no longer references AGENTS.md — agents loading it will miss the hub`,
+          // Executable and verified: `adapter add --force` rewrites exactly
+          // this file from its template. A remedy that cannot resolve the
+          // finding it is attached to is not a remedy (C2).
+          remedy: `doctrina adapter add ${name} --force`,
+        });
       }
     }
-  } catch { /* no templates dir (unusual install) — skip the adapter pass */ }
+  }
+
+  // M2: a command that cannot state its trigger has not earned a place on
+  // the surface. The block is an agent's only discovery surface, so both
+  // fields are required and the block has a declared size budget.
+  for (const name of COMMAND_NAMES) {
+    const meta = COMMAND_META[name];
+    if (!meta || !meta.purpose || !meta.when) {
+      findings.push({
+        message: `command "${name}" declares no ${!meta ? "purpose or when" : (!meta.purpose ? "purpose" : "when")} — the surface block cannot say when to reach for it`,
+        remedy: null,
+      });
+    }
+  }
+  const surfaceLines = surfaceMarkdown().split("\n").length;
+  if (surfaceLines > SURFACE_LINE_BUDGET) {
+    findings.push({
+      message: `the generated surface block is ${surfaceLines} lines (budget ${SURFACE_LINE_BUDGET}) — cut commands rather than raising the budget`,
+      remedy: null,
+    });
+  } else {
+    ok.push(`surface block within budget (${surfaceLines}/${SURFACE_LINE_BUDGET} lines)`);
+  }
 
   // index.json schema fields
   const indexPath = path.join(projectRoot, ".doctrina", "index.json");
@@ -281,21 +380,31 @@ function checkTemplates() {
       const idx = JSON.parse(read(indexPath));
       for (const field of INDEX_FIELDS) {
         if (idx[field] !== undefined) ok.push(`index.json: ${field}`);
-        else findings.push(`.doctrina/index.json missing field "${field}"`);
+        else findings.push({ message: `.doctrina/index.json missing field "${field}"`, remedy: "doctrina templates update --write" });
       }
       if (idx.$schema_version && idx.$schema_version !== "0.1.0") {
-        findings.push(`.doctrina/index.json $schema_version is "${idx.$schema_version}" (expected "0.1.0")`);
+        findings.push({ message: `.doctrina/index.json $schema_version is "${idx.$schema_version}" (expected "0.1.0")`, remedy: null });
       }
     } catch (err) {
-      findings.push(`.doctrina/index.json failed to parse: ${err.message}`);
+      findings.push({ message: `.doctrina/index.json failed to parse: ${err.message}`, remedy: null });
     }
   } else {
-    findings.push(".doctrina/index.json missing");
+    findings.push({ message: ".doctrina/index.json missing", remedy: "doctrina index rebuild" });
   }
 
   // Output
+  return { findings, ok };
+}
+
+function report(findings, ok) {
   for (const o of ok) console.log(c.green("✓ ") + o);
-  for (const f of findings) console.log(c.yellow("✗ ") + f);
+  for (const f of findings) {
+    console.log(c.yellow("✗ ") + f.message);
+    // Every finding names the command that RESOLVES it, or says plainly
+    // that repair is manual. A remedy the CLI cannot execute and verify is
+    // not a remedy — a test runs each one and asserts the finding clears.
+    console.log(c.gray("    fix: ") + (f.remedy ? c.cyan(f.remedy) : c.gray("manual repair — no command can fix this")));
+  }
   console.log("");
 
   if (findings.length === 0) {
@@ -303,12 +412,37 @@ function checkTemplates() {
     return 0;
   }
   console.log(c.red("fail") + ` ${findings.length} recommendation${findings.length === 1 ? "" : "s"}`);
-  console.log(c.gray("hint: ") + "this command is read-only; review and add the missing sections by hand");
   return 1;
+}
+
+// Line-level preview of what regenerating the block changes: only the
+// lines that differ, so a stale-catalog refresh reads as the two or three
+// commands that moved rather than as twenty unchanged lines.
+function diffPreview(before, after) {
+  const a = before.split("\n");
+  const b = after.split("\n");
+  const aSet = new Set(a);
+  const bSet = new Set(b);
+  const out = [
+    ...a.filter((line) => !bSet.has(line)).map((line) => `- ${line}`),
+    ...b.filter((line) => !aSet.has(line)).map((line) => `+ ${line}`),
+  ];
+  return out.length > 0 ? out.join("\n") : "(no textual change)";
 }
 
 // Whitespace/EOL-insensitive comparison for the surface block, so a CRLF
 // checkout is not eternally "stale".
+
+// The canonical position, read from the shipped template — the single
+// place the intended layout is defined.
+function templateAnchors() {
+  try {
+    return surfaceAnchors(read(path.join(locateTemplatesDir(), "AGENTS.md.template")));
+  } catch {
+    return { after: null, before: null };
+  }
+}
+
 function normalizeBlock(s) {
   return s.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").trim();
 }

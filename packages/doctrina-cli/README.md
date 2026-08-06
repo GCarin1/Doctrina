@@ -3,7 +3,7 @@
 > CLI for the Doctrina framework. The package is published as
 > `doctrina-cli`; the executable it installs is `doctrina`.
 
-**Status:** v0.11.0 — current release. Zero runtime dependencies
+**Status:** v0.14.0 — current release. Zero runtime dependencies
 (Node.js standard library only).
 
 ## Install

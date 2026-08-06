@@ -19,6 +19,9 @@
 - Reference
 
   - [CLI reference](/en/cli-reference.md)
+  - [Exit codes](/en/exit-codes.md)
+  - [Templates](/en/templates.md)
+  - [Upgrading](/en/upgrading.md)
   - [Benchmarks](/en/benchmarks.md)
   - [Glossary](/en/glossary.md)
 

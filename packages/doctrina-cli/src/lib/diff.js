@@ -1,3 +1,4 @@
+// @ts-check
 // Minimal line diff (LCS-based) for `change diff`. Specs are capped at a
 // few hundred lines, so the O(n*m) table is fine and keeps us at zero deps.
 

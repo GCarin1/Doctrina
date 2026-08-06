@@ -1,3 +1,5 @@
+// @ts-check
+import { getHeader, getSection } from "./doc-model.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
@@ -5,29 +7,18 @@ import { today } from "./dates.js";
 import { parseFrontmatter } from "../commands/skill.js";
 import { parseOperation, parseCapabilityFromDelta } from "../commands/change.js";
 
-// Parse a metadata header line, tolerating BOTH conventions:
-//   **Name:** value        (spec style)
-//   - **Name:** value      (ADR / proposal / intake style)
-// The leading "- " is optional so a one-character convention slip (an
-// agent hand-authoring an ADR with the bare spec form, or vice versa)
-// still parses instead of silently falling back to a default value.
-const HEADER_PREFIX = "(?:-\\s+)?";
-
-// Parse a spec-style header line: **Name:** value (dash optional).
+// Header reading lives in ONE place now (lib/doc-model.js, audit item M3).
+// These two names survive because dozens of call sites use them and the
+// distinction they once encoded — spec style vs list style — is now the
+// document model's job, not the caller's.
 export function specHeader(text, name) {
-  const m = text.match(new RegExp(`^${HEADER_PREFIX}\\*\\*${name}:\\*\\*\\s+(.+)$`, "m"));
-  return m ? m[1].trim() : null;
+  return getHeader(text, name);
 }
 
-// Parse an ADR/proposal-style header line: - **Name:** value (dash optional).
 export function listHeader(text, name) {
-  const m = text.match(new RegExp(`^${HEADER_PREFIX}\\*\\*${name}:\\*\\*\\s+(.+)$`, "m"));
-  return m ? m[1].trim() : null;
+  return getHeader(text, name);
 }
 
-// The machine-readable "**Depends on:** defects, decisions" spec header: the
-// sibling capabilities this spec builds on. Returns [] when absent, "n/a", or
-// empty. One parser so index, why, context, and review agree.
 export function parseDependsOn(text) {
   const raw = specHeader(text, "Depends on");
   if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
@@ -38,6 +29,72 @@ function dirEntries(dir) {
   if (!isDir(dir)) return [];
   return readdirSync(dir).filter((e) => !e.startsWith(".")).sort();
 }
+
+
+// The capabilities an ADR governs, from its optional "Scope:" header
+// (M4). Returns [] when absent, "n/a", or "—" — an unscoped ADR is global
+// and belongs in every pack, which is what keeps this backward compatible.
+export function parseAdrScope(text) {
+  const raw = listHeader(text, "Scope");
+  if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
+  return raw.match(/[a-z][a-z0-9][a-z0-9-]*/g) ?? [];
+}
+
+// One sentence describing what an ADR decided, taken from its "## Decision"
+// section. This is what a budget-constrained pack falls back to before it
+// drops an ADR entirely: a title and a sentence still carry the decision,
+// where an omission carries nothing.
+export function adrSummary(text) {
+  const body = getSection(text, "Decision");
+  if (!body) return null;
+  for (const line of body.split("\n")) {
+    const s = line.trim();
+    if (!s || s.startsWith("<!--") || s.startsWith("#") || s.startsWith("|")) continue;
+    // Take the first sentence, capped so the index stays scannable.
+    const plain = s.replace(/^[-*\d.]+\s*/, "").replace(/\*\*/g, "");
+    const sentence = (plain.match(/^.*?[.!?](?=\s|$)/) ?? [plain])[0].trim();
+    if (sentence.length < 12) continue;
+    return sentence.length > 220 ? sentence.slice(0, 217).trimEnd() + "..." : sentence;
+  }
+  return null;
+}
+
+// The index entry for ONE decision, derived from its file. This is the
+// single definition of a decision record: `deriveIndex` builds the whole
+// list from it, and `doctrina decision new` registers a new ADR through it
+// rather than assembling a look-alike by hand. Two constructors for one
+// record shape is how a field added to the deriver (M4's `summary`) turns
+// every freshly created ADR into index drift the moment it is written.
+export function decisionEntry(text, basename, prev, date) {
+  const id = basename.match(/^(\d{4})-/)?.[1] ?? prev?.id ?? "0000";
+  const titleMatch = text.match(/^#\s+ADR\s+\d{4}\s*[—-]\s*(.+)$/m);
+  const entry = {
+    id,
+    path: `.doctrina/decisions/${basename}`,
+    title: titleMatch ? titleMatch[1].trim() : prev?.title ?? basename,
+    status: listHeader(text, "Status") ?? prev?.status ?? "proposed",
+    date: listHeader(text, "Date") ?? prev?.date ?? date,
+  };
+  const supersedes = listHeader(text, "Supersedes");
+  if (supersedes && supersedes !== "—") entry.supersedes = supersedes;
+  const supersededBy = listHeader(text, "Superseded by");
+  if (supersededBy && supersededBy !== "—") entry.superseded_by = supersededBy;
+  const landed = listHeader(text, "Landed");
+  if (landed && landed !== "—") entry.landed = landed;
+  // Scope (M4): the capabilities this decision governs. ADRs are immutable
+  // and never retire, so without a scope every accepted ADR loads into every
+  // context pack forever — the pack grows O(project age) with no decay. An
+  // ADR with no Scope: is GLOBAL by definition, the backward-compatible
+  // default.
+  const scope = parseAdrScope(text);
+  if (scope.length > 0) entry.scope = scope;
+  // Summary: one sentence from the Decision section, so a pack over budget
+  // can degrade an ADR to title + summary instead of dropping it outright.
+  const summary = adrSummary(text);
+  if (summary) entry.summary = summary;
+  return entry;
+}
+
 
 // Regenerate the index object from the artifacts on disk. The files are
 // the source of truth; fields with no on-disk source (project name,
@@ -52,6 +109,12 @@ export function deriveIndex(projectRoot, current) {
     project: current?.project ?? path.basename(projectRoot),
     framework_version: current?.framework_version ?? "0.0.0",
     last_updated: current?.last_updated ?? date,
+    // Project settings, carried over verbatim. `deriveIndex` rebuilds the
+    // artifact graph FROM DISK, so anything it does not explicitly carry is
+    // silently erased on the next `index rebuild` — config has no on-disk
+    // source to be rederived from, which is exactly why it must be listed
+    // here alongside project and framework_version. Absent means defaults.
+    ...(current?.config !== undefined ? { config: current.config } : {}),
     artifacts: {
       product: cur.product ?? {
         path: ".doctrina/product.md",
@@ -112,23 +175,8 @@ export function deriveIndex(projectRoot, current) {
     const base = path.basename(f);
     const m = base.match(/^(\d{4})-.*\.md$/);
     if (!m) continue;
-    const text = read(f);
     const prev = (cur.decisions ?? []).find((d) => d.id === m[1]);
-    const titleMatch = text.match(/^#\s+ADR\s+\d{4}\s*[—-]\s*(.+)$/m);
-    const entry = {
-      id: m[1],
-      path: `.doctrina/decisions/${base}`,
-      title: titleMatch ? titleMatch[1].trim() : prev?.title ?? base,
-      status: listHeader(text, "Status") ?? prev?.status ?? "proposed",
-      date: listHeader(text, "Date") ?? prev?.date ?? date,
-    };
-    const supersedes = listHeader(text, "Supersedes");
-    if (supersedes && supersedes !== "—") entry.supersedes = supersedes;
-    const supersededBy = listHeader(text, "Superseded by");
-    if (supersededBy && supersededBy !== "—") entry.superseded_by = supersededBy;
-    const landed = listHeader(text, "Landed");
-    if (landed && landed !== "—") entry.landed = landed;
-    out.artifacts.decisions.push(entry);
+    out.artifacts.decisions.push(decisionEntry(read(f), base, prev, date));
   }
 
   // Open changes — every directory except archive/.

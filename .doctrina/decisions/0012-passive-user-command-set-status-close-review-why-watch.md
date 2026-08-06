@@ -1,6 +1,7 @@
 # ADR 0012 — Passive-user command set — status, close, review, why, watch, skill suggest, qualitative gate
 
 - **Status:** accepted
+- **Scope:** cli, gates, skills
 - **Date:** 2026-06-27
 - **Deciders:**
 - **Supersedes:** —

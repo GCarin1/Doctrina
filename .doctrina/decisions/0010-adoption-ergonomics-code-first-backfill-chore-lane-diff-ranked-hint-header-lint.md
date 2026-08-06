@@ -1,6 +1,7 @@
 # ADR 0010 — Adoption ergonomics — code-first backfill, chore lane, diff-ranked hint, header lint
 
 - **Status:** accepted
+- **Scope:** cli, docs
 - **Date:** 2026-06-22
 - **Deciders:**
 - **Supersedes:** —

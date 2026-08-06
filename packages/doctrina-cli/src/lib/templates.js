@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { read, toPosix, walk, write } from "./fs-ops.js";
@@ -33,6 +34,94 @@ export function locateTemplatesDir() {
   throw new Error(
     `cannot locate .doctrina/templates/. Tried: ${candidates.join(", ")}`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// The project-local override chain (audit item M1).
+//
+// `doctrina init` creates `.doctrina/templates/` containing a single
+// `.gitkeep`, and nothing ever read it or wrote to it. The resolver above
+// answers only "where did the CLI install its templates?", so a directory
+// the framework creates in every project was inert — a ghost.
+//
+// Resolution is now a CHAIN, per file: a template present under the
+// project's `.doctrina/templates/` wins; anything absent falls back to the
+// bundled copy. That turns the ghost into the customisation point, and it
+// is the same wiring the custom-adapter support needs (ADR 0016).
+//
+// Deliberately per FILE, not per directory: a team that wants its own
+// `spec.md.template` should not have to vendor the whole tree and then
+// maintain every other template forever.
+
+export function projectTemplatesDir(projectRoot) {
+  return path.join(projectRoot, ".doctrina", "templates");
+}
+
+// Where a named template resolves for this project.
+// Returns { path, source: "project" | "bundled" } or null when neither has
+// it. `relativePath` is POSIX-ish and relative to a templates root, e.g.
+// "spec.md.template" or "change/proposal.md.template".
+export function resolveTemplate(projectRoot, relativePath) {
+  const rel = relativePath.split("/").join(path.sep);
+  if (projectRoot) {
+    const local = path.join(projectTemplatesDir(projectRoot), rel);
+    if (fileExists(local)) return { path: local, source: "project" };
+  }
+  try {
+    const bundled = path.join(locateTemplatesDir(), rel);
+    if (fileExists(bundled)) return { path: bundled, source: "bundled" };
+  } catch { /* no bundled tree (unusual install) */ }
+  return null;
+}
+
+// Read a template through the chain. Throws with both candidates named
+// when neither side has it, because "template not found" with no path is
+// the least actionable error a scaffolder can give.
+export function readTemplate(projectRoot, relativePath) {
+  const resolved = resolveTemplate(projectRoot, relativePath);
+  if (!resolved) {
+    throw new Error(
+      `template "${relativePath}" not found in the project override ` +
+      `(${projectTemplatesDir(projectRoot)}) or in the installed CLI`,
+    );
+  }
+  return { ...resolved, body: read(resolved.path) };
+}
+
+// Every template the chain can serve, with where each one resolved from —
+// what `templates list` prints so the source is never a guess.
+export function listResolvedTemplates(projectRoot) {
+  const seen = new Map();
+  let bundledRoot = null;
+  try {
+    bundledRoot = locateTemplatesDir();
+  } catch { /* none */ }
+
+  if (bundledRoot) {
+    for (const f of walk(bundledRoot)) {
+      const rel = toPosix(path.relative(bundledRoot, f));
+      seen.set(rel, { relativePath: rel, path: f, source: "bundled" });
+    }
+  }
+  const localRoot = projectRoot ? projectTemplatesDir(projectRoot) : null;
+  if (localRoot) {
+    for (const f of walk(localRoot)) {
+      const rel = toPosix(path.relative(localRoot, f));
+      if (rel === ".gitkeep") continue;
+      const overrides = seen.has(rel);
+      seen.set(rel, { relativePath: rel, path: f, source: "project", overrides });
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}
+
+function fileExists(p) {
+  try {
+    read(p);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Single-pass {{TOKEN}} substitution. Tokens are uppercase, digits, or

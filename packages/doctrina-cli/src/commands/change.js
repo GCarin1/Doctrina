@@ -1,3 +1,5 @@
+// @ts-check
+import { getSection, getHeader } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
@@ -7,12 +9,21 @@ import * as idx from "../lib/index-json.js";
 import { deriveIndex } from "../lib/scan.js";
 import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
+import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gates.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { confirm, isInteractive } from "../lib/prompt.js";
+import { EXIT } from "../lib/exit-codes.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
+
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec"], string: ["reason"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -30,7 +41,7 @@ export async function run(positional, flags) {
     case "diff":
       return changeDiff(positional.slice(1), flags);
     case "abandon":
-      return changeAbandon(positional.slice(1), flags);
+      return await changeAbandon(positional.slice(1), flags);
     default:
       console.error(c.red("error:") + ` unknown change subcommand "${sub ?? ""}"`);
       const guess = suggest(sub, SUBCOMMANDS);
@@ -39,6 +50,29 @@ export async function run(positional, flags) {
         : `available: ${SUBCOMMANDS.join(", ")}`));
       return 2;
   }
+}
+
+// Enforce a lifecycle transition's preconditions from the shared gate map.
+// Returns true when the transition may proceed. One implementation, so
+// every driver of a transition refuses — and explains, and forces —
+// identically (C6).
+function enforceTransition(projectRoot, id, changeDir, transition, flags) {
+  const force = flagBool(flags, "force", false);
+  const { ok, blockers } = checkTransition(projectRoot, changeDir, transition);
+  if (ok) return true;
+
+  const label = TRANSITIONS[transition].label;
+  if (!force) {
+    console.error(c.red("error:") + ` refusing to ${transition} "${id}" — ${blockers.length} blocker${blockers.length === 1 ? "" : "s"}:`);
+    for (const b of blockers) console.error(`  - [${b.gate}] ${b.message}`);
+    const reruns = [...new Set(blockers.map((b) => GATES[b.gate].rerun(id)))];
+    console.error(c.gray("hint: ") + `fix them (${reruns.join(" · ")}), or pass --force to ${transition} anyway (records the gap)`);
+    return false;
+  }
+  console.log(c.yellow("warn:") + ` ${label} "${id}" with ${blockers.length} blocker${blockers.length === 1 ? "" : "s"} (--force):`);
+  for (const b of blockers) console.log(c.yellow("  - ") + `[${b.gate}] ${b.message}`);
+  recordForcedGap(projectRoot, id, transition, blockers);
+  return true;
 }
 
 // Batch driver (operator review 2026-07-19 §3.5/§4.5): apply/archive/check
@@ -146,7 +180,7 @@ function changeNew(args, flags) {
   return 0;
 }
 
-function changeApply(args, _flags) {
+function changeApply(args, flags) {
   const id = args[0];
   if (!id) {
     console.error(c.red("error:") + " change apply requires <id>");
@@ -159,6 +193,30 @@ function changeApply(args, _flags) {
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
     return 1;
+  }
+
+  // Gate parity (C6). `apply` used to mutate specs with no preconditions,
+  // so `analyze` could exit 1 on a change and `apply` would write it anyway
+  // and exit 0 — through the very analyze → apply path the docs prescribe.
+  // The preconditions now come from the shared map, so what guards a
+  // transition does not depend on which command drove it.
+  if (!enforceTransition(projectRoot, id, changeDir, "apply", flags)) return 1;
+
+  // Applying twice is silent corruption. The ops verbs are ADDITIVE —
+  // `append-requirement` appends, `bump-version` bumps — so a second pass
+  // duplicates every requirement and criterion the delta carries and bumps
+  // the version again. `apply` stamps the proposal `applied` on success, so
+  // that stamp is the guard. (Found by `close` re-running apply on an
+  // already-applied change and doubling 15 requirements on this repo.)
+  const proposalPath = path.join(changeDir, "proposal.md");
+  const alreadyApplied = isFile(proposalPath)
+    && (getHeader(read(proposalPath), "Status") ?? "").trim().toLowerCase() === "applied";
+  if (alreadyApplied && !flagBool(flags, "force", false)) {
+    console.log(c.gray("skip ") + `change "${id}" is already applied — nothing to do`);
+    console.log(c.gray("The ops verbs are additive: applying twice duplicates every"));
+    console.log(c.gray("requirement this delta carries. Re-apply anyway with --force"));
+    console.log(c.gray("only after reverting the specs to their pre-apply state."));
+    return 0;
   }
 
   const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
@@ -342,12 +400,14 @@ async function changeCheck(id) {
 
   // 3. Archive gate preview: what archive will refuse, listed with the fix.
   console.log(c.gray("──── 3/3 archive gate"));
-  const blockers = collectArchiveBlockers(changeDir);
-  if (blockers.length === 0) {
-    console.log(c.green("✓ ") + "archive gate clear (all boxes checked)");
+  // Preview through the SAME map the transitions enforce, so `check` can
+  // never disagree with what `apply` / `archive` will actually do (C6).
+  const archiveGate = checkTransition(projectRoot, changeDir, "archive");
+  if (archiveGate.ok) {
+    console.log(c.green("✓ ") + `archive gate clear (${archiveGate.gates.join(" + ")})`);
   } else {
     failures += 1;
-    for (const b of blockers) console.log(c.red("✗ ") + b);
+    for (const b of archiveGate.blockers) console.log(c.red("✗ ") + `[${b.gate}] ${b.message}`);
     console.log(c.gray("    check them off as they land, or in bulk: ") + c.cyan(`doctrina change tick ${id} --all`));
   }
 
@@ -490,22 +550,12 @@ function changeArchive(args, flags) {
   // task (including closing steps) or any declared verification item is
   // still unchecked. This is the difference between "boxes marked" and
   // "verification passed" the framework was faulted for collapsing.
-  // --force is the escape hatch: it archives anyway and records the gap.
-  const force = flagBool(flags, "force", false);
-  const blockers = collectArchiveBlockers(changeDir);
-  if (blockers.length > 0) {
-    if (!force) {
-      console.error(c.red("error:") + ` refusing to archive "${id}" — verification incomplete:`);
-      for (const b of blockers) console.error(`  - ${b}`);
-      console.error(
-        c.gray("hint: ") +
-          "finish and check the items, or pass --force to archive anyway (records the gap)",
-      );
-      return 1;
-    }
-    console.log(c.yellow("warn:") + ` archiving "${id}" with verification incomplete (--force):`);
-    for (const b of blockers) console.log(c.yellow("  - ") + b);
-  }
+  // Preconditions from the shared map (C6): structure AND verification.
+  // Reaching archive directly used to skip the structural check that the
+  // `close` path always ran first, so the same state was guarded
+  // differently depending on the route taken. --force is the escape hatch
+  // for both, and records the gap.
+  if (!enforceTransition(projectRoot, id, changeDir, "archive", flags)) return 1;
 
   const date = today();
   const archiveName = `${date}-${id}`;
@@ -593,7 +643,7 @@ function changeArchive(args, flags) {
 // and record the abandonment in the ledger so the history shows the dead end
 // instead of a silent gap. This is the missing inverse of `change new` — the
 // review had to delete a stray folder and hand-edit index.json (G6).
-function changeAbandon(args, flags) {
+async function changeAbandon(args, flags) {
   const id = args[0];
   if (!id) {
     console.error(c.red("error:") + " change abandon requires <id>");
@@ -606,6 +656,31 @@ function changeAbandon(args, flags) {
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
     return 1;
+  }
+
+  // Consent before destruction (audit item C9). This deletes work with no
+  // undo — the ledger line is good practice and is not a substitute for
+  // being asked. Off a terminal there is nobody to ask, so `--force` is
+  // required: silence is not consent.
+  const force = flagBool(flags, "force", false);
+  if (!force) {
+    const doomed = walk(changeDir);
+    console.log(c.yellow("About to delete") + ` ${relPath(projectRoot, changeDir)} — ${doomed.length} file${doomed.length === 1 ? "" : "s"}:`);
+    for (const f of doomed.slice(0, 10)) console.log(`    ${c.gray(relPath(changeDir, f))}`);
+    if (doomed.length > 10) console.log(c.gray(`    … and ${doomed.length - 10} more`));
+    console.log(c.gray("This cannot be undone (the change is deleted, not archived)."));
+
+    if (!isInteractive()) {
+      console.error("");
+      console.error(c.red("error:") + " refusing to delete without confirmation");
+      console.error(c.gray("hint: ") + `re-run with ${c.cyan("--force")} to abandon non-interactively`);
+      return EXIT.USAGE;
+    }
+    const ok = await confirm(`Abandon "${id}"?`, { defaultYes: false, whenNonInteractive: false });
+    if (!ok) {
+      console.log(c.gray("aborted — nothing was deleted"));
+      return EXIT.OK;
+    }
   }
 
   const reason = flagString(flags, "reason") ?? "";
@@ -776,32 +851,15 @@ function collectArchiveBlockers(changeDir) {
 
   const proposalPath = path.join(changeDir, "proposal.md");
   if (exists(proposalPath)) {
-    const n = countUnchecked(extractSection(read(proposalPath), "Verification"));
+    const n = countUnchecked(getSection(read(proposalPath), "Verification"));
     if (n > 0) blockers.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
   }
   return blockers;
 }
 
-// Return the body of a "## <name>" section (lines after the heading up to
-// the next "## " heading). Empty string when the section is absent.
-function extractSection(text, name) {
-  const lines = text.split(/\r?\n/);
-  const head = new RegExp(`^##\\s+${name}\\b`, "i");
-  let inSection = false;
-  const out = [];
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      inSection = head.test(line);
-      continue;
-    }
-    if (inSection) out.push(line);
-  }
-  return out.join("\n");
-}
-
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 

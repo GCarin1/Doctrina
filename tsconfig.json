@@ -1,0 +1,40 @@
+{
+  "$comment": [
+    "Audit item M5. The CLI ships zero runtime dependencies and will keep",
+    "shipping plain ESM JavaScript — TypeScript is a devDependency used as a",
+    "CHECKER, never as a build step. `noEmit` is the point: nothing is",
+    "compiled, nothing is published from here, and `src/` stays directly",
+    "runnable by node with no transpile in the path.",
+    "",
+    "What this buys: the typos a test suite only catches when it happens to",
+    "execute the branch — a misspelt property on an index.json entry, a",
+    "helper called with the wrong arity, a function whose callers disagree",
+    "about whether it returns null."
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2022",
+    "lib": ["es2023"],
+    "types": ["node"],
+
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "packages/doctrina-cli/src/**/*.js",
+    "scripts/**/*.js",
+    "scripts/**/*.mjs",
+    "types/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "**/node_modules", "examples"]
+}

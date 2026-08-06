@@ -1,0 +1,206 @@
+# Spec — Project Scaffolding and Maintenance
+
+**Capability:** scaffolding
+**Status:** active
+**Implementation:** implemented
+**Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Depends on:** cli
+**Last updated:** 2026-08-06
+**Version:** 0.1.0
+
+## Purpose
+
+Define the semantics of the commands that MATERIALISE and MAINTAIN a
+Doctrina project, as opposed to the ones that author artifacts inside
+it: `init` and `adapter` (bootstrap), and `templates`, `hooks`,
+`index`, `upgrade`, `watch`, `metrics` and `completion` (maintenance).
+What these commands share is a target — the tree and the agent-facing
+files themselves — and a constraint: they are additive, and they never
+rewrite content a human authored.
+
+Split out of the `cli` spec when that spec crossed its 400-line cap a
+second time and began to squeeze accepted decisions out of its own
+context pack (ADR 0022). The `cli` spec keeps the command surface, the
+authoring commands, and the conventions every command shares.
+
+## Requirements (EARS)
+
+### Ubiquitous
+
+- The system shall carry index.json's config block through an index rebuild, since it has no on-disk source to be rederived from.
+
+### Event-driven
+
+- When `doctrina init` runs in a directory that contains neither
+  `AGENTS.md` nor `.doctrina/`, the system shall scaffold the AGENTS.md
+  template at the project root and the .doctrina/ skeleton from the
+  templates directory.
+
+- When `doctrina init --agent <name>` runs, the system shall additionally
+  install the matching adapter from the templates inventory. The
+  recognised values are `claude`, `codex`, `cursor`, `copilot`,
+  `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`,
+  `factory`, `jules`, or `all` (install every adapter present
+  under `templates/adapters/`). The last four (amp / devin /
+  factory / jules) are AGENTS.md-native and install no files;
+  the directory exists so the templates inventory is symmetric
+  across supported agents.
+
+- When `doctrina init --intake <file>` runs and `<file>` resolves to
+  a non-empty file, the system shall store the file content verbatim
+  at `.doctrina/intake.md` under a status header (`Status: pending`),
+  absent `--project-description` derive the one-line description from
+  the file's first non-empty line, and print the bootstrap playbook
+  inline (the same one `doctrina intake` prints) so the conversion is a
+  single command. A missing or empty `<file>` shall produce a clear
+  error and write no files.
+
+- When `doctrina init` scaffolds a project, the `AGENTS.md` it writes
+  shall instruct any AGENTS.md-aware agent to detect a pending
+  `.doctrina/intake.md` and execute the bootstrap playbook on its own
+  before other work, so a freshly initialised project converts from
+  intent to specs without per-step prompting.
+
+- When `doctrina hooks install` runs inside a git repository, the
+  system shall write `.git/hooks/pre-commit` from the hooks
+  template, mark it executable, and refuse to overwrite an
+  existing hook unless `--force` is supplied.
+
+- When `doctrina hooks install` runs outside a git repository
+  (no `.git/` in cwd), the system shall exit with a clear error
+  and shall not write any files.
+
+- When `doctrina init --from <path>` runs and `<path>` resolves
+  to a directory, the system shall use `<path>/AGENTS.md` (if
+  present) as the base for the new project's root AGENTS.md and
+  shall fold `<path>/.doctrina/product.md` (if present) into the
+  new project's product.md before applying the standard
+  template scaffolding.
+
+- When `doctrina init --from <path>` runs and `<path>` does not
+  resolve to a directory, the system shall exit with a clear
+  error and shall not write any files. The `--from` flag accepts
+  only local filesystem paths; URLs, git references, and remote
+  sources are out of scope.
+
+- When `doctrina templates list` runs, the system shall walk the
+  framework-bundled template tree and print each template's
+  relative path and line count. The command is strictly
+  read-only and shall not modify any files.
+
+- When `doctrina templates check` runs, the system shall compare
+  the project's `AGENTS.md`, `.doctrina/product.md`, and
+  `.doctrina/index.json` against the recommended section
+  headings and schema fields shipped in the current CLI version
+  and report any recommended section that is missing. The
+  command is strictly read-only and shall not modify any files.
+  It exits 0 when no missing sections are found, 1 otherwise.
+
+- When `doctrina index rebuild` runs, the system shall regenerate
+  `.doctrina/index.json` from the artifacts on disk — spec
+  headers, ADR headers, change proposals, archive folder names,
+  and skill frontmatter — stamping the running `framework_version`
+  (migrating a stale stamp) and preserving `project`,
+  `$schema_version`, and any field that has no on-disk source
+  (product metadata is carried over from the existing index). The
+  files are the source of truth; the index is a derived artifact.
+
+- When `doctrina index rebuild --check` runs, the system shall
+  write nothing, print a drift summary per artifact category,
+  and exit 1 when the regenerated index differs from the one on
+  disk, 0 otherwise.
+
+- When `doctrina metrics` runs inside a git repository, the
+  system shall derive adoption metrics from local git history
+  only — commit count, revert count and rate, Conventional-Commit
+  fix share, top-churn files, and a 21-day re-edit proxy rate —
+  for the window given by `--since` (a day count or a
+  git-parseable date; default 90 days).
+
+- When `doctrina metrics --save` runs, the system shall write the
+  snapshot to `.doctrina/metrics/YYYY-MM-DD.json` and, when a
+  prior snapshot exists, print the deltas against the most recent
+  one.
+
+- When `doctrina metrics` runs outside a git repository, the
+  system shall exit with a clear error and shall not write any
+  files.
+
+- When `doctrina templates update` runs, the system shall print
+  an additive-only update plan — recommended sections missing
+  from `AGENTS.md` and `.doctrina/product.md`, and missing
+  `index.json` schema fields or artifact categories — and shall
+  write nothing, exiting 1 while updates are pending and 0 when
+  the project already follows the current template shape.
+
+- When `doctrina templates update --write` runs, the system shall
+  apply the plan by appending stub sections and adding missing
+  fields; the system shall not rewrite or remove any existing
+  user content.
+
+- When `doctrina index rebuild` regenerates the index — or `doctrina init`
+  scaffolds one — the artifact tree shall record the root `AGENTS.md` under
+  `artifacts.entrypoint`, so a tool enumerating `index.json` can reach the
+  hub the agent reads first, not only the artifacts the hub points at.
+
+- When `doctrina watch` runs, the system shall re-run `validate --fix` and
+  reprint `doctrina next` on every change under `.doctrina/` (debounced,
+  ignoring the `index.json` the fix rewrites) until interrupted; `--once`
+  shall run a single pass and exit (review 2026-06-27).
+
+- When `doctrina completion <shell>` runs with `bash`, `zsh`, or `pwsh`,
+  the system shall print a completion script generated from the operation
+  catalog (commands and their subcommands; flags are not completed), and
+  shall exit 2 for a missing or unrecognised shell.
+
+- When `doctrina upgrade` runs, the system shall preview — and with
+  `--write` apply — the steps that bring an existing project up to the
+  installed CLI: additive `templates update`, index rebuild with
+  `framework_version` stamp migration, and `validate` (`--fix` under
+  `--write`); the preview shall exit 1 while steps are pending (ADR 0014).
+
+- When `doctrina init` runs on an interactive terminal without `--agent`
+  and without `--non-interactive`, the system shall offer the adapter
+  install as a wizard prompt (default: none); the prompt shall never fire
+  without a TTY, so scripted and CI invocations are unchanged.
+
+- When `doctrina templates update --write` or `doctrina upgrade --write` runs, the system shall regenerate the marker-delimited doctrina:surface block of AGENTS.md from the installed command catalog — replacing a legacy hand-written surface section — while writing nothing outside the markers (ADR 0015).
+
+- When `doctrina adapter add <name>` runs, the system shall write only that adapter's own files and shall leave `AGENTS.md`, `.doctrina/product.md`, and every other project artifact byte-identical.
+
+- When `doctrina adapter list` runs, the system shall report each adapter as installed, available, or native, where native means the agent reads `AGENTS.md` directly and the adapter installs no file.
+
+- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, and shall keep any file edited since install unless `--force` is given.
+
+- When `doctrina init --force` would overwrite an `AGENTS.md` or `.doctrina/product.md` that carries authored content, the system shall refuse, name the files it declined to touch, point at `doctrina adapter add`, and write nothing; `--overwrite-content` shall be required to discard that content.
+
+- When `doctrina init` has no project description and no terminal to ask on, the system shall refuse and name the flags that supply one, rather than scaffolding with an empty description.
+
+### State-driven
+
+### Unwanted-behavior (must-not)
+
+- The hook installed by `doctrina hooks install` shall do no work
+  beyond invoking `doctrina validate --fix` and re-staging
+  `.doctrina/index.json` when the fix rewrites it. Lint, tests, and
+  project-specific checks are out of scope for the shipped hook.
+
+### Optional
+
+## Acceptance criteria
+
+Project scaffolding is spec-compliant when:
+
+1. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
+2. [verified] `init --agent <name> --force` on a project with authored content exits non-zero, names the files, and writes nothing; `--overwrite-content` still allows the discard — verified by `packages/doctrina-cli/test/integration.test.js`.
+3. [verified] `adapter list` distinguishes installed, available, and native, and a native adapter installs nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
+4. [verified] A project's context_budget survives `index rebuild`, and --budget overrides it — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+
+## Out of scope for this spec
+
+- The command surface itself, the authoring commands, and the
+  conventions every command shares (exit codes, flag declaration, the
+  JSON envelope, zero runtime dependencies) — covered by the `cli`
+  capability spec.
+- Gate, read-path, and insight command semantics — covered by the
+  `gates` capability spec.

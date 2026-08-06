@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -5,6 +6,7 @@ import { exists, isDir, isFile, read, relPath } from "../lib/fs-ops.js";
 import { parseAcceptanceCriteria } from "../lib/criteria.js";
 import { suggest } from "../lib/suggest.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Point reads. An agent that needs ONE requirement re-reads a whole spec —
 // hundreds of lines for a two-line fact. `show` resolves a compact reference
@@ -20,11 +22,16 @@ import { c } from "../lib/colors.js";
 // conversation, not as immutable identifiers. C-refs use the criteria's own
 // explicit numbers and are as stable as the spec keeps them.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
+
 export async function run(positional, _flags) {
   const ref = positional[0];
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   if (!ref) {
     console.error(c.red("error:") + " show requires a reference");

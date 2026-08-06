@@ -1,13 +1,18 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
-import { surfaceBlock, findSurfaceBlock } from "../lib/commands.js";
+import {
+  surfaceBlock, findSurfaceBlock, agentChangelogBlock, findAgentChangelogBlock,
+} from "../lib/commands.js";
+import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { ask } from "../lib/prompt.js";
+import { EXIT } from "../lib/exit-codes.js";
+import { ask, isInteractive } from "../lib/prompt.js";
 import { writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "./intake.js";
 
 const SUPPORTED_AGENTS = [
@@ -24,6 +29,11 @@ const SUPPORTED_AGENTS = [
   "factory",
   "jules",
 ];
+
+export const flags = {
+  boolean: ["json", "force", "non-interactive", "overwrite-content"],
+  string: ["project-name", "project-description", "agent", "intake", "from", "date"],
+};
 
 export async function run(_positional, flags) {
   const force = flagBool(flags, "force", false);
@@ -53,8 +63,21 @@ export async function run(_positional, flags) {
   if (!description && intakeBody) {
     description = firstLineSummary(intakeBody);
   }
+  // The description prompt used to run unconditionally, without the
+  // isTTY check the adapter prompt already had. A non-interactive caller
+  // that forgot --non-interactive read EOF, got an empty answer, and
+  // scaffolded a project with a blank description — silently (C9).
   if (!description && !nonInteractive) {
-    description = await ask("One-sentence project description:");
+    if (isInteractive()) {
+      description = await ask("One-sentence project description:");
+    }
+    if (!description) {
+      console.error(c.red("error:") + " no project description given and no terminal to ask on");
+      console.error(c.gray("hint: ") +
+        "pass --project-description \"<text>\" (or --intake <file>); " +
+        "--non-interactive alone still needs one of those");
+      return EXIT.USAGE;
+    }
   }
 
   let agentSelector = flagString(flags, "agent");
@@ -62,7 +85,7 @@ export async function run(_positional, flags) {
   // terminal, offer the adapter install instead of silently skipping it —
   // first-run users rarely know the flag exists. Never fires in pipes/CI
   // (no TTY) or under --non-interactive, so scripted init is unchanged.
-  if (agentSelector === undefined && !nonInteractive && process.stdin.isTTY && process.stdout.isTTY) {
+  if (agentSelector === undefined && !nonInteractive && isInteractive()) {
     const answer = await ask(
       `Install an agent adapter? (${SUPPORTED_AGENTS.join("/")}/all/none)`,
       { defaultValue: "none" },
@@ -75,7 +98,9 @@ export async function run(_positional, flags) {
 
   if (!force && (exists(agentsMdPath) || exists(doctrinaDir))) {
     console.error(c.red("error:") + " AGENTS.md or .doctrina/ already exists at this path");
-    console.error(c.gray("hint: ") + "pass --force to overwrite");
+    console.error(c.gray("hint: ") +
+      "to add an agent adapter use `doctrina adapter add <name>` (additive); " +
+      "to re-scaffold, pass --force");
     return 1;
   }
 
@@ -116,6 +141,39 @@ export async function run(_positional, flags) {
   const agentsTemplatePath = path.join(templatesDir, "AGENTS.md.template");
   const agentsTemplateBody = read(agentsTemplatePath);
   const projectAgents = refreshSurfaceBlock(substitute(agentsTemplateBody, tokens));
+
+  // --force used to mean "overwrite everything", which made it a content
+  // shredder: the only way to add an adapter to an existing project was
+  // `init --agent X --force`, and that replaced AGENTS.md and product.md
+  // with blank templates — every hand-authored rule and the whole product
+  // definition, gone, exit 0, no warning (audit item C1).
+  //
+  // --force now re-scaffolds only what is still pristine. Overwriting
+  // AUTHORED content takes a second, explicit opt-in, because no flag whose
+  // documented meaning is "overwrite existing files" should be able to
+  // destroy the two documents the framework calls its sources of truth.
+  const overwriteContent = flagBool(flags, "overwrite-content", false);
+  if (force && !overwriteContent) {
+    const productTemplate = loadProductTemplate(templatesDir);
+    const authored = [];
+    if (isFile(agentsMdPath) && isAuthored(read(agentsMdPath), agentsTemplateBody)) {
+      authored.push("AGENTS.md");
+    }
+    const productPath = path.join(doctrinaDir, "product.md");
+    if (productTemplate !== null && isFile(productPath) && isAuthored(read(productPath), productTemplate)) {
+      authored.push(".doctrina/product.md");
+    }
+    if (authored.length > 0) {
+      console.error(c.red("error:") + " --force would overwrite content you wrote:");
+      for (const f of authored) console.error(`  - ${f}`);
+      console.error("");
+      console.error(c.gray("hint: ") + "to add an agent adapter, use the additive command instead:");
+      console.error(`    ${c.cyan("doctrina adapter add <name>")}`);
+      console.error(c.gray("If you really mean to discard the content above, re-run with ") +
+        c.cyan("--overwrite-content") + c.gray("."));
+      return 1;
+    }
+  }
   const finalAgents = fromAgentsContent
     ? fromAgentsContent.replace(/\n+$/, "") + "\n\n---\n\n## Project-specific\n\n" + projectAgents
     : projectAgents;
@@ -138,6 +196,18 @@ export async function run(_positional, flags) {
       const dest = path.join(doctrinaDir, "product.md");
       write(dest, merged, { force });
       console.log(c.green("created") + ` ${relPath(projectRoot, dest)} (with --from base)`);
+      continue;
+    }
+    // index.json is written from the ONE schema definition
+    // (`lib/index-json.js`), not from a template that could drift from it.
+    // A template copy is how a project came to be born already needing a
+    // scaffold update: `contracts` was added to what `templates check`
+    // requires and not to what `init` wrote (audit item C5).
+    if (entry.relativePath === "index.json.template") {
+      const dest = path.join(doctrinaDir, "index.json");
+      const fresh = idx.blank(projectName, date);
+      write(dest, JSON.stringify(fresh, null, 2) + "\n", { force });
+      console.log(c.green("created") + ` ${relPath(projectRoot, dest)}`);
       continue;
     }
     const written = materialiseEntry(entry, doctrinaDir, tokens, { force });
@@ -182,13 +252,76 @@ export async function run(_positional, flags) {
   return 0;
 }
 
+// The RAW product.md template (tokens unsubstituted), or null when it
+// cannot be located — in which case the authored check errs toward
+// refusing nothing rather than guessing.
+function loadProductTemplate(templatesDir) {
+  const p = path.join(templatesDir, "doctrina", "product.md.template");
+  if (!isFile(p)) return null;
+  return read(p);
+}
+
+// Does this file carry content someone wrote, as opposed to the pristine
+// scaffold?
+//
+// Compared by SHAPE against the raw template, not against a rendered copy:
+// a re-init under a different --project-name substitutes different values
+// into the same scaffold, and comparing rendered text would read that as
+// authorship and refuse a legitimate re-scaffold. Each `{{TOKEN}}` becomes
+// a wildcard, so any project name matches while any added prose does not.
+// Volatile and CLI-owned regions are dropped from both sides first: the
+// date line changes on its own and the doctrina:surface block is
+// regenerated by `upgrade`, so neither is evidence of authorship.
+function isAuthored(existing, rawTemplate) {
+  const body = normaliseScaffold(existing);
+  const shape = normaliseScaffold(rawTemplate)
+    .split(/\{\{[A-Z0-9_]+\}\}/)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[\\s\\S]*?");
+  return !new RegExp(`^${shape}$`).test(body);
+}
+
+function normaliseScaffold(text) {
+  return text
+    .replace(/\r\n/g, "\n")
+    // Both CLI-owned blocks are generated, not authored: the surface block
+    // is regenerated by `upgrade`, and the changed block is version-specific
+    // and written at init. Neither is evidence that a human touched the file.
+    .replace(/<!--\s*doctrina:surface:begin[\s\S]*?doctrina:surface:end\s*-->/g, "")
+    .replace(/<!--\s*doctrina:changed:begin[\s\S]*?doctrina:changed:end\s*-->/g, "")
+    .split("\n")
+    .filter((line) => !/^\*\*Last updated:\*\*|^-\s+\*\*Date:\*\*/.test(line.trim()))
+    .map((line) => line.replace(/\s+$/, ""))
+    .join("\n")
+    // Removing a generated block leaves the blank lines that surrounded it,
+    // and how many depends on where it was inserted. Collapse runs so the
+    // shape comparison is about CONTENT, not about spacing the CLI itself
+    // produced.
+    .replace(/\n{2,}/g, "\n\n")
+    .trim();
+}
+
 // Replace the template's doctrina:surface span with the one generated from
 // the running CLI's catalog; pass the text through untouched when the
 // template carries no markers (older custom templates).
 function refreshSurfaceBlock(text) {
   const block = findSurfaceBlock(text);
   if (!block) return text;
-  return text.slice(0, block.start) + surfaceBlock() + text.slice(block.end);
+  let out = text.slice(0, block.start) + surfaceBlock() + text.slice(block.end);
+
+  // The agent-facing changelog is version-specific, so it is GENERATED at
+  // init like the surface block — not carried in the template. Writing it
+  // here is what keeps a fresh project from being born already needing a
+  // `templates update`, the same invariant C5 established for index.json.
+  const changed = agentChangelogBlock(cliVersion());
+  const existing = findAgentChangelogBlock(out);
+  if (existing) {
+    out = out.slice(0, existing.start) + changed + out.slice(existing.end);
+  } else if (changed) {
+    const sb = findSurfaceBlock(out);
+    if (sb) out = out.slice(0, sb.end) + "\n\n" + changed + out.slice(sb.end);
+  }
+  return out;
 }
 
 // First non-empty line of the intake, stripped of Markdown heading marks

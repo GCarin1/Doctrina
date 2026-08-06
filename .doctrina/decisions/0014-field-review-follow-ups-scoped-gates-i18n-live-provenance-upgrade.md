@@ -1,6 +1,7 @@
 # ADR 0014 — Field-review follow-ups — scoped gates, linter i18n, live provenance, project upgrade
 
 - **Status:** accepted
+- **Scope:** cli, gates, templates
 - **Date:** 2026-07-12
 - **Deciders:**
 - **Supersedes:** —

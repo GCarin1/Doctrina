@@ -4,8 +4,8 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
-**Last updated:** 2026-07-02
-**Version:** 0.2.0
+**Last updated:** 2026-08-06
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -43,6 +43,9 @@ treatment cohorts using the same definition in each cohort.
   any data is collected.
 - The protocol shall be re-runnable as Doctrina, the team, or the
   codebase evolves.
+- The system shall verify itself the way a user installs it, packing the CLI, installing the tarball outside the repository, and driving a project through the whole lifecycle with the installed binary.
+- The system shall define the on-disk artifact grammar in one module, and every header read, section extraction, and header write shall go through it.
+- The system shall read headers leniently, accepting every recognised written form, and write them strictly in one canonical form whose list-or-bare style is decided by the artifact kind.
 
 ### Event-driven
 
@@ -56,6 +59,8 @@ treatment cohorts using the same definition in each cohort.
 - When treatment data is collected, the team shall produce a
   comparison record listing every metric, baseline value, treatment
   value, and the outcome of every trigger.
+- When the end-to-end harness runs, the system shall assert that the structural, template, and diagnostic gates are green at each lifecycle step, and that every bundled adapter installs into a project that passes its own checks.
+- When `doctrina validate --fix` runs, the system shall repair headers that are recognised but not canonical, preserving each line's existing ending and never altering content.
 
 ### State-driven
 
@@ -77,6 +82,7 @@ treatment cohorts using the same definition in each cohort.
   Sample sizes are too small and the goal is honest before/after
   measurement against pre-declared thresholds, not research-grade
   inference.
+- The system shall not treat bold prose as a metadata header; a header carries a colon and lives before the first section.
 
 ### Optional
 
@@ -139,6 +145,11 @@ The validation capability is delivered when:
    `doctrina metrics` snapshots and diffs local git-derived metrics —
    `packages/doctrina-cli/src/commands/metrics.js`, proven by
    `packages/doctrina-cli/test/integration.test.js`.
+6. [verified] The packed-install harness drives init, spec, work, delta, check, close, and archive with the installed binary and asserts the gates at each step — `scripts/e2e-packed.mjs`.
+7. [verified] Pointed at the commit preceding the fixes, the harness reproduces the adapter data loss, the failing adapter check, the born-stale index, the ungated apply, and the git first-run error — `scripts/e2e-packed.mjs`.
+8. [verified] Every recognised header form parses, bold prose does not, and writing produces one canonical form — verified by `packages/doctrina-cli/test/doc-model.test.js`.
+9. [verified] Every artifact in this repository and in the shipped examples round-trips through the model unchanged — verified by `packages/doctrina-cli/test/doc-model.test.js`.
+10. [verified] `validate --fix` repairs a non-canonical header end to end and the finding clears — verified by `packages/doctrina-cli/test/doc-model.test.js`.
 
 ## Out of scope for this spec
 

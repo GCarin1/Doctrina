@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -6,6 +7,8 @@ import { exists, isDir, isFile, read, relPath } from "../lib/fs-ops.js";
 import { specHeader } from "../lib/scan.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { emitJson } from "../lib/json-out.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Traceability report: how many acceptance criteria cite an artifact or
 // test that actually exists on disk. Doctrina otherwise has no link
@@ -22,10 +25,19 @@ import { c } from "../lib/colors.js";
 // proves nothing — review G3: existence ≠ a passing test), "dangling" when
 // a cited path does not resolve, and "bare" when nothing is cited.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+// This command builds its own JSON payload; the entrypoint must not
+// wrap it in the generic envelope.
+export const jsonNative = true;
+
+export const flags = { boolean: ["json", "run", "strict"], string: ["only"] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const strict = flagBool(flags, "strict", false);
   const json = flagBool(flags, "json", false);
@@ -48,7 +60,7 @@ export async function run(_positional, flags) {
 
   if (reports.length === 0) {
     if (json) {
-      console.log(JSON.stringify({ specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: 100 } }, null, 2));
+      emitJson("coverage", { specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: 100 } });
       return 0;
     }
     console.log(c.gray("no acceptance criteria found under .doctrina/specs/"));
@@ -72,10 +84,10 @@ export async function run(_positional, flags) {
   const jsonClean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0 && totalConditional === 0;
 
   if (json) {
-    console.log(JSON.stringify({
+    emitJson("coverage", {
       specs: reports.map((rep) => ({ capability: rep.cap, deferred: rep.deferred, criteria: rep.rows })),
       summary: { criteria: totalCriteria, covered: totalCovered, dangling: totalDangling, conditional: totalConditional, deferred: totalDeferred, pct: jsonPct },
-    }, null, 2));
+    });
     return jsonClean ? 0 : strict ? 1 : 0;
   }
 

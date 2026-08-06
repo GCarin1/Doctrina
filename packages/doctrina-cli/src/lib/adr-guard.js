@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import { isDir, read, walk } from "./fs-ops.js";
 import { listHeader } from "./scan.js";

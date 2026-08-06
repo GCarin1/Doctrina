@@ -1,6 +1,7 @@
 # ADR 0013 — Broaden skill suggest signal source to git history
 
 - **Status:** accepted
+- **Scope:** skills
 - **Date:** 2026-06-28
 - **Deciders:** Gcarini
 - **Supersedes:** —

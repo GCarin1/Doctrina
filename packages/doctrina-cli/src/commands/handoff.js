@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
@@ -6,6 +7,7 @@ import { computeActions } from "./next.js";
 import { openChanges } from "./prime.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Session handoff note: everything the NEXT session (a fresh agent, a
 // teammate, tomorrow's you) needs to resume without re-reading the tree —
@@ -16,10 +18,15 @@ import { c } from "../lib/colors.js";
 // a stored file: a saved note goes stale the moment work continues, the
 // tree never does (no new home for facts).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json"], string: [] };
+
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const s = collectStatus(projectRoot);

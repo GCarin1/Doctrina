@@ -1,16 +1,26 @@
+// @ts-check
+import { getHeader, setHeader } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, read, relPath, write } from "../lib/fs-ops.js";
 import { walk } from "../lib/fs-ops.js";
-import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
 import { today, slugify, padNumber } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { flagBool } from "../lib/args.js";
+import { parseAdrScope, decisionEntry } from "../lib/scan.js";
 
-const SUBCOMMANDS = ["new", "supersede", "accept", "land", "list"];
+const SUBCOMMANDS = ["new", "supersede", "accept", "land", "list", "scope"];
 
-export async function run(positional, _flags) {
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "write"], string: [] };
+
+export async function run(positional, cmdFlags) {
   const sub = positional[0];
   switch (sub) {
     case "new":
@@ -21,6 +31,8 @@ export async function run(positional, _flags) {
       return decisionAccept(positional.slice(1));
     case "land":
       return decisionLand(positional.slice(1));
+    case "scope":
+      return decisionScope(positional.slice(1), cmdFlags);
     case "list":
       return decisionList();
     default:
@@ -52,8 +64,7 @@ function decisionNew(args) {
     return 1;
   }
 
-  const templatesDir = locateTemplatesDir();
-  const tpl = read(path.join(templatesDir, "decision.md.template"));
+  const tpl = readTemplate(projectRoot, "decision.md.template").body;
   const body = substitute(tpl, {
     DECISION_NUMBER: next,
     DECISION_TITLE: title,
@@ -63,14 +74,11 @@ function decisionNew(args) {
   write(targetPath, body, { force: false });
   console.log(c.green("created") + ` ${relPath(projectRoot, targetPath)}`);
 
+  // Register through the SAME deriver the index rebuild uses. Assembling a
+  // look-alike entry here is how a field added to the deriver turns every
+  // freshly created ADR into index drift the moment it is written.
   const index = idx.load(projectRoot);
-  idx.addDecision(index, {
-    id: next,
-    path: `.doctrina/decisions/${filename}`,
-    title,
-    status: "proposed",
-    date,
-  });
+  idx.addDecision(index, decisionEntry(body, filename, null, date));
   idx.touch(index, date);
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + ` decision ${next}`);
@@ -95,12 +103,12 @@ function decisionSupersede(args) {
     return 1;
   }
   const oldText = read(oldFile);
-  const oldStatusMatch = oldText.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
-  if (!oldStatusMatch) {
+  const oldStatusValue = getHeader(oldText, "Status");
+  if (oldStatusValue === null) {
     console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, oldFile)} has no Status: header`);
     return 1;
   }
-  const oldStatus = oldStatusMatch[1].trim();
+  const oldStatus = oldStatusValue;
   if (oldStatus.toLowerCase().startsWith("superseded")) {
     console.error(c.red("error:") + ` ADR ${padded} is already superseded`);
     return 1;
@@ -132,23 +140,17 @@ function decisionSupersede(args) {
   write(newPath, body, { force: false });
   console.log(c.green("created") + ` ${relPath(projectRoot, newPath)}`);
 
-  // Mutate ONLY the Status: and Superseded by: headers of the old ADR
-  const updated = oldText
-    .replace(/^(-\s+\*\*Status:\*\*)\s+.+$/m, `$1 superseded by ${next}`)
-    .replace(/^(-\s+\*\*Superseded by:\*\*)\s+.+$/m, `$1 ${next}`);
+  // Mutate ONLY the Status: and Superseded by: headers of the old ADR.
+  // Both go through the document model, so an ADR written with a slightly
+  // off header form is still updated rather than silently skipped (M3).
+  const withStatus = setHeader(oldText, "Status", `superseded by ${next}`) ?? oldText;
+  const updated = setHeader(withStatus, "Superseded by", String(next)) ?? withStatus;
   write(oldFile, updated, { force: true });
   console.log(c.green("updated") + ` ${relPath(projectRoot, oldFile)} status -> superseded by ${next}`);
 
   // Update index
   const index = idx.load(projectRoot);
-  idx.addDecision(index, {
-    id: next,
-    path: `.doctrina/decisions/${filename}`,
-    title,
-    status: "proposed",
-    date,
-    supersedes: padded,
-  });
+  idx.addDecision(index, decisionEntry(body, filename, null, date));
   idx.updateDecision(index, padded, () => ({
     status: `superseded by ${next}`,
     superseded_by: next,
@@ -176,19 +178,19 @@ function decisionAccept(args) {
     return 1;
   }
   const text = read(file);
-  const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
-  if (!statusMatch) {
+  const statusValue = getHeader(text, "Status");
+  if (statusValue === null) {
     console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, file)} has no Status: header`);
     return 1;
   }
-  const status = statusMatch[1].trim().toLowerCase();
+  const status = statusValue.toLowerCase();
   if (status !== "proposed") {
-    console.error(c.red("error:") + ` ADR ${padded} is "${statusMatch[1].trim()}", not "proposed" — nothing to accept`);
+    console.error(c.red("error:") + ` ADR ${padded} is "${statusValue}", not "proposed" — nothing to accept`);
     return 1;
   }
 
   // Mutate ONLY the Status: header; the body stays immutable.
-  write(file, text.replace(/^(-\s+\*\*Status:\*\*)\s+.+$/m, "$1 accepted"), { force: true });
+  write(file, setHeader(text, "Status", "accepted") ?? text, { force: true });
   console.log(c.green("accepted") + ` ${relPath(projectRoot, file)}`);
 
   const date = today();
@@ -224,16 +226,16 @@ function decisionLand(args) {
     return 1;
   }
   const text = read(file);
-  const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
-  if (!statusMatch) {
+  const statusValue = getHeader(text, "Status");
+  if (statusValue === null) {
     console.error(c.red("error:") + ` ADR at ${relPath(projectRoot, file)} has no Status: header`);
     return 1;
   }
-  const status = statusMatch[1].trim().toLowerCase();
+  const status = statusValue.toLowerCase();
   if (status !== "accepted") {
     console.error(
       c.red("error:") +
-        ` ADR ${padded} is "${statusMatch[1].trim()}", not "accepted" — accept it before recording that it landed`,
+        ` ADR ${padded} is "${statusValue}", not "accepted" — accept it before recording that it landed`,
     );
     return 1;
   }
@@ -251,7 +253,7 @@ function decisionLand(args) {
   } else if (/^-\s+\*\*Evidence:\*\*.*$/m.test(text)) {
     updated = text.replace(/^(-\s+\*\*Evidence:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
   } else {
-    updated = text.replace(/^(-\s+\*\*Status:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
+    updated = text.replace(/^(\s*-\s+\*\*Status:\*\*.*)$/m, `$1\n- **Landed:** ${landedValue}`);
   }
   write(file, updated, { force: true });
   console.log(c.green("landed") + ` ${relPath(projectRoot, file)} on ${date}`);
@@ -286,11 +288,11 @@ function decisionList() {
     if (!m) continue;
     const text = read(f);
     const titleMatch = text.match(/^#\s+ADR\s+\d{4}\s*[—-]\s*(.+)$/m);
-    const statusMatch = text.match(/^-\s+\*\*Status:\*\*\s+(.+)$/m);
+    const listedStatus = getHeader(text, "Status");
     const dateMatch = text.match(/^-\s+\*\*Date:\*\*\s+(\S+)/m);
     rows.push({
       id: m[1],
-      status: statusMatch ? statusMatch[1].trim() : "?",
+      status: listedStatus ?? "?",
       date: dateMatch ? dateMatch[1] : "—",
       title: titleMatch ? titleMatch[1].trim() : path.basename(f),
     });
@@ -309,6 +311,127 @@ function decisionList() {
   return 0;
 }
 
+// Propose — or, with --write, apply — the capability scope of an ADR.
+//
+// An unscoped ADR is GLOBAL: it loads into every context pack, forever,
+// because ADRs are immutable and never retire. That is what makes the
+// default read pack grow with the project's age instead of with the task
+// at hand. Scoping is the fix, but only if it gets adopted, and nobody
+// hand-annotates forty immutable documents.
+//
+// So the scope is SUGGESTED from evidence the tree already holds: the
+// archived change that introduced an ADR records which specs it touched
+// (`changes_archive[].specs_affected`), and the ADR's own text names the
+// capabilities it governs. Both are hints. The agent or human confirms —
+// the tool proposes, it never decides (ADR 0005).
+function decisionScope(args, cmdFlags) {
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  const doWrite = flagBool(cmdFlags, "write", false);
+
+  const index = idx.load(projectRoot);
+  const capabilities = new Set((index.artifacts.specs ?? []).map((s) => s.id));
+  const archive = index.artifacts.changes_archive ?? [];
+  const wanted = args[0] ? padNumber(parseInt(args[0], 10)) : null;
+
+  const rows = [];
+  for (const dec of index.artifacts.decisions ?? []) {
+    if (wanted && dec.id !== wanted) continue;
+    const file = path.join(projectRoot, dec.path);
+    if (!exists(file)) continue;
+    const text = read(file);
+    const declared = parseAdrScope(text);
+
+    // Signal 1 — the archived change that cites this ADR, and the specs
+    // that change touched. Strongest evidence: it is what actually moved.
+    const fromLedger = new Set();
+    for (const ch of archive) {
+      if (!archivedChangeCites(projectRoot, ch, dec.id)) continue;
+      for (const s of ch.specs_affected ?? []) {
+        if (capabilities.has(s.capability)) fromLedger.add(s.capability);
+      }
+    }
+    // Signal 2 — capability ids the ADR's own text names, and only as a
+    // FALLBACK. Capability ids are ordinary words (`cli`, `core`, `docs`),
+    // so on a mature tree this signal matches nearly every ADR and a scope
+    // of "everything" is the same as no scope at all. The ledger records
+    // what actually moved; text only guesses. When the ledger has an
+    // answer, it is the answer.
+    const fromText = new Set();
+    if (fromLedger.size === 0) {
+      for (const cap of capabilities) {
+        const escaped = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        if (new RegExp(`(^|[^a-z0-9-])${escaped}([^a-z0-9-]|$)`, "im").test(text)) {
+          fromText.add(cap);
+        }
+      }
+    }
+    const viaLedger = fromLedger.size > 0;
+    const suggested = [...(viaLedger ? fromLedger : fromText)].sort();
+    rows.push({ dec, file, text, declared, suggested, viaLedger });
+  }
+
+  if (rows.length === 0) {
+    console.log(c.gray(wanted ? `no ADR ${wanted}` : "no ADRs found in .doctrina/decisions/"));
+    return 0;
+  }
+
+  console.log(c.bold("ADR scope") + c.gray(" — an unscoped ADR is global: it loads into every pack"));
+  console.log("");
+  let wrote = 0;
+  for (const r of rows) {
+    const have = r.declared.length > 0
+      ? c.green(r.declared.join(", "))
+      : c.gray("(global)");
+    console.log(`  ${c.cyan(r.dec.id)}  ${String(r.dec.title ?? "").slice(0, 48).padEnd(48)} ${have}`);
+    if (r.declared.length > 0 || r.suggested.length === 0) continue;
+    const via = r.viaLedger ? "ledger" : "text — confirm before writing";
+    console.log(`        ${c.yellow("suggest:")} ${r.suggested.join(", ")} ${c.gray(`(${via})`)}`);
+    if (!doWrite) continue;
+    const updated = insertScopeHeader(r.text, r.suggested);
+    if (updated) {
+      write(r.file, updated, { force: true });
+      wrote += 1;
+      console.log(`        ${c.green("written")}`);
+    }
+  }
+
+  console.log("");
+  if (wrote > 0) {
+    console.log(c.green("ok") + ` scoped ${wrote} ADR${wrote === 1 ? "" : "s"}`);
+    console.log(c.gray("next: ") + c.cyan("doctrina index rebuild") + c.gray(" then review — a scope too narrow"));
+    console.log(c.gray("      hides a decision from the pack that needs it."));
+    return 0;
+  }
+  const open = rows.filter((r) => r.declared.length === 0);
+  const actionable = open.filter((r) => r.suggested.length > 0).length;
+  console.log(c.gray(`${open.length} of ${rows.length} unscoped (global)`)
+    + (actionable > 0 ? c.gray(`, ${actionable} with a suggestion`) : ""));
+  if (!doWrite && actionable > 0) {
+    console.log(c.gray("apply: ") + c.cyan("doctrina decision scope --write"));
+  }
+  return 0;
+}
+
+// Does an archived change cite this ADR anywhere in its folder?
+function archivedChangeCites(projectRoot, archived, adrId) {
+  if (!archived.path) return false;
+  const dir = path.join(projectRoot, archived.path);
+  for (const f of walk(dir)) {
+    if (f.endsWith(".md") && read(f).includes(`ADR ${adrId}`)) return true;
+  }
+  return false;
+}
+
+// Place `- **Scope:** a, b` in the metadata block, right after Status —
+// where a reader looks for what a decision applies to.
+function insertScopeHeader(text, scope) {
+  if (getHeader(text, "Scope") !== null) return null;
+  const line = `- **Scope:** ${scope.join(", ")}`;
+  const updated = text.replace(/^(-[ \t]+\*\*Status:\*\*.*)$/m, `$1\n${line}`);
+  return updated === text ? null : updated;
+}
+
 function nextDecisionNumber(projectRoot) {
   const adrDir = path.join(projectRoot, ".doctrina", "decisions");
   const files = walk(adrDir);
@@ -325,7 +448,7 @@ function nextDecisionNumber(projectRoot) {
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 }
 
@@ -345,4 +468,13 @@ Subcommands:
                                        and rewrite the target's Status: header
   list                                 One line per ADR: number, status, date,
                                        title. Read-only.
+  scope [<number>] [--write]           Show which capabilities each ADR governs
+                                       and propose one for the unscoped, from the
+                                       archived change that cites it. An unscoped
+                                       ADR is global: it loads into every context
+                                       pack. --write applies the suggestions.
+
+Options:
+  --write                              scope: apply the suggested scopes
+  --json                               Machine-readable output
 `;

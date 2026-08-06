@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
@@ -7,6 +8,7 @@ import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "./work.js";
 import { parseDependsOn } from "../lib/scan.js";
+import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { summarize as coverageSummary } from "./coverage.js";
 import { summarize as traceSummary } from "./trace.js";
 
@@ -20,10 +22,15 @@ import { summarize as traceSummary } from "./trace.js";
 // ceiling as `trace`/`clarify` (ADR 0005). Read-only; exits 0 as a report, 1
 // under --strict when any break exists (CI gate).
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "strict"], string: ["diff"] };
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
   const strict = flagBool(flags, "strict", false);
   const against = flagString(flags, "diff"); // optional git ref to diff against

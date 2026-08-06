@@ -9,14 +9,58 @@ Every command of the `doctrina` CLI, with flags and exit codes. Run
 |------|--------|
 | `--help`, `-h` | Print top-level usage, or per-command help if placed after a command. |
 | `--version`, `-v` | Print the package version. |
+| `--debug` | On an unexpected error, also print the stack trace. |
+
+**Flag position does not matter.** Each command declares the flags it
+accepts, and the CLI parses in two passes — first to resolve the command
+name, then with that command's declared flags. So
+`doctrina change new --chore my-id "Title"` and
+`doctrina change new my-id "Title" --chore` are identical. A static test
+asserts every flag a command reads, and every flag its `--help` documents
+in the Options block, is declared — an undeclared flag used to swallow the
+next argument as its value and report a misleading error.
 
 ## Exit codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success (warnings allowed). |
-| 1 | A command-level error: validation failed, file refused to overwrite, change not found, etc. |
-| 2 | Misuse: unknown command, missing required argument, malformed input. |
+A five-class contract (ADR 0018) — full detail in
+[exit-codes.md](exit-codes.md).
+
+| Code | Class | Meaning | What to do |
+|------|-------|---------|------------|
+| 0 | OK | Success (warnings allowed). | Continue. |
+| 1 | GATE | A gate failed — the work is not ready. | Fix the work, retry. |
+| 2 | USAGE | Unknown command, missing or malformed argument. | Correct the invocation. |
+| 3 | PRECONDITION | The project is not set up for this yet. | Run the command named in the `hint:` line. |
+| 4 | ENVIRONMENT | The environment cannot run this. | Stop. |
+
+## Machine-readable output (`--json`)
+
+Every command accepts `--json`. Paired with the [exit-code
+contract](exit-codes.md), the two form the machine interface: structured
+output plus a meaningful status, so an autonomous loop never parses English.
+
+Every payload carries the same envelope:
+
+| Field | Meaning |
+|-------|---------|
+| `$schema_version` | The payload contract version. Currently `1.0.0`. |
+| `command` | The invocation this payload describes. |
+| `ok` | `true` when the command succeeded. |
+| `exit_code` | The process exit status — the class documented in [exit-codes.md](exit-codes.md). |
+
+Two levels of support, stated rather than hidden:
+
+- **Structured** — `validate`, `status`, `next`, `coverage`, `trace` build a
+  payload describing their result, alongside the envelope fields.
+- **Envelope** — every other command returns its human output as
+  `stdout` / `stderr` string arrays inside the envelope, with ANSI stripped.
+  Branch on `ok` and `exit_code`; the lines are there for completeness, not
+  for parsing.
+
+A command with nothing better to say is still machine-consumable, which is
+what makes "`--json` on every command" a fact rather than an intention. More
+commands gain structured payloads over time; the envelope fields never
+change shape without a `$schema_version` bump.
 
 ## `doctrina init`
 
@@ -35,11 +79,22 @@ doctrina init [options]
 | `--from <path>` | none | Local conventions directory; folds its `AGENTS.md` and `.doctrina/product.md` (when present) into the new project before scaffolding. Filesystem paths only — no URLs. |
 | `--intake <file>` | none | Full project description; stored verbatim at `.doctrina/intake.md`, used to derive the one-line description when `--project-description` is absent, and the bootstrap playbook is printed inline — no second command needed. The scaffolded `AGENTS.md` also tells any agent to run that playbook on its own when it sees a pending intake. |
 | `--date <YYYY-MM-DD>` | system date | Override the date written into artifacts. |
-| `--force` | off | Overwrite existing files. |
+| `--force` | off | Re-scaffold a project that already exists. It re-writes only files that are still **pristine**: when `AGENTS.md` or `.doctrina/product.md` carries content you wrote, `init` refuses and names them (ADR 0016). |
+| `--overwrite-content` | off | The explicit second opt-in that lets `--force` discard authored `AGENTS.md` / `product.md`. Without it, `--force` alone cannot destroy them. |
 | `--non-interactive` | off | Fail instead of prompting for missing required values. |
+
+`init` needs a description. On a terminal it asks; off one it **refuses**
+(exit `2`) rather than accepting the empty string EOF returns — that used
+to scaffold a project with a blank description and no warning. Pass
+`--project-description` or `--intake`.
 
 `init` refuses to run if `AGENTS.md` or `.doctrina/` already exist
 unless `--force` is supplied.
+
+**To add an agent to an existing project, use `doctrina adapter add
+<name>`** — not `init --force`. `adapter add` is additive and never
+touches `AGENTS.md` or `product.md`; `init --force` re-scaffolds and now
+refuses when either carries authored content.
 
 On an interactive terminal, `init` also offers the adapter install as
 a wizard step when `--agent` was not given (answer `none` to skip);
@@ -208,6 +263,14 @@ Apply every spec delta found under `.doctrina/changes/<id>/specs/`.
 Multiple ids run in sequence, each independently (batch close of a
 backlog); the exit code is the worst per-id result.
 
+**Gated on `structure`** (ADR 0017): `apply` refuses when `analyze` would
+fail, and writes nothing. Preconditions attach to the transition, not to
+the command driving it, so `apply` enforces exactly what the `close` path
+enforces — an agent cannot reach through one path a state another path
+forbids. `--force` waives the *check* and records the gap in the ledger;
+it does not waive the operation, so a forced apply past a malformed delta
+still fails when it tries to read it.
+
 ```
 doctrina change apply 0042-add-saml
 doctrina change apply 0042-add-saml 0043-rate-limit 0044-audit-log
@@ -253,10 +316,13 @@ doctrina change archive 0042-add-saml
 doctrina change archive 0042-add-saml 0043-rate-limit
 ```
 
-Archiving is the act of declaring a change finished, so it enforces
-verification: the CLI **refuses** (exit 1) while any checkbox in
-`tasks.md` (the closing steps included) or in the proposal's
-`## Verification` section is still unchecked. Finish and check the
+Archiving is the act of declaring a change finished, so it is **gated on
+`verification`** (ADR 0017): the CLI **refuses** (exit 1) while any
+checkbox in `tasks.md` (the closing steps included) or in the proposal's
+`## Verification` section is still unchecked. It deliberately does not
+re-run the `structure` gate — that gate asks "is this safe to apply?",
+and after a successful apply its ADDED-target check would report the
+proof of success as a conflict. Finish and check the
 items, or pass `--force` to archive anyway — which prints the unmet
 items and records the gap. This is the difference between "boxes
 marked" and "verification passed".
@@ -361,6 +427,11 @@ rebuilds the index from the tree.
 | Flag | Purpose |
 |------|---------|
 | `--reason "<text>"` | Record why the change was abandoned in the ledger line. |
+| `--force` | Skip the confirmation. **Required off a terminal** — abandoning deletes work with no undo, and the CLI will not take silence as consent. |
+
+Without `--force`, `abandon` lists the files it would delete, states that
+the deletion cannot be undone, and asks. On a non-interactive stdin there
+is nobody to ask, so it refuses (exit `2`) rather than proceeding.
 
 ## `doctrina decision new "<title>"`
 
@@ -424,6 +495,44 @@ doctrina decision list
 ```
 
 Read-only.
+
+## `doctrina decision scope [<number>]`
+
+Show which capabilities each ADR governs, and propose one for
+every unscoped ADR.
+
+```
+doctrina decision scope
+doctrina decision scope 0007
+doctrina decision scope --write
+```
+
+An ADR with no `- **Scope:**` header is **global**: it loads into
+every context pack, forever, because ADRs are immutable and never
+retire. That is what makes a default read pack grow with the
+project's age rather than with the task (ADR 0022). Scoping is the
+fix — but only if it gets adopted, and nobody hand-annotates forty
+immutable documents.
+
+So the scope is proposed from evidence the tree already holds. The
+archived change that cites an ADR records which specs it touched
+(`changes_archive[].specs_affected`), and that is the strongest
+signal available: it is what actually moved. When no archived
+change cites the ADR, its own text is scanned for capability ids
+and the suggestion is labelled `text — confirm before writing`,
+because capability ids are ordinary words and a scope of
+"everything" is the same as no scope at all.
+
+| Flag | Purpose |
+|------|---------|
+| `--write` | Apply the suggestions, inserting `- **Scope:**` after each ADR's `Status:` header. Without it, the command only reports. |
+
+Review what it writes. A scope that is too narrow hides a decision
+from the pack that needed it, and nothing detects that
+automatically — the tool proposes, you decide. Leaving an ADR
+global is a legitimate answer for decisions about the project's
+stance rather than one capability. Run `doctrina index rebuild`
+afterwards to surface the scopes in `index.json`.
 
 ## `doctrina skill new <name>`
 
@@ -497,6 +606,46 @@ indexes it — so authoring a skill is "fill in", not "start from blank".
 `--since <ref>` scans commits in `<ref>..HEAD` instead of the most recent
 200; the git source degrades silently to archive-only when there is no
 repo. Read-only without `--write`.
+
+## `doctrina adapter list` / `add` / `remove`
+
+Add, remove, and inventory the per-agent adapter files that point at
+`AGENTS.md` (ADR 0016).
+
+```
+doctrina adapter list
+doctrina adapter add gemini
+doctrina adapter remove gemini
+```
+
+Before this command, adding an adapter to an existing project meant
+`doctrina init --agent <name> --force` — and that regenerated `AGENTS.md`
+and `.doctrina/product.md` from blank templates, destroying hand-authored
+rules and the product definition with no warning. `adapter add` is
+**strictly additive**: it writes that adapter's own files and never reads
+or writes `AGENTS.md`, `.doctrina/product.md`, or any other artifact.
+
+`adapter list` reports three states, because "no adapter installed" and
+"no adapter needed" used to be indistinguishable:
+
+| State | Meaning |
+|-------|---------|
+| `installed` | The adapter's files are present in this project. |
+| `available` | It ships files and none are installed. |
+| `native` | The agent reads `AGENTS.md` directly and needs no file at all (`amp`, `codex`, `devin`, `factory`, `jules`). |
+
+`adapter remove` deletes only the files that adapter created. A file you
+edited after install is yours — it is kept, and named, unless `--force`.
+
+**Custom adapters.** A directory at `.doctrina/templates/adapters/<name>/`
+is installable by name and takes precedence over a bundled adapter of the
+same name. Templates there use the same tokens as the bundled ones; the
+`AGENTS_MD_PATH` token resolves to the correct relative path for the file's
+depth, so a nested command file points at `../../AGENTS.md` on its own.
+
+| Flag | Purpose |
+|------|---------|
+| `--force` | With `add`, overwrite an existing file; with `remove`, delete a file that was edited after install. |
 
 ## `doctrina intent add "<text>"` / `list`
 
@@ -605,11 +754,20 @@ Walks `AGENTS.md`, `.doctrina/product.md`, and
 schema field that is missing — including whether the AGENTS.md
 **doctrina:surface block** (the CLI-owned, marker-delimited command
 catalog generated from the installed CLI; ADR 0015) is present and
-current. It also verifies every **installed agent adapter** (CLAUDE.md,
-GEMINI.md, `.cursor/rules/…`, …) still references `AGENTS.md`: adapters
-are thin pointers at the hub, which is why one surface-block refresh
-reaches every installed agent — a broken pointer is reported with the
-fix. Read-only; never modifies any files. Exits 0 when every
+current. It also verifies every installed **hub pointer** still references
+`AGENTS.md`. A hub pointer is an adapter file whose template declares the
+`{{AGENTS_MD_PATH}}` token — `CLAUDE.md`, `GEMINI.md`,
+`.cursor/rules/00-doctrina.mdc`, and so on. Those are the files that route
+an agent at the hub, which is why one surface-block refresh reaches every
+installed agent. Slash-command shims (`.claude/commands/doctrina-*.md`)
+are **not** pointers: they invoke the CLI and reach the hub through their
+parent pointer file, so requiring them to name `AGENTS.md` was a false
+failure on every clean install.
+
+Every finding names the command that resolves it, or says plainly that
+repair is manual. A test executes each printed remedy and asserts the
+finding clears — a remedy the CLI cannot execute and verify is not a
+remedy. Read-only; never modifies any files. Exits 0 when every
 recommended section is present, 1 otherwise.
 
 Distinct from `validate`: `validate` answers "is this a
@@ -967,7 +1125,7 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Drives analyze → **ADR checkpoint** (advisory: the accepted ADRs whose
 text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
-`change apply` → verify → `coverage --strict` → trace →
+`change apply` → verify → `coverage --strict` → trace → **docs** →
 `change archive` → validate → **skill suggest** (advisory: fix-shaped
 lessons not yet captured, surfaced while they are fresh), stopping at
 the first failure with the exact command to rerun. The coverage gate is
@@ -976,8 +1134,21 @@ under the hood), so a deliberately deferred spec elsewhere in the tree
 cannot block an unrelated close; a change with no deltas gates on the
 whole tree. verify is skipped (with a note) when no `verify.json` is
 declared; trace and both advisories never block. A driver over the
-existing commands — it adds no checks of its own — so the agent makes
-one call instead of nine.
+existing commands — it adds one check of its own, the docs gate — so
+the agent makes one call instead of nine.
+
+**The docs gate.** A change that alters a documented surface — a
+command, a flag, an exit code — closes only when documentation moved
+with it. A docs phase scheduled *after* the work never happens, so the
+requirement sits inside the close. Detection is deterministic on both
+sides: the surface signals are read from the change's own proposal and
+deltas (with the scaffold's boilerplate subtracted, so the template's
+own command references are not mistaken for authored intent), and
+whether docs moved is read from git — the working tree plus this
+branch's commits against the default branch. Outside a git repository
+the gate cannot see what moved and stays silent rather than accusing.
+`--force` closes anyway and records the gap in the ledger, exactly as
+`change archive --force` does.
 
 Multiple ids close in sequence, each independently; the exit code is
 the worst per-id result. Preview what close would refuse with
@@ -985,7 +1156,7 @@ the worst per-id result. Preview what close would refuse with
 
 | Flag | Purpose |
 |------|---------|
-| `--force` | Pass through to `change archive` (archive even if verification is incomplete; records the gap). |
+| `--force` | Pass through to `change archive` (archive even if verification is incomplete), and close past a failed docs gate — both record the gap. |
 
 ## `doctrina why <capability>`
 
@@ -1043,6 +1214,13 @@ ignores the `index.json` the fix rewrites. Runs until interrupted (Ctrl-C);
 Derive adoption metrics from **local git history**. No network
 calls; nothing leaves the repository.
 
+**First-run states.** A repository with no commits, or a directory that is
+not a repository, is a valid state and not a failure: `metrics` reports
+"nothing to measure yet" and exits `0`. The same holds for `report`,
+`review`, and `skill suggest`. Only git being absent from the machine is an
+environment error (exit `4`). `context --diff` still fails when it cannot
+compute a diff, but names the condition rather than leaking git plumbing.
+
 ```
 doctrina metrics [--since <days|date>] [--save]
 ```
@@ -1080,17 +1258,38 @@ separately as name + description only: they are on-demand by
 design, the body loads only when the task matches. The change
 archive and non-accepted ADRs are excluded.
 
-Every file carries a token estimate (chars/4) and the pack reports
-its total — the context-engineering thesis made measurable.
+Every file carries a token estimate (chars/4), and the pack is
+**assembled to fit a token budget** rather than merely measured
+against one (ADR 0022). The budget resolves as `--budget` >
+`config.context_budget` in `index.json` > `15000`.
+
+Over budget, artifacts degrade before any is dropped, least
+relevant first: an accepted ADR to title + its decision in one
+sentence, an unnamed capability's spec to title + purpose. Every
+degradation and omission is named in the report. The core — root
+rules, product truth, the named capability's spec, open changes —
+is never degraded and never dropped; when it alone exceeds the
+budget the command says so and exits 1.
+
+Naming a capability also excludes the ADRs scoped away from it. An
+ADR with no `- **Scope:**` header is global and appears in every
+pack; see [`doctrina decision scope`](#doctrina-decision-scope-number).
 
 | Flag | Purpose |
 |------|---------|
-| `--concat` | Print the file contents with path separators instead of the list — ready to hand to an agent. The budget verdict (if any) goes to stderr, keeping stdout pure. |
-| `--budget <n>` | Token budget for the pack: prints over/under and exits 1 when the estimate exceeds it (a context gate for scripts/CI). |
+| `--for "<task>"` | Rank the pack by relevance to a task description, so what survives the budget is what the task is about. Ranking is term coverage then density, never document length. |
+| `--concat` | Print the file contents with path separators instead of the list — ready to hand to an agent. The budget verdict goes to stderr, keeping stdout pure. Degraded artifacts print as title + summary + a pointer to the full text. |
+| `--budget <n>` | Token ceiling for this call, overriding the project's `config.context_budget`. |
 | `--diff <ref>` | Scope the stable artifacts (AGENTS.md, product.md, specs, ADRs) to those changed since the git ref; open changes are always included. The resume-session read. |
 
+With no capability and no `--for` there is nothing to retrieve on,
+so the pack degrades to an orientation index: every capability by
+title and purpose, every decision by title and summary. Naming a
+capability is how you ask for its truth in full.
+
 This is the read-order section of AGENTS.md turned into tooling:
-selection over dumping. Read-only; exits 0 (or 1 when over `--budget`).
+selection over dumping. Read-only; exits 0, or 1 when the pack's
+core alone cannot meet the budget.
 
 ## `doctrina search <term> [...]`
 
@@ -1228,6 +1427,22 @@ An orchestrator over the pieces that already exist, in order:
    added since init; a legacy hand-written surface section is replaced
    by the managed block), and append missing recommended sections /
    index.json fields (additive-only outside the block).
+
+   The block carries a **trigger per command** — what it does and the
+   moment you reach for it (ADR 0020) — and has a declared 40-line budget
+   that `templates check` enforces. Beside it, a generated
+   `## What changed in <version>` block of three to six lines states only
+   what alters agent behaviour, so an agent reading AGENTS.md after an
+   upgrade learns what is new without being told to look.
+
+   The block has **one canonical position**, defined by the shipped
+   template and used by both `init` and `upgrade`: immediately after
+   "Working from intent". A project that has no block gets one placed
+   there rather than appended, so upgrading does not bury the command
+   surface behind everything the agent reads first. Running it twice is
+   a no-op. In preview, the pending change is shown as a real diff —
+   the lines that would change, or the block body and its destination —
+   rather than a one-line summary.
 2. `index rebuild` — regenerate index.json from the tree and migrate the
    `framework_version` stamp to the running CLI.
 3. `validate` (`--fix` under `--write`) — surface anything the upgrade

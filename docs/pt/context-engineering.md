@@ -68,10 +68,96 @@ do grafo de código:
   Contexto histórico é alcançável mas não carregado por padrão.
 - Caps de tamanho em AGENTS.md, specs e ADRs são enforcement de
   orçamento disfarçado.
+- `doctrina context` **monta o pack para caber num orçamento de
+  tokens** em vez de concatenar uma lista. Veja abaixo.
 
 Não shippamos um ranqueador de grafo de código hoje. Se uma change
 futura shippar, ele vive ao lado do AGENTS.md como refinamento do
 mesmo princípio, não como substituto.
+
+## O orçamento de contexto
+
+Por muito tempo `doctrina context` imprimia uma estimativa de
+tokens e não fazia nada com ela. Essa era a distância entre a tese
+e a ferramenta: neste repositório, `doctrina context cli` eram 23
+arquivos e ~37.900 tokens, dos quais vinte ADRs aceitos eram
+~26.200 — **69% do pack**, nada disso selecionado para a tarefa.
+
+A causa é estrutural. **ADRs são imutáveis e nunca se aposentam**,
+então toda decisão aceita entra em todo pack, para sempre. O pack
+cresce com a *idade* do projeto em vez de com a *tarefa*, e nada
+decai para fora dele.
+
+Três mecanismos o limitam (ADR 0022):
+
+**1. Escopo.** Um ADR pode declarar quais capabilities governa:
+
+```markdown
+- **Status:** accepted
+- **Scope:** billing, reporting
+```
+
+Um pack com escopo carrega os ADRs que governam aquela capability
+mais todos os sem escopo. **Sem escopo significa global**, então
+um projeto que nunca adicionar o header recebe exatamente o pack
+que recebia antes — a adoção é opcional, não uma migração.
+
+Ninguém anota à mão uma pasta de documentos imutáveis, então
+`doctrina decision scope` propõe um escopo para cada ADR sem
+escopo a partir do change arquivado que o cita (esse change já
+registra quais specs tocou). Ele imprime sugestões; `--write` as
+aplica. Revise-as: um escopo estreito demais esconde uma decisão
+do pack que precisava dela.
+
+**2. Orçamento.** Um teto sempre se aplica, resolvido nesta ordem:
+
+```
+--budget <n>  >  index.json "config": { "context_budget": <n> }  >  15000
+```
+
+**3. Degradação, não truncamento.** Acima do orçamento, um ADR cai
+para sua decisão em uma frase e uma spec para seu propósito — do
+menos relevante primeiro — antes de qualquer coisa ser descartada.
+Uma decisão reduzida a uma frase ainda carrega a decisão; uma
+omitida não carrega nada. Truncar nas primeiras N linhas
+preservaria a seção Context do ADR, justamente a que menos importa.
+
+Toda degradação e omissão é nomeada no relatório:
+
+```
+within budget ~14511 of 15000 tokens (97%) after assembly:
+  14 ADRs reduced to title + summary (least relevant first)
+  scope an ADR to shrink this permanently: doctrina decision scope --write
+```
+
+O **core** — regras raiz, verdade de produto, a spec da capability
+nomeada, changes abertos — nunca é degradado nem descartado.
+Quando só o core já excede o orçamento, o comando diz isso e sai
+com 1. Isso é um achado real (uma spec grande demais, um change
+aberto parado), e escondê-lo atrás de um pack silenciosamente
+grande demais não ajuda ninguém.
+
+### Recuperação por tarefa
+
+`--for "<tarefa>"` ranqueia por relevância a uma descrição de
+tarefa, então o que sobrevive ao orçamento é o que a tarefa é:
+
+```bash
+doctrina context --for "adicionar um gate que checa exit codes"
+```
+
+O ranqueamento é uma tupla legível — termos no título, termos no
+corpo, depois ocorrências por 1000 caracteres — e não um único
+score misturado. Densidade em vez de contagem bruta é
+determinante: contagem bruta premia um documento por ser longo, o
+que fazia uma spec de 473 linhas superar a spec certa só no volume.
+
+### Sem tarefa, um índice
+
+Sem capability e sem `--for`, não há sobre o que recuperar, então
+a resposta honesta é um mapa em vez de um despejo: cada capability
+por título e propósito, cada decisão por título e resumo. Nomear
+uma capability é como você pede a verdade dela por inteiro.
 
 ## Hierarquia e escopo
 

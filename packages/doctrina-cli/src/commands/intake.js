@@ -1,3 +1,4 @@
+// @ts-check
 import path from "node:path";
 import process from "node:process";
 import { exists, isFile, read, relPath, write } from "../lib/fs-ops.js";
@@ -7,6 +8,7 @@ import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // `intake` is the first half of the no-ceremony path (ADR 0005): store the
 // user's FULL project description verbatim, then print the bootstrap
@@ -14,10 +16,15 @@ import { c } from "../lib/colors.js";
 // and capability specs. The CLI does no interpretation — it scaffolds and
 // instructs; the agent thinks.
 
+// Flags this command accepts. Declared HERE, with the command, so
+// adding a command never requires editing the entrypoint — the gap that
+// let six flags ship undeclared and silently swallow a positional (C3).
+export const flags = { boolean: ["json", "force"], string: ["text"] };
+
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw new Error("not a Doctrina project (no .doctrina/ in cwd). Run `doctrina init` first.");
+    throw notADoctrinaProject();
   }
 
   const force = flagBool(flags, "force", false);
@@ -30,7 +37,9 @@ export async function run(positional, flags) {
     if (!isFile(intakePath)) {
       console.error(c.red("error:") + " no intake found and no description given");
       console.error(c.gray("hint: ") + "run `doctrina intake <file>` or `doctrina intake --text \"<description>\"`");
-      return 1;
+      // PRECONDITION: nothing is wrong with the work; the project has no
+      // intake yet. The remedy is a setup command, not another attempt.
+      return EXIT.PRECONDITION;
     }
     const status = (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase();
     if (status === "converted") {

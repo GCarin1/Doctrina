@@ -1,6 +1,7 @@
 # ADR 0009 — Validate is the single source of drift truth — metadata-drift error, --fix, spec set
 
 - **Status:** accepted
+- **Scope:** gates, validation
 - **Date:** 2026-06-22
 - **Deciders:**
 - **Supersedes:** —

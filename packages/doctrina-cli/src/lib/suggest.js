@@ -1,3 +1,4 @@
+// @ts-check
 // Tiny Levenshtein distance + "did you mean" suggester. Zero deps.
 
 export function distance(a, b) {
