@@ -5,6 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 // M5. TypeScript is a CHECKER here, never a build step: the package ships
 // plain ESM that node runs directly, and `noEmit` is what keeps that true.
@@ -75,14 +76,23 @@ test("the declared verification runs the typecheck before the tests", () => {
     "the cheapest gate, and the one whose failures explain the rest, goes first");
 });
 
-test("tsc reports no errors", { timeout: 180000 }, () => {
-  const res = spawnSync("npx", ["tsc", "--noEmit"], {
-    cwd: repoRoot, encoding: "utf8", shell: process.platform === "win32",
-  });
-  if (res.error || res.status === null) {
-    // No local TypeScript (a fresh clone that skipped devDependencies) is
-    // not a test failure — CI installs them and the gate runs there.
+test("tsc reports no errors", { timeout: 180000 }, (t) => {
+  // Resolve TypeScript from the installed tree and run it with node —
+  // never through `npx`, which tries to FETCH a missing package from the
+  // registry. The release workflow runs `node --test` on a bare checkout,
+  // where that turned into a network call and a failing test; and a suite
+  // for a CLI whose whole promise is "no network calls" must not make one
+  // itself. Absent TypeScript is a skip, not a failure: this is the local
+  // convenience copy of a gate CI runs for real.
+  let tsc;
+  try {
+    tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
+  } catch {
+    t.skip("typescript is not installed (devDependencies were not installed)");
     return;
   }
+  const res = spawnSync(process.execPath, [tsc, "--noEmit"], {
+    cwd: repoRoot, encoding: "utf8",
+  });
   assert.equal(res.status, 0, `tsc reported errors:\n${res.stdout}`);
 });

@@ -31,3 +31,5 @@ One line per archived change, newest last. Appended by
 - 2026-08-06 — 0024-cut-the-0-14-0-release-changelog-version-stamps — Cut the 0.14.0 release: changelog, version stamps, and a gate that keeps them honest
 - 2026-08-06 — 0025-instrument-the-command-surface-before-shrinking — Instrument the command surface before shrinking it (specs: cli MODIFIED)
 - 2026-08-06 — 0026-proposal-sections-must-be-written-not-scaffold — Proposal sections must be written, not scaffold (specs: gates MODIFIED)
+- 2026-08-06 — 0027-local-verification-must-be-as-strict-as-ci-and — Local verification must be as strict as CI, and the examples must trace to the intent that asked for them (specs: docs MODIFIED)
+- 2026-08-07 — 0028-ci-must-never-fetch-a-package-to-run-a-gate — CI must never fetch a package to run a gate (specs: gates MODIFIED)

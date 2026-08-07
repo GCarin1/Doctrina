@@ -27,12 +27,24 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      # The CLI has zero RUNTIME dependencies, so this repo went years with
+      # no install step in CI. The typecheck needs TypeScript, which is a
+      # devDependency — install it from the lockfile, deterministically.
+      - name: Install devDependencies
+        run: npm ci
+
       # TypeScript as a CHECKER, never a build step (audit item M5): the CLI
       # still ships plain ESM that node runs directly, and `noEmit` keeps it
       # that way. This catches the class of typo a test suite only finds when
       # it happens to execute the branch.
+      #
+      # `npm run`, never `npx`. With no local TypeScript, `npx tsc` FETCHES an
+      # unrelated abandoned package named `tsc` from the registry and runs it
+      # — which is how this step first shipped, and is a supply-chain hole in
+      # a tool whose contract is "no network calls". `npm run` resolves only
+      # from node_modules/.bin, so a missing dependency fails loudly instead.
       - name: Typecheck (tsc --noEmit over checkJs)
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Run CLI test suite
         run: node --test
