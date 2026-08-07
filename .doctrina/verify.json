@@ -1,9 +1,9 @@
 {
-  "$comment": "Executable definition of 'Doctrina actually works'. `doctrina verify` runs these in order; CI and the verification gate rely on them. The framework dogfoods its own build/verify command here.",
+  "$comment": "Executable definition of 'Doctrina actually works'. `doctrina verify` runs these in order; CI and the verification gate rely on them. The framework dogfoods its own build/verify command here. These MATCH the gates action.yml runs, so a green `doctrina verify` means a green CI — a local set weaker than CI's is a gate the author never runs.",
   "checks": [
     {
       "name": "typecheck",
-      "run": "npx tsc --noEmit"
+      "run": "npm run typecheck"
     },
     {
       "name": "test",
@@ -17,6 +17,14 @@
     {
       "name": "index-drift",
       "run": "node packages/doctrina-cli/src/index.js index rebuild --check"
+    },
+    {
+      "name": "coverage",
+      "run": "node packages/doctrina-cli/src/index.js coverage --strict"
+    },
+    {
+      "name": "trace",
+      "run": "node packages/doctrina-cli/src/index.js trace --strict"
     },
     {
       "name": "docs-shape",

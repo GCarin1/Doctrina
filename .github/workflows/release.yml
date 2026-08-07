@@ -23,6 +23,15 @@ jobs:
           node-version: "20.12"
           registry-url: "https://registry.npmjs.org"
 
+      # The CLI ships zero RUNTIME dependencies, so this job never installed
+      # anything. The typecheck gate needs TypeScript (a devDependency), and
+      # a release is the last place to be running a weakened gate.
+      - name: Install devDependencies
+        run: npm ci
+
+      - name: Typecheck (gate)
+        run: npm run typecheck
+
       - name: Run CLI test suite (gate)
         run: node --test
         working-directory: packages/doctrina-cli

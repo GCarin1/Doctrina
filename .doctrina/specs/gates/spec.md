@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.6.1
+**Version:** 0.6.2
 
 ## Purpose
 
@@ -33,6 +33,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall declare in one place which gates guard which lifecycle transition, and every command that drives a transition shall consult that declaration rather than implementing its own preconditions.
 - The system shall assemble a context pack within a token budget, resolved as the --budget flag, then the project's index.json config.context_budget, then a built-in default.
 - The system shall treat an ADR with no Scope: header as global, including it in every capability pack, and shall include a scoped ADR only in the packs of the capabilities it names.
+- The system shall declare every dependency a gate needs, and its automation shall install them from the lockfile before running the gate.
 
 ### Event-driven
 
@@ -314,6 +315,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not evaluate a gate at a transition where its question is not meaningful; the structural gate asks whether a change is safe to apply, so archiving shall not re-ask it.
 - The system shall not silently omit an artifact from a pack; every degradation and omission shall be named in the report.
 - The system shall not pass a change whose proposal carries a section holding only its scaffold comment; a heading that survived is not a section that was written.
+- The system shall not invoke a gate through a resolver that installs a missing package from a registry; a gate whose tool is absent shall fail loudly rather than run something fetched in its place.
 
 ## Acceptance criteria
 
@@ -342,6 +344,8 @@ The gate surface is spec-compliant when:
 13. [verified] An ADR with no Scope: header appears in every scoped pack, and a scoped one appears only where it governs — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 14. [verified] A pre-change tree with no config block reads, rebuilds, and packs unchanged — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 15. [verified] A freshly scaffolded change fails analyze naming each unwritten section, and passes once they carry prose — `packages/doctrina-cli/test/integration.test.js`.
+16. [verified] The test suite passes on a checkout with no node_modules, skipping the typecheck rather than fetching a compiler — `packages/doctrina-cli/test/typecheck.test.js`.
+17. [verified] No workflow or verification check invokes a gate tool through `npx` — `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.doctrina/verify.json`.
 
 ## Out of scope for this spec
 
