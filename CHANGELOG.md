@@ -17,6 +17,83 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.15.1] — 2026-09-04
+
+Defects that dogfooding 0.15.0 on this repository surfaced within hours of
+shipping it — first in the runtime surface itself, then in the machinery
+around it once the surface was in use. No new capability: every item is
+something 0.15.0 (or an older release) claimed and did not deliver.
+
+### Fixed
+
+- **RT02 advised a remedy the artifact could not express.** This
+  repository's release workflow exports `NODE_AUTH_TOKEN` from
+  `secrets.NPM_TOKEN` — a deliberate rename, because the name is npm's.
+  `contract check` correctly flagged the risk and then said "record the
+  intentional rename in the Wiring row", which was impossible: `Origin`
+  was compared exactly against `vars`/`secrets`, so writing
+  `secrets:NPM_TOKEN` dropped the row out of the check entirely and took
+  RT01 with it. The result was a permanent, unclearable warning — which
+  teaches readers to ignore warnings, the opposite of the point.
+
+  `Origin` now accepts `<origin>[:<source>]`. RT02 stays silent while the
+  workflow reads the declared source and warns the moment either side
+  moves; RT01's remedy quotes the declared source, so the `env:` line it
+  tells you to paste is the one that works. A bare origin behaves exactly
+  as before, and an **origin** mismatch remains an error either way —
+  that one is never intentional.
+
+- **An `expect` guard silenced the check it guarded.** A check declaring
+  an output expectation ran with its output captured and echoed only once
+  it finished — about forty seconds of blank terminal on this project's
+  own suite, and worse on anything slower. Reading a check's output and
+  showing it are independent concerns: the run is now teed, streaming to
+  the terminal as it arrives while a copy accumulates for the match.
+  Checks without an expectation are untouched.
+
+- **Declaring a source no longer disables the empty-vs-unset check.** The
+  first cut of the fix read the `Origin` cell raw in `checkEmptySemantics`,
+  which would have made `secrets:NPM_TOKEN` fall out of the injectable set
+  and silently switch RT03 off for that row — the same defect wearing a
+  different hat. Caught by a test written for exactly that.
+
+- **A patch erased its minor's agent-facing summary.** The
+  `doctrina:changed` block in AGENTS.md *replaces* its predecessor rather
+  than accumulating, and it rendered only the current version's own entry
+  — while a test required every shipped version to have one. So any patch
+  was forced to write an entry, and writing one wiped the release that
+  introduced the commands: an agent upgrading 0.14.0 → 0.15.1 would read
+  one bug fix and never learn `triage` exists. The block now renders the
+  current **minor series**, newest first, capped at the five bullets the
+  150-line AGENTS.md budget allows; a patch lists only its own delta and
+  the series carries the rest. Truncation drops the oldest by rule instead
+  of by an author quietly cutting a line to fit.
+
+- **`change archive` accepted what `change apply` had just refused.** The
+  gate map excluded the whole `structure` gate from `archive`, for a
+  correct reason: one of its checks ("an ADDED delta's target must not
+  already hold real content") is proof of a problem before an apply and
+  proof the apply *worked* after one. But excluding the gate wholesale
+  also dropped the hollow-proposal check, which has no such problem — so a
+  change refused by `apply` for an unwritten `## What` could be archived
+  anyway, and stamped `Status: applied`. Observed on change 0030 of this
+  repository, one release after its own history recorded six hollow
+  proposals reaching the archive. Structural findings now carry a scope,
+  and `archive` requires a new `integrity` gate: every structural question
+  except the three that only mean something before an apply.
+
+- **The lane classifier read work *on* the machinery as an incident *in*
+  it.** Both misreads came from matching domain nouns as if they were the
+  act: "declare the release workflow wiring in a contract" scored RUNTIME
+  on *workflow* and *wiring*, and "so an intentional rename stops warning"
+  scored CHORE on *rename* — a noun. Authoring verbs (declare, document,
+  record, specify, define) now weigh toward the ceremony lane whatever
+  nouns surround them. Both real prompts classify correctly, and an actual
+  "rename the helper file" is still a chore.
+
+- **Cosmetic:** the runtime row read "1 declared row hold".
+
+
 ## [0.15.0] — 2026-09-03
 
 Field review of 2026-09-03, written by an agent operating Doctrina on a

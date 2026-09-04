@@ -9,6 +9,7 @@ import {
   COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands, surfaceBlock, surfaceMarkdown,
   findSurfaceBlock, COMMAND_META, MOMENTS, SURFACE_LINE_BUDGET,
   agentChangelogMarkdown, agentChangelogBlock, findAgentChangelogBlock,
+  agentChangelogEntries, AGENT_CHANGELOG, AGENT_CHANGELOG_MAX_BULLETS,
 } from "../src/lib/commands.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -299,17 +300,51 @@ test("the generated surface block carries triggers, names every command, and fit
 test("the agent-facing changelog is short, agent-scoped, and round-trips", () => {
   const version = JSON.parse(readFileSync(path.resolve(here, "..", "package.json"), "utf8")).version;
   const md = agentChangelogMarkdown(version);
-  assert.ok(md, `no agent changelog entry for the current version ${version}`);
+  // The block renders the current MINOR SERIES, so a patch inherits its
+  // minor's bullets and need not carry an entry of its own. What must never
+  // happen is a shipped version whose block is empty.
+  assert.ok(md, `no agent changelog bullets for version ${version} or its series`);
   assert.match(md, new RegExp(`## What changed in ${version.replace(/\./g, "\\.")}`));
 
   const bullets = md.split("\n").filter((l) => l.startsWith("- "));
-  assert.ok(bullets.length >= 3 && bullets.length <= 6,
-    `the agent changelog is ${bullets.length} bullets; keep it to 3-6 — CHANGELOG.md is the long form`);
+  assert.ok(bullets.length >= 3 && bullets.length <= AGENT_CHANGELOG_MAX_BULLETS,
+    `the agent changelog is ${bullets.length} bullets; keep it to 3-${AGENT_CHANGELOG_MAX_BULLETS} — CHANGELOG.md is the long form`);
 
   const block = agentChangelogBlock(version);
   const found = findAgentChangelogBlock(`x\n${block}\ny`);
   assert.ok(found, "findAgentChangelogBlock must locate its own output");
   assert.equal(found.inner.trim(), md.trim());
+});
+
+test("a patch inherits its minor's bullets instead of erasing them", () => {
+  // The defect this pins: the block REPLACES its predecessor in AGENTS.md,
+  // so rendering only a patch's own entry meant an agent upgrading
+  // 0.14.0 -> 0.15.1 read one bug fix and never learned `triage` exists.
+  const patch = agentChangelogEntries("0.15.1");
+  assert.ok(agentChangelogEntries("0.15.0").length > 0);
+  assert.match(patch[0], /Origin cell/, "the patch's own bullet leads");
+  assert.ok(
+    patch.some((b) => /doctrina triage/.test(b)),
+    "the minor's headline capability must survive its patches",
+  );
+});
+
+test("the series never renders more bullets than the AGENTS.md budget allows", () => {
+  for (const v of Object.keys(AGENT_CHANGELOG)) {
+    assert.ok(
+      agentChangelogEntries(v).length <= AGENT_CHANGELOG_MAX_BULLETS,
+      `${v} renders more than ${AGENT_CHANGELOG_MAX_BULLETS} bullets`,
+    );
+  }
+});
+
+test("entries from a different minor series never leak in", () => {
+  // 0.14.0 is its own series: a 0.15.x block must not carry it, or the
+  // block becomes an ever-growing history instead of "what is new".
+  const fifteen = agentChangelogEntries("0.15.1");
+  for (const bullet of AGENT_CHANGELOG["0.14.0"] ?? []) {
+    assert.ok(!fifteen.includes(bullet), "a 0.14.x bullet leaked into the 0.15.x block");
+  }
 });
 
 test("AGENTS.md.template embeds the current generated surface block", async () => {

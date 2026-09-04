@@ -4,7 +4,7 @@ import { writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import {
-  parseRuntimeDeclaration, readWorkflowEnv, referencedVar, globToRegExp,
+  parseRuntimeDeclaration, readWorkflowEnv, referencedVar, globToRegExp, parseOrigin,
   checkWiring, checkEmptySemantics, checkEnums, checkSelectors,
   parseBudgets, collectRuntimeFindings, checkLocalEnv,
 } from "../src/lib/runtime.js";
@@ -445,6 +445,112 @@ test("no local .env is not a finding — the check is opt-in by file presence", 
   try {
     writeContract(dir, ENUM_CONTRACT);
     assert.deepEqual(checkLocalEnv(dir), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ------------------------------- RT02: a declared source name (0.15.1)
+//
+// Exporting a variable under a name that is not the source's is routine
+// and sometimes unavoidable — npm reads its credential from
+// NODE_AUTH_TOKEN, so a repo whose secret is NPM_TOKEN must rename in the
+// env: line. RT02 was right to flag it and wrong to make it unanswerable:
+// its remedy said "record the intentional rename in the Wiring row" while
+// the row had nowhere to put it, leaving a permanent warning that teaches
+// people to ignore warnings.
+
+const RENAMED_WORKFLOW = WIRED_WORKFLOW.replace("vars.AXE_SEVERITY", "vars.AXE_LEVEL");
+
+const DECLARED_SOURCE_CONTRACT = WIRING_CONTRACT.replace("| vars   |", "| vars:AXE_LEVEL |");
+
+test("parseOrigin splits an origin from the source name it declares", () => {
+  assert.deepEqual(parseOrigin("secrets"), { origin: "secrets", source: null });
+  assert.deepEqual(parseOrigin("secrets:NPM_TOKEN"), { origin: "secrets", source: "NPM_TOKEN" });
+  // Case and padding are the author's business, not the parser's.
+  assert.deepEqual(parseOrigin("  Vars : AXE_LEVEL "), { origin: "vars", source: "AXE_LEVEL" });
+  // A trailing colon declares nothing, and must not become an empty name.
+  assert.deepEqual(parseOrigin("vars:"), { origin: "vars", source: null });
+});
+
+test("RT02 goes SILENT when the workflow reads exactly the declared source", () => {
+  const dir = fixture();
+  try {
+    writeFileSync(path.join(dir, ".github", "workflows", "e2e.yml"), RENAMED_WORKFLOW);
+    assert.deepEqual(checkWiring(dir, parseRuntimeDeclaration(DECLARED_SOURCE_CONTRACT)), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("RT02 still warns when the workflow drifts from the DECLARED source", () => {
+  const dir = fixture();
+  try {
+    // Declared vars:AXE_LEVEL, workflow moved to vars.AXE_OTHER.
+    writeFileSync(
+      path.join(dir, ".github", "workflows", "e2e.yml"),
+      WIRED_WORKFLOW.replace("vars.AXE_SEVERITY", "vars.AXE_OTHER"),
+    );
+    const findings = checkWiring(dir, parseRuntimeDeclaration(DECLARED_SOURCE_CONTRACT));
+    assert.deepEqual(codes(findings), ["RT02"]);
+    assert.match(findings[0].message, /the contract declares it comes from vars\.AXE_LEVEL/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an undeclared rename still warns, and its remedy now names the fix", () => {
+  const dir = fixture();
+  try {
+    writeFileSync(path.join(dir, ".github", "workflows", "e2e.yml"), RENAMED_WORKFLOW);
+    const findings = checkWiring(dir, parseRuntimeDeclaration(WIRING_CONTRACT));
+    assert.deepEqual(codes(findings), ["RT02"]);
+    // The remedy must be followable — that is the whole defect being fixed.
+    assert.match(findings[0].remedy, /vars:AXE_LEVEL/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("RT01's remedy quotes the DECLARED source, so the suggested line works", () => {
+  const dir = fixture();
+  try {
+    writeFileSync(path.join(dir, ".github", "workflows", "e2e.yml"), UNWIRED_WORKFLOW);
+    const findings = checkWiring(dir, parseRuntimeDeclaration(DECLARED_SOURCE_CONTRACT));
+    assert.deepEqual(codes(findings), ["RT01"]);
+    assert.match(findings[0].remedy, /AXE_SEVERITY: \$\{\{ vars\.AXE_LEVEL \}\}/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an ORIGIN mismatch stays an error even when a source is declared", () => {
+  const dir = fixture();
+  try {
+    // Declared vars:AXE_LEVEL; the workflow reads it from secrets.
+    writeFileSync(
+      path.join(dir, ".github", "workflows", "e2e.yml"),
+      WIRED_WORKFLOW.replace("vars.AXE_SEVERITY", "secrets.AXE_LEVEL"),
+    );
+    const findings = checkWiring(dir, parseRuntimeDeclaration(DECLARED_SOURCE_CONTRACT));
+    assert.deepEqual(codes(findings), ["RT02"]);
+    assert.equal(findings[0].level, "error", "a wrong origin is never intentional");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("declaring a source does NOT switch off the empty-vs-unset check", () => {
+  const dir = fixture();
+  try {
+    writeFileSync(path.join(dir, ".github", "workflows", "e2e.yml"), RENAMED_WORKFLOW);
+    writeFileSync(path.join(dir, "config.py"), 'SEVERITY = os.getenv("AXE_SEVERITY", "critical")\n');
+    // Reading the Origin cell raw would leave "vars:AXE_LEVEL" out of the
+    // injectable set and silently skip RT03 — the same defect in a new hat.
+    assert.deepEqual(
+      codes(checkEmptySemantics(dir, parseRuntimeDeclaration(DECLARED_SOURCE_CONTRACT))),
+      ["RT03"],
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

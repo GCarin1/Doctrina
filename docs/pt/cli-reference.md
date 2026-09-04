@@ -1208,10 +1208,11 @@ veredito:
 O Doctrina não fornece padrão nenhum e não sabe nada sobre o que a saída
 significa — o projeto declara a linha que prova que sua execução foi real,
 então isso funciona para qualquer runner em qualquer linguagem. Uma
-checagem com `expect` roda com saída capturada (ecoada ao terminar, em vez
-de transmitida); as demais continuam transmitindo. Um padrão `expect` que
-não é uma expressão regular válida falha em **tempo de config** com saída
-2, nunca em silêncio.
+checagem com `expect` continua **transmitindo**: a saída é ecoada no
+terminal conforme chega, enquanto uma cópia se acumula para o casamento —
+ler a saída de uma checagem não custa mais poder acompanhá-la. Um padrão
+`expect` que não é uma expressão regular válida falha em **tempo de
+config** com saída 2, nunca em silêncio.
 
 Uma guarda `expect` também é o que um critério de aceite `[orchestration]`
 cita como prova — veja [`doctrina coverage`](#doctrina-coverage).
@@ -1257,7 +1258,7 @@ lê um glob, padrão ou origem que o *contrato* declara.
 | Código | O que falha |
 |--------|-------------|
 | `RT01` | Uma variável declarada com origem `vars`/`secrets` que nenhum bloco `env:` do workflow nomeado exporta. O valor existe na CI e nunca chega ao processo — toda a classe "configurei o secret e nada aconteceu". |
-| `RT02` | O workflow a lê de outra origem, ou sob outro nome, do que o contrato declara. |
+| `RT02` | O workflow a lê de outra origem, ou sob outro nome, do que o contrato declara. Exportar sob outro nome é rotina — o npm lê sua credencial de `NODE_AUTH_TOKEN` seja qual for o nome do seu secret — então declare a origem na célula Origin como `<origem>:<fonte>` (ex.: `secrets:NPM_TOKEN`). O RT02 então fica em silêncio enquanto os dois concordam e avisa no instante em que um dos lados se mexe. Origem sem fonte declarada continua avisando em qualquer renomeação, que é o default correto. Divergência de **origem** segue sendo erro nos dois casos: essa nunca é intencional. |
 | `RT03` | O consumidor lhe dá um default que só se aplica quando a variável está **ausente**. A CI injeta a *string* vazia, que está presente, então `getenv(NOME, default)` nunca devolve o default. É um lint textual, e o achado diz isso. |
 | `RT04` | Um enum `Values` declarado que o `.env.example` viola (erro), ou que o consumidor nunca menciona (warning — um enum que nada valida). |
 | `RT05` | Um seletor declarado que casa zero alvos. Uma execução despachada nele roda 0 casos e ainda sai 0. Nomeia o quase-acerto quando só o separador difere (`smoke-test` vs `smoke_test`). |

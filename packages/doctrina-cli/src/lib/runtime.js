@@ -38,6 +38,31 @@ import { isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 /** Origins whose value CI can inject as an EMPTY STRING rather than unset. */
 const INJECTABLE_ORIGINS = new Set(["vars", "secrets"]);
 
+/**
+ * Split an Origin cell into its origin and the OPTIONAL source name it
+ * declares: `secrets` -> {origin: "secrets", source: null}, and
+ * `secrets:NPM_TOKEN` -> {origin: "secrets", source: "NPM_TOKEN"}.
+ *
+ * Exporting a variable under a name that is not the source's is routine and
+ * often unavoidable — npm reads its credential from `NODE_AUTH_TOKEN`, so a
+ * repository whose secret is `NPM_TOKEN` has no choice but to rename in the
+ * `env:` line. RT02 is right to flag that (rename the secret and the
+ * expression resolves to the empty string, so the publish fails on a blank
+ * credential with nothing pointing at the cause) and was wrong to make it
+ * unanswerable: its remedy said "record the intentional rename in the Wiring
+ * row" while the row had nowhere to put it. A permanent warning nobody can
+ * clear teaches people to ignore warnings.
+ */
+export function parseOrigin(cell) {
+  const raw = String(cell ?? "").trim();
+  const colon = raw.indexOf(":");
+  if (colon < 0) return { origin: raw.toLowerCase(), source: null };
+  return {
+    origin: raw.slice(0, colon).trim().toLowerCase(),
+    source: raw.slice(colon + 1).trim() || null,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Declaration parsing
 // ---------------------------------------------------------------------------
@@ -255,7 +280,10 @@ export function checkWiring(projectRoot, decl) {
   const cache = new Map();
 
   for (const row of decl.wiring) {
-    const origin = row.origin.toLowerCase();
+    const { origin, source } = parseOrigin(row.origin);
+    // The name the workflow is expected to read FROM: the declared source
+    // when the row gives one, otherwise the variable's own name.
+    const expectedSource = source ?? row.name;
     if (!INJECTABLE_ORIGINS.has(origin)) continue;
     if (!row.workflow) {
       findings.push({
@@ -303,7 +331,9 @@ export function checkWiring(projectRoot, decl) {
         code: "RT01",
         level: "error",
         message: `${row.name} is declared with origin "${origin}" but no env: block in ${row.workflow} exports it${where} — the value exists in CI and never reaches the process`,
-        remedy: `add "${row.name}: \${{ ${origin}.${row.name} }}" to the env: block of the ${row.job || "relevant"} job in ${row.workflow}`,
+        // Quote the DECLARED source, so the line this tells you to paste is
+        // the one that actually works when the names differ.
+        remedy: `add "${row.name}: \${{ ${origin}.${expectedSource} }}" to the env: block of the ${row.job || "relevant"} job in ${row.workflow}`,
         file: row.workflow,
       });
       continue;
@@ -320,12 +350,19 @@ export function checkWiring(projectRoot, decl) {
           remedy: `align the Origin column with ${row.workflow}:${e.line} (a value set as ${origin} is not visible as ${ref.origin})`,
           file: row.workflow,
         });
-      } else if (ref.name !== row.name && ref.origin === origin) {
+      } else if (ref.name !== expectedSource && ref.origin === origin) {
+        // Silent when the workflow reads exactly the source the row
+        // declares: the rename is documented, and documentation is the
+        // answer this warning was asking for.
         findings.push({
           code: "RT02",
           level: "warn",
-          message: `${row.workflow}:${e.line} exports ${row.name} from ${ref.origin}.${ref.name} — the names differ, so renaming one silently empties the other`,
-          remedy: `use \${{ ${origin}.${row.name} }}, or record the intentional rename in the Wiring row`,
+          message: source
+            ? `${row.workflow}:${e.line} exports ${row.name} from ${ref.origin}.${ref.name}, but the contract declares it comes from ${origin}.${source} — one of the two moved`
+            : `${row.workflow}:${e.line} exports ${row.name} from ${ref.origin}.${ref.name} — the names differ, so renaming one silently empties the other`,
+          remedy: source
+            ? `align them: either export \${{ ${origin}.${source} }}, or update the Origin cell to "${origin}:${ref.name}"`
+            : `use \${{ ${origin}.${row.name} }}, or declare the rename in the Origin cell as "${origin}:${ref.name}"`,
           file: row.workflow,
         });
       }
@@ -371,7 +408,11 @@ export function checkEmptySemantics(projectRoot, decl) {
   const cache = new Map();
 
   for (const row of decl.wiring) {
-    const origin = row.origin.toLowerCase();
+    // Through parseOrigin, so a row declaring its source (`secrets:NPM_TOKEN`)
+    // is still recognised as CI-injectable. Reading the cell raw here would
+    // make declaring a source silently switch this check off — the same
+    // class of defect being fixed, wearing a different hat.
+    const { origin } = parseOrigin(row.origin);
     if (!INJECTABLE_ORIGINS.has(origin) || !row.consumer) continue;
     const full = path.join(projectRoot, row.consumer);
     if (!isFile(full)) {

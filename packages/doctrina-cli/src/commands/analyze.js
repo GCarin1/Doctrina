@@ -146,7 +146,7 @@ export function collectAnalysis(projectRoot, changeDir) {
         // untouched `spec new` scaffold is the canonical flow (spec new →
         // ADDED delta), so it passes as a replacement; only real content fails.
         if (exists(targetSpec) && !isUntouchedScaffold(read(targetSpec), cap)) {
-          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`));
+          results.push(fail(`  ${cap} (ADDED) but target ${targetRel} has real content — use MODIFIED or remove it first`, "pre-apply"));
         } else if (exists(targetSpec)) {
           results.push(pass(`  ${cap} (ADDED) → ${targetRel} (replaces the untouched scaffold)`));
         } else {
@@ -154,13 +154,13 @@ export function collectAnalysis(projectRoot, changeDir) {
         }
       } else if (op === "MODIFIED") {
         if (!exists(targetSpec)) {
-          results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`));
+          results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`, "pre-apply"));
         } else {
           results.push(pass(`  ${cap} (MODIFIED) → ${targetRel}`));
         }
       } else {
         if (!exists(targetSpec)) {
-          results.push(fail(`  ${cap} (REMOVED) but target ${targetRel} does not exist`));
+          results.push(fail(`  ${cap} (REMOVED) but target ${targetRel} does not exist`, "pre-apply"));
         } else {
           results.push(pass(`  ${cap} (REMOVED) → ${targetRel}`));
         }
@@ -229,8 +229,21 @@ function escapeRe(s) {
 function pass(msg) {
   return { kind: "pass", line: c.green("✓ ") + msg };
 }
-function fail(msg) {
-  return { kind: "fail", line: c.red("✗ ") + msg };
+// `scope` says WHEN a failure is a real answer.
+//
+// Most of these questions are true at every point in a change's life: a
+// proposal with an unwritten `## What` is hollow before an apply and just as
+// hollow after one. A few are only meaningful BEFORE the apply — "an ADDED
+// delta's target must not already hold real content" is proof of a problem
+// beforehand and proof the apply WORKED afterwards.
+//
+// The gate map used to exclude the whole structure gate from `archive` to
+// dodge that handful, which also dropped the hollow-proposal check — the
+// exact defect this repository's own history records as having "shipped six
+// hollow proposals past every gate". Tagging the pre-apply ones lets
+// `archive` keep the rest.
+function fail(msg, scope = "always") {
+  return { kind: "fail", scope, line: c.red("✗ ") + msg };
 }
 function info(msg) {
   return { kind: "info", line: c.gray("- ") + msg };

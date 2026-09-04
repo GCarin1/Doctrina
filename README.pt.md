@@ -14,7 +14,7 @@
 
 > Framework spec-driven nativo de AGENTS.md para desenvolvimento multi-agente com IA.
 
-**Status:** v0.15.0 — lançado.
+**Status:** v0.15.1 — lançado.
 **Leia em [inglês](./README.md).**
 
 ---
