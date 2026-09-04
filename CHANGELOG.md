@@ -17,6 +17,46 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.15.1] — 2026-09-04
+
+Two defects that dogfooding 0.15.0 on this repository surfaced within an
+hour of shipping it. No new capability: both are the 0.15.0 runtime
+surface failing to hold up its own end.
+
+### Fixed
+
+- **RT02 advised a remedy the artifact could not express.** This
+  repository's release workflow exports `NODE_AUTH_TOKEN` from
+  `secrets.NPM_TOKEN` — a deliberate rename, because the name is npm's.
+  `contract check` correctly flagged the risk and then said "record the
+  intentional rename in the Wiring row", which was impossible: `Origin`
+  was compared exactly against `vars`/`secrets`, so writing
+  `secrets:NPM_TOKEN` dropped the row out of the check entirely and took
+  RT01 with it. The result was a permanent, unclearable warning — which
+  teaches readers to ignore warnings, the opposite of the point.
+
+  `Origin` now accepts `<origin>[:<source>]`. RT02 stays silent while the
+  workflow reads the declared source and warns the moment either side
+  moves; RT01's remedy quotes the declared source, so the `env:` line it
+  tells you to paste is the one that works. A bare origin behaves exactly
+  as before, and an **origin** mismatch remains an error either way —
+  that one is never intentional.
+
+- **An `expect` guard silenced the check it guarded.** A check declaring
+  an output expectation ran with its output captured and echoed only once
+  it finished — about forty seconds of blank terminal on this project's
+  own suite, and worse on anything slower. Reading a check's output and
+  showing it are independent concerns: the run is now teed, streaming to
+  the terminal as it arrives while a copy accumulates for the match.
+  Checks without an expectation are untouched.
+
+- **Declaring a source no longer disables the empty-vs-unset check.** The
+  first cut of the fix read the `Origin` cell raw in `checkEmptySemantics`,
+  which would have made `secrets:NPM_TOKEN` fall out of the injectable set
+  and silently switch RT03 off for that row — the same defect wearing a
+  different hat. Caught by a test written for exactly that.
+
+
 ## [0.15.0] — 2026-09-03
 
 Field review of 2026-09-03, written by an agent operating Doctrina on a

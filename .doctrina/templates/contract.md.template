@@ -56,6 +56,13 @@ program, because no `env:` line ever exports it.
             vars and secrets are CI-injected, and CI injects the EMPTY
             STRING for one that is unset — not "absent". That is why a
             `getenv(NAME, default)` default silently never applies.
+
+            Exporting under a name that is not the source's is routine
+            (npm reads its credential from NODE_AUTH_TOKEN whatever your
+            secret is called). Declare it as `<origin>:<source>` — e.g.
+            `secrets:NPM_TOKEN` — and RT02 stays silent while the two
+            agree, and speaks the moment either side moves. A bare origin
+            keeps warning on any rename, which is the right default.
   Workflow  repo-relative path to the workflow/pipeline file.
   Job/Step  the job (or step) whose env: block must export it.
   Consumer  the file that reads it.

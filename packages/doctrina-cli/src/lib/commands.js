@@ -402,6 +402,19 @@ export const AGENT_CHANGELOG_END = "<!-- doctrina:changed:end -->";
 // introduced it. Only entries that alter what an agent should DO belong
 // here — a bug fix nobody's behaviour depends on does not.
 export const AGENT_CHANGELOG = {
+  // NOTE: this block REPLACES its predecessor in AGENTS.md rather than
+  // accumulating, so a patch's entry must carry forward whatever an agent
+  // arriving at this version still needs to know. That is why 0.15.1
+  // restates the 0.15.0 surface with its own fix folded in, instead of
+  // listing one bug fix and silently erasing the release that introduced
+  // `triage`.
+  "0.15.1": [
+    "`doctrina triage \"<prompt>\"` — classify a request as PRODUCT / RUNTIME / CHORE BEFORE scaffolding. `work` holds a runtime-shaped prompt with exit 3 and points here; `--force` opens the change anyway.",
+    "`contract check` holds the declared wiring to the implementation (RT01-RT05). Exporting a variable under another name is routine — declare the source as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`) and RT02 stays silent until either side moves.",
+    "A `verify` check may declare `expect`, so a run that exits 0 having executed NOTHING fails the gate; such a check still streams its output. An `[orchestration]` acceptance criterion is proven by citing one (`verify:<name>`).",
+    "A spec may declare an ordered `### Pipeline`; `validate` refuses a step that requires what a later step produces. `validate --runtime` adds the runtime gate.",
+    "`skill suggest --from-error <text|file>` drafts a skill from the failure on screen; `context --for` ranks skills by their trigger.",
+  ],
   "0.15.0": [
     "`doctrina triage \"<prompt>\"` — classify a request as PRODUCT / RUNTIME / CHORE BEFORE scaffolding. `work` now holds a runtime-shaped prompt with exit 3 and points here; `--force` opens the change anyway.",
     "`contract check` now holds the declared wiring to the implementation: a `vars`/`secrets` variable no workflow exports, a default an empty CI value never triggers, an unvalidated enum, a selector matching zero targets (RT01-RT05).",

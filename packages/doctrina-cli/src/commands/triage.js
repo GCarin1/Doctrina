@@ -202,7 +202,7 @@ function renderRuntime(runtime, envFindings, withEnv, hadLane) {
 
   const all = [...runtime.findings, ...envFindings];
   if (all.length === 0) {
-    console.log(c.green("  ok") + `  ${runtime.declared} declared row${runtime.declared === 1 ? "" : "s"} across ${runtime.contracts} contract${runtime.contracts === 1 ? "" : "s"} hold` + (withEnv ? " (including local .env)" : ""));
+    console.log(c.green("  ok") + `  ${runtime.declared} declared row${runtime.declared === 1 ? " holds" : "s hold"} across ${runtime.contracts} contract${runtime.contracts === 1 ? "" : "s"}` + (withEnv ? " (including local .env)" : ""));
     console.log("");
     return;
   }

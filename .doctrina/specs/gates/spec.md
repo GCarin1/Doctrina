@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.7.0
+**Version:** 0.7.1
 
 ## Purpose
 
@@ -36,6 +36,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall declare every dependency a gate needs, and its automation shall install them from the lockfile before running the gate.
 - The system shall check the runtime surface only as the project declares it in a contract, and shall never parse a specific CI system, test runner, or language.
 - The system shall report a project whose contracts declare no wiring or selector rows as having an UNCHECKED runtime surface, and shall not report it as passing.
+- The system shall stream the output of a check declaring an output expectation as it arrives, while accumulating a copy for the match — reading a check's output shall not withhold it.
 
 ### Event-driven
 
@@ -331,6 +332,10 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not print the value of an environment variable when reporting a local `.env` finding; it shall name the variable and the allowed set only.
 - The system shall not report a workflow it cannot read as one that omits a declared variable; it shall report the file as unreadable instead.
 
+### Optional
+
+- Where a wiring row declares its source as `<origin>:<source>`, the system may treat an export reading that source as intended and report no name mismatch, while still reporting an origin mismatch as an error.
+
 ## Acceptance criteria
 
 The gate surface is spec-compliant when:
@@ -367,6 +372,9 @@ The gate surface is spec-compliant when:
 22. [verified] An orchestration criterion citing a check with no expect guard is reported unguarded and fails `coverage --strict` — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 23. [verified] `analyze` refuses a change that raises a declared output ceiling and stays silent on an input ceiling — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 24. [verified] `doctor --env` reports enum membership without the offending value appearing in its output — verified by `packages/doctrina-cli/test/runtime.test.js`.
+25. [verified] A wiring row declaring `<origin>:<source>` silences the name-mismatch warning while the workflow agrees, and warns again when either side moves — verified by `packages/doctrina-cli/test/runtime.test.js`.
+26. [verified] Declaring a source does not switch off the empty-vs-unset check for that row — verified by `packages/doctrina-cli/test/runtime.test.js`.
+27. [verified] A check with an output expectation emits its output progressively rather than in one block at the end — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
 
 ## Out of scope for this spec
 

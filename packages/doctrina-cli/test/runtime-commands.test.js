@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -340,6 +340,99 @@ test("next puts a broken runtime declaration ABOVE the artifact chores", () => {
     const payload = JSON.parse(res.stdout);
     assert.match(payload.actions[0], /doctrina triage/);
     assert.match(payload.actions[0], /do(es)? not hold/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ------------------------------------- expect streams while it captures (0.15.1)
+//
+// The first cut ran an expect-carrying check piped and echoed the whole
+// buffer once it finished — forty seconds of blank terminal on this
+// project's own suite. Reading a check's output and showing it are
+// independent concerns.
+
+test("an expect check STREAMS its output instead of withholding it to the end", async () => {
+  const dir = project();
+  try {
+    // Three chunks a second apart; if the output only arrives at the end,
+    // the first chunk's timestamp will sit next to the last one's.
+    // A script FILE, not `node -e`: nested quotes through `shell: true`
+    // are mangled differently on every platform, and this test is about
+    // streaming, not about quoting.
+    writeFileSync(
+      path.join(dir, "ticker.js"),
+      [
+        "let i = 0;",
+        "const t = setInterval(() => {",
+        "  console.log('tick ' + (++i));",
+        "  if (i === 3) { clearInterval(t); console.log('pass 3'); }",
+        "}, 400);",
+      ].join("\n"),
+    );
+    writeJson(path.join(dir, ".doctrina", "verify.json"), {
+      checks: [{
+        name: "slow",
+        run: "node ticker.js",
+        expect: { require_output_matches: "pass [1-9]" },
+      }],
+    });
+
+    const started = Date.now();
+    /** @type {number[]} */
+    const tickTimes = [];
+    await new Promise((resolve) => {
+      const child = spawn(process.execPath, [cliEntry, "verify"], {
+        cwd: dir,
+        env: { ...process.env, NO_COLOR: "1" },
+      });
+      child.stdout.setEncoding("utf8");
+      child.stdout.on("data", (chunk) => {
+        for (const line of String(chunk).split("\n")) {
+          if (line.includes("tick ")) tickTimes.push(Date.now() - started);
+        }
+      });
+      child.on("close", resolve);
+    });
+
+    assert.equal(tickTimes.length, 3, `expected 3 ticks, saw ${tickTimes.length}`);
+    // The first tick must arrive well before the last: that gap IS the
+    // streaming. Buffered output would land all three within a few ms.
+    assert.ok(
+      tickTimes[2] - tickTimes[0] > 300,
+      `output was buffered, not streamed (ticks at ${tickTimes.join("ms, ")}ms)`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the tee still judges the output and still reports the exit code", () => {
+  const dir = project();
+  try {
+    writeJson(path.join(dir, ".doctrina", "verify.json"), {
+      checks: [
+        { name: "empty", run: "echo \"0 scenarios\"", expect: { fail_if_output_matches: "0 scenarios" } },
+      ],
+    });
+    const res = run(dir, ["verify"]);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /0 scenarios/, "the output must still be shown");
+    assert.match(res.stdout, /exit 0, but its output matched/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a non-zero exit is still a failure, tee or not", () => {
+  const dir = project();
+  try {
+    writeJson(path.join(dir, ".doctrina", "verify.json"), {
+      checks: [{ name: "boom", run: "echo pass 1 && exit 3", expect: { require_output_matches: "pass [1-9]" } }],
+    });
+    const res = run(dir, ["verify"]);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /exit 3/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

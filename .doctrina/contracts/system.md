@@ -42,11 +42,15 @@ ours — while the repository secret is named `NPM_TOKEN`. So the workflow
 exports one name from the other, and `contract check` reports RT02: "the
 names differ, so renaming one silently empties the other".
 
-That warning is correct and worth keeping visible. If someone renames the
-GitHub secret, `${{ secrets.NPM_TOKEN }}` resolves to the empty string,
-`npm publish` receives a blank credential, and the failure surfaces as an
-authentication error with nothing pointing at the rename. This row is
-what makes that chain findable.
+The risk it names is real: if someone renames the GitHub secret,
+`${{ secrets.NPM_TOKEN }}` resolves to the empty string, `npm publish`
+receives a blank credential, and the failure surfaces as an
+authentication error with nothing pointing at the rename.
+
+So the Origin cell DECLARES the source — `secrets:NPM_TOKEN` — which is
+the answer RT02 was asking for and, until 0.15.1, had nowhere to accept.
+The check now stays silent while the two agree and speaks up the moment
+either side moves.
 
 Consumer is intentionally blank: the reader is npm itself, not a file in
 this repository, so there is no source to lint for empty-vs-unset (RT03).
@@ -54,7 +58,7 @@ this repository, so there is no source to lint for empty-vs-unset (RT03).
 
 | Variable        | Origin  | Workflow                      | Job/Step | Consumer |
 |-----------------|---------|-------------------------------|----------|----------|
-| NODE_AUTH_TOKEN | secrets | .github/workflows/release.yml | publish  |          |
+| NODE_AUTH_TOKEN | secrets:NPM_TOKEN | .github/workflows/release.yml | publish  |          |
 
 ## Budgets
 

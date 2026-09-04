@@ -1169,11 +1169,11 @@ verdict:
 
 Doctrina supplies no patterns of its own and knows nothing about what the
 output means — the project declares the line that proves its run was
-real, so this works for any runner in any language. A check with an
-`expect` block runs piped (its output is echoed through when it finishes,
-rather than streaming); every other check still streams. An `expect`
-pattern that is not a valid regular expression fails at **config time**
-with exit 2, never silently.
+real, so this works for any runner in any language. An expect-carrying
+check still **streams**: its output is teed to the terminal as it arrives
+while a copy accumulates for the match, so reading a check's output never
+costs you the ability to watch it. An `expect` pattern that is not a valid
+regular expression fails at **config time** with exit 2, never silently.
 
 An `expect` guard is also what an `[orchestration]` acceptance criterion
 cites as its proof — see [`doctrina coverage`](#doctrina-coverage).
@@ -1217,7 +1217,7 @@ pattern or origin the *contract* declares.
 | Code | What fails |
 |------|------------|
 | `RT01` | A variable declared with origin `vars`/`secrets` that no `env:` block in the named workflow exports. The value exists in CI and never reaches the process — the whole "I set the secret and nothing happened" class. |
-| `RT02` | The workflow reads it from a different origin, or under a different name, than the contract declares. |
+| `RT02` | The workflow reads it from a different origin, or under a different name, than the contract declares. Exporting under a different name is routine — npm reads its credential from `NODE_AUTH_TOKEN` whatever your secret is called — so declare the source in the Origin cell as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`). RT02 then stays silent while the two agree and warns the moment either side moves. A bare origin keeps warning on any rename, which is the right default. An **origin** mismatch stays an error either way: that one is never intentional. |
 | `RT03` | Its consumer gives it a default that only applies when the variable is **absent**. CI injects the empty *string*, which is present, so `getenv(NAME, default)` never returns the default. A textual lint, and the finding says so. |
 | `RT04` | A declared `Values` enum that `.env.example` violates (error), or that the consumer never mentions (warning — an enum nothing validates). |
 | `RT05` | A declared selector matching zero targets. A run dispatched on it executes 0 cases and still exits 0. Names the near-miss when only the separator differs (`smoke-test` vs `smoke_test`). |

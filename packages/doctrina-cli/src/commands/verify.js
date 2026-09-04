@@ -2,7 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
@@ -198,24 +198,20 @@ export async function run(_positional, flags) {
     // monorepo target a sub-package, e.g. { run: "node --test", cwd:
     // "packages/api" } — the multi-service shape the contract artifact
     // also serves.
-    // A check that declares OUTPUT EXPECTATIONS must have its output read,
-    // so it runs piped and is echoed straight through — the operator still
-    // sees everything, just at the end of the check rather than streaming.
-    // Only checks that opt in pay that cost.
+    // A check that declares OUTPUT EXPECTATIONS must have its output READ,
+    // which is not the same as withholding it. The first cut ran such a
+    // check piped and echoed the whole buffer at the end — forty seconds of
+    // blank terminal on this project's own suite, and worse on anything
+    // slower. Reading and showing are independent: the tee streams every
+    // chunk as it arrives AND accumulates it for the match.
     const expectation = parseExpectation(ch);
-    const res = spawnSync(ch.run, {
-      cwd: ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot,
-      shell: true,
-      stdio: expectation ? "pipe" : "inherit",
-      encoding: expectation ? "utf8" : undefined,
-      // A suite's output can be large; the default 1MB cap would truncate
-      // the very line an expectation is looking for.
-      maxBuffer: expectation ? 64 * 1024 * 1024 : undefined,
-    });
-    if (expectation) {
-      if (res.stdout) process.stdout.write(res.stdout);
-      if (res.stderr) process.stderr.write(res.stderr);
-    }
+    const res = expectation
+      ? await runTee(ch.run, ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot)
+      : spawnSync(ch.run, {
+        cwd: ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot,
+        shell: true,
+        stdio: "inherit",
+      });
 
     let ok = !res.error && res.status === 0;
     /** @type {string | null} */
@@ -226,7 +222,9 @@ export async function run(_positional, flags) {
       // matched nothing prints "0 scenarios" and exits 0, and every gate
       // above this one calls that a pass. An expectation makes the run's
       // own output part of the verdict.
-      const output = `${res.stdout ?? ""}\n${res.stderr ?? ""}`;
+      // The tee already interleaves both streams in the order they arrived,
+      // which is the order a human read them in.
+      const output = res.output ?? `${res.stdout ?? ""}\n${res.stderr ?? ""}`;
       const verdict = judgeOutput(expectation, output);
       if (!verdict.ok) {
         ok = false;
@@ -264,6 +262,47 @@ export async function run(_positional, flags) {
   if (strict && pending.length > 0) reasons.push(`pending sign-off: ${pending.map((r) => r.name).join(", ")}`);
   console.log(c.red("fail") + ` ${passed}/${results.length} checks passed — ${reasons.join("; ")}`);
   return 1;
+}
+
+// Run a command, streaming its output to the terminal AS IT ARRIVES while
+// accumulating a copy for an expectation to match against.
+//
+// `spawnSync` cannot do this: it either inherits the streams (visible,
+// unreadable) or pipes them (readable, invisible until it exits). The async
+// spawn gives both, at the cost of this function existing.
+//
+// Both streams accumulate into ONE buffer in arrival order, so a pattern
+// spanning them matches the same text the operator saw, and stderr is
+// echoed to stderr so redirection still behaves.
+//
+// @returns {Promise<{status: number|null, output: string, error?: Error}>}
+function runTee(command, cwd) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(command, { cwd, shell: true, stdio: ["inherit", "pipe", "pipe"] });
+    } catch (err) {
+      resolve({ status: null, output: "", error: /** @type {Error} */ (err) });
+      return;
+    }
+
+    let output = "";
+    const tee = (stream, sink) => {
+      if (!stream) return;
+      stream.setEncoding("utf8");
+      stream.on("data", (chunk) => {
+        output += chunk;
+        sink.write(chunk);
+      });
+    };
+    tee(child.stdout, process.stdout);
+    tee(child.stderr, process.stderr);
+
+    child.on("error", (err) => resolve({ status: null, output, error: err }));
+    // "close" rather than "exit": it fires once the streams are drained, so
+    // no trailing output is dropped from the match or the terminal.
+    child.on("close", (status) => resolve({ status, output }));
+  });
 }
 
 // An `expect` block, normalised and compiled, or null when the check does
@@ -476,10 +515,10 @@ verdict:
 
 Doctrina supplies no patterns of its own and knows nothing about what the
 output means — the project declares the line that proves its run was real,
-so this works for any runner in any language. A check with an "expect"
-block runs piped (its output is echoed through when it finishes, rather
-than streaming); every other check still streams. An "expect" pattern that
-is not a valid regular expression fails at config time, not silently.
+so this works for any runner in any language. An expect-carrying check
+still streams: its output is teed to the terminal as it arrives while a
+copy accumulates for the match. An "expect" pattern that is not a valid
+regular expression fails at config time, not silently.
 
 Flags:
   --init     Scaffold a starter ${CONFIG_REL} (refuses to overwrite without --force)

@@ -146,10 +146,10 @@ export async function run(_positional, _flags) {
       row("fail", "runtime", `${errs.length} declaration${errs.length === 1 ? "" : "s"} do not hold`, "doctrina triage   (each finding names its own fix)");
       for (const e of errs.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e.code} ${e.message}`);
     } else if (warns > 0) {
-      row("warn", "runtime", `${runtime.declared} declared rows hold; ${warns} advisory finding${warns === 1 ? "" : "s"}`, "doctrina triage");
+      row("warn", "runtime", `${runtime.declared} declared row${runtime.declared === 1 ? " holds" : "s hold"}; ${warns} advisory finding${warns === 1 ? "" : "s"}`, "doctrina triage");
       warningsTotal += 1;
     } else {
-      row("ok", "runtime", `${runtime.declared} declared row${runtime.declared === 1 ? "" : "s"} hold`);
+      row("ok", "runtime", `${runtime.declared} declared row${runtime.declared === 1 ? " holds" : "s hold"}`);
     }
   }
 

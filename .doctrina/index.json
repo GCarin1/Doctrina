@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.15.0",
+  "framework_version": "0.15.1",
   "last_updated": "2026-09-04",
   "artifacts": {
     "product": {
@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -807,6 +807,19 @@
         "status": "applied",
         "applied": "2026-09-04",
         "specs_affected": []
+      },
+      {
+        "id": "0031-a-wiring-row-may-declare-the-source-variable",
+        "title": "Two defects in what 0.15.0 shipped",
+        "path": ".doctrina/changes/archive/2026-09-04-0031-a-wiring-row-may-declare-the-source-variable",
+        "status": "applied",
+        "applied": "2026-09-04",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [
