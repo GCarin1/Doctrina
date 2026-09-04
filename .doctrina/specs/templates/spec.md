@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.15.0
+**Version:** 0.16.0
 
 ## Purpose
 
@@ -50,6 +50,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall resolve every template through a chain, per file: a template under the project's `.doctrina/templates/` wins, and anything absent falls back to the copy shipped with the installed CLI.
 - The system shall require every command to declare a purpose and a when-trigger, and shall generate the AGENTS.md surface block from those declarations, organised by the moment the command is reached for.
 - The system shall hold the generated surface block to a declared line budget, reporting an overrun as a finding rather than growing the block.
+- The contract template shall carry Wiring, Selectors and Budgets tables, and a Values column on Environment, each documenting what the corresponding runtime check verifies.
+- The spec template shall carry an optional `### Pipeline` block documenting that a step may only require what an earlier step produced.
 
 ### Event-driven
 
@@ -96,6 +98,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not scaffold a project that immediately reports a pending template update.
 - The system shall not require a project to vendor the whole template tree in order to override one file.
 - The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
+- A freshly scaffolded contract shall not fail its own `contract check`: placeholder rows are scaffolding, not declarations.
 
 ### Optional
 
@@ -147,6 +150,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 15. [verified] An empty project templates directory behaves exactly as before the chain existed — verified by `packages/doctrina-cli/test/integration.test.js`.
 16. [verified] Every command declares a purpose, a when-trigger, and a known moment, and the block carries those triggers within its declared budget — verified by `packages/doctrina-cli/test/commands.test.js`.
 17. [verified] The agent-facing changelog is three to six agent-scoped bullets for the running version, written at init and refreshed by upgrade — verified by `packages/doctrina-cli/test/commands.test.js`, `packages/doctrina-cli/test/integration.test.js`.
+18. [verified] A scaffolded contract passes `contract check` and reports its runtime surface as unchecked — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
 
 ## Out of scope for this spec
 

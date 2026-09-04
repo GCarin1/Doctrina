@@ -34,8 +34,7 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
 ## Doctrina command surface (generated — reach for these, don't hand-author)
 
 Every command, with the moment you reach for it. The CLI scaffolds from
-canonical templates and keeps `index.json` in sync — prefer it over
-hand-authoring. Flags and detail: `doctrina <command> --help`.
+canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 **Bootstrap**
 - `doctrina init` — scaffold AGENTS.md and .doctrina/. *When:* starting a project that has no AGENTS.md yet.
 - `doctrina intake` — store the intent and print the bootstrap playbook. *When:* you have a full project description and no specs yet.
@@ -51,7 +50,8 @@ hand-authoring. Flags and detail: `doctrina <command> --help`.
 - `doctrina handoff (before compaction/handover)` — a resume note: open work, task state, next command. *When:* BEFORE compaction or handing over to another session.
 - `doctrina constitution` — accepted ADRs and product non-goals. *When:* you need the standing rules before deciding something.
 **Change**
-- `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* any request arrives that changes behaviour.
+- `doctrina triage` — classify the lane (product/runtime/chore) and check the declared runtime surface. *When:* a request arrives — BEFORE scaffolding, especially if it smells like an incident.
+- `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* a request arrives that changes behaviour (triage says PRODUCT).
 - `doctrina spec new|list|set` — create, list, and edit capability specs. *When:* a capability needs creating or its headers advancing.
 - `doctrina change new|apply|archive|check|tick|diff|abandon` — new / apply / archive / check / tick / diff / abandon. *When:* driving a change through its lifecycle by hand.
 - `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.

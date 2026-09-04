@@ -12,7 +12,7 @@
 // Keep this sorted by the workflow order used in `--help`, not alphabetically.
 export const COMMAND_NAMES = [
   // bootstrap / day-to-day
-  "init", "intake", "work",
+  "init", "intake", "triage", "work",
   // authoring
   "spec", "change", "contract", "decision", "skill", "intent", "adapter",
   // read / orient
@@ -36,6 +36,7 @@ export const COMMAND_NAMES = [
 export const OPERATIONS = [
   ["init", "Scaffold AGENTS.md and .doctrina/ in the current directory"],
   ["intake", "Store the full project description; print the bootstrap playbook"],
+  ["triage", "Classify a request into a lane, and check the runtime surface"],
   ["work", "Brief prompt -> scaffolded change + guided work playbook"],
   ["spec new", "Create a new capability spec (--bug for bug-shape)"],
   ["spec list", "List specs with version, status, and size"],
@@ -127,7 +128,8 @@ export const COMMAND_META = {
   constitution: { moment: "Orient",     when: "you need the standing rules before deciding something", purpose: "accepted ADRs and product non-goals" },
   handoff:      { moment: "Orient",     when: "BEFORE compaction or handing over to another session", purpose: "a resume note: open work, task state, next command" },
 
-  work:         { moment: "Change",     when: "any request arrives that changes behaviour", purpose: "scaffold a change and print the playbook to execute" },
+  triage:       { moment: "Change",     when: "a request arrives — BEFORE scaffolding, especially if it smells like an incident", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
+  work:         { moment: "Change",     when: "a request arrives that changes behaviour (triage says PRODUCT)", purpose: "scaffold a change and print the playbook to execute" },
   spec:         { moment: "Change",     when: "a capability needs creating or its headers advancing", purpose: "create, list, and edit capability specs" },
   change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "new / apply / archive / check / tick / diff / abandon" },
   decision:     { moment: "Change",     when: "the change decides something a later session must not relitigate", purpose: "record, accept, land, scope, and supersede ADRs" },
@@ -232,9 +234,12 @@ export function surfaceMarkdown() {
   const lines = [
     "## Doctrina command surface (generated — reach for these, don't hand-author)",
     "",
+    // Two lines, not three. This block is always-loaded context inside a
+    // file with a hard 150-line budget, so its own preamble competes with
+    // the commands it introduces — and a command an agent never discovers
+    // costs more than a sentence of prose ever saves.
     "Every command, with the moment you reach for it. The CLI scaffolds from",
-    "canonical templates and keeps `index.json` in sync — prefer it over",
-    "hand-authoring. Flags and detail: `doctrina <command> --help`.",
+    "canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.",
   ];
   for (const moment of MOMENTS) {
     const cmds = COMMAND_NAMES.filter((n) => COMMAND_META[n]?.moment === moment);
@@ -397,6 +402,13 @@ export const AGENT_CHANGELOG_END = "<!-- doctrina:changed:end -->";
 // introduced it. Only entries that alter what an agent should DO belong
 // here — a bug fix nobody's behaviour depends on does not.
 export const AGENT_CHANGELOG = {
+  "0.15.0": [
+    "`doctrina triage \"<prompt>\"` — classify a request as PRODUCT / RUNTIME / CHORE BEFORE scaffolding. `work` now holds a runtime-shaped prompt with exit 3 and points here; `--force` opens the change anyway.",
+    "`contract check` now holds the declared wiring to the implementation: a `vars`/`secrets` variable no workflow exports, a default an empty CI value never triggers, an unvalidated enum, a selector matching zero targets (RT01-RT05).",
+    "A `verify` check may declare `expect`, so a run that exits 0 having executed NOTHING fails the gate; an `[orchestration]` acceptance criterion is proven by citing such a guarded check (`verify:<name>`), not by a citation that merely resolves.",
+    "A spec may declare an ordered `### Pipeline`; `validate` refuses a step that requires what a later step produces. `validate --runtime` adds the runtime gate.",
+    "`skill suggest --from-error <text|file>` drafts a skill from the failure on screen; `context --for` now ranks skills by their trigger.",
+  ],
   "0.14.0": [
     "`doctrina adapter add|remove|list` — add an agent without re-scaffolding; `init --force` no longer overwrites authored AGENTS.md/product.md.",
     "`doctrina change apply` now refuses what `analyze` refuses; `change check` previews a close, `change tick` checks boxes in bulk.",

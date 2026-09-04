@@ -9,8 +9,9 @@ import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew } from "./change.js";
+import { classify } from "./triage.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
 // prompt ("add login") becomes a fully scaffolded change plus a playbook
@@ -69,6 +70,31 @@ export async function run(positional, flags) {
     if (open.length > 0) {
       printResumeSuggestion(open);
       return 0;
+    }
+  }
+
+  // LANE CHECK (change 0029). `work` was the default answer to every
+  // request, so a broken workflow or a suite that ran nothing became a
+  // change with a proposal, tasks and a spec delta — ceremony spent on a
+  // diagnosis, and a close that attested to nothing. A runtime-shaped
+  // prompt is stopped here, once, with the diagnosis path named. It is a
+  // deterministic term match and it can be wrong, so --force proceeds and
+  // the message says so.
+  if (!fromDiff && !chore && !flagBool(flags, "force", false)) {
+    const verdict = classify(prompt);
+    if (verdict.lane === "runtime" && verdict.confident) {
+      console.error(c.yellow("hold:") + " this reads as a RUNTIME problem, not a change of behaviour");
+      console.error(c.gray(`signals: ${[...new Set(verdict.scores.runtime.hits)].slice(0, 6).join(", ")}`));
+      console.error("");
+      console.error("Nothing here says the spec is wrong — diagnose the running system first:");
+      console.error(`  ${c.cyan(`doctrina triage "${prompt.length > 60 ? `${prompt.slice(0, 59)}…` : prompt}"`)}`);
+      console.error("");
+      console.error(c.gray("If the requirement really is missing, open the change anyway:"));
+      console.error(c.gray("  doctrina work --force \"<prompt>\"   ·   or --chore for wiring already specified"));
+      // PRECONDITION: the work may be perfectly valid; this project has
+      // simply not been diagnosed yet. A gate code (1) would read as
+      // "the prompt is bad" and invite rewording it forever.
+      return EXIT.PRECONDITION;
     }
   }
 
@@ -545,6 +571,14 @@ Options:
                        prompt needed) and print a code-first playbook (F8)
   --chore, --no-spec   Open a spec-less chore change (infra/docs/build) with a
                        playbook that skips the spec-delta steps (F9)
-  --force              Open a new change even when one is open, and overwrite
-                       an existing change folder
+  --force              Open a new change even when one is open, overwrite an
+                       existing change folder, and proceed past the lane hold
+                       below
+
+A prompt that reads as a RUNTIME problem — a workflow, an env value, a run
+that executed nothing — is HELD before anything is scaffolded, and pointed
+at \`doctrina triage\` instead (exit 3: a precondition, not a bad prompt).
+The classifier is deterministic term matching and can be wrong; --force
+opens the change anyway, and --chore is the lane for wiring the spec
+already covers.
 `;

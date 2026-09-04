@@ -7,7 +7,7 @@ import { exists, isDir, isFile, mkdirp, read, relPath, walk, write } from "../li
 import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
-import { flagBool, flagString } from "../lib/args.js";
+import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
@@ -17,7 +17,7 @@ const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "force", "write"], string: ["since"] };
+export const flags = { boolean: ["json", "force", "write"], string: ["since", "from-error"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -61,11 +61,186 @@ const FIX_SHAPED_SUBJECT =
 const GIT_LOG_LIMIT = 200;
 const MAX_SHOWN = 20;
 
+// A skill drafted from the ERROR that taught the lesson (change 0029).
+//
+// `suggest` used to fire only after the fact — a skill was born when the
+// agent remembered to write one, which is to say after the incident had
+// already cost a session. The moment the lesson actually exists is the
+// moment the error is on screen, and that text carries exactly what a
+// trigger needs: the paths, the identifiers, the message itself.
+//
+// The draft is a SEED, not a skill. It fills the trigger — the field a
+// human is least likely to write in a matchable form — and leaves the
+// procedure to the person who just solved it.
+const ERROR_STOP = new Set([
+  "the", "and", "for", "with", "that", "this", "from", "have", "has", "was",
+  "were", "not", "but", "you", "your", "are", "its", "it's", "can", "could",
+  "would", "should", "will", "when", "then", "than", "there", "their", "been",
+  "error", "warning", "failed", "failure", "exception", "traceback", "at",
+  "line", "file", "in", "on", "of", "to", "is", "a", "an", "no", "if",
+  // Stack-trace furniture and modal verbs: present in almost every error,
+  // distinctive in none, and they crowd out the words that identify one.
+  "most", "recent", "call", "calls", "last", "raise", "raised", "throw",
+  "thrown", "must", "one", "none", "self", "return", "returns", "def",
+  "module", "stack", "trace", "during", "handling", "above", "occurred",
+  "caused", "unexpected", "invalid", "expected", "got", "value", "values",
+]);
+
+export function draftFromError(text) {
+  const raw = String(text ?? "").trim();
+  if (raw === "") return null;
+
+  // Paths and file references: the most matchable thing an error carries.
+  const paths = [...new Set(
+    (raw.match(/[\w.@-]+(?:[/\\][\w.@-]+)+(?:\.\w{1,6})?|[\w-]+\.(?:py|js|mjs|cjs|ts|tsx|yml|yaml|json|feature|go|rb|java|rs|sh|toml|ini|env)\b/g) ?? [])
+      .map((p) => p.replace(/[.,;:)\]]+$/, "")),
+  )].slice(0, 4);
+
+  // ALL_CAPS identifiers: env vars, error codes, constants.
+  const identifiers = [...new Set(raw.match(/\b[A-Z][A-Z0-9_]{2,}\b/g) ?? [])].slice(0, 4);
+
+  // Quoted fragments are usually the operative part of the message — but a
+  // traceback quotes its own filenames, and repeating a path already
+  // captured above buys nothing.
+  const quoted = [...new Set(
+    [...raw.matchAll(/["'`]([^"'`\n]{4,60})["'`]/g)].map((m) => m[1].trim()),
+  )].filter((q) => !paths.includes(q)).slice(0, 2);
+
+  // Distinctive words, most frequent first — the fallback when an error
+  // carries no structure at all.
+  const counts = new Map();
+  for (const w of raw.toLowerCase().match(/[a-z][a-z0-9_-]{3,}/g) ?? []) {
+    if (ERROR_STOP.has(w)) continue;
+    counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  const keywords = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([w]) => w)
+    .slice(0, 6);
+
+  // The trigger, built to be MATCHED: concrete tokens first, prose second.
+  const anchors = [...quoted, ...identifiers, ...keywords.slice(0, 3)].slice(0, 4);
+  const wherePart = paths.length > 0 ? `, or work touches ${paths.slice(0, 2).map((p) => `\`${p}\``).join(" / ")}` : "";
+  const when = anchors.length > 0
+    ? `The task hits ${anchors.map((a) => `"${a}"`).join(" / ")}${wherePart}.`
+    : `The task reproduces: ${firstLine(raw).slice(0, 90)}.`;
+
+  // The slug seeds from identifiers first, then keywords — deduped on the
+  // NORMALISED token, so AXE_SEVERITY and the "axe_severity" the same error
+  // also mentions do not both land in the name.
+  const seedTokens = [];
+  const seenToken = new Set();
+  for (const token of [...identifiers.map((i) => i.toLowerCase()), ...keywords]) {
+    const norm = token.replace(/[^a-z0-9]/g, "");
+    if (norm === "" || seenToken.has(norm)) continue;
+    seenToken.add(norm);
+    seedTokens.push(token);
+    if (seedTokens.length === 4) break;
+  }
+  const slug = skillSlug(seedTokens.join("-") || firstLine(raw)) || "captured-error";
+
+  return {
+    slug,
+    when,
+    keywords,
+    paths,
+    identifiers,
+    excerpt: raw.split(/\r?\n/).slice(0, 12).join("\n"),
+    source: "error",
+  };
+}
+
+function firstLine(text) {
+  return String(text).split(/\r?\n/).find((l) => l.trim() !== "")?.trim() ?? "";
+}
+
+// Preview or scaffold one error-seeded draft.
+function writeErrorDraft(projectRoot, draft, doWrite) {
+  const skillsDir = path.join(projectRoot, ".doctrina", "skills");
+  const target = path.join(skillsDir, `${draft.slug}.md`);
+
+  if (!doWrite) {
+    console.log(c.bold("Skill draft") + c.gray(" — seeded from the error you just hit:"));
+    console.log("");
+    console.log(`  ${c.cyan("slug")}   ${draft.slug}`);
+    console.log(`  ${c.cyan("when")}   ${draft.when}`);
+    if (draft.paths.length > 0) console.log(`  ${c.cyan("paths")}  ${draft.paths.join(", ")}`);
+    console.log("");
+    if (exists(target)) {
+      console.log(c.yellow("note: ") + `${relPath(projectRoot, target)} already exists — writing would skip it`);
+    }
+    console.log(c.gray("Scaffold it: ") + c.cyan("doctrina skill suggest --from-error <text|file> --write"));
+    console.log(c.gray("The trigger is drafted; the procedure is yours to write while you still remember it."));
+    return 0;
+  }
+
+  if (exists(target)) {
+    console.log(c.yellow("skip   ") + ` ${draft.slug} (already exists)`);
+    return 0;
+  }
+
+  const tpl = read(path.join(locateTemplatesDir(), "skill.md.template"));
+  let body = substitute(tpl, { SKILL_NAME: draft.slug });
+  // Fill the trigger — the field a human is least likely to write in a form
+  // anything can match, and the one `context` ranks on.
+  body = body.replace(
+    /^when: .*$/m,
+    `when: ${draft.when.replace(/\r?\n/g, " ")}`,
+  );
+  body += `\n<!-- Seeded from an error. The failure to capture:\n\n${draft.excerpt}\n-->\n`;
+
+  mkdirp(skillsDir);
+  write(target, body, { force: false });
+
+  const index = idx.load(projectRoot);
+  const date = today();
+  idx.addSkill(index, {
+    id: draft.slug,
+    path: `.doctrina/skills/${draft.slug}.md`,
+    description: parseFrontmatter(body, "description") ?? "<edit me — one-sentence summary>",
+    last_updated: date,
+  });
+  idx.touch(index, date);
+  idx.save(projectRoot, index);
+
+  console.log(c.green("created") + ` ${relPath(projectRoot, target)}`);
+  console.log(c.gray("The trigger is drafted from the error. Write the procedure while you still remember it,"));
+  console.log(c.gray("then fill `description:` — `doctrina validate` warns on a trigger nothing can match."));
+  return 0;
+}
+
 function skillSuggest(args, flags) {
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
   const doWrite = flagBool(flags, "write", false);
   const since = flagString(flags, "since");
+
+  // --from-error: draft from the failure that is on screen RIGHT NOW,
+  // rather than waiting for the lesson to be remembered later. When given,
+  // it is the only source — this is a specific request, not a survey.
+  // A value-taking flag written without a value is a usage error, not a
+  // silent fall-through to the survey — `--from-error` with nothing after
+  // it would otherwise run the ordinary scan and look like it worked.
+  if (flagGivenWithoutValue(flags, "from-error")) {
+    console.error(c.red("error:") + " --from-error needs the error text, or a path to a file holding it");
+    return 2;
+  }
+  const fromError = flagString(flags, "from-error");
+  if (fromError !== undefined) {
+    if (fromError === "" || fromError === null) {
+      console.error(c.red("error:") + " --from-error needs the error text, or a path to a file holding it");
+      return 2;
+    }
+    // A path is read; anything else is taken as the text itself.
+    const asPath = path.resolve(projectRoot, fromError);
+    const text = isFile(asPath) ? read(asPath) : fromError;
+    const draft = draftFromError(text);
+    if (!draft) {
+      console.error(c.red("error:") + " --from-error was given nothing to draft from");
+      return 2;
+    }
+    return writeErrorDraft(projectRoot, draft, doWrite);
+  }
 
   const skillsDir = path.join(projectRoot, ".doctrina", "skills");
   const existingFiles = isDir(skillsDir) ? walk(skillsDir).filter((f) => f.endsWith(".md")) : [];
@@ -423,13 +598,21 @@ Subcommands:
   sync          Copy each skill's frontmatter description into
                 .doctrina/index.json so the index never drifts
                 from the frontmatter (single source of truth).
-  suggest [--write] [--since <ref>]
+  suggest [--write] [--since <ref>] [--from-error <text|file>]
                 Surface fix-shaped lessons not yet captured as skills,
                 from two sources: archived change proposals and the git
                 commit history (ADR 0013). --write scaffolds a stub per
                 candidate (pre-seeded from its source) to fill in.
                 --since <ref> scans commits in <ref>..HEAD instead of the
                 last 200 (e.g. --since v0.7.0).
+
+                --from-error <text|file> drafts ONE skill from the failure
+                on screen right now, instead of waiting for the lesson to
+                be remembered later. It fills the \`when:\` trigger from the
+                error's own paths, identifiers and message — the field a
+                human is least likely to write in a form anything can
+                match, and the one \`context\` ranks on. The procedure stays
+                yours to write. Add --write to scaffold it.
 
 Skills are written by humans, not generated. See docs/en/skills.md
 for the design rationale and the distinction from specs / AGENTS.md /

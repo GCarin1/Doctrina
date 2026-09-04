@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-07-02
-**Version:** 0.3.1
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -30,6 +30,7 @@ replacing it.
   time.
 - The system shall reference skills from `.doctrina/index.json`
   under `artifacts.skills` as an array parallel to `specs`.
+- A skill's `when:` trigger shall name something a task can be matched against — a keyword, path, command, or error string — because context ranks skills by that trigger.
 
 ### Event-driven
 
@@ -64,6 +65,7 @@ replacing it.
   for any skill whose frontmatter `description:` differs from
   the description recorded in `.doctrina/index.json`, pointing
   at `doctrina skill sync`.
+- When a skill is drafted from an error, the system shall fill its trigger from that error's own paths, identifiers and distinctive terms, and shall leave the procedure to the author.
 
 ### State-driven
 
@@ -108,6 +110,8 @@ A `.doctrina/skills/` directory is spec-compliant when:
    `description:` — `doctrina skill sync` restores this
    (`packages/doctrina-cli/src/commands/skill.js`), and drift warns in
    `packages/doctrina-cli/src/commands/validate.js`.
+6. [verified] A trigger drafted from an error satisfies validate's detectable-trigger check — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+7. [verified] Skills matching a `--for` query are ranked above the rest and marked — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 
 ## Out of scope for this spec
 

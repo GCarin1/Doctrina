@@ -4,6 +4,7 @@ import process from "node:process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { c } from "../lib/colors.js";
 import { isUntouchedScaffold } from "./change.js";
+import { collectBudgets } from "../lib/runtime.js";
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -167,7 +168,62 @@ export function collectAnalysis(projectRoot, changeDir) {
     }
   }
 
+  // BUDGET DISCIPLINE (change 0029). A declared ceiling is a contract, not
+  // a preference — and the tempting fix for "the output blew the limit" is
+  // to raise the limit. That buys headroom by truncating what mattered
+  // instead of sending less, and it is the discussion that comes back every
+  // quarter because nothing ever recorded that it had been settled. Raising
+  // an INPUT ceiling is a normal trade-off; raising an OUTPUT ceiling to
+  // resolve an overflow is the move this refuses.
+  for (const r of checkBudgetRaises(projectRoot, changeDir)) results.push(r);
+
   return results;
+}
+
+// Compare the ceilings a change's proposal/deltas propose against the ones
+// the contracts declare today. Text-scanned: a change states a new value in
+// prose long before any code moves, which is exactly when it should be
+// argued about.
+function checkBudgetRaises(projectRoot, changeDir) {
+  const results = [];
+  let declared;
+  try {
+    declared = collectBudgets(projectRoot);
+  } catch {
+    return results;
+  }
+  if (declared.size === 0) return results;
+
+  const texts = [];
+  for (const f of walk(changeDir)) {
+    if (f.endsWith(".md")) texts.push({ rel: relPath(projectRoot, f), text: read(f) });
+  }
+
+  for (const [name, budget] of declared) {
+    if (budget.direction !== "output") continue;
+    for (const { rel, text } of texts) {
+      // "<limit> ... <number>" on one line: the shape a proposal uses when
+      // it restates a ceiling ("raise ai-summary to 2000").
+      const re = new RegExp(`${escapeRe(name)}[^\\n]{0,60}?(\\d{2,})`, "gi");
+      for (const m of text.matchAll(re)) {
+        const proposed = Number.parseInt(m[1], 10);
+        if (!Number.isFinite(proposed) || proposed <= budget.value) continue;
+        results.push(fail(
+          `${rel} raises the OUTPUT ceiling "${name}" from ${budget.value} to ${proposed} ` +
+          `(declared in ${budget.contract}) — raising an output budget buys headroom by ` +
+          `truncating what mattered. Send less, or supersede the budget deliberately in the contract`,
+        ));
+        break;
+      }
+    }
+  }
+  return results;
+}
+
+// A limit name comes from a contract table cell, so it is user text and
+// must not be spliced into a pattern unescaped.
+function escapeRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function pass(msg) {

@@ -17,6 +17,8 @@ import { checkEars, isEarsSpec } from "../lib/ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
 import { COMMAND_NAMES, referencedCommands } from "../lib/commands.js";
 import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
+import { parsePipeline, checkPipeline } from "../lib/pipeline.js";
+import { collectRuntimeFindings } from "../lib/runtime.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
 // documents at least this many real commands; below it, the file defers to
@@ -30,7 +32,7 @@ const CATALOG_THRESHOLD = 8;
 // wrap it in the generic envelope.
 export const jsonNative = true;
 
-export const flags = { boolean: ["fix", "json"], string: [] };
+export const flags = { boolean: ["fix", "json", "runtime"], string: [] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -379,6 +381,17 @@ export async function run(_positional, flags) {
           }
         }
 
+        // 8b-ii. ORDERED requirements (change 0029). EARS states each
+        //     event-driven requirement independently and says nothing about
+        //     order, so a consumer step and its producer both pass while the
+        //     consumer reads last run's file. A `### Pipeline` block declares
+        //     the order and the artifact each step hands on; the invariant is
+        //     that a step may only require what an EARLIER step produced.
+        //     Opt-in: a spec without the block is never checked.
+        for (const f of checkPipeline(parsePipeline(text))) {
+          errors.push(`${relPath(projectRoot, specPath)}:${f.line} ${f.message} [${f.code}] — ${f.remedy}`);
+        }
+
         // 8c. Capability-state honesty (two-axis status). An "active"
         //     document that records no built capability is an inventory
         //     claim — the gap the framework is meant to make visible.
@@ -581,6 +594,22 @@ export async function run(_positional, flags) {
       if (nameField && nameField !== baseName) {
         warnings.push(`${rel} name "${nameField}" does not match filename slug "${baseName}"`);
       }
+
+      // 14b. A skill nothing can TRIGGER is a file, not a memory (change
+      //      0029). `context` lists a skill's `when:` so an agent can fire
+      //      the right one without loading any of them — but a trigger
+      //      written as pure prose ("when it makes sense", "as needed")
+      //      gives it nothing to match on, and the skill is never loaded by
+      //      anyone who did not already know it existed. A usable trigger
+      //      names something concrete: a keyword, a path, a command, an
+      //      error string.
+      if (whenField && !hasDetectableTrigger(whenField)) {
+        warnings.push(
+          `${rel} frontmatter "when" has no detectable trigger — name a concrete ` +
+          `keyword, path, command or error string, or nothing can match it ` +
+          `(got: "${whenField.length > 60 ? `${whenField.slice(0, 59)}…` : whenField}")`,
+        );
+      }
       const lines = lineCount(f);
       if (lines > 200) warnings.push(`${rel} is ${lines} lines (>200 soft cap)`);
       else if (lines > 150) warnings.push(`${rel} is ${lines} lines (>150 soft cap)`);
@@ -628,6 +657,22 @@ export async function run(_positional, flags) {
   // survives sessions because it is an artifact, not a memory.
   for (const line of checkProjectRules(projectRoot)) errors.push(line);
 
+  // 18. --runtime folds the RUNTIME gate into the structural one, so a
+  //     single call covers both halves of the truth: the shape of the
+  //     artifacts, and whether what they declare about the running system
+  //     still holds. Opt-in because it reads files outside .doctrina/
+  //     (workflows, consumers, test sources) and a structural validate
+  //     should stay cheap. Delegates to lib/runtime.js — the same checks
+  //     `contract check`, `triage` and `doctor` render, so the four can
+  //     never disagree.
+  if (flagBool(flags, "runtime", false)) {
+    for (const f of collectRuntimeFindings(projectRoot).findings) {
+      const line = `${f.contract}: ${f.message} [${f.code}] — ${f.remedy}`;
+      if (f.level === "error") errors.push(line);
+      else warnings.push(line);
+    }
+  }
+
   // Output
   if (flagBool(flags, "json", false)) {
     emitJson("validate", { ok: errors.length === 0, errors, warnings });
@@ -644,6 +689,28 @@ export async function run(_positional, flags) {
     console.log((errors.length === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
   }
   return errors.length === 0 ? 0 : 1;
+}
+
+// Does a skill's `when:` give anything to MATCH on? A trigger written as
+// pure prose ("when it seems relevant", "as needed") reads fine and can
+// never fire: `context` ranks skills by comparing the trigger against the
+// task, and there is nothing there to compare. A usable trigger names
+// something concrete — a path or glob, a command, a quoted error string, a
+// file extension, an ALL_CAPS identifier, or simply enough distinctive
+// keywords to match on.
+const VAGUE_TRIGGER = /^(?:when(?:ever)?\s+)?(?:it|this|you|the agent)?\s*(?:is\s+)?(?:seems?|feels?|looks?)?\s*(?:relevant|appropriate|needed|necessary|useful|applicable|as needed|if needed)\.?$/i;
+
+export function hasDetectableTrigger(when) {
+  const text = String(when ?? "").trim();
+  if (text === "" || VAGUE_TRIGGER.test(text)) return false;
+  // Anything structural is inherently matchable.
+  if (/[\/\]|\*|`|"|'|\.\w{2,4}|[A-Z][A-Z0-9_]{2,}/.test(text)) return true;
+  // Otherwise: enough distinctive words to rank on. Stopwords do not count.
+  const STOP = new Set(["when", "whenever", "the", "a", "an", "is", "are", "you", "your",
+    "it", "its", "this", "that", "and", "or", "to", "of", "in", "on", "for", "with",
+    "any", "some", "need", "needs", "needed", "should", "must", "at", "as", "by", "be"]);
+  const words = text.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) ?? [];
+  return words.filter((w) => !STOP.has(w)).length >= 2;
 }
 
 // Enforce .doctrina/rules.json — permanent project constraints as
@@ -846,13 +913,33 @@ function isLikelyPath(s) {
 }
 
 export const help = `
-Usage: doctrina validate [--fix] [--json]
+Usage: doctrina validate [--fix] [--runtime] [--json]
 
 Run schema, artifact-existence, and structural checks against the
 .doctrina/ tree in the current working directory. Exits 0 if no errors
 (warnings allowed), 1 otherwise.
 
+Two structural checks worth naming:
+
+  Pipeline    a spec's optional "### Pipeline" block declares ordered
+              steps and the artifact each hands on:
+                1. run-suite — produces \`results.json\`
+                2. analyse — requires \`results.json\`, produces \`analysis.md\`
+              A step may only require what an EARLIER step produced.
+              EARS states each event-driven requirement independently, so
+              without this a consumer and its producer both pass while the
+              consumer reads the previous run's file. Mark inputs from
+              outside the pipeline \`(external)\`.
+
+  Triggers    a skill whose frontmatter "when:" names nothing concrete
+              (no keyword, path, command or error string) can never be
+              matched, so nothing ever loads it.
+
 Flags:
-  --fix    Rebuild index.json from the tree before checking (heals drift).
-  --json   Emit { ok, errors, warnings } as JSON (stable shape for agents/CI).
+  --fix       Rebuild index.json from the tree before checking (heals drift).
+  --runtime   Also run the RUNTIME gate: the declared wiring, enums and
+              selectors checked against the workflows and code that are
+              supposed to honour them (the same checks as \`contract check\`).
+              Opt-in because it reads files outside .doctrina/.
+  --json      Emit { ok, errors, warnings } as JSON (stable shape for agents/CI).
 `;

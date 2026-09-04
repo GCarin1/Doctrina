@@ -17,6 +17,115 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-09-03
+
+Field review of 2026-09-03, written by an agent operating Doctrina on a
+downstream Behave + GitHub Actions + dotenv repository. Its verdict:
+Doctrina is strong as product memory and a scope brake, and weak as
+**runtime** guidance. The index assumes truth lives in versioned
+Markdown; the operational half never did. It lives in a job's `env:`
+block, in an absent `${{ vars.X }}` collapsing to the empty string so a
+`getenv(NAME, default)` default silently never applies, in an enum the
+contract declares and no code validates, in hook ordering, and in a test
+selector that matches zero cases and exits 0. None of that is EARS, so no
+gate could see any of it — and `work` was the answer to every request, so
+each of those incidents became a change with a proposal, tasks and a spec
+delta before anyone read the YAML.
+
+Two decisions frame the release: the runtime surface is **declared, never
+inferred** (ADR 0023 — Doctrina learns no CI system, test runner or
+language; every check reads a glob, pattern or origin the contract
+declares, so SC1's zero-dependency promise and the "not a CI/CD system"
+non-goal both hold), and a request is **classified into a lane before it
+is scaffolded** (ADR 0024).
+
+### Added
+
+- **`doctrina triage ["<prompt>"]`** — classifies a request as PRODUCT,
+  RUNTIME or CHORE before anything is scaffolded, and runs the runtime
+  checks with or without a prompt. Deterministic term matching that
+  prints the signals it matched: a hint, never a refusal (ADR 0005).
+  PRODUCT is the default and must be *beaten*, so an ordinary feature
+  request that mentions a "job" is never diverted into a diagnosis.
+- **Runtime contract declarations** — the contract artifact gains
+  **Wiring** (variable → origin → workflow → job/step → consumer),
+  **Selectors** (selector → source glob → pattern → used by) and
+  **Budgets** (limit → direction → value) tables, plus a `Values` column
+  on Environment. Every section is optional, so contracts written before
+  this parse to empty declarations and check exactly as they did.
+- **Runtime checks in `contract check`** (also surfaced by `triage`,
+  `validate --runtime` and `doctor`, all from one module so they cannot
+  disagree):
+  - `RT01`/`RT02` — a variable declared with origin `vars`/`secrets` that
+    no `env:` block in the named workflow exports, or that the workflow
+    reads from a different origin or name. The "I set the secret in
+    GitHub and nothing happened" class.
+  - `RT03` — a consumer default that only applies when the variable is
+    *absent*: CI injects the empty **string**, which is present, so the
+    documented default never fires. A textual lint, and the finding says
+    so (`getenv(X, d)`, `environ.get(X, d)`, `process.env.X ?? d` — never
+    `||`, which is already empty-safe).
+  - `RT04` — a declared `Values` enum an `.env.example` violates (error),
+    or that the consumer never mentions (warning: an enum nothing
+    validates).
+  - `RT05` — a declared selector matching zero targets, which makes a
+    dispatched run execute 0 cases and still exit 0. Names the near-miss
+    when only the separator differs (`smoke-test` vs `smoke_test`).
+- **Output expectations in `verify`** — a check may declare
+  `"expect": { "fail_if_output_matches": ..., "require_output_matches": ... }`,
+  so a run that exits 0 having executed **nothing** fails the gate. The
+  project declares the line that proves its run was real; Doctrina
+  supplies no patterns and knows no runner. An uncompilable pattern fails
+  at config time with exit 2, never silently.
+- **Ordered pipeline requirements** — a spec may declare a
+  `### Pipeline` block of numbered steps and the artifact each hands on.
+  EARS states every event-driven requirement independently and says
+  nothing about sequence, so a consumer and its producer both pass while
+  the consumer reads the previous run's file. `validate` enforces the
+  invariant a numbered list cannot: a step may only require what an
+  *earlier* step produced (`PL01`–`PL03`; `(external)` declares an input
+  from outside).
+- **Orchestration acceptance criteria** — a criterion marked
+  `[orchestration]` is proven by a fail-closed **verify check**
+  (`` `verify:<name>` ``), not by a resolving citation. A cited check with
+  no `expect` guard is reported **unguarded** and fails
+  `coverage --strict`: citation is the right proof for "this function
+  behaves" and the wrong one for "the pipeline ran at all".
+- **`doctrina skill suggest --from-error <text|file>`** — drafts one
+  skill from the failure on screen *now*, filling the `when:` trigger
+  from the error's own paths, identifiers and distinctive terms. The
+  procedure stays the author's to write.
+- **`doctor --env` / `triage --env`** — the local `.env` against the
+  declared names and enums, reporting membership only. A rejected value
+  is **never printed**, so the output is safe to paste.
+- **Budget discipline in `analyze`** — a change that resolves an overflow
+  by raising a declared **output** ceiling is refused: that buys headroom
+  by truncating what mattered. Raising an *input* ceiling stays an
+  ordinary trade-off.
+
+### Changed
+
+- **`work` holds a runtime-shaped prompt** before scaffolding anything,
+  with exit 3 (a precondition — the work may be fine, it has simply not
+  been diagnosed) and points at `triage`. `--force` opens the change
+  anyway; `--chore` is the lane for wiring the spec already covers.
+- **`next` ranks a broken runtime declaration above every artifact
+  chore** — after a job goes green having run nothing, "open a change on
+  the observability capability" sent the agent to polish an empty-state
+  message while the cause sat in a file no action named.
+- **`context --for` ranks on-demand skills** by the task's match against
+  their trigger and marks the ones that match. Alphabetical order is the
+  wrong order for a list whose job is "fire the right one".
+- **`validate`** warns on a skill whose `when:` names nothing concrete —
+  a trigger written as prose can never be matched, so the skill is loaded
+  only by someone who already knew it existed. `--runtime` folds the
+  runtime gate into the structural one.
+- **`contract check`** reports a contract with no Wiring or Selectors
+  rows as **unchecked**, never as passing: silence is not proof.
+- **Table cells now honour escaped pipes** (`\|`), so a declared enum
+  like `none\|critical\|serious` survives parsing.
+
+
 ## [0.13.0] — 2026-07-19
 
 Operator-review follow-ups (external agent review of 2026-07-19, written
