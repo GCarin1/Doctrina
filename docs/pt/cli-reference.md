@@ -134,6 +134,48 @@ escrever EARS por capability, registrar quaisquer ADRs forçados, rodar
 verdade — o intake nunca é editado para mudar requisitos. Sai com 1
 quando nenhuma fonte é dada e nenhum intake existe.
 
+## `doctrina triage ["<prompt>"]`
+
+Classifica um pedido **antes** de esqueletizar qualquer coisa, e
+diagnostica o sistema em execução.
+
+O `work` era a resposta para todo pedido, então um workflow quebrado, um
+valor de env vazio e uma suíte que não rodou nada viravam changes com
+proposal, tasks e delta de spec — meia hora de cerimônia para um bug que
+o YAML já explicava, e um close que atestava um diagnóstico. Três raias,
+porque três tipos de pedido falham de formas diferentes:
+
+| Raia | O que significa | Para onde vai |
+|------|-----------------|---------------|
+| `PRODUCT` | muda comportamento; o delta de spec é o ponto | `doctrina work` |
+| `RUNTIME` | ligado errado, vazio, ou não rodou nada; não há delta a escrever | diagnostique antes |
+| `CHORE` | só implementação, já especificado | `doctrina work --chore` |
+
+```
+doctrina triage "o job de CI está verde mas 0 cenários rodaram"
+doctrina triage            # sem prompt: só roda os checks de runtime
+doctrina triage --env      # também checa o .env local
+```
+
+O classificador é casamento determinístico de termos e imprime os sinais
+que casou — uma dica, como o palpite de capability do `work` (ADR 0005).
+Nunca recusa. O `work` o consulta e **segura** um prompt confiantemente
+de runtime com saída 3 (uma precondição, não um prompt ruim); `--force`
+abre o change mesmo assim.
+
+Com ou sem prompt, o `triage` também roda os checks de runtime sobre todo
+contrato — os mesmos checks e o mesmo veredito do `contract check`: a
+fiação declarada contra o workflow, defaults de consumidor com semântica
+vazio-vs-ausente, enums declarados e seletores que não casariam nada.
+
+| Flag | Função |
+|------|--------|
+| `--env` | Também checa o `.env` local contra os enums declarados. Reporta **apenas nomes e pertinência** — um valor rejeitado nunca é impresso, então a saída é segura de colar. |
+| `--json` | Emite `{ lane, confident, contracts, declared, findings, errors }`. |
+
+Sai 0 quando não há erro de runtime (warnings permitidos), 1 quando algum
+erro permanece.
+
 ## `doctrina work "<prompt>"`
 
 Transforma um prompt curto em um change totalmente esqueletizado mais o
@@ -170,7 +212,18 @@ esqueletizado a partir de um palpite do ranking; só do pin explícito.
 | `--capability <cap>` | Fixa a capability em vez de ranquear matches, e esqueletiza um `delta.md` pré-preenchido para ela. |
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
-| `--force` | Sobrescreve uma pasta de change existente. |
+| `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
+| `--force` | Sobrescreve uma pasta de change existente, e passa pela retenção de raia descrita abaixo. |
+
+Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
+raia (veja [`doctrina triage`](#doctrina-triage-prompt)). Um prompt que
+confiantemente lê como problema de **runtime** — um workflow, um valor de
+env, uma execução que não rodou nada — é **segurado** com saída 3 (uma
+precondição: o trabalho pode estar certo, só não foi diagnosticado) e
+apontado para o `triage`, para que nenhuma cerimônia seja gasta com um bug
+que o YAML já explica. O classificador é casamento determinístico de
+termos e pode errar: `--force` abre o change mesmo assim, e `--chore` é a
+raia para fiação que a spec já cobre.
 
 ## `doctrina spec new <capability>`
 
@@ -622,6 +675,27 @@ indexa — para que escrever a skill seja "preencher", não "começar do zero".
 fonte git degrada silenciosamente para apenas-archive quando não há repo.
 Read-only sem `--write`.
 
+### `--from-error <texto|arquivo>`
+
+As duas fontes acima disparam *depois do fato*: uma skill nasce quando
+alguém lembra de escrevê-la, ou seja, depois que o incidente já custou uma
+sessão. O momento em que a lição existe é o momento em que o erro está na
+tela — e esse texto carrega exatamente o que um gatilho precisa.
+
+```
+doctrina skill suggest --from-error "$(cat falha.log)"
+doctrina skill suggest --from-error ./falha.log --write
+```
+
+Ele rascunha **uma** skill a partir da falha, preenchendo o gatilho
+`when:` com os paths, identificadores em CAIXA_ALTA, trechos entre aspas e
+palavras distintivas do próprio erro — o campo que um humano tem menos
+chance de escrever de forma casável, e o que o `context` ranqueia. O
+procedimento continua sendo seu para escrever, enquanto você ainda lembra.
+Um gatilho gerado sempre satisfaz o check de gatilho do `validate`. Passada
+sem valor, é erro de uso (saída 2), nunca um fall-through silencioso para a
+varredura comum.
+
 ## `doctrina adapter list` / `add` / `remove`
 
 Adiciona, remove e inventaria os arquivos de adapter por agente que
@@ -940,11 +1014,45 @@ Checagens:
                    "message": "produto white-label; use placeholder genérico" } ] }
     ```
 
+28. **Requisitos de pipeline ordenados.** Uma spec pode declarar um bloco
+    opcional `### Pipeline`: passos numerados e o artefato que cada um
+    entrega adiante. O EARS declara cada requisito event-driven de forma
+    independente e nada diz sobre sequência, então "quando a execução
+    termina, anexe o resumo" e "quando a análise conclui, publique o
+    dashboard" passam os dois enquanto o dashboard renderiza uma análise
+    que ainda não rodou. O invariante que uma lista numerada não consegue
+    garantir sozinha — um passo só pode exigir o que um passo **anterior**
+    produziu — vira erro:
+
+    ```
+    ### Pipeline
+
+    1. run-suite — produces `reports/results.json`
+    2. analyse — requires `reports/results.json`, produces `reports/analysis.md`
+    3. publish — requires `reports/analysis.md`
+    ```
+
+    `PL01` é numeração fora de ordem, `PL02` um passo que exige o que um
+    passo posterior produz (ele só consegue ler a cópia da execução
+    anterior), `PL03` uma exigência que passo nenhum produz. Entradas
+    externas ao pipeline são marcadas `(external)`. Opt-in: uma spec sem o
+    bloco nunca é checada.
+29. **Gatilhos de skill.** Uma skill cujo `when:` no frontmatter não nomeia
+    nada concreto — nenhuma palavra-chave, path, comando ou string de erro
+    — gera warning. O `context` ranqueia skills casando a tarefa contra
+    esse gatilho, então um gatilho escrito em prosa pura ("sempre que
+    parecer relevante") nunca dispara, e a skill só é carregada por quem já
+    sabia que ela existia.
+
 A flag `--fix` regenera o `index.json` a partir da árvore antes de
 checar, então um índice em drift é reparado (e o carimbo
 `framework_version` migrado) em vez de reportado — o pre-commit
-instalado roda isso. `--json` emite `{ ok, errors, warnings }` para
-agentes e pipelines de CI.
+instalado roda isso. `--runtime` roda adicionalmente o gate de runtime — a
+fiação, os enums e os seletores declarados checados contra os workflows e
+o código que deveriam honrá-los (os mesmos checks do `contract check`),
+para que uma chamada cubra as duas metades da verdade. É opt-in porque lê
+arquivos fora de `.doctrina/`. `--json` emite `{ ok, errors, warnings }`
+para agentes e pipelines de CI.
 
 Sai 0 sem erros, 1 caso contrário. Warnings não falham a
 validação.
@@ -969,6 +1077,28 @@ planned — <porquê>`, o mesmo escape que o `validate` respeita — tem seus
 critérios não-provados reportados como **deferred**: visíveis, nunca uma
 falha de `--strict` (dívida declarada não é dívida escondida). Read-only
 sem `--run`.
+
+### Critérios de orquestração
+
+Citação é a prova certa para "esta função se comporta" e a errada para "o
+pipeline rodou". Um critério como *"a ausência do relatório é explícita e
+o step não falha"* é satisfeito, no papel, por um job que executou zero
+casos e imprimiu um empty state bem redigido: a citação resolve, a suíte
+não está skipada, e o coverage chama isso de provado.
+
+Marque tal critério com `[orchestration]` e cite uma **checagem do
+verify** pelo nome, em vez de um arquivo:
+
+```
+3. [orchestration] a suíte e2e realmente executa cenários —
+   verified by `verify:e2e`
+```
+
+Essa checagem precisa declarar uma guarda `expect` (veja
+[`doctrina verify`](#doctrina-verify)). Uma checagem citada sem guarda é
+reportada como **unguarded** e falha o `--strict`: uma checagem que sai 0
+sem ter rodado nada satisfaria a alegação. Uma checagem nomeada que não
+existe é **dangling**.
 
 | Flag | Função |
 |------|--------|
@@ -1056,6 +1186,36 @@ quando assinada e é reportada como *pendente* caso contrário — não-bloquean
 por padrão, falhando só sob `--strict`. Sign-offs ficam em
 `.doctrina/verify.signoffs.json`.
 
+### Expectativas de saída — fail-closed numa execução que não fez nada
+
+Um exit code responde "o runner quebrou?", nunca "o runner rodou alguma
+coisa?". Uma suíte cujo filtro não casou nenhum caso imprime `0 scenarios`
+e sai 0, e todo gate chama isso de aprovação — um job verde que não testou
+nada. Adicione um bloco `expect` para tornar a saída da execução parte do
+veredito:
+
+```
+{
+  "name": "e2e",
+  "run": "behave --tags @smoke",
+  "expect": {
+    "fail_if_output_matches": "0 scenarios",
+    "require_output_matches": "\d+ scenarios? passed"
+  }
+}
+```
+
+O Doctrina não fornece padrão nenhum e não sabe nada sobre o que a saída
+significa — o projeto declara a linha que prova que sua execução foi real,
+então isso funciona para qualquer runner em qualquer linguagem. Uma
+checagem com `expect` roda com saída capturada (ecoada ao terminar, em vez
+de transmitida); as demais continuam transmitindo. Um padrão `expect` que
+não é uma expressão regular válida falha em **tempo de config** com saída
+2, nunca em silêncio.
+
+Uma guarda `expect` também é o que um critério de aceite `[orchestration]`
+cita como prova — veja [`doctrina coverage`](#doctrina-coverage).
+
 | Flag | Função |
 |------|--------|
 | `--init` | Esqueletiza um `.doctrina/verify.json` inicial (recusa sobrescrever sem `--force`). |
@@ -1076,9 +1236,12 @@ doctrina contract new system
 doctrina contract check
 ```
 
-`contract new` esqueletiza `.doctrina/contracts/<name>.md` (tabelas de
-Ports, Environment, Interfaces, References) e o indexa. `contract check`
-verifica a parte mecanicamente checável:
+`contract new` esqueletiza `.doctrina/contracts/<name>.md` (Ports,
+Environment, **Wiring**, **Selectors**, **Budgets**, Interfaces,
+References) e o indexa. `contract check` verifica a parte mecanicamente
+checável.
+
+**Estrutura:**
 
 - **Colisão de portas** — dois serviços reivindicando a mesma porta é
   erro.
@@ -1087,7 +1250,22 @@ verifica a parte mecanicamente checável:
 - **Specs referenciados** — todo `specs/<capability>` referenciado
   precisa existir (erro caso contrário).
 
-Sai 1 em erros (colisão de portas, specs ausentes), 0 caso contrário.
+**Runtime** — a declaração cobrada da implementação. O Doctrina não
+aprende nenhum sistema de CI, test runner ou linguagem: cada check abaixo
+lê um glob, padrão ou origem que o *contrato* declara.
+
+| Código | O que falha |
+|--------|-------------|
+| `RT01` | Uma variável declarada com origem `vars`/`secrets` que nenhum bloco `env:` do workflow nomeado exporta. O valor existe na CI e nunca chega ao processo — toda a classe "configurei o secret e nada aconteceu". |
+| `RT02` | O workflow a lê de outra origem, ou sob outro nome, do que o contrato declara. |
+| `RT03` | O consumidor lhe dá um default que só se aplica quando a variável está **ausente**. A CI injeta a *string* vazia, que está presente, então `getenv(NOME, default)` nunca devolve o default. É um lint textual, e o achado diz isso. |
+| `RT04` | Um enum `Values` declarado que o `.env.example` viola (erro), ou que o consumidor nunca menciona (warning — um enum que nada valida). |
+| `RT05` | Um seletor declarado que casa zero alvos. Uma execução despachada nele roda 0 casos e ainda sai 0. Nomeia o quase-acerto quando só o separador difere (`smoke-test` vs `smoke_test`). |
+
+Um contrato sem linhas de Wiring ou Selectors é reportado como **não
+checado**, não como aprovado: silêncio não é prova.
+
+Sai 1 em erros, 0 só com warnings.
 
 ## `doctrina index rebuild`
 
@@ -1410,12 +1588,20 @@ doctrina doctor
 
 Sequencia os checks existentes — `validate` (lido por máquina), o
 check de drift do index, as razões de coverage/trace, o lint de
-checkout limpo (`verify --clean`), o check de forma dos templates e a
-presença de config do verify — e reporta cada área como ok/warn/FAIL
-**com o comando exato de correção**. Um driver sobre comandos
-existentes (como o `close`): não adiciona checks próprios, então
-nunca discorda dos gates que apresenta. Read-only. Sai 1 quando
-alguma área falha.
+checkout limpo (`verify --clean`), o check de forma dos templates, a
+superfície de **runtime** e a presença de config do verify — e reporta
+cada área como ok/warn/FAIL **com o comando exato de correção**. Um
+driver sobre comandos existentes e sobre `lib/runtime.js` (como o
+`close`): não adiciona checks próprios, então nunca discorda dos gates
+que apresenta. Read-only. Sai 1 quando alguma área falha.
+
+A linha de runtime reporta um projeto com contratos mas sem linhas de
+Wiring ou Selectors como **não checado**, nunca como ok: uma superfície
+não declarada não é uma superfície verificada.
+
+| Flag | Função |
+|------|--------|
+| `--env` | Também checa o `.env` local contra os nomes e enums declarados. Reporta apenas pertinência — um valor rejeitado **nunca é impresso**, então a saída é segura de colar numa issue ou num log de CI. |
 
 ## `doctrina report`
 

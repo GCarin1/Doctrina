@@ -25,7 +25,10 @@ const STARTER = {
     "doctrina verify runs each check below, in order, through your shell. " +
     "Replace the example with your real typecheck/test/build commands. A " +
     "non-zero exit fails the gate. This file is the project's executable " +
-    "definition of 'the code actually works'.",
+    "definition of 'the code actually works'. A check may add an \"expect\" " +
+    "block — {\"fail_if_output_matches\": \"<regex>\"} and/or " +
+    "{\"require_output_matches\": \"<regex>\"} — so that a run which exits 0 " +
+    "having executed NOTHING fails the gate instead of passing it.",
   checks: [
     { name: "example", run: "exit 1" },
   ],
@@ -99,6 +102,15 @@ export async function run(_positional, flags) {
       console.error(c.red("error:") + ` every check in ${CONFIG_REL} needs a non-empty "run" string (or "type": "manual")`);
       return 1;
     }
+    // An uncompilable expectation must fail LOUDLY at config time. Skipping
+    // it would leave a check that looks fail-closed and is not — the
+    // failure mode this whole feature exists to remove.
+    try {
+      parseExpectation(ch);
+    } catch (err) {
+      console.error(c.red("error:") + ` check "${ch.name ?? "?"}" declares an "expect" pattern that is not a valid regular expression: ${err.message}`);
+      return EXIT.USAGE;
+    }
   }
   if (checks.length === 0) {
     console.error(c.red("error:") + ` ${CONFIG_REL} declares zero checks — a verify gate with no checks proves nothing`);
@@ -141,6 +153,15 @@ export async function run(_positional, flags) {
     checks.forEach((ch, i) => {
       const what = ch.type === "manual" ? c.gray(`manual${ch.rubric ? " — " + ch.rubric : ""}`) : c.gray(ch.run);
       console.log(`  ${i + 1}. ${c.cyan((ch.name ?? "check").padEnd(16))} ${what}`);
+      // A fail-closed check must be visible as one: a reader auditing the
+      // gate needs to see which checks judge their own output.
+      const exp = parseExpectation(ch);
+      if (exp) {
+        const parts = [];
+        if (exp.failIfSource) parts.push(`fail if output matches /${exp.failIfSource}/`);
+        if (exp.requireSource) parts.push(`require output matches /${exp.requireSource}/`);
+        console.log(`     ${" ".repeat(16)} ${c.gray(parts.join("; "))}`);
+      }
     });
     return 0;
   }
@@ -177,14 +198,46 @@ export async function run(_positional, flags) {
     // monorepo target a sub-package, e.g. { run: "node --test", cwd:
     // "packages/api" } — the multi-service shape the contract artifact
     // also serves.
+    // A check that declares OUTPUT EXPECTATIONS must have its output read,
+    // so it runs piped and is echoed straight through — the operator still
+    // sees everything, just at the end of the check rather than streaming.
+    // Only checks that opt in pay that cost.
+    const expectation = parseExpectation(ch);
     const res = spawnSync(ch.run, {
       cwd: ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot,
       shell: true,
-      stdio: "inherit",
+      stdio: expectation ? "pipe" : "inherit",
+      encoding: expectation ? "utf8" : undefined,
+      // A suite's output can be large; the default 1MB cap would truncate
+      // the very line an expectation is looking for.
+      maxBuffer: expectation ? 64 * 1024 * 1024 : undefined,
     });
-    const ok = !res.error && res.status === 0;
+    if (expectation) {
+      if (res.stdout) process.stdout.write(res.stdout);
+      if (res.stderr) process.stderr.write(res.stderr);
+    }
+
+    let ok = !res.error && res.status === 0;
+    /** @type {string | null} */
+    let expectationNote = null;
+    if (ok && expectation) {
+      // THE FAIL-CLOSED RULE. A green exit code answers "did the runner
+      // crash", never "did the runner do anything". A suite whose filter
+      // matched nothing prints "0 scenarios" and exits 0, and every gate
+      // above this one calls that a pass. An expectation makes the run's
+      // own output part of the verdict.
+      const output = `${res.stdout ?? ""}\n${res.stderr ?? ""}`;
+      const verdict = judgeOutput(expectation, output);
+      if (!verdict.ok) {
+        ok = false;
+        expectationNote = verdict.reason;
+      }
+    }
+
     if (res.error) {
       console.log(c.red(`✗ ${name}`) + c.gray(` — could not run: ${res.error.message}`));
+    } else if (expectationNote) {
+      console.log(c.red(`✗ ${name}`) + c.gray(` — exit 0, but ${expectationNote}`));
     } else {
       console.log(ok ? c.green(`✓ ${name}`) : c.red(`✗ ${name} (exit ${res.status})`));
     }
@@ -211,6 +264,47 @@ export async function run(_positional, flags) {
   if (strict && pending.length > 0) reasons.push(`pending sign-off: ${pending.map((r) => r.name).join(", ")}`);
   console.log(c.red("fail") + ` ${passed}/${results.length} checks passed — ${reasons.join("; ")}`);
   return 1;
+}
+
+// An `expect` block, normalised and compiled, or null when the check does
+// not declare one. Runner-agnostic by construction: Doctrina supplies no
+// patterns of its own and knows nothing about what the output means — the
+// project declares the line that proves its run was real.
+//
+//   "expect": {
+//     "fail_if_output_matches": "0 scenarios|0 features",
+//     "require_output_matches": "\\d+ scenarios? passed"
+//   }
+export function parseExpectation(check) {
+  const raw = check?.expect;
+  if (!raw || typeof raw !== "object") return null;
+  const out = {};
+  if (typeof raw.fail_if_output_matches === "string" && raw.fail_if_output_matches !== "") {
+    out.failIf = new RegExp(raw.fail_if_output_matches, "im");
+    out.failIfSource = raw.fail_if_output_matches;
+  }
+  if (typeof raw.require_output_matches === "string" && raw.require_output_matches !== "") {
+    out.requireMatch = new RegExp(raw.require_output_matches, "im");
+    out.requireSource = raw.require_output_matches;
+  }
+  return out.failIf || out.requireMatch ? out : null;
+}
+
+/** @returns {{ok: boolean, reason?: string}} */
+export function judgeOutput(expectation, output) {
+  if (expectation.failIf && expectation.failIf.test(output)) {
+    return {
+      ok: false,
+      reason: `its output matched /${expectation.failIfSource}/ — the check declares that shape a failure (a run that executed nothing exits 0 too)`,
+    };
+  }
+  if (expectation.requireMatch && !expectation.requireMatch.test(output)) {
+    return {
+      ok: false,
+      reason: `its output never matched /${expectation.requireSource}/ — the check requires that proof of a real run`,
+    };
+  }
+  return { ok: true };
 }
 
 // Static reproducibility lint: walk the project's package.json files and
@@ -369,6 +463,23 @@ qualitative gate — judged by a human/eval, recorded as a sign-off, not run):
 A manual check passes when it has been signed off and is otherwise reported
 as "pending" — non-blocking by default, failing only under --strict (so CI
 can require the sign-off). Sign-offs are stored in ${SIGNOFF_REL}.
+
+OUTPUT EXPECTATIONS — fail-closed on a run that did nothing. An exit code
+answers "did the runner crash", never "did the runner run anything": a suite
+whose filter matched no cases prints "0 scenarios" and exits 0, and every
+gate calls it a pass. Add an "expect" block to make the output part of the
+verdict:
+
+      { "name": "e2e", "run": "behave --tags @smoke",
+        "expect": { "fail_if_output_matches": "0 scenarios",
+                    "require_output_matches": "\\\\d+ scenarios? passed" } }
+
+Doctrina supplies no patterns of its own and knows nothing about what the
+output means — the project declares the line that proves its run was real,
+so this works for any runner in any language. A check with an "expect"
+block runs piped (its output is echoed through when it finishes, rather
+than streaming); every other check still streams. An "expect" pattern that
+is not a valid regular expression fails at config time, not silently.
 
 Flags:
   --init     Scaffold a starter ${CONFIG_REL} (refuses to overwrite without --force)

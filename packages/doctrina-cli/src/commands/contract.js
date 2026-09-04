@@ -12,6 +12,10 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import {
+  parseTable, parseRuntimeDeclaration, checkWiring, checkEmptySemantics,
+  checkEnums, checkSelectors,
+} from "../lib/runtime.js";
 
 // Contracts are the first-class home for the integration/runtime surface
 // no single capability owns: the port map, the env/dependency contract,
@@ -82,6 +86,7 @@ function contractNew(args, flags) {
   console.log(c.green("indexed") + ` contract "${name}"`);
   console.log("");
   console.log("Fill in the Ports / Environment / Interfaces tables, then run " + c.cyan("doctrina contract check") + ".");
+  console.log(c.gray("Declaring Wiring and Selectors rows is what makes the RUNTIME half checkable — without them, check can only verify the prose."));
   return 0;
 }
 
@@ -186,6 +191,35 @@ function contractCheck(args, _flags) {
         errors += 1;
       }
     }
+
+    // 4. The RUNTIME half: a declaration is only worth what binds it to the
+    //    running system. These checks read the contract's Wiring, Selectors
+    //    and Values declarations and hold the implementation to them — the
+    //    "I set the secret in GitHub and nothing happened" class, the
+    //    default that an empty value never triggers, the enum nothing
+    //    validates, and the selector that matches zero cases and exits 0.
+    //    Every section is optional, so a contract written before they
+    //    existed checks exactly as it did before.
+    const decl = parseRuntimeDeclaration(text);
+    for (const f of [
+      ...checkWiring(projectRoot, decl),
+      ...checkEmptySemantics(projectRoot, decl),
+      ...checkEnums(projectRoot, decl),
+      ...checkSelectors(projectRoot, decl),
+    ]) {
+      const mark = f.level === "error" ? c.red("  ✗ ") : c.yellow("  ! ");
+      console.log(mark + f.message + c.gray(` [${f.code}]`));
+      console.log(`      ${c.gray(`fix: ${f.remedy}`)}`);
+      if (f.level === "error") errors += 1;
+      else warnings += 1;
+    }
+
+    if (decl.wiring.length + decl.selectors.length === 0) {
+      // Silence here is not proof of correctness — it is proof that nothing
+      // was declared. Saying so is what stops a green check from being read
+      // as "the wiring is verified".
+      console.log(c.gray("  · no Wiring or Selectors declared — the runtime surface is unchecked"));
+    }
   }
 
   console.log("");
@@ -196,21 +230,6 @@ function contractCheck(args, _flags) {
   const summary = `${errors} error${errors === 1 ? "" : "s"}, ${warnings} warning${warnings === 1 ? "" : "s"}`;
   console.log((errors === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
   return errors === 0 ? 0 : 1;
-}
-
-// Parse a GitHub-flavoured Markdown table into { headers, rows }.
-function parseTable(text) {
-  const lines = text.split(/\r?\n/).filter((l) => /^\s*\|/.test(l));
-  if (lines.length < 2) return null;
-  const cells = (line) => line.trim().replace(/^\||\|$/g, "").split("|").map((cl) => cl.trim());
-  const headers = cells(lines[0]);
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const row = cells(lines[i]);
-    if (row.every((cl) => /^:?-+:?$/.test(cl) || cl === "")) continue; // separator row
-    rows.push(row);
-  }
-  return { headers, rows };
 }
 
 function colIndex(headers, name) {
@@ -240,8 +259,29 @@ the port map, the environment contract, and API/WS/event interfaces.
 Subcommands:
   new <name>          Scaffold .doctrina/contracts/<name>.md and index it
   list                One line per contract: id, status, last updated
-  check [<name>]      Verify the mechanically checkable parts: no two
-                      services share a port, every declared env var exists
-                      in .env.example, and every referenced spec exists.
-                      Exits 1 on errors (port collisions, missing specs).
+  check [<name>]      Verify the mechanically checkable parts.
+
+                      Structure: no two services share a port, every
+                      declared env var exists in .env.example, and every
+                      referenced spec exists.
+
+                      Runtime — the declaration held to the implementation:
+                        RT01/02  a variable declared with origin vars or
+                                 secrets must be exported by an env: block
+                                 in the workflow the Wiring row names, from
+                                 the origin and name it declares.
+                        RT03     its consumer must not give it a default
+                                 that only applies when ABSENT: CI injects
+                                 the empty string, so the default never
+                                 fires (textual lint).
+                        RT04     a declared Values enum must hold in
+                                 .env.example, and the consumer should
+                                 validate it.
+                        RT05     every declared selector must match at
+                                 least one target, or a run dispatched on
+                                 it executes nothing and still exits 0.
+
+                      No CI system or test runner is parsed natively: each
+                      check reads the glob, pattern and origin the contract
+                      declares. Exits 1 on errors, 0 on warnings only.
 `;

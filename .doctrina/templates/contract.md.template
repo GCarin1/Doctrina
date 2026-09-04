@@ -32,11 +32,82 @@ Variables the running system requires, named IDENTICALLY across code,
 `.env.example`, and infra (compose/helm). `doctrina contract check` warns
 when a variable here is missing from `.env.example` — the DATABASE_URL /
 KAFKA_BROKER drift class.
+
+Values declares an ENUM when the variable is one. Write the alternation
+with escaped pipes so the table survives: `none\|critical\|serious`.
+check then fails an .env.example value outside the set (RT04), and warns
+when the consumer never mentions any member — an enum nothing validates.
+Leave Values empty or `—` for free-form variables.
 -->
 
-| Variable     | Required | Example                                   |
-|--------------|----------|-------------------------------------------|
-| DATABASE_URL | yes      | postgres://user:pass@localhost:5432/app   |
+| Variable     | Required | Values | Example                                   |
+|--------------|----------|--------|-------------------------------------------|
+| DATABASE_URL | yes      | —      | postgres://user:pass@localhost:5432/app   |
+
+## Wiring
+
+<!--
+Where each variable's value COMES FROM, and what reads it. This is the
+table that closes the gap between "I configured it" and "the process saw
+it": a variable can be set in the CI provider and still never reach the
+program, because no `env:` line ever exports it.
+
+  Origin    vars | secrets | literal | local
+            vars and secrets are CI-injected, and CI injects the EMPTY
+            STRING for one that is unset — not "absent". That is why a
+            `getenv(NAME, default)` default silently never applies.
+  Workflow  repo-relative path to the workflow/pipeline file.
+  Job/Step  the job (or step) whose env: block must export it.
+  Consumer  the file that reads it.
+
+`doctrina contract check` then verifies (RT01/RT02) that the workflow
+really exports it, from the origin and under the name declared, and
+(RT03) that the consumer does not give it a default only an ABSENT
+value would trigger.
+
+Delete the rows that do not apply. A contract with no Wiring rows is
+not "verified" — it is unchecked, and check says so.
+-->
+
+| Variable | Origin | Workflow | Job/Step | Consumer |
+|----------|--------|----------|----------|----------|
+| <NAME>   | vars   | <path>   | <job>    | <file>   |
+
+## Selectors
+
+<!--
+The test selectors (BDD tags, suite names, filter expressions) this
+project DISPATCHES on. A selector that matches nothing runs zero cases
+and still exits 0 — a green job that tested nothing.
+
+  Source   glob for the files the selectors live in.
+  Pattern  a regex whose FIRST GROUP captures the selector name.
+  Used by  the selectors a pipeline actually dispatches on.
+
+Doctrina knows no test runner: it extracts with the pattern you declare
+and checks each selector in "Used by" against what it found (RT05),
+naming a near-miss when only the separator differs.
+
+Example (Behave): features/**/*.feature with pattern @([a-z0-9_-]+)
+-->
+
+| Selector | Source | Pattern | Used by |
+|----------|--------|---------|---------|
+| <NAME>   | <glob> | <regex> | <tag>   |
+
+## Budgets
+
+<!--
+Ceilings that are a CONTRACT, not a preference: token limits, payload
+caps, timeouts. Direction distinguishes what goes IN from what comes
+OUT, because they fail differently — and `doctrina analyze` refuses a
+change that "fixes" an overflow by raising an OUTPUT ceiling, which
+buys headroom by truncating what mattered rather than sending less.
+-->
+
+| Limit  | Direction    | Value   |
+|--------|--------------|---------|
+| <NAME> | input/output | <count> |
 
 ## Interfaces
 

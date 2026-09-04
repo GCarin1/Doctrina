@@ -8,6 +8,7 @@ import { deriveIndex, indexesMatch, listHeader } from "../lib/scan.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
+import { collectRuntimeFindings } from "../lib/runtime.js";
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -54,6 +55,26 @@ export async function run(_positional, flags) {
 // `handoff`, and the --json output.
 export function computeActions(projectRoot) {
   const actions = [];
+
+  // RUNTIME FIRST (change 0029). A declared wiring that does not hold is
+  // not a queue item — it is the reason the last run lied. After a job goes
+  // green having executed nothing, "open a change on the observability
+  // capability" sends the agent to polish the Markdown of an empty-state
+  // message while the cause sits in a file no other action names. A broken
+  // declaration outranks every artifact chore below it.
+  try {
+    const runtime = collectRuntimeFindings(projectRoot);
+    const errs = runtime.findings.filter((f) => f.level === "error");
+    if (errs.length > 0) {
+      actions.push(
+        `doctrina triage — ${errs.length} runtime declaration${errs.length === 1 ? " does" : "s do"} not hold ` +
+        `(first: ${errs[0].code} ${errs[0].message.slice(0, 80)}${errs[0].message.length > 80 ? "…" : ""})`,
+      );
+    }
+  } catch {
+    // A malformed contract is `validate`'s finding to make, not a reason
+    // for `next` to fall over.
+  }
 
   // A pending intake is the very first thing to resolve: until it is
   // converted, product.md and the specs are still empty scaffolding.
@@ -178,7 +199,9 @@ export const help = `
 Usage: doctrina next [--json]
 
 Inspect the .doctrina/ tree and print the recommended next workflow
-actions in priority order: open changes (missing proposal, unchecked
+actions in priority order: runtime declarations that no longer hold
+(a broken wiring outranks every artifact chore — it is why the last
+run lied), open changes (missing proposal, unchecked
 tasks, deltas ready to apply, applied-but-unarchived), ADRs still in
 proposed status, accepted ADRs with nothing proving them (cite Evidence
 or run "decision land"), a skill-capture nudge when a past fix went

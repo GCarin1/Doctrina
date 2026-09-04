@@ -71,22 +71,25 @@ export async function run(_positional, flags) {
   let totalCovered = 0;
   let totalDangling = 0;
   let totalConditional = 0;
+  let totalUnguarded = 0;
   let totalDeferred = 0;
   for (const rep of reports) {
     totalCriteria += rep.rows.length;
     totalCovered += rep.rows.filter((r) => r.kind === "covered").length;
     totalDangling += rep.rows.filter((r) => r.kind === "dangling").length;
     totalConditional += rep.rows.filter((r) => r.kind === "conditional").length;
+    totalUnguarded += rep.rows.filter((r) => r.kind === "unguarded").length;
     totalDeferred += rep.rows.filter((r) => r.kind === "deferred").length;
   }
   const jsonPct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
   // Deferred criteria are visible but never gate: declared debt ≠ hidden debt.
-  const jsonClean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0 && totalConditional === 0;
+  const jsonClean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0
+    && totalConditional === 0 && totalUnguarded === 0;
 
   if (json) {
     emitJson("coverage", {
       specs: reports.map((rep) => ({ capability: rep.cap, deferred: rep.deferred, criteria: rep.rows })),
-      summary: { criteria: totalCriteria, covered: totalCovered, dangling: totalDangling, conditional: totalConditional, deferred: totalDeferred, pct: jsonPct },
+      summary: { criteria: totalCriteria, covered: totalCovered, dangling: totalDangling, conditional: totalConditional, unguarded: totalUnguarded, deferred: totalDeferred, pct: jsonPct },
     });
     return jsonClean ? 0 : strict ? 1 : 0;
   }
@@ -98,10 +101,12 @@ export async function run(_positional, flags) {
     const covered = rep.rows.filter((r) => r.kind === "covered").length;
     const dangling = rep.rows.filter((r) => r.kind === "dangling").length;
     const conditional = rep.rows.filter((r) => r.kind === "conditional").length;
+    const unguarded = rep.rows.filter((r) => r.kind === "unguarded").length;
     const deferredN = rep.rows.filter((r) => r.kind === "deferred").length;
 
     const notes = [];
     if (conditional > 0) notes.push(c.yellow(`${conditional} conditional`));
+    if (unguarded > 0) notes.push(c.yellow(`${unguarded} unguarded`));
     if (dangling > 0) notes.push(c.yellow(`${dangling} dangling`));
     if (deferredN > 0) notes.push(c.gray(`${deferredN} deferred`));
     const note = notes.length > 0 ? `  (${notes.join(", ")})` : "";
@@ -114,6 +119,8 @@ export async function run(_positional, flags) {
         console.log(`    ${c.red("✗")} #${r.n}  no evidence linked — cite the file/test that proves it in backticks`);
       } else if (r.kind === "conditional") {
         console.log(`    ${c.yellow("!")} #${r.n}  evidence is a skipped test (proves nothing): ${r.skipped.map((m) => `\`${m}\``).join(", ")}`);
+      } else if (r.kind === "unguarded") {
+        console.log(`    ${c.red("✗")} #${r.n}  orchestration claim is not fail-closed: ${r.reason}`);
       } else {
         console.log(`    ${c.yellow("!")} #${r.n}  evidence not found on disk: ${r.missing.map((m) => `\`${m}\``).join(", ")}`);
       }
@@ -123,9 +130,11 @@ export async function run(_positional, flags) {
   const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
   console.log("");
   const summary = `${totalCovered} of ${totalCriteria} acceptance criteria across ${reports.length} spec${reports.length === 1 ? "" : "s"} have linked evidence (${pct}%)`;
-  const clean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0 && totalConditional === 0;
+  const clean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0
+    && totalConditional === 0 && totalUnguarded === 0;
   const extras = [];
   if (totalConditional > 0) extras.push(`${totalConditional} conditional`);
+  if (totalUnguarded > 0) extras.push(`${totalUnguarded} unguarded`);
   if (totalDangling > 0) extras.push(`${totalDangling} dangling`);
   if (totalDeferred > 0) extras.push(`${totalDeferred} deferred (not gated)`);
   const extraSummary = extras.length > 0 ? `, ${extras.join(", ")}` : "";
@@ -248,13 +257,14 @@ export function summarize(projectRoot) {
     const covered = rep.rows.filter((r) => r.kind === "covered").length;
     const dangling = rep.rows.filter((r) => r.kind === "dangling").length;
     const conditional = rep.rows.filter((r) => r.kind === "conditional").length;
+    const unguarded = rep.rows.filter((r) => r.kind === "unguarded").length;
     const deferred = rep.rows.filter((r) => r.kind === "deferred").length;
     totalCriteria += rep.rows.length;
     totalCovered += covered;
     totalDangling += dangling;
     totalConditional += conditional;
     totalDeferred += deferred;
-    perCap.push({ cap: rep.cap, total: rep.rows.length, covered, dangling, conditional, deferred });
+    perCap.push({ cap: rep.cap, total: rep.rows.length, covered, dangling, conditional, unguarded, deferred });
   }
   const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
   return { perCap, totalCriteria, totalCovered, totalDangling, totalConditional, totalDeferred, pct };
@@ -297,8 +307,84 @@ function extractAcceptanceCriteria(text) {
   return out.filter((s) => s.length > 0);
 }
 
+// ORCHESTRATION criteria (change 0029). Coverage measures CITATION: a
+// criterion is covered when it cites a file that exists (and, since G3, a
+// test whose suite is not skipped). That is the right test for "this
+// function behaves", and the wrong one for "the pipeline ran at all".
+//
+// A criterion like "absence of the report is explicit and the step does not
+// fail" is satisfied, on paper, by a job that executed zero cases and
+// printed a well-written empty state — the citation resolves, the suite is
+// not skipped, and the only visible signal is a tidy message saying nothing
+// happened. Coverage calls that proven.
+//
+// Marking a criterion `[orchestration]` says: the claim is that a RUN
+// happened, so the proof must be a fail-closed one. It cites a verify check
+// by name (`verify:<check>`), and that check must declare an `expect` guard
+// — the thing that turns "exit 0" into "exit 0 having actually done
+// something". A named check without a guard is UNGUARDED: the criterion is
+// not proven, and says so, instead of quietly counting as covered.
+const ORCHESTRATION_MARKER = /^orchestration\b/;
+
+function citedVerifyChecks(criterion) {
+  const out = new Set();
+  for (const m of criterion.matchAll(/`verify:([A-Za-z0-9_.-]+)`/g)) out.add(m[1]);
+  return [...out];
+}
+
+function guardedVerifyChecks(projectRoot) {
+  const configPath = path.join(projectRoot, ".doctrina", "verify.json");
+  if (!isFile(configPath)) return null;
+  let config;
+  try {
+    config = JSON.parse(read(configPath));
+  } catch {
+    return null;
+  }
+  const map = new Map();
+  for (const ch of Array.isArray(config?.checks) ? config.checks : []) {
+    if (!ch?.name) continue;
+    const exp = ch.expect;
+    const guarded = Boolean(exp && typeof exp === "object"
+      && (typeof exp.fail_if_output_matches === "string" || typeof exp.require_output_matches === "string"));
+    map.set(ch.name, guarded);
+  }
+  return map;
+}
+
+function classifyOrchestration(criterion, n, projectRoot) {
+  const named = citedVerifyChecks(criterion);
+  if (named.length === 0) {
+    return { kind: "unguarded", n, reason: "cites no verify check — an orchestration claim is proven by a fail-closed check, cited as `verify:<check>`" };
+  }
+  const checks = guardedVerifyChecks(projectRoot);
+  if (checks === null) {
+    return { kind: "dangling", n, missing: named.map((x) => `verify:${x}`) };
+  }
+  const unknown = named.filter((x) => !checks.has(x));
+  if (unknown.length > 0) {
+    return { kind: "dangling", n, missing: unknown.map((x) => `verify:${x}`) };
+  }
+  const unguarded = named.filter((x) => !checks.get(x));
+  if (unguarded.length > 0) {
+    return {
+      kind: "unguarded",
+      n,
+      reason: `verify check${unguarded.length === 1 ? "" : "s"} ${unguarded.join(", ")} declare${unguarded.length === 1 ? "s" : ""} no "expect" guard — a check that exits 0 having run nothing would still pass it`,
+    };
+  }
+  return { kind: "covered", n, evidence: [] };
+}
+
 // Decide whether a single criterion is covered, conditional, dangling, or bare.
 function classify(criterion, n, projectRoot, specDir) {
+  // An orchestration criterion is judged on its GUARD, not on whether a
+  // cited file exists — the whole point is that existence proves nothing here.
+  const marker = criterion.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase() ?? "";
+  if (ORCHESTRATION_MARKER.test(marker)) {
+    return classifyOrchestration(criterion, n, projectRoot);
+  }
+
   const cited = extractBacktickPaths(criterion);
   if (cited.length === 0) return { kind: "bare", n };
   const missing = [];
@@ -390,15 +476,31 @@ A criterion is covered when a cited path resolves to real proof,
 conditional when its only resolving proof is a test file whose suite is
 skipped (\`describe.skip\` / \`xit\` / \`@pytest.mark.skip\` — proves
 nothing), dangling when a cited path is missing on disk, and bare when
-nothing is cited. A spec that declares a deliberate deferral —
+nothing is cited.
+
+ORCHESTRATION criteria. Citation is the right proof for "this function
+behaves" and the wrong one for "the pipeline ran at all": a criterion
+like "absence of the report is explicit and the step does not fail" is
+satisfied on paper by a job that executed zero cases and printed a
+well-written empty state. Mark such a criterion [orchestration] and cite
+a verify check by name:
+
+  3. [orchestration] the e2e suite actually executes scenarios —
+     verified by \`verify:e2e\`
+
+That check must declare an "expect" guard (see \`doctrina verify --help\`).
+A cited check with no guard is reported UNGUARDED and fails --strict: a
+check that exits 0 having run nothing would otherwise satisfy the claim.
+
+A spec that declares a deliberate deferral —
 \`Implementation: planned — <why>\`, the same escape hatch validate
 honours — has its unproven criteria reported as DEFERRED: visible, but
 never a --strict failure (declared debt is not hidden debt).
 
 Flags:
-  --strict           Exit 1 when any criterion is bare, dangling, or
-                     conditional (CI gate). Deferred never fails. Without
-                     it the command always exits 0 (a report).
+  --strict           Exit 1 when any criterion is bare, dangling,
+                     conditional, or unguarded (CI gate). Deferred never
+                     fails. Without it the command always exits 0 (a report).
   --only <cap,cap>   Scope the report/gate to specific capabilities
                      (\`doctrina close\` uses this so an unrelated deferred
                      spec cannot block a change's close).

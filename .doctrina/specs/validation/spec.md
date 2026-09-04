@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
 **Last updated:** 2026-08-06
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -46,6 +46,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall verify itself the way a user installs it, packing the CLI, installing the tarball outside the repository, and driving a project through the whole lifecycle with the installed binary.
 - The system shall define the on-disk artifact grammar in one module, and every header read, section extraction, and header write shall go through it.
 - The system shall read headers leniently, accepting every recognised written form, and write them strictly in one canonical form whose list-or-bare style is decided by the artifact kind.
+- The system shall treat an artifact marked `(external)` in a Pipeline step as supplied from outside the pipeline, and shall not require a producing step for it.
 
 ### Event-driven
 
@@ -61,6 +62,8 @@ treatment cohorts using the same definition in each cohort.
   value, and the outcome of every trigger.
 - When the end-to-end harness runs, the system shall assert that the structural, template, and diagnostic gates are green at each lifecycle step, and that every bundled adapter installs into a project that passes its own checks.
 - When `doctrina validate --fix` runs, the system shall repair headers that are recognised but not canonical, preserving each line's existing ending and never altering content.
+- When a spec declares a `### Pipeline` block, the system shall report as an error any step that requires an artifact which no earlier step produces, and any step numbering that does not read in execution order.
+- When a skill's `when:` frontmatter names no concrete keyword, path, command or error string, the system shall warn that nothing can match the trigger.
 
 ### State-driven
 
@@ -92,6 +95,7 @@ treatment cohorts using the same definition in each cohort.
 - Where a documentation site or dashboard exists, the team may
   publish the comparison record there. In its absence, a Markdown
   table committed under `docs/` is sufficient.
+- Where `--runtime` is given, the system may additionally run the declared runtime checks and report their findings as validation errors and warnings.
 
 ## Decision triggers
 
@@ -150,6 +154,8 @@ The validation capability is delivered when:
 8. [verified] Every recognised header form parses, bold prose does not, and writing produces one canonical form — verified by `packages/doctrina-cli/test/doc-model.test.js`.
 9. [verified] Every artifact in this repository and in the shipped examples round-trips through the model unchanged — verified by `packages/doctrina-cli/test/doc-model.test.js`.
 10. [verified] `validate --fix` repairs a non-canonical header end to end and the finding clears — verified by `packages/doctrina-cli/test/doc-model.test.js`.
+11. [verified] A pipeline step requiring what a later step produces is an error, and the same steps in order are not — verified by `packages/doctrina-cli/test/pipeline.test.js`.
+12. [verified] A vague skill trigger warns and a concrete one does not — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 
 ## Out of scope for this spec
 

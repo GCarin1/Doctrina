@@ -7,6 +7,8 @@ import { exists } from "../lib/fs-ops.js";
 import { collectStatus } from "./status.js";
 import { collectFindings } from "./templates.js";
 import { c } from "../lib/colors.js";
+import { flagBool } from "../lib/args.js";
+import { collectRuntimeFindings, checkLocalEnv } from "../lib/runtime.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Aggregate diagnostic: the one command to run when "something looks wrong"
@@ -21,7 +23,7 @@ const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json"], string: [] };
+export const flags = { boolean: ["json", "env"], string: [] };
 
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
@@ -123,7 +125,48 @@ export async function run(_positional, _flags) {
     }
   }
 
-  // 6. Verify configuration (the real build gate must exist to be run).
+  // 6. The RUNTIME surface (change 0029). Every row above reads Markdown;
+  //    this one reads what the Markdown CLAIMS about the running system and
+  //    checks it — the wiring, the empty-vs-unset default, the enum, the
+  //    selector that would match nothing. Still a driver: the checks belong
+  //    to lib/runtime.js and `contract check` renders the same verdict.
+  {
+    const runtime = collectRuntimeFindings(projectRoot);
+    const errs = runtime.findings.filter((f) => f.level === "error");
+    const warns = runtime.findings.length - errs.length;
+    if (runtime.contracts === 0) {
+      row("ok", "runtime", "no contracts — nothing declares a runtime surface");
+    } else if (runtime.declared === 0) {
+      // Silence is not proof: an undeclared surface is UNCHECKED, and a row
+      // that read "ok" here would be the exact false confidence this
+      // command exists to prevent.
+      row("warn", "runtime", `${runtime.contracts} contract${runtime.contracts === 1 ? "" : "s"}, 0 Wiring/Selectors rows — the runtime surface is unchecked`, "declare Wiring/Selectors rows, then `doctrina contract check`");
+      warningsTotal += 1;
+    } else if (errs.length > 0) {
+      row("fail", "runtime", `${errs.length} declaration${errs.length === 1 ? "" : "s"} do not hold`, "doctrina triage   (each finding names its own fix)");
+      for (const e of errs.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e.code} ${e.message}`);
+    } else if (warns > 0) {
+      row("warn", "runtime", `${runtime.declared} declared rows hold; ${warns} advisory finding${warns === 1 ? "" : "s"}`, "doctrina triage");
+      warningsTotal += 1;
+    } else {
+      row("ok", "runtime", `${runtime.declared} declared row${runtime.declared === 1 ? "" : "s"} hold`);
+    }
+  }
+
+  // 7. The local .env, opt-in. Off by default because it reads a file that
+  //    is not committed and is none of CI's business; when asked for, it
+  //    reports NAMES and enum membership only and never the value.
+  if (flagBool(_flags, "env", false)) {
+    const envFindings = checkLocalEnv(projectRoot);
+    if (envFindings.length === 0) {
+      row("ok", "local .env", "matches the declared names and enums (or no .env present)");
+    } else {
+      row("fail", "local .env", `${envFindings.length} finding${envFindings.length === 1 ? "" : "s"} — config would be rejected on boot`, "fix the named variables (values are never printed)");
+      for (const e of envFindings.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e.message}`);
+    }
+  }
+
+  // 8. Verify configuration (the real build gate must exist to be run).
   if (s.verify.invalid) row("fail", "verify config", ".doctrina/verify.json is invalid JSON", "fix the JSON, then `doctrina verify`");
   else if (!s.verify.configured) {
     row("warn", "verify config", "no verify.json — the build gate is undeclared", "doctrina verify --init");
@@ -158,9 +201,16 @@ Usage: doctrina doctor
 
 Aggregate diagnostic: run the structural gate (validate), the index
 drift check, the coverage/trace ratios, the clean-checkout lint
-(verify --clean), the template-shape check, and the verify-config
-presence — each reported with its exact remediation command.
+(verify --clean), the template-shape check, the RUNTIME surface (the
+declared wiring, enums and selectors, checked against the code and
+workflows), and the verify-config presence — each reported with its
+exact remediation command.
 
-A driver over the existing commands; it adds no checks of its own.
+  --env    also check the local .env against the declared names and
+           enums. Reports membership only; a rejected value is never
+           printed, so this is safe to run and to paste.
+
+A driver over the existing commands and lib/runtime.js; it adds no
+checks of its own, so it can never disagree with the gates it fronts.
 Read-only. Exits 1 when any area fails, 0 otherwise (warnings allowed).
 `;

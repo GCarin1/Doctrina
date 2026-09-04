@@ -47,6 +47,7 @@ import * as completion from "./commands/completion.js";
 import * as intent from "./commands/intent.js";
 import * as upgrade from "./commands/upgrade.js";
 import * as adapter from "./commands/adapter.js";
+import * as triage from "./commands/triage.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
@@ -54,7 +55,7 @@ const COMMANDS = {
   intake, work, coverage, verify, contract, trace,
   status, close, review, watch, why, constitution,
   prime, handoff, show, doctor, report, completion,
-  intent, upgrade, adapter,
+  intent, upgrade, adapter, triage,
 };
 
 const TOP_HELP = `

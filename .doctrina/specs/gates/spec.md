@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.6.2
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -34,6 +34,8 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall assemble a context pack within a token budget, resolved as the --budget flag, then the project's index.json config.context_budget, then a built-in default.
 - The system shall treat an ADR with no Scope: header as global, including it in every capability pack, and shall include a scoped ADR only in the packs of the capabilities it names.
 - The system shall declare every dependency a gate needs, and its automation shall install them from the lockfile before running the gate.
+- The system shall check the runtime surface only as the project declares it in a contract, and shall never parse a specific CI system, test runner, or language.
+- The system shall report a project whose contracts declare no wiring or selector rows as having an UNCHECKED runtime surface, and shall not report it as passing.
 
 ### Event-driven
 
@@ -296,6 +298,16 @@ constraints (exit codes, zero-deps, no-network).
 - When a lifecycle transition is forced with `--force`, the system shall proceed past the precondition, name the waived blockers, and record the gap in the archive ledger, creating the ledger when it does not yet exist.
 - When the pack's irreducible core alone exceeds the budget, the system shall report which artifacts cannot be reduced and exit 1 rather than return a pack over budget.
 - When a task description is supplied via --for, the system shall rank artifacts by term coverage and density rather than by document length.
+- When `doctrina contract check` runs, the system shall verify each declared wiring row against the named workflow, report a variable no env: block exports as an error, and report an origin or name mismatch between the contract and the workflow.
+- When a declared variable's origin is one a CI provider can inject as an empty string, the system shall lint the declared consumer for a default that applies only when the variable is absent, and shall state in the finding that the check is textual.
+- When a contract declares a Values enum, the system shall report an `.env.example` value outside that set as an error and a consumer that mentions no member of it as a warning.
+- When a contract declares a selector, the system shall extract candidates from the declared source glob using the declared pattern and report a selector matching zero targets as an error, naming a near-miss when only the separator differs.
+- When a verify check declares an output expectation, the system shall read that check's output and fail the check when the output matches a declared failure pattern or fails to match a declared required pattern, even though the command exited zero.
+- When a verify check declares an output expectation that is not a valid regular expression, the system shall fail at configuration time with the usage exit code rather than skipping the expectation.
+- When an acceptance criterion is marked `[orchestration]`, the system shall treat it as covered only when it cites a verify check that declares an output expectation, and shall report it as unguarded otherwise.
+- When `doctrina analyze <change-id>` runs, the system shall refuse a change whose text raises a declared OUTPUT budget above the ceiling its contract records.
+- When `doctrina validate --runtime` runs, the system shall run the same runtime checks as `contract check` in addition to the structural checks, and shall report their errors as validation errors.
+- When `doctrina doctor` runs, the system shall report the runtime surface as one further diagnostic row, and with `--env` shall additionally check the local `.env` against the declared names and enums.
 
 ### State-driven
 
@@ -316,6 +328,8 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not silently omit an artifact from a pack; every degradation and omission shall be named in the report.
 - The system shall not pass a change whose proposal carries a section holding only its scaffold comment; a heading that survived is not a section that was written.
 - The system shall not invoke a gate through a resolver that installs a missing package from a registry; a gate whose tool is absent shall fail loudly rather than run something fetched in its place.
+- The system shall not print the value of an environment variable when reporting a local `.env` finding; it shall name the variable and the allowed set only.
+- The system shall not report a workflow it cannot read as one that omits a declared variable; it shall report the file as unreadable instead.
 
 ## Acceptance criteria
 
@@ -346,6 +360,13 @@ The gate surface is spec-compliant when:
 15. [verified] A freshly scaffolded change fails analyze naming each unwritten section, and passes once they carry prose — `packages/doctrina-cli/test/integration.test.js`.
 16. [verified] The test suite passes on a checkout with no node_modules, skipping the typecheck rather than fetching a compiler — `packages/doctrina-cli/test/typecheck.test.js`.
 17. [verified] No workflow or verification check invokes a gate tool through `npx` — `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.doctrina/verify.json`.
+18. [verified] A declared wiring row whose workflow exports nothing fails `contract check` with RT01, and passes once the env: line exists — verified by `packages/doctrina-cli/test/runtime.test.js`.
+19. [verified] A consumer default that an empty CI value never triggers is reported (RT03), while an empty-safe form is not — verified by `packages/doctrina-cli/test/runtime.test.js`.
+20. [verified] A selector matching zero targets fails with RT05 and names the separator near-miss — verified by `packages/doctrina-cli/test/runtime.test.js`.
+21. [verified] A verify check that exits 0 having printed "0 scenarios" fails the gate, and passes once the run is real — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+22. [verified] An orchestration criterion citing a check with no expect guard is reported unguarded and fails `coverage --strict` — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+23. [verified] `analyze` refuses a change that raises a declared output ceiling and stays silent on an input ceiling — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+24. [verified] `doctor --env` reports enum membership without the offending value appearing in its output — verified by `packages/doctrina-cli/test/runtime.test.js`.
 
 ## Out of scope for this spec
 

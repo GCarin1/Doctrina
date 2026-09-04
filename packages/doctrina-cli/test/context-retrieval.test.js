@@ -328,3 +328,69 @@ test("a pre-change tree with no config block reads and rebuilds unchanged", () =
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// --------------------------------------------------- skill ranking (0029)
+//
+// Skills were listed alphabetically, which is the wrong order for a list
+// whose whole job is "fire the right one": on a diagnostic task the agent
+// read four specs and still never learned that CI injects an empty string,
+// because the skill that said so sat at the bottom under `z`.
+
+function skillProject() {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "doctrina-skillrank-"));
+  const res = spawnSync(process.execPath, [cliEntry, "init", "--project-description", "fixture"], {
+    cwd: tmp, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" },
+  });
+  assert.equal(res.status, 0, res.stderr);
+  const skills = path.join(tmp, ".doctrina", "skills");
+  mkdirSync(skills, { recursive: true });
+  const write = (name, description, when) => writeFileSync(
+    path.join(skills, `${name}.md`),
+    `---\nname: ${name}\ndescription: ${description}\nwhen: ${when}\n---\n\n# Skill — ${name}\n`,
+  );
+  // Alphabetically first, and irrelevant to the query below.
+  write("aaa-billing", "How to price an invoice line", "The task changes invoice pricing or tax rules.");
+  // Alphabetically last, and the one that matters.
+  write("zzz-ci-empty", "Why a green CI job can have run nothing",
+    "A CI workflow reports 0 scenarios, or an env var arrives empty from vars/secrets.");
+  return tmp;
+}
+
+test("a skill whose trigger matches the task is ranked first and marked", () => {
+  const tmp = skillProject();
+  try {
+    const out = run(tmp, ["context", "--for", "the CI workflow env var arrives empty and 0 scenarios ran"]).stdout;
+    const section = out.slice(out.indexOf("On-demand skills"));
+    assert.match(section, /READ THESE FIRST/);
+    // The matching skill must precede the alphabetically-first one.
+    assert.ok(
+      section.indexOf("zzz-ci-empty") < section.indexOf("aaa-billing"),
+      `matching skill was not hoisted:\n${section}`,
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("with no query, skills keep their stable alphabetical order", () => {
+  const tmp = skillProject();
+  try {
+    const out = run(tmp, ["context"]).stdout;
+    const section = out.slice(out.indexOf("On-demand skills"));
+    assert.doesNotMatch(section, /READ THESE FIRST/);
+    assert.ok(section.indexOf("aaa-billing") < section.indexOf("zzz-ci-empty"));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("a query matching no skill leaves the list unranked and unmarked", () => {
+  const tmp = skillProject();
+  try {
+    const out = run(tmp, ["context", "--for", "rewrite the onboarding copy"]).stdout;
+    const section = out.slice(out.indexOf("On-demand skills"));
+    assert.doesNotMatch(section, /READ THESE FIRST/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

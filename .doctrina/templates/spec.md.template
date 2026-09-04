@@ -71,6 +71,28 @@ Easy Approach to Requirements Syntax. Use one of the five forms per item:
 
 -
 
+### Pipeline
+
+<!--
+OPTIONAL, and only for capabilities with an ORDER. The five EARS forms
+state each requirement independently and truthfully, and say nothing about
+sequence: "when the run finishes, append a summary" and "when the analysis
+completes, publish the dashboard" both pass every gate, and neither says
+the dashboard needs the analysis to have run first. The result ships green
+and one run stale.
+
+Declare the order and the artifact each step hands on. `doctrina validate`
+then enforces the one invariant a numbered list cannot: a step may only
+require what an EARLIER step produced.
+
+  1. run-suite — produces `reports/results.json`
+  2. analyse — requires `reports/results.json`, produces `reports/analysis.md`
+  3. publish — requires `reports/analysis.md`
+
+Mark inputs that come from outside the pipeline `(external)`. Delete this
+section when the capability has no ordering.
+-->
+
 ## Acceptance criteria
 
 <!--

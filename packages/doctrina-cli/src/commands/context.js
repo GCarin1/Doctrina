@@ -235,18 +235,35 @@ export async function run(positional, cmdFlags) {
   // 6. Skills are on-demand: list name + description + trigger, never the
   //    body. The `when:` line is what lets an agent fire the right skill
   //    without loading any of them.
+  //    RANKED by the query (change 0029). Alphabetical order is the wrong
+  //    order for a list whose whole job is "fire the right one": on a
+  //    diagnostic task the agent would read four specs and still not learn
+  //    that CI injects an empty string, because the skill that says so sat
+  //    at the bottom under `z`. The TRIGGER is what a task matches against,
+  //    so it is weighted above the description — that is what `when:` is
+  //    for. A skill with no query to rank on keeps alphabetical order.
   const onDemand = [];
   const skillsDir = path.join(projectRoot, ".doctrina", "skills");
   for (const f of walk(skillsDir)) {
     if (!f.endsWith(".md")) continue;
     const text = read(f);
+    const name = parseFrontmatter(text, "name") ?? path.basename(f, ".md");
+    const description = parseFrontmatter(text, "description") ?? "<missing description>";
+    const when = parseFrontmatter(text, "when") ?? null;
     onDemand.push({
       rel: relPath(projectRoot, f),
-      name: parseFrontmatter(text, "name") ?? path.basename(f, ".md"),
-      description: parseFrontmatter(text, "description") ?? "<missing description>",
-      when: parseFrontmatter(text, "when") ?? null,
+      name,
+      description,
+      when,
+      // The trigger is the emphasis field, so a term matching `when:`
+      // outranks the same term buried in the body.
+      rank: relevance(`${when ?? ""} ${description} ${name}`, terms, `${when ?? ""} ${name}`),
     });
   }
+  if (terms.length > 0) {
+    onDemand.sort((a, b) => compareRank(b.rank, a.rank) || a.name.localeCompare(b.name));
+  }
+  const skillsMatched = onDemand.filter((s) => s.rank[1] > 0).length;
 
   // Fit the pack to the budget. This mutates items in place (degrading) and
   // returns what it had to give up, so the report can name it.
@@ -278,10 +295,20 @@ export async function run(positional, cmdFlags) {
     reportBudget(totalTokens, budget, fit, (msg) => console.log(msg));
     if (onDemand.length > 0) {
       console.log("");
-      console.log(c.bold("On-demand skills") + c.gray(" (load the body only when the trigger fires):"));
+      const heading = skillsMatched > 0
+        ? c.bold("On-demand skills") + c.gray(` — ${skillsMatched} match this task; READ THESE FIRST:`)
+        : c.bold("On-demand skills") + c.gray(" (load the body only when the trigger fires):");
+      console.log(heading);
       for (const s of onDemand) {
-        console.log(`   ${c.cyan(s.name.padEnd(26))} ${s.description}`);
+        // A skill whose trigger the task actually matches is marked, so the
+        // list stops being a uniform inventory the reader has to scan.
+        const hit = s.rank[1] > 0 ? c.green("→ ") : "  ";
+        console.log(` ${hit}${c.cyan(s.name.padEnd(26))} ${s.description}`);
         if (s.when) console.log(`   ${" ".repeat(26)} ${c.gray(`when: ${s.when}`)}`);
+      }
+      if (skillsMatched > 0) {
+        console.log("");
+        console.log(c.gray("   A matching skill is procedural memory for THIS task — read it before the specs above."));
       }
     }
   }

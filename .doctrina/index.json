@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.14.0",
-  "last_updated": "2026-08-07",
+  "framework_version": "0.15.0",
+  "last_updated": "2026-09-04",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.35.0",
+        "version": "0.36.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.6.2",
+        "version": "0.7.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -66,7 +66,7 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.3.1",
+        "version": "0.4.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented"
       },
@@ -74,7 +74,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.15.0",
+        "version": "0.16.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -82,7 +82,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -358,6 +358,32 @@
           "cli"
         ],
         "summary": "Assembly is retrieval."
+      },
+      {
+        "id": "0023",
+        "path": ".doctrina/decisions/0023-the-runtime-surface-is-declared-never-inferred.md",
+        "title": "The runtime surface is declared, never inferred",
+        "status": "accepted",
+        "date": "2026-09-03",
+        "scope": [
+          "gates",
+          "cli",
+          "templates",
+          "validation"
+        ],
+        "summary": "Doctrina checks the runtime surface as the project declares it, and"
+      },
+      {
+        "id": "0024",
+        "path": ".doctrina/decisions/0024-a-request-is-classified-into-a-lane-before-it-is-scaffolded.md",
+        "title": "A request is classified into a lane before it is scaffolded",
+        "status": "accepted",
+        "date": "2026-09-03",
+        "scope": [
+          "cli",
+          "gates"
+        ],
+        "summary": "A request is classified into one of three lanes before anything is"
       }
     ],
     "changes": [],
@@ -741,6 +767,35 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0029-doctrina-checks-the-operational-surface-not-just",
+        "title": "Doctrina checks the operational surface, not just prose",
+        "path": ".doctrina/changes/archive/2026-09-03-0029-doctrina-checks-the-operational-surface-not-just",
+        "status": "applied",
+        "applied": "2026-09-03",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]

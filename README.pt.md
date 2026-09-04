@@ -14,7 +14,7 @@
 
 > Framework spec-driven nativo de AGENTS.md para desenvolvimento multi-agente com IA.
 
-**Status:** v0.14.0 — lançado.
+**Status:** v0.15.0 — lançado.
 **Leia em [inglês](./README.md).**
 
 ---
@@ -83,7 +83,7 @@ como um corpo de agentes age.
   comandos pelo hub, então o hub nunca fica atrás do CLI.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 36 comandos
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 37 comandos
   cobrindo init, intake, work, prime, spec, change, decision, contract,
   skill, intent, analyze, clarify, context, show, search, validate, coverage,
   trace, review, verify, close, doctor, status, why, handoff, constitution,
