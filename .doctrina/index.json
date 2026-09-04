@@ -799,6 +799,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0030-declare-the-release-wiring-and-the-always-loaded",
+        "title": "declare the release wiring and the always-loaded context ceilings in a system contract, and make the local test gate fail-closed on a run of zero tests",
+        "path": ".doctrina/changes/archive/2026-09-04-0030-declare-the-release-wiring-and-the-always-loaded",
+        "status": "applied",
+        "applied": "2026-09-04",
+        "specs_affected": []
       }
     ],
     "skills": [
@@ -839,7 +847,14 @@
         "last_updated": "2026-07-19"
       }
     ],
-    "contracts": [],
+    "contracts": [
+      {
+        "id": "system",
+        "path": ".doctrina/contracts/system.md",
+        "status": "active",
+        "last_updated": "2026-09-03"
+      }
+    ],
     "entrypoint": {
       "path": "AGENTS.md"
     }
