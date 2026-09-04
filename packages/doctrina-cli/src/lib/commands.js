@@ -402,18 +402,11 @@ export const AGENT_CHANGELOG_END = "<!-- doctrina:changed:end -->";
 // introduced it. Only entries that alter what an agent should DO belong
 // here — a bug fix nobody's behaviour depends on does not.
 export const AGENT_CHANGELOG = {
-  // NOTE: this block REPLACES its predecessor in AGENTS.md rather than
-  // accumulating, so a patch's entry must carry forward whatever an agent
-  // arriving at this version still needs to know. That is why 0.15.1
-  // restates the 0.15.0 surface with its own fix folded in, instead of
-  // listing one bug fix and silently erasing the release that introduced
-  // `triage`.
+  // Each entry lists only ITS OWN delta. The series carries the rest
+  // forward (see agentChangelogEntries), so a patch never has to restate
+  // the minor that introduced the commands, and never silently erases it.
   "0.15.1": [
-    "`doctrina triage \"<prompt>\"` — classify a request as PRODUCT / RUNTIME / CHORE BEFORE scaffolding. `work` holds a runtime-shaped prompt with exit 3 and points here; `--force` opens the change anyway.",
-    "`contract check` holds the declared wiring to the implementation (RT01-RT05). Exporting a variable under another name is routine — declare the source as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`) and RT02 stays silent until either side moves.",
-    "A `verify` check may declare `expect`, so a run that exits 0 having executed NOTHING fails the gate; such a check still streams its output. An `[orchestration]` acceptance criterion is proven by citing one (`verify:<name>`).",
-    "A spec may declare an ordered `### Pipeline`; `validate` refuses a step that requires what a later step produces. `validate --runtime` adds the runtime gate.",
-    "`skill suggest --from-error <text|file>` drafts a skill from the failure on screen; `context --for` ranks skills by their trigger.",
+    "Exporting a variable under a name that is not its source's is routine — declare it in the Wiring row's Origin cell as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`) and RT02 stays silent until either side moves.",
   ],
   "0.15.0": [
     "`doctrina triage \"<prompt>\"` — classify a request as PRODUCT / RUNTIME / CHORE BEFORE scaffolding. `work` now holds a runtime-shaped prompt with exit 3 and points here; `--force` opens the change anyway.",
@@ -433,9 +426,54 @@ export const AGENT_CHANGELOG = {
 
 // The block written into AGENTS.md for a given version. Empty string when
 // that version has no agent-visible changes.
+// How many bullets the block may carry. Not a style preference: AGENTS.md
+// is always-loaded context under a hard 150-line budget, and at the current
+// template size five bullets is exactly what fits. Raising this means
+// cutting elsewhere — see the `agents-md-lines` budget in the contract.
+export const AGENT_CHANGELOG_MAX_BULLETS = 5;
+
+/**
+ * The bullets an agent arriving at `version` needs, newest first.
+ *
+ * Keyed per version, but rendered per MINOR SERIES. The block REPLACES its
+ * predecessor in AGENTS.md rather than accumulating, so rendering only the
+ * current version's own entry meant every patch silently erased the minor
+ * that introduced the commands: an agent upgrading 0.14.0 -> 0.15.1 would
+ * read one bug fix and never learn `triage` exists. The alternative —
+ * making each patch author restate the whole minor by hand — worked once
+ * and does not scale, because the restating is invisible and the third
+ * patch quietly drops a line to fit the cap.
+ *
+ * So the series carries itself, newest first, and the cap truncates the
+ * OLDEST. A fact that must outlive its series does not belong here: it
+ * belongs in the surface block or the docs, which is the honest place for
+ * something permanent.
+ */
+export function agentChangelogEntries(version) {
+  const series = String(version).split(".").slice(0, 2).join(".");
+  const versions = Object.keys(AGENT_CHANGELOG)
+    .filter((v) => v.split(".").slice(0, 2).join(".") === series && compareVersions(v, version) <= 0)
+    .sort((a, b) => compareVersions(b, a));
+  const out = [];
+  for (const v of versions) out.push(...(AGENT_CHANGELOG[v] ?? []));
+  return out.slice(0, AGENT_CHANGELOG_MAX_BULLETS);
+}
+
+// Numeric semver comparison — "0.15.10" must sort above "0.15.9", which a
+// string compare gets wrong.
+function compareVersions(a, b) {
+  const pa = String(a).split(".").map((n) => Number.parseInt(n, 10) || 0);
+  const pb = String(b).split(".").map((n) => Number.parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i += 1) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
 export function agentChangelogMarkdown(version) {
-  const entries = AGENT_CHANGELOG[version];
-  if (!entries || entries.length === 0) return "";
+  const entries = agentChangelogEntries(version);
+  if (entries.length === 0) return "";
   return [
     `## What changed in ${version}`,
     "",

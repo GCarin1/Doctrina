@@ -60,6 +60,16 @@ const CHORE_SIGNALS = [
 const PRODUCT_SIGNALS = [
   [3, /\b(add|introduce|support|allow|enable|implement|build)\b/i],
   [3, /\b(should|shall|must|requirement|acceptance|criteri)\b/i],
+  // AUTHORING VERBS. Both lanes above match domain NOUNS, which turned out
+  // to misread work ON the machinery as an incident IN it: "declare the
+  // release workflow wiring in a contract" scored RUNTIME on "workflow" and
+  // "wiring", and "so an intentional rename stops warning" scored CHORE on
+  // "rename" — a noun, not the act. Neither prompt was a diagnosis; both
+  // were someone sitting down to write an artifact.
+  //
+  // These are the verbs of authoring. A prompt whose verb is "declare" or
+  // "document" is describing work on the tree, whatever nouns surround it.
+  [3, /\b(declare|declaring|document|documenting|record|recording|specify|specifying|define|defining)\b/i],
   [2, /\b(new (feature|capability|command|endpoint|screen|flow))\b/i],
   [2, /\b(users? (can|should|want)|so that|in order to)\b/i],
   [1, /\b(change|behaviour|behavior|spec)\b/i],

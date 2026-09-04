@@ -173,3 +173,111 @@ function snapshot(root) {
   walk(path.join(root, ".doctrina"));
   return out;
 }
+
+// ------------------------------------- archive keeps the integrity gate (0.15.1)
+//
+// `archive` deliberately excludes `structure`, because one of its checks
+// ("an ADDED delta's target must not already hold real content") is proof
+// of a problem BEFORE an apply and proof the apply WORKED after one. But
+// excluding the whole gate also dropped the hollow-proposal check, which
+// has no such problem — so a change `apply` had just refused for an
+// unwritten `## What` could be archived anyway, and stamped "applied".
+// Observed on change 0030 of this repository.
+
+// A change whose proposal still holds its scaffold comment under `## What`,
+// with everything else in order.
+function hollowProposalChange(tmp, id = "0001-hollow") {
+  runCli(["change", "new", id, "hollow change"], tmp);
+  planTasks(tmp, id);
+  tickAll(tmp, id);
+  return id;
+}
+
+test("archive refuses a hollow proposal, exactly as apply does", () => {
+  const tmp = project();
+  try {
+    const id = hollowProposalChange(tmp);
+
+    const applied = runCli(["change", "apply", id], tmp);
+    assert.notEqual(applied.status, 0, "apply must refuse a hollow proposal");
+    assert.match(applied.stderr, /unwritten section/);
+
+    const archived = runCli(["change", "archive", id], tmp);
+    assert.notEqual(archived.status, 0, "archive must refuse what apply refused");
+    assert.match(archived.stderr, /\[integrity\]/);
+    assert.match(archived.stderr, /unwritten section/);
+
+    // And nothing was moved or stamped on the way out.
+    assert.ok(
+      existsSync(path.join(tmp, ".doctrina", "changes", id, "proposal.md")),
+      "a refused archive must leave the change where it was",
+    );
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("the post-apply false positive stays excluded: a real change still archives", () => {
+  const tmp = project();
+  try {
+    // The whole reason `structure` was excluded from archive: after a
+    // successful apply, the ADDED delta's target holds exactly what the
+    // delta wrote, and re-asking reports that as a conflict.
+    const id = "0001-real";
+    runCli(["change", "new", id, "a real change"], tmp);
+    planTasks(tmp, id);
+    // `change new` scaffolds the rationale sections empty (only `work`
+    // seeds `## Why` from a prompt), so both must be written or the
+    // integrity gate correctly refuses before we reach the case under test.
+    const proposal = path.join(tmp, ".doctrina", "changes", id, "proposal.md");
+    writeFileSync(
+      proposal,
+      readFileSync(proposal, "utf8")
+        .replace(/## Why\r?\n\r?\n<!--[\s\S]*?-->/, "## Why\n\nBilling needs a spec.")
+        .replace(/## What\r?\n\r?\n<!--[\s\S]*?-->/, "## What\n\nAdds the billing spec."),
+    );
+    const dir = path.join(tmp, ".doctrina", "changes", id, "specs", "billing");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "delta.md"), [
+      "# Spec Delta — capability: billing",
+      "",
+      "**Operation:** ADDED",
+      "**Target spec on apply:** `.doctrina/specs/billing/spec.md`",
+      "",
+      "---",
+      "",
+      "# Spec — billing",
+      "",
+      "**Capability:** billing",
+      "**Status:** active",
+      "**Implementation:** implemented",
+      "**Version:** 0.1.0",
+      "",
+      "## Purpose",
+      "",
+      "Bill people.",
+      "",
+      "## Acceptance criteria",
+      "",
+      "1. [verified] It bills — verified by `AGENTS.md`.",
+      "",
+    ].join("\n"));
+    tickAll(tmp, id);
+
+    const applied = runCli(["change", "apply", id], tmp);
+    assert.equal(applied.status, 0, `apply must succeed: ${applied.stderr}${applied.stdout}`);
+    const archived = runCli(["change", "archive", id], tmp);
+    assert.equal(archived.status, 0, `archive must not re-ask a pre-apply question: ${archived.stderr}`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("every gate a transition names exists in the gate map", () => {
+  for (const [name, t] of Object.entries(TRANSITIONS)) {
+    assert.ok(Array.isArray(t.gates) && t.gates.length > 0, `${name} declares no gates`);
+  }
+  // archive must keep BOTH: the structural questions that survive an apply,
+  // and the verification ones.
+  assert.deepEqual(TRANSITIONS.archive.gates, ["integrity", "verification"]);
+});

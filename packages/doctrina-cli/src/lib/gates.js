@@ -34,6 +34,28 @@ export const GATES = {
     },
   },
 
+  // Integrity: the subset of the structural questions that are true at
+  // EVERY point in a change's life — the proposal says why and what, the
+  // tasks are real, the deltas parse. Everything `structure` asks except
+  // the handful that only mean something before an apply.
+  //
+  // This exists because excluding `structure` wholesale from `archive` (to
+  // dodge the post-apply false positive documented below) also excluded the
+  // hollow-proposal check, which has no such problem. A change could then be
+  // archived — and stamped "applied" — with `## What` still holding nothing
+  // but its scaffold comment, after `apply` had refused it for exactly that.
+  // Observed on change 0030 of this repository, one release after the
+  // history recorded six hollow proposals reaching the archive.
+  integrity: {
+    label: "integrity",
+    rerun: (id) => `doctrina analyze ${id}`,
+    blockers(projectRoot, changeDir) {
+      return collectAnalysis(projectRoot, changeDir)
+        .filter((r) => r.kind === "fail" && r.scope !== "pre-apply")
+        .map((r) => stripAnsi(r.line).replace(/^✗\s*/, "").trim());
+    },
+  },
+
   // Verification: the work is claimed complete. Every checkbox in
   // tasks.md (closing steps included) and in the proposal's
   // "## Verification" section.
@@ -72,9 +94,15 @@ export const GATES = {
 // content the delta just wrote, so re-asking at archive time reports a
 // conflict that is the proof the apply worked. A gate must be asked at the
 // point its question is meaningful.
+//
+// `archive` therefore requires INTEGRITY — that same structural question
+// set minus the pre-apply-only checks — rather than nothing structural at
+// all. Excluding the whole gate to dodge three checks also excluded the
+// hollow-proposal check, and a change refused by `apply` for an unwritten
+// `## What` could still be archived and stamped "applied".
 export const TRANSITIONS = {
   apply: { label: "change apply", gates: ["structure"] },
-  archive: { label: "change archive", gates: ["verification"] },
+  archive: { label: "change archive", gates: ["integrity", "verification"] },
 };
 
 // Evaluate a transition's gates. Returns { ok, blockers, gates } where

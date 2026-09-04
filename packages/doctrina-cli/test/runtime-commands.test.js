@@ -437,3 +437,42 @@ test("a non-zero exit is still a failure, tee or not", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ------------------------------ authoring verbs beat domain nouns (0.15.1)
+//
+// Two real misreads from operating 0.15.0 on this repository. Both lanes
+// matched domain NOUNS and mistook work ON the machinery for an incident
+// IN it. The fix is that authoring verbs — declare, document, specify —
+// pull toward the ceremony lane whatever nouns surround them.
+
+test("declaring runtime wiring is authoring, not a diagnosis", () => {
+  // Scored RUNTIME on "workflow" + "wiring" before the fix.
+  const verdict = classify(
+    "declare the release workflow wiring in a contract and add an expect guard to the test check",
+  );
+  assert.equal(verdict.lane, "product", `misread as ${verdict.lane}`);
+});
+
+test("a prompt ABOUT a rename is not a request TO rename", () => {
+  // Scored CHORE on "rename" — the noun in "an intentional rename".
+  const verdict = classify(
+    "let a wiring row declare the source variable name so an intentional rename stops warning forever",
+  );
+  assert.equal(verdict.lane, "product", `misread as ${verdict.lane}`);
+});
+
+test("an actual rename request is still a chore", () => {
+  // The guard against overcorrecting: with no authoring verb, "rename"
+  // still means what it always meant.
+  assert.equal(classify("rename the helper file and tidy the imports").lane, "chore");
+});
+
+test("real incidents still read as RUNTIME", () => {
+  for (const prompt of [
+    "the CI job is green but 0 scenarios ran",
+    "the secret is set in GitHub but the process never sees it",
+    "the workflow env var arrives empty and the default never applies",
+  ]) {
+    assert.equal(classify(prompt).lane, "runtime", `misread: ${prompt}`);
+  }
+});
