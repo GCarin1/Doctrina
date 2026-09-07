@@ -64,6 +64,9 @@ Execute in order, in a single linear pass:
 7. Close in one attested pass (preferred — runs every gate and stops
    at the first failure with the exact rerun command):
        [36mdoctrina close 0001-add-a-billing-invoice-export[39m
+[90m   It self-reviews on the way through: the close runs `doctrina review`[39m
+[90m   before the apply, where its findings can still change what gets[39m
+[90m   written. Advisory — it reports and the close continues.[39m
 [90m   (equivalent, step by step: [39m[90manalyze → change apply → verify → coverage → trace → change archive → validate)[39m
    Before it: check the proposal's ## Verification boxes and every task,
    closing steps included, and bump Implementation to verified.

@@ -4460,3 +4460,37 @@ test("the gates action runs the runtime check, and `contract check` exits 1 on a
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test("the close self-reviews: a spec left still while its code moved is reported, and the close continues", () => {
+  // Change 0041. The review is advisory: it must SAY that billing's code moved
+  // without its spec, and the close must reach the end regardless — an
+  // advisory step that could still move the result would be advisory in name
+  // only.
+  const tmp = initedProject();
+  try {
+    spawnSync("git", ["init", "-q", "."], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"),
+      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n" +
+      "**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nBilling.\n\n" +
+      "## Acceptance criteria\n\n1. [verified] proven — verified by `.doctrina/index.json`.\n");
+    mkdirSync(path.join(tmp, "src", "billing"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "billing", "invoice.js"), "// code moved, spec did not\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    runCli(["change", "new", "0001-touch-code", "touch the billing code"], { cwd: tmp });
+    completeChange(tmp, "0001-touch-code");
+    const r = runCli(["close", "0001-touch-code"], { cwd: tmp });
+
+    assert.match(r.stdout, /review \(advisory\)/, "the review must run as a named step");
+    // Compare the numbered step headers, so the assertion survives the
+    // sequence growing another step.
+    const stepAt = (label) => r.stdout.search(new RegExp(`──── \\d+/\\d+ ${label}`));
+    assert.ok(stepAt("review") >= 0 && stepAt("apply") >= 0, r.stdout);
+    assert.ok(stepAt("review") < stepAt("apply"), "the review must run before the apply");
+    assert.equal(r.status, 0, "an advisory review must not change the close's exit code");
+    assert.match(r.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

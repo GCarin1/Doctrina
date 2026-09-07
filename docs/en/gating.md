@@ -132,6 +132,26 @@ test run would put a test suite inside `validate`. A criterion whose
 only proof is a skipped suite already counts as `conditional`, so it
 never passes for proof.
 
+## The close reviews itself
+
+`doctrina review` is the richest conformance analysis the project has: it
+reports capabilities whose code moved while their spec stood still,
+dependants a change affects, and acceptance criteria whose proof has gone
+dangling. For two releases no driver invoked it, so it only ever ran when
+somebody remembered to type the command.
+
+It now runs inside `doctrina close`, **before the apply** — the point where
+its findings can still change what gets written into a spec — and it is
+**advisory**: it reports, the close continues, and its exit code cannot move
+the close's.
+
+Advisory on purpose, for now. `review` raises a break for *every* capability
+with touched code and an unchanged spec, and some of those are legitimate: a
+refactor that changes no behaviour should not have to edit a spec to prove
+it. That noise has to be measured across real changes before it is allowed
+to refuse anything — the ledger and the usage log are what will measure it.
+A project that wants CI to block today still has `doctrina review --strict`.
+
 ## The one gate you do not choose: runtime
 
 Everything above is about *when* to open a change. The runtime gate is

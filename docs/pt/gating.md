@@ -139,6 +139,26 @@ uma execução de testes colocaria uma suíte dentro do `validate`. Um
 critério cuja única prova é uma suíte pulada já conta como `conditional`,
 então nunca passa por prova.
 
+## O close se autorevisa
+
+O `doctrina review` é a análise de conformidade mais rica do projeto: ele
+reporta capabilities cujo código andou enquanto a spec ficou parada,
+dependentes que uma change afeta, e critérios de aceite cuja prova ficou
+danglando. Por dois releases nenhum driver o invocava, então ele só rodava
+quando alguém lembrava de digitar o comando.
+
+Agora ele roda dentro do `doctrina close`, **antes do apply** — o ponto em
+que os achados dele ainda podem mudar o que vai ser escrito numa spec — e é
+**consultivo**: reporta, o close segue, e o código de saída dele não move o
+do close.
+
+Consultivo de propósito, por ora. O `review` levanta um break para *toda*
+capability com código tocado e spec parada, e parte disso é legítimo: um
+refactor que não muda comportamento não deveria ter que editar uma spec para
+provar isso. Esse ruído precisa ser medido em changes reais antes de poder
+recusar alguma coisa — o ledger e o log de uso é que vão medir. Quem quiser
+que o CI bloqueie hoje continua tendo o `doctrina review --strict`.
+
 ## O único gate que você não escolhe: runtime
 
 Tudo acima trata de *quando* abrir um change. O gate de runtime é

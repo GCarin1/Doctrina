@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 ## Purpose
 
@@ -209,7 +209,7 @@ codes, zero-deps, no-network).
   citing missing proof, dropped product intent, and contract collisions —
   exiting 0 as a report and 1 under `--strict` when any hard break exists;
   it never judges semantic fidelity (review 2026-06-27).
-- When `doctrina close <id>` runs, the system shall drive the closing sequence in one pass — analyze → change apply → runtime → verify (skipped with a note when no `verify.json`) → coverage `--strict` → trace (advisory) → change archive → validate — stopping at the first failure with the exact command to rerun, and exit non-zero on that failure (review 2026-06-27).
+- When `doctrina close <id>` runs, the system shall drive the closing sequence in one pass — analyze → review (advisory) → change apply → runtime → verify (skipped with a note when no `verify.json`) → coverage `--strict` → trace (advisory) → change archive → validate — stopping at the first failure with the exact command to rerun, and exit non-zero on that failure (review 2026-06-27).
   sequence in one pass — analyze → change apply → verify (skipped with a
   note when no `verify.json`) → coverage `--strict` → trace (advisory) →
   change archive → validate — stopping at the first failure with the exact
@@ -245,6 +245,7 @@ codes, zero-deps, no-network).
 - When a spec's written implementation state disagrees with the state its coverage supports, the system shall warn and name the operation that settles it, unless the written state carries an explanatory note or understates by exactly the uncertified rung.
 - When `doctrina close <id>` reaches the implementation step, the system shall report the derived state for each capability the change touched and print the header operation that would apply it.
 - When `doctrina spec set <cap> --implementation auto` runs, the system shall write the derived state, and shall refuse without writing when the spec declares no acceptance criteria to derive from.
+- When `doctrina close <id>` reaches the review step, the system shall report the conformance breaks between the change and the spec tree before applying any delta, so a finding can still change what is written.
 
 ### State-driven
 
@@ -268,6 +269,7 @@ codes, zero-deps, no-network).
 - The system shall not let a surface invent, drop, or reorder a step of a declared gate sequence.
 - The system shall not rewrite an implementation header from a gate; a derived state shall be proposed and applied only by an explicit command.
 - The system shall not infer which paths a manual check covers; an undeclared coverage shall make the sign-off unverifiable rather than assumed.
+- The system shall not let an advisory step decide a driver's exit code; a step declared advisory shall report and the sequence shall continue.
 
 ### Optional
 
@@ -320,6 +322,7 @@ The gate surface is spec-compliant when:
 33. [verified] A signature records what it covers and the commit it covers it at, expires when a covered path changes by commit or by an uncommitted edit, and survives a change elsewhere — verified by `packages/doctrina-cli/test/signoff.test.js`.
 34. [verified] A sign-off with no recorded commit, no declared paths, or made outside a repository is reported unverifiable rather than passing, and warned about at signing time — verified by `packages/doctrina-cli/test/signoff.test.js`.
 35. [verified] Every non-fresh state is non-blocking by default and fails `--strict`, each manual check falls into exactly one state, and every read-only view and `doctor` report signed proof separately from executed proof — verified by `packages/doctrina-cli/test/signoff.test.js`.
+36. [verified] The review runs before the apply, reports a capability whose code moved while its spec stood still, and leaves the close's exit code untouched — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/gate-sequences.test.js`.
 
 ## Out of scope for this spec
 

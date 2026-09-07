@@ -105,3 +105,21 @@ test("the strict input still decides coverage and trace, and only those", () => 
   const nextStep = contractStep.indexOf("\n    - name:", 1);
   assert.doesNotMatch(contractStep.slice(0, nextStep), /inputs\.strict/);
 });
+
+// ── Change 0041: the review runs inside the close, advisory. ──
+
+test("close runs review before apply, reports its findings, and is not moved by them", () => {
+  // `review` is the richest conformance analysis the project has — capabilities
+  // whose code moved while their spec did not, affected dependants, dangling
+  // coverage — and no driver invoked it, so it only happened when somebody
+  // typed the command. It runs BEFORE the apply, where its findings can still
+  // change what gets written, and advisory, because it raises a break for
+  // every capability with touched code and a still spec: that noise has to be
+  // measured before it is allowed to refuse.
+  const close = sequence("close");
+  const ids = close.map((s) => s.id);
+  assert.ok(ids.includes("review"), "the close must run the review");
+  assert.ok(ids.indexOf("review") < ids.indexOf("apply"),
+    "after the apply, the review's findings can no longer change what was written");
+  assert.equal(close.find((s) => s.id === "review").level, "advisory");
+});

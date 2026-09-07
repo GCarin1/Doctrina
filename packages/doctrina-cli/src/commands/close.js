@@ -21,6 +21,7 @@ import * as verify from "./verify.js";
 import * as coverage from "./coverage.js";
 import * as trace from "./trace.js";
 import * as validate from "./validate.js";
+import * as review from "./review.js";
 import * as skill from "./skill.js";
 
 // One-command close (review 2026-06-27 passive-user feature #2). The work
@@ -114,6 +115,18 @@ async function closeOne(projectRoot, id, flags) {
         if (printAdrCheckpoint(projectRoot, touched, { c }) === 0) {
           console.log(c.green("ok") + " no accepted ADR cites the touched capabilities");
         }
+        return 0;
+      },
+    },
+
+    // The review runs against the working tree, which for a close IS the
+    // change's diff: the work is done and not yet archived. Its exit code is
+    // discarded on purpose — the step is declared advisory, and an advisory
+    // step that could still move the close's result would be advisory in name
+    // only. A crash is caught by the loop and reported the same way.
+    review: {
+      run: async () => {
+        await review.run([], new Map());
         return 0;
       },
     },

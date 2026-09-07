@@ -146,6 +146,20 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   grammar, since neither says anything about which capability a prompt is
   about.
 
+- **The close reviews itself.** `doctrina review` is the richest conformance
+  analysis the project has — capabilities whose code moved while their spec
+  stood still, dependants a change affects, coverage gone dangling — and no
+  driver invoked it, so it only ever ran when somebody typed the command. It
+  now runs inside `doctrina close`, **before the apply**, where a finding can
+  still change what gets written into a spec.
+  Advisory for now, and enforced as such: its exit code is discarded, because
+  an advisory step that could still move the close's result would be advisory
+  in name only. `review` raises a break for every capability with touched code
+  and an unchanged spec, and some of those are legitimate — a refactor that
+  changes no behaviour should not have to edit a spec to prove it. That noise
+  gets measured before it is allowed to refuse anything; `review --strict`
+  remains the door for a project that wants CI to block today.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

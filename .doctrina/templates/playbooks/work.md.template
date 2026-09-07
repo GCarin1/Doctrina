@@ -64,6 +64,9 @@ Execute in order, in a single linear pass:
 7. Close in one attested pass (preferred — runs every gate and stops
    at the first failure with the exact rerun command):
        [[c]]doctrina close {{CHANGE_ID}}[[/c]]
+[[g]]   It self-reviews on the way through: the close runs `doctrina review`[[/g]]
+[[g]]   before the apply, where its findings can still change what gets[[/g]]
+[[g]]   written. Advisory — it reports and the close continues.[[/g]]
 [[g]]   (equivalent, step by step: [[/g]][[g]]analyze → change apply → verify → coverage → trace → change archive → validate)[[/g]]
    Before it: check the proposal's ## Verification boxes and every task,
    closing steps included, and bump Implementation to verified.

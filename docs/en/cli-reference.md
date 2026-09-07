@@ -1393,7 +1393,7 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Drives analyze → **ADR checkpoint** (advisory: the accepted ADRs whose
 text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
-`change apply` → **runtime** → verify → `coverage --strict` → trace →
+**review** (advisory) → `change apply` → **runtime** → verify → `coverage --strict` → trace →
 **docs** → `change archive` → validate → **skill suggest** (advisory:
 fix-shaped lessons not yet captured, surfaced while they are fresh),
 stopping at the first failure with the exact command to rerun. The

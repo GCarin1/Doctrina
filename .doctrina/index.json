@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -414,13 +414,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0041-review-entra-no-close",
-        "title": "review entra no close",
-        "path": ".doctrina/changes/0041-review-entra-no-close",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0042-a-lane-fica-registrada-na-proposta",
         "title": "a lane fica registrada na proposta",
@@ -1046,6 +1039,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0041-review-entra-no-close",
+        "title": "review entra no close",
+        "path": ".doctrina/changes/archive/2026-09-07-0041-review-entra-no-close",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

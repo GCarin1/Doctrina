@@ -157,6 +157,17 @@ export const SEQUENCES = {
   close: [
     { id: "analyze", label: "analyze", level: "blocking", argv: ["analyze", "<id>"] },
     { id: "adr-checkpoint", label: "ADR checkpoint (advisory)", level: "advisory", argv: ["decision", "list"] },
+    // Conformance review (audit finding F3). It is the richest analysis the
+    // project has — capabilities whose code moved while their spec did not,
+    // affected dependants, dangling coverage — and no driver invoked it, so
+    // it only ever happened when somebody typed the command.
+    //
+    // BEFORE the apply, deliberately: that is the point where its findings can
+    // still change what gets written. Advisory for now — it raises a break for
+    // every capability with touched code and a still spec, and that noise has
+    // to be measured before it is allowed to refuse. `review --strict` remains
+    // the door for a project that wants CI to block on it.
+    { id: "review", label: "review (advisory)", level: "advisory", argv: ["review"] },
     { id: "apply", label: "apply", level: "blocking", argv: ["change", "apply", "<id>"] },
     { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
     { id: "implementation", label: "implementation (advisory)", level: "advisory", argv: null, rerun: "doctrina spec set <cap> --implementation auto" },

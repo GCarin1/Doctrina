@@ -1,6 +1,7 @@
 # Change 0041-review-entra-no-close — review entra no close
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** gates
@@ -27,16 +28,23 @@ danglando — e nenhum driver o invoca, então ela só acontece se alguém digit
 
 - Não promove `review` a bloqueante: ele emite um break para toda capacidade com código tocado e spec parada, e o ruído precisa ser medido antes.
 - Não muda as verificações que o `review` faz.
-- Depende da declaração de sequências da change 0034 se ela aterrissar antes; caso contrário entra no array literal.
+- A change 0034 aterrissou antes, então o passo entra na declaração de sequências (`SEQUENCES.close`), não num array literal.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] `close` executa `review` antes do `apply` e reporta os achados sem bloquear.
-- [ ] Uma change que altera código sem tocar a spec correspondente aparece no relatório do close.
-- [ ] Um `review` que falha não altera o código de saída do close.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] `close` executa `review` antes do `apply` e reporta os achados sem bloquear.
+- [x] Uma change que altera código sem tocar a spec correspondente aparece no relatório do close.
+- [x] Um `review` que falha não altera o código de saída do close.
 
 ## Open questions
 
-- Medir o ruído em quantas changes antes de considerar promover a bloqueante? O log de uso e o ledger dariam a base.
+- Resolvida quanto ao MECANISMO, deliberadamente em aberto quanto ao número:
+  a base é o ledger (quantas changes fecharam com breaks de review em aberto) e
+  o log de uso da change 0050. Fixar um número agora — "dez changes" — seria
+  inventar o dado que a decisão precisa. O critério é qualitativo e verificável:
+  promover a bloqueante quando a proporção de breaks legítimos (um refactor que
+  não muda comportamento e não deveria editar spec) for pequena o bastante para
+  que recusar não ensine ninguém a ignorar o gate. Até lá, `review --strict` é a
+  porta de quem quiser bloquear no CI hoje.
