@@ -100,6 +100,46 @@ scope` proposes one per ADR from the archived change that cites it;
 `--write` applies them. Review before writing: a scope that is too
 narrow hides a decision from the pack that needed it.
 
+## Project configuration moved to one file
+
+`.doctrina/config.json` is the declared home for everything a project
+configures: the language, the context budget, and the project rules.
+
+```json
+{
+  "language": "pt-BR",
+  "context_budget": 20000,
+  "rules": [
+    { "id": "white-label", "forbid": "\\bAcmeCorp\\b", "paths": ["src/**"],
+      "message": "white-label product; use a generic placeholder" }
+  ]
+}
+```
+
+Nothing has to move. The old homes are still read — `context_budget` from
+`index.json`'s `config` block, rules from `.doctrina/rules.json` — and the
+declared file wins **per option**, so you can migrate one at a time.
+Removal will be announced before it happens.
+
+Everything not declared keeps its default. To see what your project is
+actually using, and which file each value came from:
+
+```bash
+doctrina doctor
+```
+
+The `config` row prints one line per option: the effective value and its
+source. That row exists because two of these files were created by nothing,
+named in no surface block and reported by no command — a pt-BR project sat
+permanently red under `clarify` with no way to find out why.
+
+`init` now scaffolds `config.json`. It declares nothing; it documents the
+options, so the first key you add is the first thing you have chosen.
+
+`verify.json` stays where it is. It declares **executable** checks, it is
+read by CI, and it has a `--init` of its own — mixing a build gate into a
+preferences file would invite editing one while meaning the other.
+
 ## If something looks wrong
 
 ```bash

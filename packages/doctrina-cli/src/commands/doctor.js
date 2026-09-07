@@ -12,6 +12,7 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectValidation } from "../lib/validation-model.js";
 import { collectIndexDrift } from "../lib/scan.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
+import { configRows } from "../lib/config.js";
 
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
@@ -217,6 +218,21 @@ export async function run(_positional, _flags) {
         } else {
           row("ok", "verify config", detail);
         }
+      }
+    },
+
+    // 9. What this project has CONFIGURED, and what is simply the default.
+    //    Never a failure: it reports the effective value of each option and
+    //    the file it came from, so "why is clarify using English here?" has
+    //    an answer that does not involve reading the CLI's source.
+    config: () => {
+      const rows = configRows(projectRoot);
+      const set = rows.filter((r) => r.configured);
+      row("ok", "config", set.length === 0
+        ? `all ${rows.length} options at their defaults`
+        : `${set.length} of ${rows.length} options configured`);
+      for (const r of rows) {
+        console.log(`        ${" ".repeat(16)} ${c.gray("·")} ${r.option.padEnd(15)} ${r.value.padEnd(22)} ${c.gray(r.source)}`);
       }
     },
   };

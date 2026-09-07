@@ -29,6 +29,7 @@ import { parsePipeline, checkPipeline } from "./pipeline.js";
 import { collectRuntimeFindings } from "./runtime.js";
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
+import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
 // documents at least this many real commands; below it, the file defers to
@@ -724,15 +725,17 @@ export function hasDetectableTrigger(when) {
   return words.filter((w) => !STOP.has(w)).length >= 2;
 }
 
-// Enforce .doctrina/rules.json — permanent project constraints as
-// forbid-regexes over glob-scoped paths:
+// Enforce the project's rules — permanent constraints as forbid-regexes over
+// glob-scoped paths:
 //   { "rules": [ { "id": "white-label", "forbid": "\\bAcmeCorp\\b",
 //                  "paths": ["src/**", ".doctrina/specs/**"],
 //                  "message": "white-label product; use a generic placeholder" } ] }
+// Declared in .doctrina/config.json; still read from the legacy
+// .doctrina/rules.json when that is where a project put them (change 0047).
 // Returns error strings (one per offending file+rule, capped per rule so a
-// mass violation stays readable). Missing/invalid file → no rules (an
-// invalid JSON is reported once). Binary-ish and vendored dirs are skipped
-// by the same bounded walk validate already uses elsewhere.
+// mass violation stays readable). No rules → nothing to enforce; a malformed
+// file is reported once, by the reader. Binary-ish and vendored dirs are
+// skipped by the same bounded walk validate already uses elsewhere.
 const RULES_SKIP_DIRS = new Set([
   ".git", "node_modules", "vendor", "dist", "build", "out", "target",
   ".venv", "venv", "__pycache__", ".next", "coverage",
@@ -740,27 +743,20 @@ const RULES_SKIP_DIRS = new Set([
 const RULES_MAX_HITS_PER_RULE = 10;
 
 function checkProjectRules(projectRoot) {
-  const rulesPath = path.join(projectRoot, ".doctrina", "rules.json");
-  if (!isFile(rulesPath)) return [];
-  let cfg;
-  try {
-    cfg = JSON.parse(read(rulesPath));
-  } catch (err) {
-    return [`.doctrina/rules.json is not valid JSON: ${err.message}`];
-  }
-  const rules = Array.isArray(cfg?.rules) ? cfg.rules : [];
-  const out = [];
+  const cfg = loadConfig(projectRoot);
+  const out = [...cfg.errors];
+  const where = cfg.sources.rules === SOURCES.config ? CONFIG_REL : RULES_REL;
   const compiled = [];
-  for (const r of rules) {
+  for (const r of cfg.rules) {
     if (!r || typeof r.forbid !== "string" || !r.forbid) {
-      out.push(`.doctrina/rules.json: rule "${r?.id ?? "?"}" needs a non-empty "forbid" regex`);
+      out.push(`${where}: rule "${r?.id ?? "?"}" needs a non-empty "forbid" regex`);
       continue;
     }
     let re;
     try {
       re = new RegExp(r.forbid, "m");
     } catch (err) {
-      out.push(`.doctrina/rules.json: rule "${r.id ?? r.forbid}" has an invalid regex: ${err.message}`);
+      out.push(`${where}: rule "${r.id ?? r.forbid}" has an invalid regex: ${err.message}`);
       continue;
     }
     const paths = Array.isArray(r.paths) && r.paths.length ? r.paths : ["**"];

@@ -8,6 +8,7 @@ import { getTitle, getSectionParagraph } from "../lib/doc-model.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { loadConfig, DEFAULTS } from "../lib/config.js";
 import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
 import { terms as queryTerms, relevance } from "../lib/lexicon.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
@@ -39,9 +40,11 @@ import * as idx from "../lib/index-json.js";
 const TOKEN_DIVISOR = 4;
 
 // The ceiling a pack is assembled to when the project has not set one.
-// Override per project with `"config": { "context_budget": <n> }` in
-// .doctrina/index.json, or per call with `--budget`.
-export const DEFAULT_BUDGET = 15000;
+// Override per project with `"context_budget": <n>` in .doctrina/config.json
+// (or the legacy `config` block of index.json), or per call with `--budget`.
+// The number itself is DEFAULTS.context_budget in lib/config.js — declared
+// once, so the reader and this renderer cannot disagree about it.
+export const DEFAULT_BUDGET = DEFAULTS.context_budget;
 
 // Tiers, worst-first in the degradation ladder. The CORE is the pack's
 // irreducible minimum: the rules, the product truth, the named capability's
@@ -426,14 +429,12 @@ function resolveBudget(projectRoot, budgetRaw) {
     const n = Number.parseInt(budgetRaw, 10);
     return Number.isFinite(n) && n > 0 ? n : null;
   }
-  try {
-    const configured = idx.load(projectRoot)?.config?.context_budget;
-    if (Number.isFinite(configured) && configured > 0) return configured;
-  } catch {
-    // An unreadable index is `validate`'s problem, not a reason to refuse
-    // to assemble a pack.
-  }
-  return DEFAULT_BUDGET;
+  // One configuration reader (lib/config.js, change 0047): `.doctrina/
+  // config.json` is the declared home and index.json's `config` block is
+  // still read as the legacy one. A malformed file is `validate`'s problem,
+  // not a reason to refuse to assemble a pack, so the reader reports rather
+  // than throws.
+  return loadConfig(projectRoot).context_budget;
 }
 
 // What an artifact reduces to when the budget cannot hold its body: the
@@ -677,8 +678,8 @@ listed name + description + when-trigger only — they are on-demand by
 design. The change archive is excluded.
 
 Assembly is retrieval, not a dump. A token budget ALWAYS applies
-(default ${DEFAULT_BUDGET}; set "config": { "context_budget": <n> } in
-.doctrina/index.json, or pass --budget). Over budget, accepted ADRs
+(default ${DEFAULT_BUDGET}; set "context_budget": <n> in
+.doctrina/config.json, or pass --budget). Over budget, accepted ADRs
 degrade to title + summary — least relevant first — before anything is
 dropped, and the report names what was given up. Naming a capability
 also drops the ADRs scoped away from it; see \`doctrina decision scope\`.

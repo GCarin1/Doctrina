@@ -97,8 +97,8 @@ runs:
     # The context budget (ADR 0022). A pack that degrades to fit is fine; this
     # fails only when a pack's irreducible core no longer fits at all, which
     # means a spec has outgrown itself or a change has gone stale. Configure
-    # the ceiling per project with "config": { "context_budget": n } in
-    # .doctrina/index.json.
+    # the ceiling per project with "context_budget": n in
+    # .doctrina/config.json.
     - name: doctrina context (budget)
       shell: bash
       working-directory: ${{ inputs.working-directory }}

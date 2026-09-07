@@ -54,3 +54,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0054-split-cli-into-cli-and-authoring — split cli into cli and authoring (specs: authoring ADDED, cli MODIFIED)
 - 2026-09-07 — 0045-doctor-para-de-se-auto-spawnar — doctor para de se auto-spawnar (specs: gates MODIFIED)
 - 2026-09-07 — 0046-o-ledger-vira-fonte-legivel — o ledger vira fonte legivel (specs: gates MODIFIED)
+- 2026-09-07 — 0047-uma-superficie-de-configuracao — uma superficie de configuracao (specs: scaffolding MODIFIED)

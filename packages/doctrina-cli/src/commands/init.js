@@ -7,6 +7,7 @@ import {
   surfaceBlock, findSurfaceBlock, agentChangelogBlock, findAgentChangelogBlock,
 } from "../lib/commands.js";
 import * as idx from "../lib/index-json.js";
+import { scaffoldConfig } from "../lib/config.js";
 import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString } from "../lib/args.js";
@@ -212,6 +213,20 @@ export async function run(_positional, flags) {
     }
     const written = materialiseEntry(entry, doctrinaDir, tokens, { force });
     console.log(c.green("created") + ` ${relPath(projectRoot, written)}`);
+  }
+
+  // config.json, written from the module that READS it (lib/config.js) for
+  // the same reason index.json is written from its schema: a template copy
+  // is how a project is born already needing a scaffold update. Before this
+  // the file was created by nothing, named in no surface block and reported
+  // by no command — it existed only for someone who had read the source, and
+  // a pt-BR project sat permanently red under `clarify` with no clue why.
+  {
+    const dest = path.join(doctrinaDir, "config.json");
+    if (!isFile(dest) || force) {
+      write(dest, scaffoldConfig(), { force });
+      console.log(c.green("created") + ` ${relPath(projectRoot, dest)}`);
+    }
   }
 
   // Adapters

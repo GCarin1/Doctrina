@@ -74,7 +74,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "depends_on": [
@@ -425,13 +425,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0047-uma-superficie-de-configuracao",
-        "title": "uma superficie de configuracao",
-        "path": ".doctrina/changes/0047-uma-superficie-de-configuracao",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0048-o-changelog-do-agente-e-rascunhado",
         "title": "o changelog do agente e rascunhado",
@@ -1093,6 +1086,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0047-uma-superficie-de-configuracao",
+        "title": "uma superficie de configuracao",
+        "path": ".doctrina/changes/archive/2026-09-07-0047-uma-superficie-de-configuracao",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
             "operation": "MODIFIED"
           }
         ]

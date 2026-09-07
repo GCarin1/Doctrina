@@ -19,6 +19,30 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **One configuration surface, and a readout of it.** Five files configured a
+  project and only one had an `--init`. Two of them — `config.json` (the
+  language) and `rules.json` (the project rules) — were created by nothing,
+  named in no surface block and reported by no command: they existed only for
+  someone who had read the CLI's source. The symptom that found it was a
+  pt-BR project sitting permanently red under `clarify` with no way to learn
+  why. `.doctrina/config.json` is now the declared home for the language, the
+  context budget and the project rules; `lib/config.js` is the one reader,
+  and it resolves each option from the declared home, then the legacy one,
+  then the built-in default — reporting which of the three it used.
+- Nothing has to move: `context_budget` is still read from `index.json`'s
+  `config` block and rules from `.doctrina/rules.json`, and the declared home
+  wins per OPTION, so a project can migrate one at a time. Removal will be
+  announced before it happens.
+- `doctrina init` scaffolds the file, and it declares nothing — it documents
+  the options and their defaults. A scaffold that restated the defaults would
+  make the file lie twice: `doctor` could no longer tell a choice from a
+  default, and a written default would silently outrank a legacy declaration
+  in a file the project never edited.
+- `doctrina doctor` gained a `config` row: one line per option with its
+  effective value and the file it came from. Advisory — a default is not a
+  fault. `verify.json` deliberately stays separate: it declares executable
+  checks, not preferences.
+
 - **The archive ledger becomes a source you can read.** `LEDGER.md` records,
   per line, the date, the change id, the title and the capabilities that
   change touched with the operation on each — the only record in the tree

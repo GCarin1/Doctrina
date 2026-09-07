@@ -193,6 +193,11 @@ export const SEQUENCES = {
     { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
     { id: "local-env", label: "local .env", level: "blocking", argv: null, rerun: "doctrina doctor --env", flag: "env" },
     { id: "verify-config", label: "verify config", level: "blocking", argv: ["verify", "--init"] },
+    // Not a check — a READOUT. Every other row can fail; this one exists
+    // because a project could not see what it had configured without reading
+    // the CLI's source, which is how a pt-BR project sat red under `clarify`
+    // with no clue why (change 0047). Advisory: a default is not a fault.
+    { id: "config", label: "config", level: "advisory", argv: null, rerun: "edit .doctrina/config.json" },
   ],
 
   // The CI sequence, emitted as the composite action. Deliberately WITHOUT
@@ -230,8 +235,8 @@ export const SEQUENCES = {
         "The context budget (ADR 0022). A pack that degrades to fit is fine; this\n" +
         "fails only when a pack's irreducible core no longer fits at all, which\n" +
         "means a spec has outgrown itself or a change has gone stale. Configure\n" +
-        "the ceiling per project with \"config\": { \"context_budget\": n } in\n" +
-        ".doctrina/index.json.",
+        "the ceiling per project with \"context_budget\": n in\n" +
+        ".doctrina/config.json.",
       script:
         "{{PREFIX}} context >/dev/null\n" +
         "for cap in $(ls .doctrina/specs 2>/dev/null); do\n" +

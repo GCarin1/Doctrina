@@ -105,6 +105,48 @@ decisão aceita entra em todo pack de contexto para sempre. O
 cita; `--write` aplica. Revise antes de escrever: um escopo estreito
 demais esconde uma decisão do pack que precisava dela.
 
+## A configuração do projeto virou um arquivo só
+
+`.doctrina/config.json` é a casa declarada de tudo que um projeto configura:
+o idioma, o orçamento de contexto e as regras de projeto.
+
+```json
+{
+  "language": "pt-BR",
+  "context_budget": 20000,
+  "rules": [
+    { "id": "white-label", "forbid": "\\bAcmeCorp\\b", "paths": ["src/**"],
+      "message": "produto white-label; use um placeholder genérico" }
+  ]
+}
+```
+
+Nada precisa se mover. As casas antigas continuam sendo lidas — o
+`context_budget` do bloco `config` do `index.json`, as regras do
+`.doctrina/rules.json` — e o arquivo declarado vence **por opção**, então dá
+para migrar uma de cada vez. A remoção será anunciada antes de acontecer.
+
+Tudo que não for declarado mantém o padrão. Para ver o que o seu projeto
+está de fato usando, e de qual arquivo cada valor veio:
+
+```bash
+doctrina doctor
+```
+
+A linha `config` imprime uma linha por opção: o valor efetivo e a origem.
+Essa linha existe porque dois desses arquivos não eram criados por nada, não
+apareciam em nenhum bloco de superfície e não eram reportados por nenhum
+comando — um projeto pt-BR ficava permanentemente vermelho no `clarify` sem
+como descobrir por quê.
+
+O `init` agora scaffolda o `config.json`. Ele não declara nada; documenta as
+opções, para que a primeira chave que você adicionar seja a primeira coisa
+que você de fato escolheu.
+
+O `verify.json` fica onde está. Ele declara checks **executáveis**, é lido
+pela CI e tem `--init` próprio — misturar um gate de build num arquivo de
+preferências convidaria a editar um pensando no outro.
+
 ## Se algo parecer errado
 
 ```bash

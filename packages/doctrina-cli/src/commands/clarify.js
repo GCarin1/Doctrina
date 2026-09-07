@@ -6,6 +6,7 @@ import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { detectLanguage } from "../lib/lexicon.js";
+import { loadConfig } from "../lib/config.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
@@ -62,15 +63,10 @@ const RULES_PT = [
 // stopword count over the file text decides. Never semantic (ADR 0005).
 
 function projectLanguage(projectRoot) {
-  const cfgPath = path.join(projectRoot, ".doctrina", "config.json");
-  if (isFile(cfgPath)) {
-    try {
-      const lang = String(JSON.parse(read(cfgPath))?.language ?? "").toLowerCase();
-      if (lang.startsWith("pt")) return "pt";
-      if (lang.startsWith("en")) return "en";
-    } catch { /* fall through to detection */ }
-  }
-  return null;
+  // One configuration reader (lib/config.js, change 0047): the key still
+  // lives in .doctrina/config.json, but `doctor` can now show what it
+  // resolved to, which is what a pt-BR project sitting red needed.
+  return loadConfig(projectRoot).language;
 }
 
 // Which lexicon a document is written in — the shared detector (change
