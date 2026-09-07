@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.15.1",
-  "last_updated": "2026-09-04",
+  "last_updated": "2026-09-07",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -386,7 +386,155 @@
         "summary": "A request is classified into one of three lanes before anything is"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0032-next-devolve-acoes-executaveis",
+        "title": "next devolve acoes executaveis",
+        "path": ".doctrina/changes/0032-next-devolve-acoes-executaveis",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0033-o-gate-de-runtime-entra-no-close-e-no-ci",
+        "title": "o gate de runtime entra no close e no CI",
+        "path": ".doctrina/changes/0033-o-gate-de-runtime-entra-no-close-e-no-ci",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0034-um-unico-mapa-de-gates",
+        "title": "um unico mapa de gates",
+        "path": ".doctrina/changes/0034-um-unico-mapa-de-gates",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0035-o-pack-de-contexto-nunca-bloqueia",
+        "title": "o pack de contexto nunca bloqueia",
+        "path": ".doctrina/changes/0035-o-pack-de-contexto-nunca-bloqueia",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0036-implementation-derivado-do-coverage",
+        "title": "Implementation derivado do coverage",
+        "path": ".doctrina/changes/0036-implementation-derivado-do-coverage",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0037-um-coletor-varias-vistas",
+        "title": "um coletor, varias vistas",
+        "path": ".doctrina/changes/0037-um-coletor-varias-vistas",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0038-playbooks-sao-templates",
+        "title": "playbooks sao templates",
+        "path": ".doctrina/changes/0038-playbooks-sao-templates",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0039-signoff-manual-tem-validade",
+        "title": "sign-off manual tem validade",
+        "path": ".doctrina/changes/0039-signoff-manual-tem-validade",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0040-uma-porta-para-o-git-um-lexico",
+        "title": "uma porta para o git, um lexico",
+        "path": ".doctrina/changes/0040-uma-porta-para-o-git-um-lexico",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0041-review-entra-no-close",
+        "title": "review entra no close",
+        "path": ".doctrina/changes/0041-review-entra-no-close",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0042-a-lane-fica-registrada-na-proposta",
+        "title": "a lane fica registrada na proposta",
+        "path": ".doctrina/changes/0042-a-lane-fica-registrada-na-proposta",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0043-a-gramatica-on-disk-tem-um-dono",
+        "title": "a gramatica on-disk tem um dono",
+        "path": ".doctrina/changes/0043-a-gramatica-on-disk-tem-um-dono",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0044-o-delta-e-sempre-scaffoldado",
+        "title": "o delta e sempre scaffoldado",
+        "path": ".doctrina/changes/0044-o-delta-e-sempre-scaffoldado",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0045-doctor-para-de-se-auto-spawnar",
+        "title": "doctor para de se auto-spawnar",
+        "path": ".doctrina/changes/0045-doctor-para-de-se-auto-spawnar",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0046-o-ledger-vira-fonte-legivel",
+        "title": "o ledger vira fonte legivel",
+        "path": ".doctrina/changes/0046-o-ledger-vira-fonte-legivel",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0047-uma-superficie-de-configuracao",
+        "title": "uma superficie de configuracao",
+        "path": ".doctrina/changes/0047-uma-superficie-de-configuracao",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0048-o-changelog-do-agente-e-rascunhado",
+        "title": "o changelog do agente e rascunhado",
+        "path": ".doctrina/changes/0048-o-changelog-do-agente-e-rascunhado",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0049-encolher-a-superficie-de-comandos",
+        "title": "encolher a superficie de comandos",
+        "path": ".doctrina/changes/0049-encolher-a-superficie-de-comandos",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0050-metricas-e-uso-realimentam-o-fluxo",
+        "title": "metricas e uso realimentam o fluxo",
+        "path": ".doctrina/changes/0050-metricas-e-uso-realimentam-o-fluxo",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0051-init-aceita-o-intake",
+        "title": "init aceita o intake",
+        "path": ".doctrina/changes/0051-init-aceita-o-intake",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      },
+      {
+        "id": "0052-o-titulo-da-change-nao-sai-duplicado",
+        "title": "o titulo da change nao sai duplicado",
+        "path": ".doctrina/changes/0052-o-titulo-da-change-nao-sai-duplicado",
+        "status": "proposed",
+        "opened": "2026-09-07"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -848,10 +996,28 @@
         "last_updated": "2026-07-19"
       },
       {
+        "id": "patch-doctrina-files-as-crlf",
+        "path": ".doctrina/skills/patch-doctrina-files-as-crlf.md",
+        "description": "Edit files under .doctrina/ knowing they are CRLF, so a regex or script patch cannot silently match nothing and report success.",
+        "last_updated": "2026-09-07"
+      },
+      {
         "id": "split-an-oversized-spec",
         "path": ".doctrina/skills/split-an-oversized-spec.md",
         "description": "Split a capability spec that crossed the 400-line cap into two coherent capabilities without losing provenance.",
         "last_updated": "2026-07-19"
+      },
+      {
+        "id": "stage-a-change-backlog",
+        "path": ".doctrina/skills/stage-a-change-backlog.md",
+        "description": "Open several changes as a planned-but-not-started backlog that still passes analyze, without the context pack overflowing its budget.",
+        "last_updated": "2026-09-07"
+      },
+      {
+        "id": "triage-holds-work-on-the-machinery",
+        "path": ".doctrina/skills/triage-holds-work-on-the-machinery.md",
+        "description": "Recognise when the lane classifier holds an authoring task as RUNTIME because of its nouns, and decide between --force, --chore and an actual diagnosis.",
+        "last_updated": "2026-09-07"
       },
       {
         "id": "write-acceptance-evidence",

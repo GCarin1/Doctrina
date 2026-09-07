@@ -36,3 +36,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-03 — 0029-doctrina-checks-the-operational-surface-not-just — Doctrina checks the operational surface, not just prose (specs: cli MODIFIED, gates MODIFIED, skills MODIFIED, templates MODIFIED, validation MODIFIED)
 - 2026-09-04 — 0030-declare-the-release-wiring-and-the-always-loaded — declare the release wiring and the always-loaded context ceilings in a system contract, and make the local test gate fail-closed on a run of zero tests
 - 2026-09-04 — 0031-a-wiring-row-may-declare-the-source-variable — Two defects in what 0.15.0 shipped (specs: gates MODIFIED)
+- 2026-09-07 — 0099-probe — abandoned
