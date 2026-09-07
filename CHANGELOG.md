@@ -57,6 +57,24 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   escape hatch) and by `implemented` where the count supports `verified` — the
   rung that means "the code is there; I have not certified it".
 
+- **One collector, four views.** `status`, `prime`, `handoff` and `report`
+  answer the same question in different shapes, and each collected the tree
+  for itself — reaching into the others' command modules for the parts it did
+  not collect (`prime` -> `status`, `handoff`/`report` -> `prime`, all three ->
+  `coverage`/`trace`). Twenty such edges across fourteen modules, and two of
+  them ran backwards: `lib/scan.js` and `lib/gates.js` imported from command
+  modules, one edge short of a cycle. State is now collected once by
+  `lib/snapshot.js` and rendered by pure functions in `lib/views.js`; the four
+  commands are formatters over it, and each is equally reachable as
+  `doctrina status --view <name>` with byte-identical output.
+- Nine libraries were carved out of command modules (coverage, trace,
+  constitution, analysis, templates, work, triage, intake, change), and two
+  tests now enforce the direction: no command module may import a binding from
+  a sibling, and no library may depend on a command. Driving another command
+  through a namespace import stays — that is `close`/`watch`/`upgrade`
+  sequencing whole commands, not reaching into their internals. Recorded as
+  ADR 0025.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

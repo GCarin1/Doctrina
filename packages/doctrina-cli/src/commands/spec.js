@@ -12,7 +12,7 @@ import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { derivedImplementations } from "./coverage.js";
+import { derivedImplementations } from "../lib/coverage-model.js";
 
 const SUBCOMMANDS = ["new", "list", "set"];
 

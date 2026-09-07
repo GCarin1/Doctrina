@@ -95,3 +95,44 @@ export function gitLines(cwd, args) {
 function splitLines(s) {
   return s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
 }
+
+// ---------------------------------------------------------------------------
+// The period window the report view describes (change 0037)
+// ---------------------------------------------------------------------------
+//
+// `report` shelled out to git twice with its own spawnSync, which is the one
+// pattern this module exists to end: a caller that reads a non-zero exit as
+// "no commits" rather than "the command refused". Both probes go through
+// `git()` here, so an absent binary, a non-repository and a real failure stay
+// distinguishable — and the view above stays a pure formatter.
+
+/** The ISO date `days` ago — the left edge of a report window. */
+export function windowCutoff(days) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * Commits, fix-shaped share and top-churn files in the window.
+ * Returns null when there is no history to read — outside a repository, with
+ * git absent, or before the first commit — so the caller can say so rather
+ * than print a confident zero.
+ */
+export function gitWindow(cwd, days) {
+  const since = `--since=${days} days ago`;
+  const log = git(cwd, ["log", since, "--pretty=%s"]);
+  if (log.state !== GIT_STATE.OK) return null;
+  const subjects = log.lines.filter((l) => l.trim().length > 0);
+  const fixes = subjects.filter((sub) => /^(fix|bug|hotfix|patch)(\(|:|!)/i.test(sub)).length;
+
+  const files = git(cwd, ["log", since, "--name-only", "--pretty=format:"]);
+  const counts = new Map();
+  if (files.state === GIT_STATE.OK) {
+    for (const line of files.lines) {
+      const f = line.trim();
+      if (!f) continue;
+      counts.set(f, (counts.get(f) ?? 0) + 1);
+    }
+  }
+  const churn = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return { commits: subjects.length, fixes, churn };
+}

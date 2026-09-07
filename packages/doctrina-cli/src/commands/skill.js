@@ -11,6 +11,7 @@ import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { parseFrontmatter } from "../lib/frontmatter.js";
 
 const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
 
@@ -568,15 +569,6 @@ function skillList() {
   return 0;
 }
 
-function parseFrontmatter(text, key) {
-  // Match frontmatter blocks bounded by `---` lines at start of file.
-  const fmMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
-  if (!fmMatch) return null;
-  const block = fmMatch[1];
-  const lineRe = new RegExp(`^${key}\\s*:\\s*(.+)$`, "m");
-  const m = block.match(lineRe);
-  return m ? m[1].trim() : null;
-}
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
@@ -618,6 +610,3 @@ Skills are written by humans, not generated. See docs/en/skills.md
 for the design rationale and the distinction from specs / AGENTS.md /
 the rejected memory/ folder.
 `;
-
-// Re-export the frontmatter parser so validate.js can reuse it.
-export { parseFrontmatter };

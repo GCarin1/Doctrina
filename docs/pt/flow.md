@@ -181,6 +181,10 @@ flowchart TD
   `doctrina handoff` — a nota de retomada em Markdown para a próxima sessão.
   `doctrina watch` — re-roda `validate --fix` + `next` a cada save.
   `status`/`next`/`validate`/`coverage`/`trace` falam `--json`.
+  `prime`, `handoff` e `report` são **vistas de um único snapshot** — os
+  mesmos bytes de `doctrina status --view prime|handoff|report`,
+  renderizados a partir de uma só coleta da árvore, então as quatro não têm
+  como reportar números diferentes.
 
 **Manutenção / setup.**
 - `doctrina doctor` — diagnóstico agregado com correção por achado.

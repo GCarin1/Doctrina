@@ -4,7 +4,7 @@ import path from "node:path";
 import { appendFileSync, writeFileSync } from "node:fs";
 import { exists, isFile, mkdirp, read } from "./fs-ops.js";
 import { today } from "./dates.js";
-import { collectAnalysis } from "../commands/analyze.js";
+import { collectAnalysis } from "./analysis.js";
 
 // The gate-to-transition map (audit item C6).
 //

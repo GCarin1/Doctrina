@@ -1,6 +1,7 @@
 # Change 0037-um-coletor-varias-vistas — um coletor, varias vistas
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** gates
@@ -16,7 +17,8 @@ do projeto uma vez. `status`, `prime`, `handoff` e `report` passam a ser formata
 puros sobre esse objeto, expostos como `doctrina status --view prime|handoff|report`.
 
 - Encerra o padrão em que módulos de comando importam internals uns dos outros (`prime`→`openChanges`, `next`→`computeActions`, `status`→`collectStatus`).
-- Os nomes `prime`, `handoff` e `report` seguem funcionando como alias por um minor, com aviso de depreciação.
+- Os nomes `prime`, `handoff` e `report` seguem sendo comandos próprios, agora como
+  vistas do mesmo snapshot (sem aviso de depreciação — veja Open questions).
 - Delta em `specs/gates`.
 
 Achado F7 da auditoria. Seis comandos ocupando espaço num orçamento que o próprio
@@ -31,12 +33,18 @@ momento "Maintain" foi comprimido em uma linha para caber.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] As quatro vistas produzem saída byte-idêntica à dos comandos atuais.
-- [ ] Nenhum módulo em `src/commands/` importa de outro módulo de `src/commands/`.
-- [ ] Os aliases `prime`, `handoff` e `report` continuam resolvendo, com aviso de depreciação.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] As quatro vistas produzem saída byte-idêntica à dos comandos atuais.
+- [x] Nenhum módulo em `src/commands/` importa de outro módulo de `src/commands/`.
+- [x] Os aliases `prime`, `handoff` e `report` continuam resolvendo, com aviso de depreciação.
 
 ## Open questions
 
-- Depreciar os três nomes agora, ou só na 1.0? Eles estão no bloco de superfície do AGENTS.md, que é a interface de descoberta do agente.
+- Resolvida: nenhum dos três é depreciado aqui. Eles continuam sendo comandos
+  próprios — `prime` é o que o AGENTS.md manda rodar no início de toda sessão —
+  e passam a ser VISTAS do mesmo snapshot, com saída byte a byte idêntica à do
+  `status --view <nome>`. Depreciar agora anteciparia a decisão que a change
+  0049 precisa tomar com evidência do log de uso, e cobraria de todo agente um
+  aviso no comando mais executado do fluxo. A duplicação que doía era a de
+  CÓDIGO, e essa acabou.

@@ -6,11 +6,11 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { rankCapabilitiesByDiff } from "./work.js";
+import { rankCapabilitiesByDiff } from "../lib/work-model.js";
 import { parseDependsOn } from "../lib/scan.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { summarize as coverageSummary } from "./coverage.js";
-import { summarize as traceSummary } from "./trace.js";
+import { summarize as coverageSummary } from "../lib/coverage-model.js";
+import { summarize as traceSummary } from "../lib/trace-model.js";
 
 // Deterministic conformance review (review 2026-06-27 passive-user feature #3).
 // Given the working tree (or a diff against a ref), report STRUCTURAL breaks

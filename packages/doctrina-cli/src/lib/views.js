@@ -1,0 +1,260 @@
+// @ts-check
+import { c } from "./colors.js";
+import { today } from "./dates.js";
+
+// The four VIEWS of one snapshot (audit finding F7).
+//
+// `status`, `prime`, `handoff` and `report` differ only in shape: a
+// dashboard, a session primer, a Markdown resume note, a period digest. They
+// were four commands, each re-collecting the tree and reaching into the
+// others' modules for the parts it did not collect itself.
+//
+// Each function below takes the snapshot lib/snapshot.js already produced and
+// returns lines. They are pure: no reads, no writes, no process exits — which
+// is what makes "the four views agree" a property of the code rather than a
+// promise, and what lets `doctrina status --view <name>` render any of them.
+
+export const VIEWS = ["dashboard", "prime", "handoff", "report"];
+
+/** Render one named view. Unknown names are a caller error, not a fallback. */
+export function renderView(name, snapshot, options = {}) {
+  switch (name) {
+    case "dashboard": return dashboard(snapshot);
+    case "prime": return prime(snapshot);
+    case "handoff": return handoff(snapshot);
+    case "report": return report(snapshot, options);
+    default: throw new Error(`unknown view "${name}" (declared: ${VIEWS.join(", ")})`);
+  }
+}
+
+// --------------------------------------------------------------- dashboard
+
+export function dashboard(s) {
+  const out = [];
+  out.push(c.bold("Doctrina status") + c.gray(` — ${s.project}  (framework ${s.stamp ?? "—"} / CLI ${s.cli})`));
+  out.push("");
+
+  out.push(c.bold("  Gates"));
+  let driftLine;
+  if (s.indexState === "missing") {
+    driftLine = c.red("missing/unreadable") + c.gray(" — run `doctrina index rebuild`");
+  } else if (s.indexState === "in-sync") {
+    driftLine = c.green("in sync");
+  } else {
+    driftLine = c.yellow("drifted") + c.gray(" — run `doctrina validate --fix`");
+  }
+  out.push(`    ${"index".padEnd(11)} ${driftLine}`);
+
+  const stampLine = s.stamp === s.cli
+    ? c.green("current")
+    : c.yellow(`${s.stamp ?? "—"} (CLI ${s.cli})`) + c.gray(" — `doctrina index rebuild`");
+  out.push(`    ${"stamp".padEnd(11)} ${stampLine}`);
+
+  const cov = s.coverage;
+  const covExtra = cov.totalDangling + cov.totalConditional > 0
+    ? c.yellow(` ${cov.totalDangling} dangling, ${cov.totalConditional} conditional`)
+    : "";
+  const covColor = cov.pct === 100 ? c.green : cov.pct >= 50 ? c.yellow : c.red;
+  out.push(`    ${"coverage".padEnd(11)} ${covColor(`${cov.pct}%`)} ${c.gray(`(${cov.totalCovered}/${cov.totalCriteria} criteria)`)}${covExtra}`);
+
+  const tr = s.trace;
+  const trExtra = tr.untraceable + tr.dropped + tr.dangling > 0
+    ? c.yellow(` ${tr.dropped} dropped, ${tr.untraceable} untraceable`)
+    : "";
+  const trColor = tr.anchors === 0 ? c.gray : (tr.realized === tr.anchors && tr.untraceable === 0 ? c.green : c.yellow);
+  const trText = tr.anchors === 0 ? "no anchors" : `${tr.realized}/${tr.anchors} anchors`;
+  out.push(`    ${"trace".padEnd(11)} ${trColor(trText)}${trExtra}`);
+
+  let verifyLine = c.gray("not configured") + c.gray(" — `doctrina verify --init`");
+  if (s.verify.invalid) {
+    verifyLine = c.red("invalid JSON");
+  } else if (s.verify.configured) {
+    const n = s.verify.checks;
+    verifyLine = c.cyan(`${n} check${n === 1 ? "" : "s"}`) + c.gray(" — run `doctrina verify`");
+  }
+  out.push(`    ${"verify".padEnd(11)} ${verifyLine}`);
+
+  out.push("");
+  out.push(c.bold("  Work"));
+  const implBreak = Object.entries(s.specs.impl).map(([k, v]) => `${v} ${k}`).join(", ");
+  out.push(`    ${"specs".padEnd(11)} ${s.specs.total}${implBreak ? c.gray(`  (${implBreak})`) : ""}`);
+  out.push(`    ${"changes".padEnd(11)} ${s.specs.openChanges} open`);
+  const adrNotes = [];
+  if (s.decisions.proposed > 0) adrNotes.push(c.yellow(`${s.decisions.proposed} proposed`));
+  if (s.decisions.bare > 0) adrNotes.push(c.yellow(`${s.decisions.bare} unproven`));
+  out.push(`    ${"decisions".padEnd(11)} ${s.decisions.total}${adrNotes.length ? c.gray("  (") + adrNotes.join(c.gray(", ")) + c.gray(")") : ""}`);
+  out.push(`    ${"skills".padEnd(11)} ${s.skills}`);
+
+  out.push("");
+  out.push(c.gray("  Full gates: `doctrina validate` · `doctrina verify`.  Next step: `doctrina next`."));
+  return out;
+}
+
+// ------------------------------------------------------------------- prime
+
+export function prime(s) {
+  const out = [];
+  out.push(c.bold("Doctrina prime") + c.gray(` — ${s.project}  (framework ${s.stamp ?? "—"} / CLI ${s.cli})`));
+  out.push("");
+
+  const cov = `${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria})`;
+  const tr = s.trace.anchors === 0 ? "no anchors" : `${s.trace.realized}/${s.trace.anchors}`;
+  const verify = s.verify.configured ? `${s.verify.checks} verify checks` : "verify not configured";
+  out.push(c.bold("Gates  ") + `index ${s.indexState} · coverage ${cov} · trace ${tr} · ${verify}`);
+  const implBreak = Object.entries(s.specs.impl).map(([k, v]) => `${v} ${k}`).join(", ");
+  out.push(
+    c.bold("Work   ") +
+      `${s.specs.total} specs${implBreak ? ` (${implBreak})` : ""} · ${s.specs.openChanges} open change${s.specs.openChanges === 1 ? "" : "s"} · ` +
+      `${s.decisions.total} decisions · ${s.skills} skills`,
+  );
+
+  out.push("");
+  out.push(c.bold("Rules") + c.gray(`  (${s.adrs.length} accepted ADRs — \`doctrina constitution\` for detail)`));
+  for (const a of s.adrs) out.push(`  ${c.cyan(a.id)}  ${a.title}`);
+  if (s.nonGoals.length > 0) {
+    out.push(c.gray(`  + ${s.nonGoals.length} non-goal${s.nonGoals.length === 1 ? "" : "s"} declared in product.md`));
+  }
+
+  out.push("");
+  out.push(c.bold("Open work"));
+  if (s.openChanges.length === 0) {
+    out.push(c.gray("  none — `doctrina work \"<prompt>\"` opens the next change"));
+  } else {
+    for (const ch of s.openChanges) {
+      const tasks = ch.tasksTotal > 0 ? ` · tasks ${ch.tasksDone}/${ch.tasksTotal}` : "";
+      out.push(`  ${c.cyan(ch.id)}  ${ch.title ?? ""}${c.gray(` (${ch.status}${tasks})`)}`);
+    }
+  }
+
+  out.push("");
+  out.push(c.bold("Next"));
+  if (s.actions.length === 0) {
+    out.push(c.gray("  nothing pending — pick up new work"));
+  } else {
+    s.actions.slice(0, 5).forEach((a, i) => out.push(`  ${i + 1}. ${a.text}`));
+    if (s.actions.length > 5) out.push(c.gray(`  … ${s.actions.length - 5} more — \`doctrina next\``));
+  }
+
+  out.push("");
+  out.push(c.gray("Read deeper: `doctrina context [<cap>] --concat` · `doctrina why <cap>` · `doctrina show <ref>`"));
+  return out;
+}
+
+// ----------------------------------------------------------------- handoff
+
+export function handoff(s) {
+  const out = [];
+  out.push(`# Doctrina handoff — ${s.project} (${today()})`);
+  out.push("");
+
+  out.push("## Where things stand");
+  out.push("");
+  out.push(`- index: ${s.indexState} · framework stamp: ${s.stamp ?? "—"} (CLI ${s.cli})`);
+  out.push(`- coverage: ${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria} criteria` +
+    (s.coverage.totalDangling ? `, ${s.coverage.totalDangling} dangling` : "") +
+    (s.coverage.totalConditional ? `, ${s.coverage.totalConditional} conditional` : "") + ")");
+  const tr = s.trace.anchors === 0 ? "no anchors declared" : `${s.trace.realized}/${s.trace.anchors} anchors realized`;
+  out.push(`- trace: ${tr}` + (s.trace.untraceable ? ` (${s.trace.untraceable} untraceable)` : ""));
+  out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared — run \`doctrina verify\`` : "not configured"}`);
+
+  out.push("");
+  if (s.openChanges.length === 0) {
+    out.push("## Open work");
+    out.push("");
+    out.push("- none — the tree is at rest; start with `doctrina work \"<prompt>\"`");
+  } else {
+    for (const ch of s.openChanges) {
+      out.push(`## Open change \`${ch.id}\`${ch.title ? ` — ${ch.title}` : ""}`);
+      out.push("");
+      out.push(`- proposal status: ${ch.status}`);
+      if (ch.tasksTotal > 0) {
+        out.push(`- tasks: ${ch.tasksDone}/${ch.tasksTotal} checked`);
+        for (const t of ch.unchecked.slice(0, 8)) out.push(`  - [ ] ${t}`);
+        if (ch.unchecked.length > 8) out.push(`  - … ${ch.unchecked.length - 8} more in tasks.md`);
+      } else {
+        out.push("- tasks: no tasks.md checklist found");
+      }
+      out.push(`- resume with: \`doctrina work --resume ${ch.id}\` · close with: \`doctrina close ${ch.id}\``);
+      out.push("");
+    }
+  }
+
+  out.push("## Next actions");
+  out.push("");
+  if (s.actions.length === 0) {
+    out.push("1. nothing pending — `doctrina next` will confirm; pick up new work");
+  } else {
+    s.actions.forEach((a, i) => out.push(`${i + 1}. ${a.text}`));
+  }
+
+  out.push("");
+  out.push("*Generated read-only from the tree — regenerate anytime with `doctrina handoff`.*");
+  return out;
+}
+
+// ------------------------------------------------------------------ report
+
+/**
+ * @param {object} s the snapshot
+ * @param {{ days?: number, cutoffIso?: string, git?: any }} [options]
+ */
+export function report(s, { days = 7, cutoffIso = "", git = null } = {}) {
+  const out = [];
+  out.push(`# Doctrina report — ${s.project} (${cutoffIso} → ${today()})`);
+  out.push("");
+
+  out.push("## Gates");
+  out.push("");
+  out.push(`- index: ${s.indexState} · framework stamp: ${s.stamp ?? "—"} (CLI ${s.cli})`);
+  out.push(`- coverage: ${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria} criteria)` +
+    (s.coverage.totalDangling ? ` — ${s.coverage.totalDangling} dangling` : "") +
+    (s.coverage.totalConditional ? ` — ${s.coverage.totalConditional} conditional` : ""));
+  out.push(`- trace: ${s.trace.anchors === 0 ? "no anchors declared" : `${s.trace.realized}/${s.trace.anchors} anchors realized`}`);
+  out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared` : "not configured"}`);
+
+  out.push("");
+  out.push("## Changes");
+  out.push("");
+  const archived = s.archive
+    .filter((ch) => typeof ch.applied === "string" && ch.applied >= cutoffIso)
+    .sort((a, b) => String(a.applied).localeCompare(String(b.applied)));
+  if (archived.length === 0) {
+    out.push(`- archived in period: none`);
+  } else {
+    out.push(`- archived in period: ${archived.length}`);
+    for (const ch of archived) out.push(`  - ${ch.applied} — \`${ch.id}\` ${ch.title}`);
+  }
+  if (s.openChanges.length === 0) {
+    out.push("- open now: none");
+  } else {
+    out.push(`- open now: ${s.openChanges.length}`);
+    for (const ch of s.openChanges) {
+      const tasks = ch.tasksTotal > 0 ? ` (tasks ${ch.tasksDone}/${ch.tasksTotal})` : "";
+      out.push(`  - \`${ch.id}\`${ch.title ? ` ${ch.title}` : ""}${tasks}`);
+    }
+  }
+
+  out.push("");
+  out.push("## Artifacts");
+  out.push("");
+  out.push(`- specs: ${s.specs.total} · decisions: ${s.decisions.total}` +
+    (s.decisions.proposed ? ` (${s.decisions.proposed} proposed)` : "") +
+    ` · skills: ${s.skills}`);
+
+  out.push("");
+  out.push("## Git (local, last " + days + " days)");
+  out.push("");
+  if (!git) {
+    out.push("- no git history available (not a repository, or git not installed)");
+  } else {
+    out.push(`- commits: ${git.commits} (${git.fixes} fix-shaped, ${git.commits ? Math.round((git.fixes / git.commits) * 100) : 0}%)`);
+    if (git.churn.length > 0) {
+      out.push(`- top-churn files:`);
+      for (const [file, n] of git.churn) out.push(`  - ${file} (${n} touches)`);
+    }
+  }
+
+  out.push("");
+  out.push(`*Generated read-only by \`doctrina report --since ${days}\`; deeper numbers: \`doctrina metrics\`.*`);
+  return out;
+}

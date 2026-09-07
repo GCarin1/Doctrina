@@ -182,6 +182,23 @@ um procedimento durável. Agentes pegam a skill relevante em
 qualquer estágio onde o trigger dispara. Veja
 [skills.md](skills.md) para o design.
 
+## Lendo a árvore: um coletor, quatro vistas
+
+Quatro comandos read-only respondem "como estão as coisas?" em formas
+diferentes:
+
+| Comando | Forma | Quando usar |
+|---------|-------|-------------|
+| `doctrina status` | painel num olhar | uma checagem rápida de saúde |
+| `doctrina prime` | primer de sessão (~40 linhas) | no INÍCIO de toda sessão |
+| `doctrina handoff` | nota de retomada em Markdown | antes de compactar ou entregar |
+| `doctrina report --since <dias>` | digest do período | uma daily ou a descrição de um PR |
+
+São **uma coleta da árvore, renderizada de quatro maneiras** — o mesmo
+snapshot, quatro formatadores puros — então não têm como reportar números
+diferentes para o mesmo repositório. Cada uma também é alcançável como
+`doctrina status --view <nome>`, com saída byte a byte idêntica.
+
 ## Quando pular o ciclo
 
 O ciclo completo é overhead. Pule quando o custo excede a economia

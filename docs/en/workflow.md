@@ -174,6 +174,23 @@ procedure. Agents pick the relevant skill up at any stage in
 which the trigger fires. See [skills.md](skills.md) for the
 design.
 
+## Reading the tree: one collector, four views
+
+Four read-only commands answer "where do things stand?" in different
+shapes:
+
+| Command | Shape | Reach for it |
+|---------|-------|--------------|
+| `doctrina status` | one-glance dashboard | a quick health check |
+| `doctrina prime` | ~40-line session primer | the START of every session |
+| `doctrina handoff` | Markdown resume note | before compaction or a handover |
+| `doctrina report --since <days>` | period digest | a standup or a PR description |
+
+They are **one collection of the tree, rendered four ways** — the same
+snapshot, four pure formatters — so they cannot report different numbers
+for the same repository. Each is also reachable as `doctrina status
+--view <name>`, which renders byte-identical output.
+
 ## When you skip the cycle
 
 The full cycle is overhead. Skip it when the cost exceeds the

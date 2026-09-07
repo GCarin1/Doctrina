@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.11.0",
+        "version": "0.12.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -115,6 +115,9 @@
         "title": "Defer the `memory/` folder to a post-v1 milestone",
         "status": "accepted",
         "date": "2026-06-03",
+        "scope": [
+          "docs"
+        ],
         "summary": "Doctrina v0 and v1 will not ship a `.doctrina/memory/` folder."
       },
       {
@@ -123,6 +126,9 @@
         "title": "Adopt a single linear orchestrator instead of role-based parallel agents",
         "status": "accepted",
         "date": "2026-06-03",
+        "scope": [
+          "cli"
+        ],
         "summary": "Doctrina's reference orchestration is a single linear orchestrator that:"
       },
       {
@@ -384,16 +390,22 @@
           "gates"
         ],
         "summary": "A request is classified into one of three lanes before anything is"
+      },
+      {
+        "id": "0025",
+        "path": ".doctrina/decisions/0025-command-modules-render-shared-logic-lives-in-lib.md",
+        "title": "Command modules render; shared logic lives in lib",
+        "status": "accepted",
+        "date": "2026-09-07",
+        "landed": "2026-09-07",
+        "scope": [
+          "cli",
+          "gates"
+        ],
+        "summary": "A module under `src/commands/` is a RENDERER."
       }
     ],
     "changes": [
-      {
-        "id": "0037-um-coletor-varias-vistas",
-        "title": "um coletor, varias vistas",
-        "path": ".doctrina/changes/0037-um-coletor-varias-vistas",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0038-playbooks-sao-templates",
         "title": "playbooks sao templates",
@@ -990,6 +1002,19 @@
         "id": "0036-implementation-derivado-do-coverage",
         "title": "Implementation derivado do coverage",
         "path": ".doctrina/changes/archive/2026-09-07-0036-implementation-derivado-do-coverage",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0037-um-coletor-varias-vistas",
+        "title": "um coletor, varias vistas",
+        "path": ".doctrina/changes/archive/2026-09-07-0037-um-coletor-varias-vistas",
         "status": "applied",
         "applied": "2026-09-07",
         "specs_affected": [

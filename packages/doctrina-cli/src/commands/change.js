@@ -17,6 +17,8 @@ import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/change-model.js";
+import { changeNew } from "../lib/change-ops.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
 
@@ -109,76 +111,6 @@ async function forEachId(ids, name, one) {
   return worst;
 }
 
-function changeNew(args, flags) {
-  const id = args[0];
-  const title = args.slice(1).join(" ").trim();
-  if (!id) {
-    console.error(c.red("error:") + " change new requires <id> and \"<title>\"");
-    return 2;
-  }
-  if (!title) {
-    console.error(c.red("error:") + " change new requires a title (quote it if it contains spaces)");
-    return 2;
-  }
-
-  const force = flagBool(flags, "force", false);
-  // A chore is a spec-less change (infra / docs / build / migration) — review
-  // G9. It runs the full proposal → apply → archive → ledger lifecycle (so the
-  // history shows it) without forcing a fake spec delta. The empty specs/ dir
-  // is kept so `change apply`'s zero-delta path flips it to applied unchanged.
-  const chore = flagBool(flags, "chore", false) || flagBool(flags, "no-spec", false);
-  const projectRoot = process.cwd();
-  ensureDoctrinaProject(projectRoot);
-
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
-  if (exists(changeDir) && !force) {
-    console.error(c.red("error:") + ` change "${id}" already exists at ${relPath(projectRoot, changeDir)}`);
-    return 1;
-  }
-
-  const templatesDir = locateTemplatesDir();
-  const date = today();
-  const tokens = { CHANGE_ID: id, CHANGE_TITLE: title, DATE: date, CAPABILITY: "" };
-
-  // design.md is opt-in (--design): in practice it scaffolded on every change
-  // and stayed empty — nine changes out of nine in the 0.11.0 field review. A
-  // change that needs a design doc asks for one; the rest stop carrying a
-  // blank file through apply/archive/ledger.
-  const wantDesign = flagBool(flags, "design", false);
-  const tree = loadTemplateTree(templatesDir, "change");
-  for (const entry of tree) {
-    if (entry.relativePath === "spec-delta.md.template") continue;
-    if (entry.relativePath === "design.md.template" && !wantDesign) continue;
-    const written = materialiseEntry(entry, changeDir, tokens, { force });
-    console.log(c.green("created") + ` ${relPath(projectRoot, written)}`);
-  }
-  mkdirp(path.join(changeDir, "specs"));
-
-  // Stamp the proposal so a chore is honest in the artifact, not just the CLI.
-  if (chore) {
-    const proposalPath = path.join(changeDir, "proposal.md");
-    if (exists(proposalPath)) {
-      const txt = read(proposalPath);
-      const updated = txt.replace(/^(-\s+\*\*Affects specs:\*\*).*$/m, "$1 (none — chore)");
-      if (updated !== txt) write(proposalPath, updated, { force: true });
-    }
-  }
-
-  const index = idx.load(projectRoot);
-  idx.addChange(index, { id, title, path: `.doctrina/changes/${id}`, status: "proposed", opened: date });
-  idx.touch(index, date);
-  idx.save(projectRoot, index);
-
-  console.log("");
-  if (chore) {
-    console.log(c.bold("Chore opened.") + " No spec deltas expected — implement, check the tasks, then " +
-      c.cyan(`doctrina change apply ${id}`) + " and " + c.cyan(`doctrina change archive ${id}`) + ".");
-  } else {
-    console.log(c.bold("Change opened.") + " Add spec deltas under " +
-      c.cyan(`.doctrina/changes/${id}/specs/<capability>/delta.md`));
-  }
-  return 0;
-}
 
 function changeApply(args, flags) {
   const id = args[0];
@@ -778,23 +710,6 @@ function changeDiff(args, _flags) {
   return errors > 0 ? 1 : 0;
 }
 
-function parseOperation(text) {
-  const m = text.match(/^\*\*Operation:\*\*\s*([A-Z]+)/m);
-  if (!m) return null;
-  const op = m[1];
-  if (op === "ADDED" || op === "MODIFIED" || op === "REMOVED") return op;
-  return null;
-}
-
-function parseCapabilityFromDelta(text, deltaPath) {
-  // Prefer the explicit header "# Spec Delta — capability: <name>"
-  const m = text.match(/^#\s+Spec Delta\s*[—-]\s*capability:\s*([a-z][a-z0-9-]*)/m);
-  if (m) return m[1];
-  // Fall back to the parent directory name of the delta file
-  const parent = path.basename(path.dirname(deltaPath));
-  if (/^[a-z][a-z0-9-]*$/.test(parent)) return parent;
-  return null;
-}
 
 function extractDeltaBody(text) {
   // The delta separates headers from the spec body with a `---` line.
@@ -803,37 +718,6 @@ function extractDeltaBody(text) {
   return text.slice(idxSep + 5).replace(/^\n+/, "");
 }
 
-// Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
-// check: render the shipped capability template for the same capability and
-// compare, ignoring the date-bearing "Last updated" line and whitespace
-// normalisation. When the template cannot be located (unusual installs),
-// fall back to the scaffold's own placeholder fingerprints — text no real
-// spec keeps. Used by `change apply` so an ADDED delta can replace a
-// scaffold (the canonical spec-new → delta flow) without ever clobbering a
-// spec that carries real content.
-function isUntouchedScaffold(specText, capability) {
-  const normalize = (s) =>
-    s.replace(/\r\n/g, "\n")
-      .split("\n")
-      .filter((line) => !/^\*\*Last updated:\*\*/.test(line))
-      .join("\n")
-      .trim();
-  try {
-    const tplPath = path.join(locateTemplatesDir(), "spec.md.template");
-    const rendered = read(tplPath)
-      .replace(/\{\{CAPABILITY\}\}/g, capability)
-      .replace(/\{\{DATE\}\}/g, "");
-    if (normalize(rendered) === normalize(specText)) return true;
-  } catch {
-    // fall through to the fingerprint heuristic
-  }
-  // Fingerprints: the Purpose placeholder comment AND an empty Ubiquitous
-  // section survive only in a scaffold nobody edited.
-  return (
-    specText.includes("<!-- One paragraph: what this capability does and why it exists. -->") &&
-    /##\s+Requirements \(EARS\)[\s\S]*?### Ubiquitous\s*\n\s*-\s*\n/.test(specText)
-  );
-}
 
 // Reasons a change is not finished enough to archive. Counts unchecked
 // GitHub-style checkboxes (`- [ ]`) in tasks.md (every task, including the
@@ -917,4 +801,5 @@ Options:
 
 // Re-export parsers so scan.js (index rebuild) can reuse them, and the
 // scaffold so `work` can open a change without duplicating the logic.
-export { parseOperation, parseCapabilityFromDelta, changeNew, isUntouchedScaffold };
+export { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/change-model.js";
+export { changeNew } from "../lib/change-ops.js";

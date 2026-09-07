@@ -13,7 +13,7 @@ import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ask, isInteractive } from "../lib/prompt.js";
-import { writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "./intake.js";
+import { writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "../lib/intake-model.js";
 
 const SUPPORTED_AGENTS = [
   "claude",

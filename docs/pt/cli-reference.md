@@ -1376,7 +1376,21 @@ de sessão para o agente (`doctrina prime` é o primer de sessão mais rico).
 
 | Flag | Função |
 |------|--------|
-| `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). |
+| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report`. |
+| `--since <dias>` | Com `--view report`: a janela (padrão 7). |
+| `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). O envelope não muda com `--view` — é um contrato de máquina. |
+
+**Um coletor, quatro vistas.** `status`, `prime`, `handoff` e `report` são
+quatro formas de *uma* coleta da árvore
+(`packages/doctrina-cli/src/lib/snapshot.js`), renderizadas por funções
+puras em `lib/views.js`. Antes disso eram quatro comandos que percorriam a
+árvore cada um por si e importavam coletores de dentro dos módulos uns dos
+outros — que é justamente como quatro superfícies acabam podendo reportar
+números diferentes para o mesmo repositório. `prime`, `handoff` e `report`
+continuam sendo comandos próprios (são o que o AGENTS.md manda o agente
+rodar) e renderizam exatamente os mesmos bytes que `status --view <nome>`;
+um teste garante essa identidade byte a byte, e outro proíbe para sempre
+que um módulo de comando importe um binding de um módulo de comando irmão.
 
 ## `doctrina close <id...>`
 

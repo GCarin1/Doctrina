@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { listHeader, parseDependsOn, parseAdrScope, adrSummary } from "../lib/scan.js";
 import { getTitle, getSectionParagraph } from "../lib/doc-model.js";
-import { parseFrontmatter } from "./skill.js";
+import { parseFrontmatter } from "../lib/frontmatter.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { GIT_STATE, historyState } from "../lib/git.js";

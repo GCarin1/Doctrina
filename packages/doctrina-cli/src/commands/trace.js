@@ -8,6 +8,11 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { summarize, collectAnchors, collectSpecs } from "../lib/trace-model.js";
+
+// The provenance arithmetic lives in lib/trace-model.js, which `status`,
+// `review` and the project snapshot read too (audit finding F7).
+export { summarize } from "../lib/trace-model.js";
 
 // Intent-provenance report (ADR 0006). `coverage` proves a criterion has a
 // test; `trace` proves a capability traces to a stated intent. Together they
@@ -130,69 +135,6 @@ export async function run(_positional, flags) {
   return strict ? 1 : 0;
 }
 
-// Pure summary of intent provenance, for other commands (`status`, `review`)
-// that need the numbers without the report output.
-export function summarize(projectRoot) {
-  const anchors = collectAnchors(projectRoot);
-  const specs = collectSpecs(projectRoot);
-  const anchorIds = new Set(anchors.map((a) => a.id));
-  const realizedBy = new Map();
-  let dangling = 0;
-  for (const s of specs) {
-    if (s.realizes === null) continue;
-    for (const id of s.realizes) {
-      if (anchorIds.has(id)) {
-        if (!realizedBy.has(id)) realizedBy.set(id, []);
-        realizedBy.get(id).push(s.cap);
-      } else {
-        dangling += 1;
-      }
-    }
-  }
-  const untraceable = specs.filter((s) => s.realizes === null && s.status === "active").length;
-  let realized = 0;
-  for (const a of anchors) if ((realizedBy.get(a.id) ?? []).length > 0) realized += 1;
-  return {
-    anchors: anchors.length,
-    realized,
-    dropped: anchors.length - realized,
-    dangling,
-    untraceable,
-  };
-}
-
-// Every "[A-Z]+\d+" tag at the head of a bullet in product.md is an intent
-// anchor. Section-agnostic so Success-criteria and In-scope bullets both work.
-function collectAnchors(projectRoot) {
-  const productPath = path.join(projectRoot, ".doctrina", "product.md");
-  if (!isFile(productPath)) return [];
-  const out = [];
-  const seen = new Set();
-  for (const line of read(productPath).split(/\r?\n/)) {
-    const m = line.match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+/);
-    if (m && !seen.has(m[1])) {
-      seen.add(m[1]);
-      out.push({ id: m[1] });
-    }
-  }
-  return out;
-}
-
-function collectSpecs(projectRoot) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  if (!isDir(specsDir)) return [];
-  const out = [];
-  for (const cap of readdirSync(specsDir).sort()) {
-    const specPath = path.join(specsDir, cap, "spec.md");
-    if (!isFile(specPath)) continue;
-    const text = read(specPath);
-    const realizesRaw = specHeader(text, "Realizes");
-    const realizes = realizesRaw === null ? null : (realizesRaw.match(ANCHOR_RE) ?? []);
-    const status = (specHeader(text, "Status") ?? "active").trim().toLowerCase();
-    out.push({ cap, status, realizes });
-  }
-  return out;
-}
 
 export const help = `
 Usage: doctrina trace [--strict]

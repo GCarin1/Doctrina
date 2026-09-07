@@ -12,14 +12,14 @@ import { c } from "../lib/colors.js";
 import { kindFromPath, nonConformingHeaders, repairHeaders } from "../lib/doc-model.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { parseFrontmatter } from "./skill.js";
+import { parseFrontmatter } from "../lib/frontmatter.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
 import { COMMAND_NAMES, referencedCommands } from "../lib/commands.js";
 import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 import { parsePipeline, checkPipeline } from "../lib/pipeline.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
-import { derivedImplementations, implementationMismatch } from "./coverage.js";
+import { derivedImplementations, implementationMismatch } from "../lib/coverage-model.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
 // documents at least this many real commands; below it, the file defers to

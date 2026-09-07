@@ -1333,7 +1333,21 @@ validate` / `verify` are. A natural session-start command for the agent
 
 | Flag | Purpose |
 |------|---------|
-| `--json` | Emit the snapshot as JSON (stable shape for agents and CI). |
+| `--view <name>` | Render a different shape of the same snapshot: `dashboard` (default), `prime`, `handoff`, `report`. |
+| `--since <days>` | With `--view report`: the window (default 7). |
+| `--json` | Emit the snapshot as JSON (stable shape for agents and CI). The envelope does not change with `--view` — it is a machine contract. |
+
+**One collector, four views.** `status`, `prime`, `handoff` and `report`
+are four shapes of *one* collection of the tree
+(`packages/doctrina-cli/src/lib/snapshot.js`), rendered by pure functions
+in `lib/views.js`. Before this, they were four commands that each
+re-traversed the tree and imported collectors out of each other's
+modules — which is how four surfaces end up able to report different
+numbers for the same repository. `prime`, `handoff` and `report` remain
+their own commands (they are what AGENTS.md tells an agent to run) and
+render exactly the bytes `status --view <name>` does; a test asserts the
+byte-identity, and another forbids a command module from importing a
+binding out of a sibling command module ever again.
 
 ## `doctrina close <id...>`
 
