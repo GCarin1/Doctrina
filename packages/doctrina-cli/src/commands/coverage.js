@@ -270,6 +270,103 @@ export function summarize(projectRoot) {
   return { perCap, totalCriteria, totalCovered, totalDangling, totalConditional, totalDeferred, pct };
 }
 
+// ---------------------------------------------------------------------------
+// The derived Implementation state (audit finding F10)
+// ---------------------------------------------------------------------------
+//
+// `**Implementation:**` was maintained from memory, and the `work` playbook
+// asked the agent TWICE to advance a field whose correct value was already
+// computed in the file next door: coverage knows, per spec, how many criteria
+// cite proof that resolves — which is what "verified" means.
+//
+// So the value is derived, and only PROPOSED. Nothing here rewrites a header:
+// `close` prints the `set-header` op, `validate` warns when the written value
+// contradicts the arithmetic, and `spec set --implementation auto` applies it
+// when a human or agent asks for it. A gate that silently edited the claim it
+// is checking would be marking its own homework.
+//
+// "Resolves on disk" is the bar, not "was executed": `coverage --run` is the
+// opt-in that runs the proof, and making a structural read depend on a test
+// run would put a test suite inside `validate`. A criterion whose only proof
+// is a skipped suite is already `conditional`, so it never counts as covered.
+
+/**
+ * The Implementation state a spec's coverage supports.
+ *
+ *   verified  every criterion is covered — no dangling, conditional or
+ *             unguarded row, and at least one criterion exists.
+ *   partial   at least one criterion is covered, but not all.
+ *   planned   none is.
+ *
+ * A spec with no acceptance criteria has nothing to derive from, so it
+ * returns null and every surface stays quiet about it.
+ *
+ * @returns {"verified"|"partial"|"planned"|null}
+ */
+export function deriveImplementation(row) {
+  if (!row || row.total === 0) return null;
+  const problems = row.dangling + row.conditional + row.unguarded + row.deferred;
+  if (row.covered === row.total && problems === 0) return "verified";
+  return row.covered > 0 ? "partial" : "planned";
+}
+
+/**
+ * The derived state per capability, keyed by capability name — the one
+ * arithmetic `validate`, `close` and `spec set --implementation auto` all
+ * read, so the three can never propose different values.
+ *
+ * @returns {Map<string, {derived: string, covered: number, total: number, deferred: boolean}>}
+ */
+export function derivedImplementations(projectRoot, { only = null } = {}) {
+  const out = new Map();
+  for (const rep of collect(projectRoot, { only })) {
+    const row = {
+      total: rep.rows.length,
+      covered: rep.rows.filter((r) => r.kind === "covered").length,
+      dangling: rep.rows.filter((r) => r.kind === "dangling").length,
+      conditional: rep.rows.filter((r) => r.kind === "conditional").length,
+      unguarded: rep.rows.filter((r) => r.kind === "unguarded").length,
+      deferred: rep.rows.filter((r) => r.kind === "deferred").length,
+    };
+    const derived = deriveImplementation(row);
+    if (derived) out.set(rep.cap, { derived, covered: row.covered, total: row.total, deferred: rep.deferred });
+  }
+  return out;
+}
+
+/**
+ * Whether a written Implementation header contradicts what coverage supports,
+ * and the op that would settle it.
+ *
+ * Two exemptions, both deliberate:
+ *
+ *  1. A state carrying a NOTE (`planned — backend deferred, see ADR 0007`).
+ *     That is the declared-deferral escape hatch the coverage gate already
+ *     honours, generalised: a note is where a human explains why the
+ *     arithmetic is not the whole story, and prose written on purpose is not
+ *     overruled by a count.
+ *  2. `implemented` where the arithmetic supports `verified`. The ladder is
+ *     planned -> partial -> implemented -> verified, and `implemented` is the
+ *     rung that says "the code is there; I have not certified it". Understating
+ *     by exactly that rung is the ladder working, not a stale header.
+ *
+ * Everything else that disagrees is reported — in BOTH directions. Claiming
+ * `verified` with half the criteria bare is the obvious dishonesty; leaving
+ * `planned` on a fully proven capability is the one that actually happens,
+ * and it makes every reader distrust the field.
+ */
+export function implementationMismatch(written, derived) {
+  if (!derived) return null;
+  const raw = (written ?? "").trim();
+  if (!raw) return { written: null, derived, op: `set-header Implementation: ${derived}` };
+  const tokens = raw.split(/\s+/);
+  const word = (tokens[0] ?? "").replace(/[—-]+$/, "").toLowerCase();
+  if (tokens.length > 1) return null;
+  if (word === derived) return null;
+  if (word === "implemented" && derived === "verified") return null;
+  return { written: word, derived, op: `set-header Implementation: ${derived}` };
+}
+
 // Pull the numbered items out of the "## Acceptance criteria" section.
 // Each item may span multiple lines (continuation prose); accumulate until
 // the next number or the next "## " heading. Returns an array of strings.

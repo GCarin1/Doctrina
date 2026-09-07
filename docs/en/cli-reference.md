@@ -276,6 +276,7 @@ doctrina spec set billing --bump minor --criterion "2:verified"
 | Flag | Purpose |
 |------|---------|
 | `--implementation "<state>"` | Set the `Implementation:` header (`planned` → `partial` → `implemented` → `verified`). |
+| `--implementation auto` | Set it to the state the **coverage arithmetic** supports: `verified` when every criterion cites resolving proof, `partial` when some do, `planned` when none does. Refuses a spec with no acceptance criteria rather than guessing, leaving it untouched. The same derivation `validate` warns from and `close` proposes as a `set-header` op — see [Gating](gating.md#the-header-you-do-not-maintain-implementation). |
 | `--status "<state>"` | Set the document `Status:` header (`draft` / `active` / `deprecated`). |
 | `--bump major\|minor\|patch` | Bump the spec `Version:`. |
 | `--version X.Y.Z` | Set the spec `Version:` explicitly. |

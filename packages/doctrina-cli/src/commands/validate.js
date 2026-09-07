@@ -19,6 +19,7 @@ import { COMMAND_NAMES, referencedCommands } from "../lib/commands.js";
 import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 import { parsePipeline, checkPipeline } from "../lib/pipeline.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
+import { derivedImplementations, implementationMismatch } from "./coverage.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
 // documents at least this many real commands; below it, the file defers to
@@ -367,6 +368,9 @@ export async function run(_positional, flags) {
   if (isDir(specsDir)) {
     const { readdirSync } = await import("node:fs");
     const KNOWN_SPEC_HEADERS = ["Capability", "Status", "Implementation", "Version", "Last updated", "Realizes"];
+    // The coverage arithmetic, read once for the whole tree: every spec's
+    // Implementation header is checked against it below (8d).
+    const derived = derivedImplementations(projectRoot);
     for (const cap of readdirSync(specsDir)) {
       const specPath = path.join(specsDir, cap, "spec.md");
       if (isFile(specPath)) {
@@ -412,6 +416,26 @@ export async function run(_positional, flags) {
                 `"planned" with no note — an active spec with no built capability is an ` +
                 `inventory claim (advance Implementation, set Status: draft, or add a note ` +
                 `after the value: "planned — <why deferred>")`,
+            );
+          }
+
+          // 8d. The same header, checked against the ARITHMETIC rather than
+          //     against Status (audit finding F10). Coverage already knows how
+          //     many of a spec's criteria cite proof that resolves, which is
+          //     what "verified" means — so a header that disagrees with its own
+          //     evidence is a warning with the exact op that settles it, not a
+          //     field the agent is asked to remember. Never rewritten here: the
+          //     gate proposes, a human or `spec set --implementation auto`
+          //     applies. A note after the state word silences it, as it does
+          //     the coverage gate itself.
+          const mismatch = implementationMismatch(implRaw, derived.get(cap)?.derived ?? null);
+          if (mismatch) {
+            const row = derived.get(cap);
+            warnings.push(
+              `${relPath(projectRoot, specPath)}: Implementation is "${mismatch.written}" but ` +
+                `${row.covered}/${row.total} criteria have resolving proof, which supports ` +
+                `"${mismatch.derived}" (apply it with \`doctrina spec set ${cap} --implementation auto\`, ` +
+                `or add a note after the value saying why the count is not the whole story)`,
             );
           }
         }

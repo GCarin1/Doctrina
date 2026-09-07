@@ -94,6 +94,44 @@ github`) and stays committed, so a project consuming the action needs no
 CLI; a drift test fails the build if the committed file and the
 declaration disagree.
 
+## The header you do not maintain: Implementation
+
+`**Implementation:**` (`planned` → `partial` → `implemented` →
+`verified`) used to be kept from memory, and the `work` playbook asked
+for it twice. But `doctrina coverage` already computes, per spec, how
+many acceptance criteria cite proof that resolves — which is the
+definition of `verified`. So the value is **derived**:
+
+| Coverage of the spec's criteria | Derived state |
+|---------------------------------|---------------|
+| all covered, nothing dangling, conditional, unguarded or deferred | `verified` |
+| at least one covered, but not all | `partial` |
+| none covered | `planned` |
+
+Three surfaces read that one derivation, so they cannot give three
+answers: `validate` warns when the written header disagrees with it,
+`doctrina close` prints the `set-header Implementation:` op for the
+capabilities the change touched, and `doctrina spec set <cap>
+--implementation auto` applies it.
+
+Nothing rewrites the header on its own — a gate that edited the claim it
+is checking would be marking its own homework. Two things silence the
+warning, both deliberate:
+
+- **A note after the state word** (`planned — backend deferred, see ADR
+  0007`). That is the same declared-deferral escape hatch the coverage
+  gate honours: prose a human wrote on purpose is not overruled by a
+  count.
+- **`implemented` where the arithmetic supports `verified`.** That rung
+  means "the code is there; I have not certified it", and understating
+  by exactly it is the ladder working.
+
+"Resolves on disk" is the bar, not "was executed": `coverage --run` is
+the opt-in that runs the proof, and making a structural read depend on a
+test run would put a test suite inside `validate`. A criterion whose
+only proof is a skipped suite already counts as `conditional`, so it
+never passes for proof.
+
 ## The one gate you do not choose: runtime
 
 Everything above is about *when* to open a change. The runtime gate is

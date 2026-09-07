@@ -11,6 +11,8 @@ import { parseCapabilityFromDelta } from "./change.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { checkDocsImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
+import { derivedImplementations, implementationMismatch } from "./coverage.js";
+import { specHeader } from "../lib/scan.js";
 import { sequence, stepRerun } from "../lib/gates.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
@@ -158,6 +160,38 @@ async function closeOne(projectRoot, id, flags) {
         const warns = findings.length;
         console.log(c.green("ok") + ` ${declared} declared row${declared === 1 ? " holds" : "s hold"}` +
           (warns > 0 ? c.gray(`; ${warns} advisory finding${warns === 1 ? "" : "s"} above`) : ""));
+        return 0;
+      },
+    },
+
+    // The Implementation header, PROPOSED rather than remembered (audit
+    // finding F10). The `work` playbook asked the agent twice to advance a
+    // field whose correct value coverage had already computed one file over.
+    // Advisory and non-mutating by design: the close prints the `set-header`
+    // op for the capabilities this change touched, and a human — or
+    // `spec set --implementation auto` — applies it. A gate that rewrote the
+    // claim it checks would be marking its own homework.
+    implementation: {
+      run: async () => {
+        const scope = touched.length > 0 ? new Set(touched) : null;
+        const derived = derivedImplementations(projectRoot, { only: scope });
+        const proposals = [];
+        for (const [cap, row] of derived) {
+          const specPath = path.join(projectRoot, ".doctrina", "specs", cap, "spec.md");
+          if (!isFile(specPath)) continue;
+          const mismatch = implementationMismatch(specHeader(read(specPath), "Implementation"), row.derived);
+          if (mismatch) proposals.push({ cap, row, mismatch });
+        }
+        if (proposals.length === 0) {
+          console.log(c.green("ok") + " every touched spec's Implementation header matches its coverage");
+          return 0;
+        }
+        for (const { cap, row, mismatch } of proposals) {
+          console.log(c.yellow("  ! ") + `${cap}: Implementation is "${mismatch.written}" but ` +
+            `${row.covered}/${row.total} criteria have resolving proof`);
+          console.log(`      ${c.gray("delta op: ")}${c.cyan(mismatch.op)}`);
+          console.log(`      ${c.gray("or:       ")}${c.cyan(`doctrina spec set ${cap} --implementation auto`)}`);
+        }
         return 0;
       },
     },

@@ -1,6 +1,7 @@
 # Change 0036-implementation-derivado-do-coverage — Implementation derivado do coverage
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** gates
@@ -32,13 +33,17 @@ agente avance um campo cujo valor correto já está calculado no arquivo ao lado
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma spec com 100% de coverage e `Implementation: planned` gera aviso no `validate`.
-- [ ] `close` imprime o op `set-header` correspondente entre as suas etapas consultivas.
-- [ ] `spec set --implementation auto` produz o mesmo valor que a regra declara.
-- [ ] Uma spec com nota de escape não gera aviso.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma spec com 100% de coverage e `Implementation: planned` gera aviso no `validate`.
+- [x] `close` imprime o op `set-header` correspondente entre as suas etapas consultivas.
+- [x] `spec set --implementation auto` produz o mesmo valor que a regra declara.
+- [x] Uma spec com nota de escape não gera aviso.
 
 ## Open questions
 
-- `verified` deve exigir também que o `coverage --run` execute a prova, ou basta que ela resolva no disco? Exigir execução aproxima de honest gates e encarece o gate.
+- Resolvida: basta que a prova RESOLVA no disco. Exigir execução colocaria uma
+  suíte de testes dentro do `validate`, que é a leitura estrutural barata; o
+  `coverage --run` continua sendo o opt-in que executa a prova. E o caso que
+  motivava a dúvida já está coberto: um critério cuja única prova é uma suíte
+  pulada é `conditional`, então nunca conta como coberto.

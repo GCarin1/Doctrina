@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.10.0",
+        "version": "0.11.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -387,13 +387,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0036-implementation-derivado-do-coverage",
-        "title": "Implementation derivado do coverage",
-        "path": ".doctrina/changes/0036-implementation-derivado-do-coverage",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0037-um-coletor-varias-vistas",
         "title": "um coletor, varias vistas",
@@ -984,6 +977,19 @@
         "id": "0035-o-pack-de-contexto-nunca-bloqueia",
         "title": "o pack de contexto nunca bloqueia",
         "path": ".doctrina/changes/archive/2026-09-07-0035-o-pack-de-contexto-nunca-bloqueia",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0036-implementation-derivado-do-coverage",
+        "title": "Implementation derivado do coverage",
+        "path": ".doctrina/changes/archive/2026-09-07-0036-implementation-derivado-do-coverage",
         "status": "applied",
         "applied": "2026-09-07",
         "specs_affected": [

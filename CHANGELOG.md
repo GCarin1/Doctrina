@@ -45,6 +45,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `close` and `doctor` render that declaration instead of their own lists, and
   a step declared with no bound handler still runs, via the command the
   declaration names.
+- **The `Implementation:` header is derived, not remembered.** `coverage`
+  already computed, per spec, how many acceptance criteria cite proof that
+  resolves — the definition of `verified` — while the `work` playbook asked the
+  agent twice to advance the field from memory. One derivation now feeds three
+  surfaces: `validate` warns when the written header disagrees with the
+  arithmetic, `close` prints the `set-header Implementation:` op for the
+  capabilities the change touched, and `doctrina spec set <cap>
+  --implementation auto` applies it. No gate rewrites the header itself.
+  Silenced by a note after the state word (the existing declared-deferral
+  escape hatch) and by `implemented` where the count supports `verified` — the
+  rung that means "the code is there; I have not certified it".
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

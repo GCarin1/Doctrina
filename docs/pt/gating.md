@@ -101,6 +101,44 @@ de sincronia em silêncio. O `action.yml` é gerado a partir dela
 consome a action não precisa do CLI; um teste de drift quebra o build se
 o arquivo versionado e a declaração discordarem.
 
+## O cabeçalho que você não mantém: Implementation
+
+O `**Implementation:**` (`planned` → `partial` → `implemented` →
+`verified`) era mantido de cabeça, e o playbook do `work` pedia isso duas
+vezes. Só que o `doctrina coverage` já calcula, por spec, quantos
+critérios de aceite citam prova que resolve — que é a definição de
+`verified`. Então o valor é **derivado**:
+
+| Coverage dos critérios da spec | Estado derivado |
+|--------------------------------|-----------------|
+| todos cobertos, nada dangling, conditional, unguarded ou deferred | `verified` |
+| ao menos um coberto, mas não todos | `partial` |
+| nenhum coberto | `planned` |
+
+Três superfícies leem essa única derivação, então não têm como dar três
+respostas: o `validate` avisa quando o cabeçalho escrito discorda dela, o
+`doctrina close` imprime o op `set-header Implementation:` para as
+capabilities que a change tocou, e o `doctrina spec set <cap>
+--implementation auto` aplica o valor.
+
+Nada reescreve o cabeçalho sozinho — um gate que editasse a afirmação que
+ele mesmo confere estaria corrigindo a própria prova. Duas coisas
+silenciam o aviso, ambas de propósito:
+
+- **Uma nota depois da palavra de estado** (`planned — backend adiado,
+  ver ADR 0007`). É o mesmo escape de adiamento declarado que o gate de
+  coverage já honra: prosa que alguém escreveu de propósito não é
+  atropelada por uma contagem.
+- **`implemented` onde a aritmética sustenta `verified`.** Esse degrau
+  quer dizer "o código está lá; eu não certifiquei", e subestimar
+  exatamente por ele é a escada funcionando.
+
+O critério é "resolve no disco", não "foi executado": o `coverage --run`
+é o opt-in que roda a prova, e fazer uma leitura estrutural depender de
+uma execução de testes colocaria uma suíte dentro do `validate`. Um
+critério cuja única prova é uma suíte pulada já conta como `conditional`,
+então nunca passa por prova.
+
 ## O único gate que você não escolhe: runtime
 
 Tudo acima trata de *quando* abrir um change. O gate de runtime é

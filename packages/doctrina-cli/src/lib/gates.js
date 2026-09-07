@@ -159,6 +159,7 @@ export const SEQUENCES = {
     { id: "adr-checkpoint", label: "ADR checkpoint (advisory)", level: "advisory", argv: ["decision", "list"] },
     { id: "apply", label: "apply", level: "blocking", argv: ["change", "apply", "<id>"] },
     { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
+    { id: "implementation", label: "implementation (advisory)", level: "advisory", argv: null, rerun: "doctrina spec set <cap> --implementation auto" },
     { id: "verify", label: "verify", level: "blocking", argv: ["verify"] },
     { id: "coverage", label: "coverage", level: "blocking", argv: ["coverage", "--strict"] },
     { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },

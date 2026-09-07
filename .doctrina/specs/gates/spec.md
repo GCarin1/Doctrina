@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.10.0
+**Version:** 0.11.0
 
 ## Purpose
 
@@ -37,6 +37,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall check the runtime surface only as the project declares it in a contract, and shall never parse a specific CI system, test runner, or language.
 - The system shall report a project whose contracts declare no wiring or selector rows as having an UNCHECKED runtime surface, and shall not report it as passing.
 - The system shall stream the output of a check declaring an output expectation as it arrives, while accumulating a copy for the match — reading a check's output shall not withhold it.
+- The system shall derive a capability's implementation state from its acceptance-criteria coverage — every criterion proven yields verified, some proven yields partial, none yields planned — and every surface that reports or applies that state shall read the same derivation.
 
 ### Event-driven
 
@@ -315,6 +316,9 @@ constraints (exit codes, zero-deps, no-network).
 - When the shipped CI action runs, the system shall run the declared runtime checks as one of its gate steps, so a declaration that no longer holds fails the pipeline instead of passing it.
 - When a gate sequence is rendered by a surface, the system shall take the steps, their order, and each step's level from the declaration, and shall run a declared step that the surface binds no handler to by invoking the command the declaration names.
 - When `doctrina ci --emit <target>` runs, the system shall write the CI pipeline for the declared sequence to stdout, exiting with the usage code for an unknown or missing target, and shall write no file of its own.
+- When a spec's written implementation state disagrees with the state its coverage supports, the system shall warn and name the operation that settles it, unless the written state carries an explanatory note or understates by exactly the uncertified rung.
+- When `doctrina close <id>` reaches the implementation step, the system shall report the derived state for each capability the change touched and print the header operation that would apply it.
+- When `doctrina spec set <cap> --implementation auto` runs, the system shall write the derived state, and shall refuse without writing when the spec declares no acceptance criteria to derive from.
 
 ### State-driven
 
@@ -340,6 +344,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not report a workflow it cannot read as one that omits a declared variable; it shall report the file as unreadable instead.
 - The system shall not let the number of open changes decide whether a context pack can be assembled within its budget.
 - The system shall not let a surface invent, drop, or reorder a step of a declared gate sequence.
+- The system shall not rewrite an implementation header from a gate; a derived state shall be proposed and applied only by an explicit command.
 
 ### Optional
 
@@ -393,6 +398,10 @@ The gate surface is spec-compliant when:
 34. [verified] The close sequence, the doctor rows, and the emitted CI pipeline all derive from the single declaration, and a surface that starts carrying its own copy fails the suite — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
 35. [verified] A step added to the declaration reaches the CI surface with no further edit, in declared order — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
 36. [verified] `doctrina ci --emit github` reproduces the versioned `action.yml` byte for byte, so a stale file fails the build instead of shipping — verified by `packages/doctrina-cli/test/gate-sequences.test.js`, `action.yml`.
+37. [verified] The three bands of the derivation, the uncertified-rung exemption, and the explanatory-note escape hatch each behave as declared — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
+38. [verified] A fully proven spec still marked planned is warned about by `validate`, and a half-proven spec claiming verified is warned about in the other direction — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
+39. [verified] `spec set --implementation auto` writes the derived state, refuses a spec with nothing to derive from, and leaves that spec untouched — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
+40. [verified] The close proposes the header op and the spec it reports on is byte-identical afterwards — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
 
 ## Out of scope for this spec
 

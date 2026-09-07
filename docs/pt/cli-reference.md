@@ -287,6 +287,7 @@ doctrina spec set billing --bump minor --criterion "2:verified"
 | Flag | Propósito |
 |------|-----------|
 | `--implementation "<estado>"` | Define o header `Implementation:` (`planned` → `partial` → `implemented` → `verified`). |
+| `--implementation auto` | Define o estado que a **aritmética do coverage** sustenta: `verified` quando todo critério cita prova que resolve, `partial` quando alguns citam, `planned` quando nenhum cita. Recusa uma spec sem critérios de aceite em vez de chutar, deixando-a intacta. É a mesma derivação de que o `validate` avisa e que o `close` propõe como op `set-header` — veja [Gating](gating.md). |
 | `--status "<estado>"` | Define o header `Status:` do documento (`draft` / `active` / `deprecated`). |
 | `--bump major\|minor\|patch` | Incrementa o `Version:` da spec. |
 | `--version X.Y.Z` | Define o `Version:` da spec explicitamente. |

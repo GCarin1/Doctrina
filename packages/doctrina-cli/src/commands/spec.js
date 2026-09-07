@@ -12,6 +12,7 @@ import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { derivedImplementations } from "./coverage.js";
 
 const SUBCOMMANDS = ["new", "list", "set"];
 
@@ -159,7 +160,25 @@ function specSet(args, flags) {
   // Order: headers, then version, then criterion — independent edits, all or
   // none (a failed op leaves the spec untouched, like `change apply`).
   if (status !== undefined) apply(setHeader(text, "Status", status));
-  if (impl !== undefined) apply(setHeader(text, "Implementation", impl));
+  if (impl !== undefined) {
+    // `--implementation auto` reads the value off the coverage arithmetic
+    // instead of the author's memory (audit finding F10): coverage already
+    // knows how many of this spec's criteria cite proof that resolves, and
+    // that is the definition of "verified". A spec with no acceptance
+    // criteria has nothing to derive from, so `auto` refuses rather than
+    // guessing — the spec is left untouched, like any other failed op.
+    if (String(impl).trim().toLowerCase() === "auto") {
+      const derivedValue = derivedImplementations(projectRoot, { only: new Set([capability]) })
+        .get(capability)?.derived;
+      if (!derivedValue) {
+        errors.push(`--implementation auto needs acceptance criteria to derive from; ${capability} declares none`);
+      } else {
+        apply(setHeader(text, "Implementation", derivedValue));
+      }
+    } else {
+      apply(setHeader(text, "Implementation", impl));
+    }
+  }
   if (bump !== undefined) {
     if (!["major", "minor", "patch"].includes(bump)) errors.push(`--bump needs major|minor|patch (got "${bump}")`);
     else apply(bumpVersion(text, bump));
