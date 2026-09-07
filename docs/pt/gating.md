@@ -85,6 +85,22 @@ um agente e produziu ação errada. Se ninguém esbarra, ninguém
 conserta. O `doctrina validate` não checa frescor de doc — humanos
 checam, por revisão de PR e pela pergunta-gatilho acima.
 
+## Onde a lista de gates realmente mora
+
+Três superfícies rodam gates: o `doctrina close` (a sequência de
+fechamento), o `doctrina doctor` (as linhas do diagnóstico) e a action de
+CI. As três leem **uma única declaração** — `SEQUENCES` em
+`packages/doctrina-cli/src/lib/gates.js` — que nomeia cada passo, o
+quanto ele morde (bloqueante, consultivo ou forçável) e o comando que o
+reexecuta sozinho.
+
+Isso importa na hora de decidir o que gatear: acrescentar um gate é uma
+edição de uma linha nessa declaração, não quatro edições que podem sair
+de sincronia em silêncio. O `action.yml` é gerado a partir dela
+(`doctrina ci --emit github`) e continua versionado, então um projeto que
+consome a action não precisa do CLI; um teste de drift quebra o build se
+o arquivo versionado e a declaração discordarem.
+
 ## O único gate que você não escolhe: runtime
 
 Tudo acima trata de *quando* abrir um change. O gate de runtime é

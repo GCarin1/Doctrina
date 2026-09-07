@@ -36,6 +36,20 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a declaration, not proof that the wiring holds.
 - `.doctrina/verify.json` gained the matching `contract-check` entry, so the
   local verify set stays equal to what CI runs.
+- **One gate map, for sequences as well as transitions.** ADR 0017 promised a
+  single declaration of which gates guard what; `lib/gates.js` delivered it
+  for `apply`/`archive` and stopped there, while `close` carried an array of
+  ten steps, `doctor` eight hand-written rows and `action.yml` its own YAML.
+  `SEQUENCES` in `lib/gates.js` now declares all three, naming each step, its
+  level (blocking / advisory / forceable) and the command that re-runs it;
+  `close` and `doctor` render that declaration instead of their own lists, and
+  a step declared with no bound handler still runs, via the command the
+  declaration names.
+- **`doctrina ci --emit github`** writes the composite action from the same
+  declaration. The action stays versioned — a project writing
+  `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test
+  compares the committed `action.yml` to the emitter byte for byte, so a stale
+  pipeline fails the suite instead of shipping.
 
 ## [0.15.1] — 2026-09-04
 

@@ -89,7 +89,7 @@ governs how a body of agents acts.
   the hub, so the hub can never lag the CLI.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 37 commands
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 38 commands
   and 59 operations covering init, intake, adapter, work, prime, spec,
   change, decision, contract, skill, intent, analyze, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,

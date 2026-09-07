@@ -105,6 +105,148 @@ export const TRANSITIONS = {
   archive: { label: "change archive", gates: ["integrity", "verification"] },
 };
 
+// ---------------------------------------------------------------------------
+// The gate SEQUENCES (audit finding F1)
+// ---------------------------------------------------------------------------
+//
+// ADR 0017 promised ONE gate map. TRANSITIONS above delivered it for the two
+// mutating transitions and stopped there: `close` carried a literal array of
+// ten steps, `doctor` eight hand-written rows, and `action.yml` five YAML
+// steps. Four lists, four owners, and nothing that noticed when they
+// diverged — which is how the runtime gate could land in `close` and stay
+// absent from CI (change 0033 had to add it to both by hand, and nothing
+// would have caught it if the second edit had been forgotten).
+//
+// So a sequence is DATA. Each step declares what it is, how hard it bites,
+// and the command that runs it standalone. The surfaces only RENDER it:
+// `close` executes it in order, `doctor` reports each as a row, and
+// `doctrina ci --emit github` writes it as CI YAML. None of them may invent
+// a step, drop one, or reorder — a drift test holds each surface to this
+// declaration, and the emitted YAML to the versioned `action.yml`.
+//
+// What this does NOT decide is which gates belong in a sequence; it declares
+// the sequences that exist so that the answer lives in one file.
+
+/**
+ * One step of a gate sequence.
+ *
+ * @typedef {object} GateStep
+ * @property {string} id        Stable key. The surfaces bind their renderer/runner to it.
+ * @property {string} label     What the surface calls the step.
+ * @property {"blocking"|"advisory"|"forceable"} level
+ *   blocking  — a non-zero result stops the sequence.
+ *   advisory  — reported, never stops anything.
+ *   forceable — blocking, unless --force, which records the gap in the ledger.
+ * @property {string[]|null} argv
+ *   The standalone CLI invocation this step is, or null when the step is not
+ *   one command (the ADR checkpoint, the docs gate). The token "<id>" is
+ *   replaced with the change id at render time.
+ * @property {string} [rerun]   Literal rerun line, for a step argv cannot describe.
+ * @property {string} [why]     One line of rationale. The CI emitter writes it as a comment.
+ * @property {boolean} [strict] CI only: the command takes --strict when the action runs strict.
+ * @property {string} [script]  CI only: a shell body that replaces the derived one-liner.
+ * @property {string} [flag]    Only run/report this step when that flag is set.
+ * @property {string} [short]   CI only: the name used in the action's own description.
+ * @property {string} [summary] CI only: the name plus what it checks, for the file header.
+ */
+
+/** @type {Record<string, GateStep[]>} */
+export const SEQUENCES = {
+  // The closing sequence. `close` runs these in order, in-process where it
+  // can, stopping at the first blocking failure with the step's rerun line.
+  close: [
+    { id: "analyze", label: "analyze", level: "blocking", argv: ["analyze", "<id>"] },
+    { id: "adr-checkpoint", label: "ADR checkpoint (advisory)", level: "advisory", argv: ["decision", "list"] },
+    { id: "apply", label: "apply", level: "blocking", argv: ["change", "apply", "<id>"] },
+    { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
+    { id: "verify", label: "verify", level: "blocking", argv: ["verify"] },
+    { id: "coverage", label: "coverage", level: "blocking", argv: ["coverage", "--strict"] },
+    { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
+    { id: "docs", label: "docs", level: "forceable", argv: null, rerun: "edit docs/ (EN + PT), then rerun" },
+    { id: "archive", label: "archive", level: "blocking", argv: ["change", "archive", "<id>"] },
+    { id: "validate", label: "validate", level: "blocking", argv: ["validate"] },
+  ],
+
+  // The diagnostic sequence. Every row is advisory in the sense that `doctor`
+  // never mutates anything; the level says whether the row counts as a
+  // failing area (exit 1) or an advisory one (exit 0).
+  doctor: [
+    { id: "validate", label: "validate", level: "blocking", argv: ["validate"] },
+    { id: "index", label: "index", level: "blocking", argv: ["index", "rebuild", "--check"] },
+    { id: "coverage", label: "coverage", level: "advisory", argv: ["coverage"] },
+    { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
+    { id: "clean-checkout", label: "clean-checkout", level: "blocking", argv: ["verify", "--clean"] },
+    { id: "templates", label: "templates", level: "advisory", argv: ["templates", "check"] },
+    { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
+    { id: "local-env", label: "local .env", level: "blocking", argv: null, rerun: "doctrina doctor --env", flag: "env" },
+    { id: "verify-config", label: "verify config", level: "blocking", argv: ["verify", "--init"] },
+  ],
+
+  // The CI sequence, emitted as the composite action. Deliberately WITHOUT
+  // `verify`: the build gate is the adopting project's own to run, and the
+  // action exists to check the artifact tree.
+  ci: [
+    { id: "validate", label: "doctrina validate", level: "blocking", argv: ["validate"], short: "validate", summary: "validate (schema/structure)" },
+    { id: "index-drift", label: "doctrina index rebuild --check", level: "blocking", argv: ["index", "rebuild", "--check"], short: "index drift", summary: "index rebuild --check (index ↔ tree drift)" },
+    {
+      id: "contract-check",
+      label: "doctrina contract check",
+      level: "blocking",
+      argv: ["contract", "check"],
+      short: "contract check",
+      summary: "contract check (the declared runtime surface, RT01-RT05)",
+      why:
+        "The runtime gate (RT01-RT05). Every other step reads Markdown; this one\n" +
+        "reads what the Markdown CLAIMS about the running system and holds the\n" +
+        "implementation to it — the variable no workflow exports, the default an\n" +
+        "empty CI value never triggers, the unvalidated enum, the selector that\n" +
+        "matches nothing and still exits 0. Not gated on `strict`: a declaration\n" +
+        "that does not hold is an error at any adoption stage. A project with no\n" +
+        "contracts prints one line and exits 0.",
+    },
+    { id: "coverage", label: "doctrina coverage", level: "blocking", argv: ["coverage"], strict: true, short: "coverage", summary: "coverage (acceptance-criteria evidence)" },
+    { id: "trace", label: "doctrina trace", level: "blocking", argv: ["trace"], strict: true, short: "trace", summary: "trace (intent provenance)" },
+    {
+      id: "context-budget",
+      label: "doctrina context (budget)",
+      level: "blocking",
+      argv: ["context"],
+      short: "context budget",
+      summary: "context (the pack budget, ADR 0022)",
+      why:
+        "The context budget (ADR 0022). A pack that degrades to fit is fine; this\n" +
+        "fails only when a pack's irreducible core no longer fits at all, which\n" +
+        "means a spec has outgrown itself or a change has gone stale. Configure\n" +
+        "the ceiling per project with \"config\": { \"context_budget\": n } in\n" +
+        ".doctrina/index.json.",
+      script:
+        "{{PREFIX}} context >/dev/null\n" +
+        "for cap in $(ls .doctrina/specs 2>/dev/null); do\n" +
+        "  {{PREFIX}} context \"$cap\" >/dev/null\n" +
+        "done",
+    },
+  ],
+};
+
+/** The declared steps of a sequence, or an error naming the ones that exist. */
+export function sequence(name) {
+  const steps = SEQUENCES[name];
+  if (!steps) throw new Error(`unknown gate sequence "${name}" (declared: ${Object.keys(SEQUENCES).join(", ")})`);
+  return steps;
+}
+
+/**
+ * The command that runs one step on its own — what a surface prints when it
+ * tells the operator how to clear the gate. Derived from `argv` so the
+ * declaration cannot disagree with itself; `rerun` covers the steps that are
+ * not a single command.
+ */
+export function stepRerun(step, changeId = "<id>") {
+  if (step.rerun) return step.rerun;
+  if (!step.argv) return `doctrina ${step.id}`;
+  return `doctrina ${step.argv.map((a) => (a === "<id>" ? changeId : a)).join(" ")}`;
+}
+
 // Evaluate a transition's gates. Returns { ok, blockers, gates } where
 // blockers is a flat list of human-readable reasons.
 export function checkTransition(projectRoot, changeDir, transition) {

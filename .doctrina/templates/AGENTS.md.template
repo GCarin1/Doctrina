@@ -68,7 +68,7 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina verify` — the project's declared typecheck/test/build checks. *When:* the real build gate must run.
 - `doctrina close <id...>` — the whole closing sequence in one attested pass. *When:* a change is implemented and ready to finish.
 - `doctrina doctor` — aggregate diagnostic with per-finding remedies. *When:* something looks wrong and you do not know which gate to ask.
-**Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write`
+**Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write` · `doctrina ci --emit github`
 <!-- doctrina:surface:end -->
 
 ## Stack and tooling

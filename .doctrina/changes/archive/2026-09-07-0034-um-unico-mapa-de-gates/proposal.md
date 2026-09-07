@@ -1,6 +1,7 @@
 # Change 0034-um-unico-mapa-de-gates — um unico mapa de gates
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** gates
@@ -32,12 +33,16 @@ duas transições, enquanto `close` (array de 10 passos), `doctor` (8 linhas), `
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] `close`, `doctor` e o YAML emitido derivam da mesma declaração, provado por teste de drift.
-- [ ] Adicionar um gate à declaração aparece nas três superfícies sem edição adicional.
-- [ ] `doctrina ci --emit github` reproduz o `action.yml` versionado byte a byte.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] `close`, `doctor` e o YAML emitido derivam da mesma declaração, provado por teste de drift.
+- [x] Adicionar um gate à declaração aparece nas três superfícies sem edição adicional.
+- [x] `doctrina ci --emit github` reproduz o `action.yml` versionado byte a byte.
 
 ## Open questions
 
-- O `action.yml` passa a ser gerado e versionado (como o bloco de superfície do AGENTS.md), ou gerado sob demanda? Versionar mantém a action utilizável por quem não tem o CLI.
+- Resolvida: o `action.yml` é gerado E versionado, como o bloco de superfície
+  do AGENTS.md. Um projeto que escreve `uses: <owner>/<repo>@v1` não tem CLI
+  para gerá-lo, então a action precisa existir no repositório; o teste de
+  drift compara o arquivo versionado com a saída do emissor byte a byte,
+  então um arquivo velho quebra a suíte em vez de ir para produção calado.

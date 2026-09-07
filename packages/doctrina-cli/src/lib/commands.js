@@ -20,7 +20,7 @@ export const COMMAND_NAMES = [
   // gates
   "analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor",
   // maintenance
-  "templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade",
+  "templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade", "ci",
 ];
 
 // The full operation surface — every `doctrina <command> [<subcommand>]` a
@@ -93,6 +93,7 @@ export const OPERATIONS = [
   ["metrics", "Local git-derived adoption metrics (no network)"],
   ["report", "Markdown digest for a period: changes, gates, git summary"],
   ["completion", "Print bash/zsh/pwsh completions (generated from the catalog)"],
+  ["ci", "Emit the CI pipeline for the declared gate sequence (--emit github)"],
   ["upgrade", "Bring an existing project up to the installed CLI (--write applies)"],
 ];
 
@@ -155,6 +156,7 @@ export const COMMAND_META = {
   metrics:      { moment: "Maintain",   when: "reporting adoption over a period", purpose: "local git-derived adoption metrics" },
   report:       { moment: "Maintain",   when: "summarising a period for a human", purpose: "a Markdown digest of changes, gates, and git" },
   completion:   { moment: "Maintain",   when: "setting up a human's shell", purpose: "print shell completions from the catalog" },
+  ci:           { moment: "Maintain",   when: "the declared gate sequence changed and CI must follow", purpose: "emit the CI pipeline from the gate declaration" },
 };
 
 // The order moments appear in the generated block.
@@ -195,6 +197,7 @@ const SURFACE_HINTS = {
   clarify: "--all (--lang pt|en)",
   close: "<id...>",
   upgrade: "--write",
+  ci: "--emit github",
   prime: "(session start)",
   handoff: "(before compaction/handover)",
 };

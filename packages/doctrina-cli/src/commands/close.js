@@ -2,6 +2,8 @@
 import path from "node:path";
 import process from "node:process";
 import { appendFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { exists, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -9,6 +11,7 @@ import { parseCapabilityFromDelta } from "./change.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { checkDocsImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
+import { sequence, stepRerun } from "../lib/gates.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
@@ -30,6 +33,8 @@ import * as skill from "./skill.js";
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
 export const flags = { boolean: ["json", "force"], string: [] };
+
+const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
 export async function run(positional, flags) {
   if (positional.length === 0) {
@@ -83,19 +88,26 @@ async function closeOne(projectRoot, id, flags) {
     coverageRerun = `doctrina coverage --strict --only ${touched.join(",")}`;
   }
 
-  // Each step: a label, the command that runs it, and the literal command to
-  // rerun on failure. verify is conditional (skipped, with a loud note, when no
-  // verify.json is declared — a project may not have wired the real gate yet).
+  // How each declared step actually runs, keyed by the step id in
+  // SEQUENCES.close. The DECLARATION owns which steps exist, in what order,
+  // and how hard each bites (lib/gates.js, audit finding F1); this table owns
+  // only how to execute one in-process. A step declared with no runner here
+  // falls back to spawning its declared `argv`, so a gate added to the
+  // sequence appears in `close` — and in `doctor` and the CI action —
+  // without a second edit; a drift test pins the two together.
+  //
+  // Each runner returns an exit code and may replace the step's label or
+  // rerun line with a context-aware one (the coverage scope, the --force
+  // archive), which is rendering, not sequencing.
   const verifyConfigured = isFile(path.join(projectRoot, ".doctrina", "verify.json"));
-  const steps = [
-    { label: "analyze", rerun: `doctrina analyze ${id}`, run: () => analyze.run([id], new Map()) },
+  const runners = {
+    analyze: { run: () => analyze.run([id], new Map()) },
+
     // ADR checkpoint (operator review §4.6): the playbook's "record an ADR"
     // step was skippable in silence. Advisory — it names the accepted ADRs
     // whose text cites the touched capabilities and the amend commands, but
     // an ADR merely mentioning a capability is normal, so it never blocks.
-    {
-      label: "ADR checkpoint (advisory)",
-      rerun: "doctrina decision list",
+    "adr-checkpoint": {
       run: async () => {
         if (printAdrCheckpoint(projectRoot, touched, { c }) === 0) {
           console.log(c.green("ok") + " no accepted ADR cites the touched capabilities");
@@ -103,14 +115,16 @@ async function closeOne(projectRoot, id, flags) {
         return 0;
       },
     },
-    { label: "apply", rerun: `doctrina change apply ${id}`, run: () => change.run(["apply", id], new Map()) },
+
+    apply: { run: () => change.run(["apply", id], new Map()) },
+
     // The RUNTIME gate (audit finding F2). RT01–RT05 live in lib/runtime.js
     // and no default driver ran them: `close` did not, `validate` only under
     // --runtime, and the published action not at all — so the one class of
     // break every structural gate is blind to (the declaration that no
     // longer matches the running system) reached production green. It sits
-    // here, after `apply`, because the deltas the apply just merged are what
-    // may have moved the surface the contract describes. A driver over
+    // after `apply`, because the deltas the apply just merged are what may
+    // have moved the surface the contract describes. A driver over
     // lib/runtime.js: the same findings `contract check`, `triage` and
     // `doctor` render, so the five can never disagree.
     //
@@ -119,9 +133,7 @@ async function closeOne(projectRoot, id, flags) {
     // with contracts that declare no Wiring/Selectors rows — is not passing,
     // it is UNCHECKED, and saying so is what stops silence from reading as
     // proof.
-    {
-      label: "runtime",
-      rerun: "doctrina contract check",
+    runtime: {
       run: async () => {
         const { findings, contracts, declared } = collectRuntimeFindings(projectRoot);
         if (contracts === 0) {
@@ -149,26 +161,29 @@ async function closeOne(projectRoot, id, flags) {
         return 0;
       },
     },
-    verifyConfigured
-      ? { label: "verify", rerun: "doctrina verify", run: () => verify.run([], new Map()) }
-      : { label: "verify", skip: "no .doctrina/verify.json — declare the real gate with `doctrina verify --init`" },
-    {
+
+    // verify is conditional: skipped with a loud note when no verify.json is
+    // declared, because a project may not have wired the real gate yet.
+    verify: verifyConfigured
+      ? { run: () => verify.run([], new Map()) }
+      : { skip: "no .doctrina/verify.json — declare the real gate with `doctrina verify --init`" },
+
+    coverage: {
       label: touched.length > 0 ? `coverage (scoped: ${touched.join(", ")})` : "coverage",
       rerun: coverageRerun,
       run: () => coverage.run([], coverageFlags),
     },
+
     // trace is advisory (provenance is a warning, not a hard gate): report it,
     // never let it block the close.
-    { label: "trace", rerun: "doctrina trace", run: async () => { await trace.run([], new Map()); return 0; } },
+    trace: { run: async () => { await trace.run([], new Map()); return 0; } },
+
     // Docs ship inside the change (D2): a change that alters a documented
     // surface — a command, a flag, an exit code — closes only with the
     // documentation that describes it. A blocking gate, because a docs
     // phase scheduled after the work never happens; --force is the same
     // escape hatch archive offers, and records the gap in the ledger.
-    {
-      label: "docs",
-      forceable: true,
-      rerun: "edit docs/ (EN + PT), then rerun",
+    docs: {
       run: async () => {
         const r = checkDocsImpact(projectRoot, path.join(projectRoot, ".doctrina", "changes", id));
         if (r.ok) {
@@ -184,11 +199,35 @@ async function closeOne(projectRoot, id, flags) {
         return 1;
       },
     },
-    { label: "archive", rerun: `doctrina change archive ${id}${force ? " --force" : ""}`, run: () => change.run(["archive", id], archiveFlags) },
-    { label: "validate", rerun: "doctrina validate", run: () => validate.run([], new Map()) },
-  ];
 
-  console.log(c.bold(`Closing change ${id}`) + c.gray(" — analyze → ADR checkpoint → apply → runtime → verify → coverage → trace → docs → archive → validate"));
+    archive: {
+      rerun: `doctrina change archive ${id}${force ? " --force" : ""}`,
+      run: () => change.run(["archive", id], archiveFlags),
+    },
+
+    validate: { run: () => validate.run([], new Map()) },
+  };
+
+  const steps = sequence("close").map((step) => {
+    const runner = runners[step.id] ?? {};
+    return {
+      id: step.id,
+      label: runner.label ?? step.label,
+      rerun: runner.rerun ?? stepRerun(step, id),
+      forceable: step.level === "forceable",
+      advisory: step.level === "advisory",
+      skip: runner.skip,
+      // A step declared with no in-process runner still runs: the declaration
+      // carries the argv, so the sequence is honoured rather than silently
+      // shortened by a missing entry in the table above.
+      run: runner.run ?? (() => spawnStep(step, id, projectRoot)),
+    };
+  });
+
+  // The banner is the declaration read aloud, so it cannot fall behind the
+  // sequence it announces the way a hand-maintained string did.
+  console.log(c.bold(`Closing change ${id}`) +
+    c.gray(` — ${sequence("close").map((s) => s.label.replace(" (advisory)", "")).join(" → ")}`));
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
@@ -206,6 +245,13 @@ async function closeOne(projectRoot, id, flags) {
       console.error(c.red("error:") + ` ${err.message}`);
     }
     if (code !== 0) {
+      // The declared level decides, not the runner: an advisory step reports
+      // and the close carries on, which is what "advisory" means in
+      // lib/gates.js and what the surfaces must agree on.
+      if (step.advisory) {
+        console.log(c.yellow("warn:") + ` "${step.label}" reported findings (advisory — the close continues)`);
+        continue;
+      }
       // A forceable gate under --force warns and continues, matching how
       // `change archive --force` handles incomplete verification: the gap
       // is recorded, not hidden.
@@ -246,6 +292,27 @@ async function closeOne(projectRoot, id, flags) {
   console.log(c.green(`✓ change ${id} closed`) + c.gray(" — verified, archived, and validated."));
   console.log(c.gray("Next: ") + c.cyan("doctrina next"));
   return 0;
+}
+
+// Run a declared step that has no in-process runner, by invoking the CLI with
+// the argv the declaration carries. This is what makes "add a gate to the
+// sequence and it appears in every surface" true rather than aspirational:
+// a step declared without a hand-written runner still executes here, and the
+// drift test only has to hold the ids together, not each implementation.
+function spawnStep(step, id, projectRoot) {
+  if (!step.argv) {
+    console.log(c.yellow("skip   ") + `"${step.label}" declares no command to run`);
+    return 0;
+  }
+  const argv = step.argv.map((a) => (a === "<id>" ? id : a));
+  const r = spawnSync(process.execPath, [cliEntry, ...argv], {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: { ...process.env, NO_COLOR: "1" },
+  });
+  if (r.stdout) process.stdout.write(r.stdout);
+  if (r.stderr) process.stderr.write(r.stderr);
+  return r.status ?? 1;
 }
 
 // The capabilities this change's deltas target — the honest scope for its

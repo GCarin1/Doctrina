@@ -1704,6 +1704,36 @@ doctrina completion pwsh >> $PROFILE
 Completa comandos e seus subcomandos (flags não são completadas).
 Saída estática — regenere após atualizar o CLI.
 
+## `doctrina ci --emit <target>`
+
+Emite o pipeline de CI da sequência de gates declarada, no stdout.
+
+```
+doctrina ci --emit github > action.yml
+```
+
+Quais gates um pipeline roda é declarado uma vez, em `SEQUENCES.ci`
+(`packages/doctrina-cli/src/lib/gates.js`) — a mesma declaração que o
+`close` executa passo a passo e que o `doctor` reporta como linhas.
+Antes disso havia quatro listas mantidas à mão (o array do close, as
+linhas do doctor, o `action.yml`, o `verify.json`) e nada que percebesse
+quando divergiam, e foi assim que um gate pôde estar no close e ausente
+do CI por um release inteiro.
+
+A action continua **versionada no repositório** em vez de gerada sob
+demanda: um projeto que escreve `uses: <owner>/<repo>@v1` não tem CLI
+para gerá-la, e uma action composta que só existe depois de um npm
+install não é uma action. O fluxo é: mude a declaração, re-emita,
+comite o resultado. Um teste de drift compara o `action.yml` versionado
+com a saída deste comando byte a byte, então um arquivo desatualizado
+quebra a suíte em vez de ir para produção em silêncio.
+
+Somente leitura — não escreve nada, então redirecione você mesmo.
+
+| Target | Saída |
+|--------|-------|
+| `github` | Uma GitHub Action composta (o `action.yml` deste repositório). |
+
 ## `doctrina upgrade`
 
 Traz um projeto existente para o CLI instalado após um npm update.

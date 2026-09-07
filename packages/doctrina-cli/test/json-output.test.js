@@ -69,6 +69,7 @@ const INVOCATION = {
   report: ["report"],
   completion: ["completion", "bash"],
   upgrade: ["upgrade"],
+  ci: ["ci", "--help"],
 };
 
 test("every command declares the --json flag", async () => {

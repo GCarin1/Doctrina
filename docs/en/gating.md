@@ -78,6 +78,22 @@ agent and produced wrong action. If nobody hits it, nobody fixes it.
 Doctrina's `validate` does not check doc freshness — humans do, by
 PR review and by the trigger above.
 
+## Where the gate list actually lives
+
+Three surfaces run gates: `doctrina close` (the closing sequence),
+`doctrina doctor` (the diagnostic rows), and the CI action. All three
+read **one declaration** — `SEQUENCES` in
+`packages/doctrina-cli/src/lib/gates.js` — which names each step, how
+hard it bites (blocking, advisory, or forceable), and the command that
+re-runs it alone.
+
+This matters when you are deciding what to gate: adding a gate is a
+one-line edit to that declaration, not four edits that can silently fall
+out of step. `action.yml` is generated from it (`doctrina ci --emit
+github`) and stays committed, so a project consuming the action needs no
+CLI; a drift test fails the build if the committed file and the
+declaration disagree.
+
 ## The one gate you do not choose: runtime
 
 Everything above is about *when* to open a change. The runtime gate is

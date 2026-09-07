@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.9.0
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -30,7 +30,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall treat `verify` as the build gate and `validate` as
   the structural gate; the shipped pre-commit hook runs only the
   latter.
-- The system shall declare in one place which gates guard which lifecycle transition, and every command that drives a transition shall consult that declaration rather than implementing its own preconditions.
+- The system shall declare in one place which gates guard which lifecycle transition and which steps make up each gate sequence, and every command or pipeline that drives one shall render that declaration rather than carrying its own list.
 - The system shall assemble a context pack within a token budget, resolved as the --budget flag, then the project's index.json config.context_budget, then a built-in default.
 - The system shall treat an ADR with no Scope: header as global, including it in every capability pack, and shall include a scoped ADR only in the packs of the capabilities it names.
 - The system shall declare every dependency a gate needs, and its automation shall install them from the lockfile before running the gate.
@@ -313,6 +313,8 @@ constraints (exit codes, zero-deps, no-network).
 - When a task query is given and no capability is named, the system shall place the spec that query identifies unambiguously in the irreducible core.
 - When `doctrina close <id>` reaches the runtime gate, the system shall evaluate the same runtime checks `contract check` renders and refuse the close when any finding is an error, while reporting a finding that is only a warning and continuing.
 - When the shipped CI action runs, the system shall run the declared runtime checks as one of its gate steps, so a declaration that no longer holds fails the pipeline instead of passing it.
+- When a gate sequence is rendered by a surface, the system shall take the steps, their order, and each step's level from the declaration, and shall run a declared step that the surface binds no handler to by invoking the command the declaration names.
+- When `doctrina ci --emit <target>` runs, the system shall write the CI pipeline for the declared sequence to stdout, exiting with the usage code for an unknown or missing target, and shall write no file of its own.
 
 ### State-driven
 
@@ -337,6 +339,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not print the value of an environment variable when reporting a local `.env` finding; it shall name the variable and the allowed set only.
 - The system shall not report a workflow it cannot read as one that omits a declared variable; it shall report the file as unreadable instead.
 - The system shall not let the number of open changes decide whether a context pack can be assembled within its budget.
+- The system shall not let a surface invent, drop, or reorder a step of a declared gate sequence.
 
 ### Optional
 
@@ -387,6 +390,9 @@ The gate surface is spec-compliant when:
 31. [verified] A change whose contract declares wiring the named workflow does not export is refused by `doctrina close` at the runtime gate, and the same change closes once the export exists — verified by `packages/doctrina-cli/test/integration.test.js`.
 32. [verified] A project with no contracts, and one whose contracts declare no rows, close unchanged — the second reported as unchecked rather than passing — verified by `packages/doctrina-cli/test/integration.test.js`.
 33. [verified] The shipped CI action carries the runtime step, and the command it runs exits 1 on the same broken declaration — verified by `packages/doctrina-cli/test/integration.test.js`, `action.yml`.
+34. [verified] The close sequence, the doctor rows, and the emitted CI pipeline all derive from the single declaration, and a surface that starts carrying its own copy fails the suite — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
+35. [verified] A step added to the declaration reaches the CI surface with no further edit, in declared order — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
+36. [verified] `doctrina ci --emit github` reproduces the versioned `action.yml` byte for byte, so a stale file fails the build instead of shipping — verified by `packages/doctrina-cli/test/gate-sequences.test.js`, `action.yml`.
 
 ## Out of scope for this spec
 
