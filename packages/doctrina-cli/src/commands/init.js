@@ -10,7 +10,7 @@ import * as idx from "../lib/index-json.js";
 import { scaffoldConfig } from "../lib/config.js";
 import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
-import { flagBool, flagString } from "../lib/args.js";
+import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ask, isInteractive } from "../lib/prompt.js";
@@ -33,7 +33,7 @@ const SUPPORTED_AGENTS = [
 
 export const flags = {
   boolean: ["json", "force", "non-interactive", "overwrite-content"],
-  string: ["project-name", "project-description", "agent", "intake", "from", "date"],
+  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date"],
 };
 
 export async function run(_positional, flags) {
@@ -46,7 +46,34 @@ export async function run(_positional, flags) {
   // --intake hands over the FULL description up front (ADR 0005); the
   // one-line summary is then derived instead of prompted for.
   const intakeFile = flagString(flags, "intake");
+  const intakeText = flagString(flags, "intake-text");
   let intakeBody = null;
+  let intakeSource = null;
+  // Onboarding is ONE moment, so it gets one command (change 0051). The
+  // separation between `init` and `intake` is an architectural fact — `init`
+  // refuses to read language, ADR 0005 — and it was being charged to the
+  // user as two steps of setup. Both commands stay: `intake` is still the
+  // door for converting a description in a project that already exists.
+  if (intakeFile && intakeText !== undefined) {
+    console.error(c.red("error:") + " pass --intake <file> or --intake-text \"<text>\", not both");
+    return EXIT.USAGE;
+  }
+  // A flag written without a value is a usage error, never a silent fallback
+  // to "no intake": the operator asked for one and would get a project
+  // without it, and nothing would say so.
+  for (const name of ["intake", "intake-text"]) {
+    if (flagGivenWithoutValue(flags, name)) {
+      console.error(c.red("error:") + ` --${name} needs a value`);
+      console.error(c.gray("hint: ") + (name === "intake"
+        ? "doctrina init --intake ./description.md"
+        : "doctrina init --intake-text \"<the whole project description>\""));
+      return EXIT.USAGE;
+    }
+  }
+  if (typeof intakeText === "string" && intakeText.trim() !== "") {
+    intakeBody = intakeText;
+    intakeSource = "inline (--intake-text)";
+  }
   if (intakeFile) {
     const intakeAbs = path.resolve(projectRoot, intakeFile);
     if (!isFile(intakeAbs)) {
@@ -54,6 +81,7 @@ export async function run(_positional, flags) {
       return 1;
     }
     intakeBody = read(intakeAbs);
+    intakeSource = relPath(projectRoot, intakeAbs);
     if (intakeBody.trim().length === 0) {
       console.error(c.red("error:") + ` --intake file is empty: ${intakeFile}`);
       return 1;
@@ -244,7 +272,7 @@ export async function run(_positional, flags) {
   if (intakeBody) {
     const intakePath = writeIntakeFile(projectRoot, {
       body: intakeBody,
-      source: relPath(projectRoot, path.resolve(projectRoot, intakeFile)),
+      source: intakeSource,
       projectName,
       date,
       force,
@@ -376,9 +404,12 @@ Options:
   --project-description <text>   One-sentence description
   --agent <name>                 Install adapter for one agent
                                  (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|all)
-  --intake <file>                Full project description; stored verbatim at .doctrina/intake.md
-                                 and used to derive the one-line description when absent.
-                                 Follow up with \`doctrina intake\` for the bootstrap playbook
+  --intake <file>                Full project description; stored verbatim at .doctrina/intake.md,
+                                 used to derive the one-line description when absent, and the
+                                 bootstrap playbook is printed inline — no second command
+  --intake-text "<text>"         The same, inline, with no file to write first. Mutually
+                                 exclusive with --intake; either one written without a value
+                                 is a usage error, not a project scaffolded without an intake
   --from <path>                  Local conventions directory; if it contains AGENTS.md and/or
                                  .doctrina/product.md, the content is folded into the new project
   --date <YYYY-MM-DD>            Override the system date

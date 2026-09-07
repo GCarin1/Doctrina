@@ -70,6 +70,18 @@ descrição completa do projeto e deixe seu agente de IA fazer a conversão
 doctrina init --intake descricao.md --agent claude
 ```
 
+Ou inline, sem precisar escrever um arquivo antes:
+
+```
+doctrina init --intake-text "Um sistema de cobrança para lojas pequenas.
+Usuários criam faturas, enviam por email e acompanham o pagamento." --agent claude
+```
+
+De qualquer forma é **um comando só**: esqueletar e dar o intake são um
+único momento de onboarding, e o motivo de existirem dois comandos é
+arquitetural — o `init` se recusa a ler linguagem (ADR 0005) — o que não é
+motivo para cobrar duas etapas de você.
+
 Isso guarda a descrição literal em `.doctrina/intake.md` e imprime um
 **playbook de bootstrap** — os passos ordenados que o agente executa para
 preencher o `product.md`, derivar a lista de capabilities e escrever uma
@@ -77,7 +89,8 @@ spec EARS por capability (avançando o `Implementation:` com honestidade,
 mantendo aspiração sob `## Maturity`). O `AGENTS.md` esqueletado instrui
 qualquer agente compatível com AGENTS.md a detectar o intake pendente e
 rodar esse playbook sozinho — então, do seu lugar, é "descreva uma vez,
-abra o agente e siga". (Já inicializou? Use `doctrina intake descricao.md`.)
+abra o agente e siga". (Já inicializou? O `doctrina intake descricao.md` faz o mesmo num projeto
+que já existe — é para isso que o comando separado serve.)
 
 Com o projeto criado, conduza cada feature com um prompt de uma linha:
 

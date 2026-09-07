@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-08-06
-**Version:** 0.3.0
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -181,6 +181,8 @@ authoring commands, and the conventions every command shares.
 - When `doctrina metrics --trend` runs, the system shall read every saved snapshot in date order and report the movement of each tracked rate from the first snapshot to the last, stating that the direction is not a verdict, and shall say so plainly when fewer than two snapshots exist.
 - When `doctrina report` runs inside a repository with history, the system shall include the period's revert rate and re-edit rate, derived from the same snapshot `metrics` renders for that window.
 - When `doctrina doctor` runs and the usage log named by the environment exists, the system shall report how many operations in the catalog were never invoked and name some of them; with no log, or an empty one, it shall report nothing about usage.
+- When `doctrina init --intake-text "<text>"` runs, the system shall store the text verbatim as the project's intake, recording that its source was inline, and shall otherwise behave exactly as `--intake <file>` does.
+- When `doctrina init` receives both `--intake` and `--intake-text`, the system shall report a usage error naming the two as alternatives, and scaffold nothing.
 
 ### State-driven
 
@@ -192,6 +194,7 @@ authoring commands, and the conventions every command shares.
   project-specific checks are out of scope for the shipped hook.
 - The system shall not fail to assemble a context pack, run a command, or scaffold a project because a configuration file is malformed; it shall fall back to the default for the affected option, keep working, and report the malformation through the structural gate.
 - The system shall not create, populate, or require a usage log in order to report on one, and shall not treat an operation with no samples as a defect.
+- The system shall not treat a value-taking intake flag written without a value as an absent one; it shall report a usage error and scaffold nothing, so a project is never created without the intake its operator asked for.
 
 ### Optional
 
@@ -207,6 +210,7 @@ Project scaffolding is spec-compliant when:
 6. [verified] `init` scaffolds a config that declares nothing, `doctor` prints every option with its value and origin, and a malformed file is reported by `validate` without stopping `context` — verified by `packages/doctrina-cli/test/config-surface.test.js`.
 7. [verified] The saved snapshots are read as a series — malformed and non-snapshot files skipped — and the trend spans first to last rather than the last two — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
 8. [verified] `report` and `metrics` state the same rates for the same window, and `doctor` reports usage only when the log exists, creating nothing — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
+9. [verified] Scaffolding with an intake lands in the same tree and the same intake file as scaffolding then supplying one, differing only in the description `init` can derive when it holds the intake at scaffold time; the inline and file forms differ only in the recorded source — verified by `packages/doctrina-cli/test/init-intake.test.js`.
 
 ## Out of scope for this spec
 

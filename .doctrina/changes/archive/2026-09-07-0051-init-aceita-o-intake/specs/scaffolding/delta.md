@@ -35,3 +35,14 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+Onboarding is one moment, so it can be one command. Both commands stay:
+`intake` remains the door for a project that already exists.
+
+```ops
+append-requirement event: When `doctrina init --intake-text "<text>"` runs, the system shall store the text verbatim as the project's intake, recording that its source was inline, and shall otherwise behave exactly as `--intake <file>` does.
+append-requirement event: When `doctrina init` receives both `--intake` and `--intake-text`, the system shall report a usage error naming the two as alternatives, and scaffold nothing.
+append-requirement unwanted: The system shall not treat a value-taking intake flag written without a value as an absent one; it shall report a usage error and scaffold nothing, so a project is never created without the intake its operator asked for.
+append-criterion [verified] Scaffolding with an intake lands in the same tree and the same intake file as scaffolding then supplying one, differing only in the description `init` can derive when it holds the intake at scaffold time; the inline and file forms differ only in the recorded source — verified by `packages/doctrina-cli/test/init-intake.test.js`.
+bump-version minor
+```

@@ -74,7 +74,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "depends_on": [
@@ -437,13 +437,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0051-init-aceita-o-intake",
-        "title": "init aceita o intake",
-        "path": ".doctrina/changes/0051-init-aceita-o-intake",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0052-o-titulo-da-change-nao-sai-duplicado",
         "title": "o titulo da change nao sai duplicado",
@@ -1132,6 +1125,19 @@
         "id": "0050-metricas-e-uso-realimentam-o-fluxo",
         "title": "metricas e uso realimentam o fluxo",
         "path": ".doctrina/changes/archive/2026-09-07-0050-metricas-e-uso-realimentam-o-fluxo",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0051-init-aceita-o-intake",
+        "title": "init aceita o intake",
+        "path": ".doctrina/changes/archive/2026-09-07-0051-init-aceita-o-intake",
         "status": "applied",
         "applied": "2026-09-07",
         "specs_affected": [

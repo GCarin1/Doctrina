@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`doctrina init` takes the intake inline.** `--intake-text "<text>"` is
+  the file-less form of `--intake <file>`: one command scaffolds the tree,
+  stores the description verbatim and prints the bootstrap playbook. Both
+  commands stay — `intake` is still the door for a project that already
+  exists — but onboarding is one moment, and the reason it was two commands
+  is architectural (`init` refuses to read language, ADR 0005), which is not
+  a reason to charge the user two steps for it.
+- Either intake flag written without a value is a usage error that scaffolds
+  nothing, rather than a project quietly created without the intake its
+  operator asked for; passing both is a usage error naming them as
+  alternatives.
+- One documented difference between the merged path and the sequence, and it
+  is the point: `init` fills AGENTS.md's one-line description from the
+  intake, which it can only do while holding the intake at scaffold time. Run
+  as a sequence, `intake` arrives after AGENTS.md is authored and does not
+  rewrite it.
+
 - **The two instruments the project already runs start reaching a reader.**
   The metrics snapshots are a time series versioned in the repository, and
   the only thing that ever read them was a delta against the most recent one
