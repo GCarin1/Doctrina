@@ -18,6 +18,9 @@
 //     a non-canonical form is REPORTED (so `validate --fix` can repair it)
 //     rather than silently accepted or silently missed.
 //   STRICT ON WRITE.  One canonical form per artifact kind, always.
+import path from "node:path";
+import { read } from "./fs-ops.js";
+import { locateTemplatesDir } from "./templates.js";
 
 // Artifact kinds and the header form each one canonically uses. Specs and
 // contracts use bare bold; ADRs, proposals, and the intake use list items.
@@ -284,4 +287,78 @@ export function parseArtifact(text, { kind = ARTIFACT_KIND.UNKNOWN } = {}) {
     sections: listSections(text),
     nonConforming: nonConformingHeaders(text, kind),
   };
+}
+
+// ---------------------------------------------------------------------------
+// The rest of the on-disk grammar (ADR 0021, change 0043)
+// ---------------------------------------------------------------------------
+//
+// ADR 0021 declares ONE document model that owns how a Doctrina artifact is
+// read off disk. Three parsers lived outside it — skill frontmatter in a
+// command module, and the two delta parsers in another — and `lib/scan.js`
+// imported them FROM `commands/`, inverting the dependency the layering
+// depends on. Change 0037 broke that edge by moving them into lib/; this is
+// the second half: they belong to the module the ADR names, not to two more
+// libraries beside it.
+//
+// Pure text predicates, all of them. Nothing here reads a file.
+
+export function parseFrontmatter(text, key) {
+  // Match frontmatter blocks bounded by `---` lines at start of file.
+  const fmMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+  if (!fmMatch) return null;
+  const block = fmMatch[1];
+  const lineRe = new RegExp(`^${key}\\s*:\\s*(.+)$`, "m");
+  const m = block.match(lineRe);
+  return m ? m[1].trim() : null;
+}
+
+export function parseOperation(text) {
+  const m = text.match(/^\*\*Operation:\*\*\s*([A-Z]+)/m);
+  if (!m) return null;
+  const op = m[1];
+  if (op === "ADDED" || op === "MODIFIED" || op === "REMOVED") return op;
+  return null;
+}
+
+export function parseCapabilityFromDelta(text, deltaPath) {
+  // Prefer the explicit header "# Spec Delta — capability: <name>"
+  const m = text.match(/^#\s+Spec Delta\s*[—-]\s*capability:\s*([a-z][a-z0-9-]*)/m);
+  if (m) return m[1];
+  // Fall back to the parent directory name of the delta file
+  const parent = path.basename(path.dirname(deltaPath));
+  if (/^[a-z][a-z0-9-]*$/.test(parent)) return parent;
+  return null;
+}
+
+// Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
+// check: render the shipped capability template for the same capability and
+// compare, ignoring the date-bearing "Last updated" line and whitespace
+// normalisation. When the template cannot be located (unusual installs),
+// fall back to the scaffold's own placeholder fingerprints — text no real
+// spec keeps. Used by `change apply` so an ADDED delta can replace a
+// scaffold (the canonical spec-new → delta flow) without ever clobbering a
+// spec that carries real content.
+export function isUntouchedScaffold(specText, capability) {
+  const normalize = (s) =>
+    s.replace(/\r\n/g, "\n")
+      .split("\n")
+      .filter((line) => !/^\*\*Last updated:\*\*/.test(line))
+      .join("\n")
+      .trim();
+  try {
+    const tplPath = path.join(locateTemplatesDir(), "spec.md.template");
+    const rendered = read(tplPath)
+      .replace(/\{\{CAPABILITY\}\}/g, capability)
+      .replace(/\{\{DATE\}\}/g, "");
+    if (normalize(rendered) === normalize(specText)) return true;
+  } catch {
+    // fall through to the fingerprint heuristic
+  }
+  // Fingerprints: the Purpose placeholder comment AND an empty Ubiquitous
+  // section survive only in a scaffold nobody edited.
+  return (
+    specText.includes("<!-- One paragraph: what this capability does and why it exists. -->") &&
+    /##\s+Requirements \(EARS\)[\s\S]*?### Ubiquitous\s*\n\s*-\s*\n/.test(specText)
+  );
 }

@@ -1,6 +1,7 @@
 # Change 0043-a-gramatica-on-disk-tem-um-dono — a gramatica on-disk tem um dono
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** validation
@@ -16,10 +17,18 @@ Corrige a direção das dependências entre `src/lib/` e `src/commands/`. Hoje
 e `parseCapabilityFromDelta` de `commands/change.js` — uma biblioteca dependendo de
 comandos.
 
-- Os três parsers migram para `src/lib/doc-model.js`, que a ADR 0021 declara dono da gramática on-disk.
-- Os módulos de comando passam a importar dali; a reexportação some quando os call sites migram.
-- Teste estrutural: nada em `src/lib/` importa de `src/commands/`.
+- Os três parsers (mais o `isUntouchedScaffold`, que anda com eles) migram para
+  `src/lib/doc-model.js`, que a ADR 0021 declara dono da gramática on-disk.
+- Os módulos de comando passam a importar dali; os módulos intermediários somem.
+- Teste estrutural: nada em `src/lib/` importa de `src/commands/`, E a gramática tem
+  um dono só — uma segunda definição de qualquer um dos parsers quebra a suíte.
 - Delta em `specs/validation`.
+
+Nota de sequência: a change 0037 já havia quebrado a aresta `lib/ → commands/` ao
+mover os parsers para fora dos comandos, e já trouxe o teste que a proíbe. O que
+faltava — e é o que esta change entrega — era a COLOCAÇÃO: eles tinham parado em
+duas bibliotecas novas ao lado do modelo, e não dentro dele. Uma gramática
+espalhada por três arquivos de `lib/` não é a que a ADR 0021 declarou.
 
 Achado F21 da auditoria. A ADR 0021 declara um modelo de documento dono da gramática, e
 ela mora hoje em `doc-model.js`, `scan.js`, `criteria.js`, `ears.js`, `spec-ops.js`,
@@ -33,11 +42,11 @@ ela mora hoje em `doc-model.js`, `scan.js`, `criteria.js`, `ears.js`, `spec-ops.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Nenhum módulo em `src/lib/` importa de `src/commands/`, provado por teste estrutural.
-- [ ] Os testes de parsing existentes passam sem alteração de expectativa.
-- [ ] `tsc --noEmit` segue limpo.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Nenhum módulo em `src/lib/` importa de `src/commands/`, provado por teste estrutural.
+- [x] Os testes de parsing existentes passam sem alteração de expectativa.
+- [x] `tsc --noEmit` segue limpo.
 
 ## Open questions
 

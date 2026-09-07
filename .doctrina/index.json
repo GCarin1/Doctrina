@@ -90,7 +90,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -414,13 +414,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0043-a-gramatica-on-disk-tem-um-dono",
-        "title": "a gramatica on-disk tem um dono",
-        "path": ".doctrina/changes/0043-a-gramatica-on-disk-tem-um-dono",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0044-o-delta-e-sempre-scaffoldado",
         "title": "o delta e sempre scaffoldado",
@@ -1058,6 +1051,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0043-a-gramatica-on-disk-tem-um-dono",
+        "title": "a gramatica on-disk tem um dono",
+        "path": ".doctrina/changes/archive/2026-09-07-0043-a-gramatica-on-disk-tem-um-dono",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]

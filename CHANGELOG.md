@@ -176,6 +176,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The field is history, and enforced as such: no gate reads it, and a proposal
   carrying a nonsense lane behaves exactly like one carrying none.
 
+- **The on-disk grammar has one owner.** ADR 0021 declared a single document
+  model that owns how a Doctrina artifact is read off disk, and three parsers
+  lived outside it — skill frontmatter in `commands/skill.js`, the two delta
+  parsers in `commands/change.js` — which `lib/scan.js` then imported FROM,
+  inverting the layering. The edge went away with the collector work; the
+  parsers now live in `lib/doc-model.js` itself, and the structural test pins
+  both halves: no library may depend on a command, and no second module may
+  define a parser the model owns.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

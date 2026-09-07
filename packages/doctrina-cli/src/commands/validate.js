@@ -12,7 +12,7 @@ import { c } from "../lib/colors.js";
 import { kindFromPath, nonConformingHeaders, repairHeaders } from "../lib/doc-model.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { parseFrontmatter } from "../lib/frontmatter.js";
+import { parseFrontmatter } from "../lib/doc-model.js";
 import { checkEars, isEarsSpec } from "../lib/ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
 import { COMMAND_NAMES, referencedCommands } from "../lib/commands.js";

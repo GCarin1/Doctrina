@@ -10,7 +10,7 @@ import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { parseFrontmatter } from "../lib/frontmatter.js";
+import { parseFrontmatter } from "../lib/doc-model.js";
 import { git, GIT_STATE } from "../lib/git.js";
 import { FIX_SHAPED, FIX_SHAPED_SUBJECT } from "../lib/lexicon.js";
 

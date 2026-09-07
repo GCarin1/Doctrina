@@ -17,7 +17,7 @@ import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/change-model.js";
+import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew } from "../lib/change-ops.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
@@ -801,5 +801,5 @@ Options:
 
 // Re-export parsers so scan.js (index rebuild) can reuse them, and the
 // scaffold so `work` can open a change without duplicating the logic.
-export { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/change-model.js";
+export { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 export { changeNew } from "../lib/change-ops.js";

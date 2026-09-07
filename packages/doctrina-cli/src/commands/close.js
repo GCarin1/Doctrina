@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { exists, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { parseCapabilityFromDelta } from "../lib/change-model.js";
+import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { checkDocsImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";

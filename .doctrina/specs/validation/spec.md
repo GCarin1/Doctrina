@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
 **Last updated:** 2026-08-06
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -47,6 +47,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall define the on-disk artifact grammar in one module, and every header read, section extraction, and header write shall go through it.
 - The system shall read headers leniently, accepting every recognised written form, and write them strictly in one canonical form whose list-or-bare style is decided by the artifact kind.
 - The system shall treat an artifact marked `(external)` in a Pipeline step as supplied from outside the pipeline, and shall not require a producing step for it.
+- The system shall keep the grammar for reading an artifact off disk in one document model, and every module that parses an artifact shall read that grammar from there rather than define its own.
 
 ### Event-driven
 
@@ -156,6 +157,7 @@ The validation capability is delivered when:
 10. [verified] `validate --fix` repairs a non-canonical header end to end and the finding clears — verified by `packages/doctrina-cli/test/doc-model.test.js`.
 11. [verified] A pipeline step requiring what a later step produces is an error, and the same steps in order are not — verified by `packages/doctrina-cli/test/pipeline.test.js`.
 12. [verified] A vague skill trigger warns and a concrete one does not — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+13. [verified] The frontmatter and spec-delta parsers live in the document model, no other module defines them, and no library depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 
 ## Out of scope for this spec
 

@@ -4,9 +4,9 @@ import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { today } from "./dates.js";
-import { parseFrontmatter } from "./frontmatter.js";
-import { parseCapabilityFromDelta } from "./change-model.js";
-import { parseOperation } from "./change-model.js";
+import { parseFrontmatter } from "./doc-model.js";
+import { parseCapabilityFromDelta } from "./doc-model.js";
+import { parseOperation } from "./doc-model.js";
 
 // Header reading lives in ONE place now (lib/doc-model.js, audit item M3).
 // These two names survive because dozens of call sites use them and the

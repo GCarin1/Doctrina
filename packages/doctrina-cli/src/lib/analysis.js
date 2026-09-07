@@ -2,7 +2,7 @@
 import path from "node:path";
 import { exists, isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import { c } from "./colors.js";
-import { isUntouchedScaffold } from "./change-model.js";
+import { isUntouchedScaffold } from "./doc-model.js";
 import { collectBudgets } from "./runtime.js";
 
 // The structural ANALYSIS of a change folder, as data.

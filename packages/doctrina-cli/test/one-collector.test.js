@@ -163,3 +163,33 @@ test("`status --json` keeps its shape whichever view is asked for", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ── Change 0043: the on-disk grammar has one owner. ──
+
+test("the on-disk grammar lives in the document model ADR 0021 names", () => {
+  // ADR 0021 declares ONE document model that owns how a Doctrina artifact is
+  // read off disk. Three parsers lived outside it — skill frontmatter in a
+  // command module, the two delta parsers in another — and `lib/scan.js`
+  // imported them FROM `commands/`, inverting the direction the layering
+  // depends on. Change 0037 broke that edge; this pins where they landed, so
+  // the grammar does not scatter again into a library per parser.
+  const model = readFileSync(path.join(srcDir, "lib", "doc-model.js"), "utf8");
+  for (const parser of ["parseFrontmatter", "parseOperation", "parseCapabilityFromDelta", "isUntouchedScaffold"]) {
+    assert.match(model, new RegExp(`export function ${parser}\\(`),
+      `${parser} belongs to the document model (ADR 0021)`);
+  }
+
+  // And nothing else defines them: a second definition is the drift the ADR
+  // exists to prevent, whichever directory it hides in.
+  const offenders = [];
+  for (const dir of ["lib", "commands"]) {
+    for (const f of readdirSync(path.join(srcDir, dir))) {
+      if (!f.endsWith(".js") || `${dir}/${f}` === "lib/doc-model.js") continue;
+      const text = readFileSync(path.join(srcDir, dir, f), "utf8");
+      for (const parser of ["parseFrontmatter", "parseOperation", "parseCapabilityFromDelta"]) {
+        if (new RegExp(`^(export )?function ${parser}\\(`, "m").test(text)) offenders.push(`${dir}/${f}: ${parser}`);
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], "the grammar has one owner:\n" + offenders.join("\n"));
+});
