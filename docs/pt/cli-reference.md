@@ -1293,21 +1293,70 @@ Imprime as próximas ações recomendadas do workflow, em ordem de
 prioridade.
 
 ```
-doctrina next
+doctrina next [--json] [--run]
 ```
 
-Inspeciona a árvore e reporta: changes abertas (proposal faltando,
-tasks desmarcadas, deltas prontos para aplicar,
-aplicadas-mas-não-arquivadas), ADRs ainda em status `proposed`, ADRs
-aceitos sem nada que os comprove ainda (sugerindo `decision land`), um
-nudge único de captura de skill quando nenhuma existe e uma change
-arquivada tem cara de fix, e o drift do index por último (ADR 0011).
-Quando nada está aberto, diz isso e aponta para `change new` /
-`spec new`.
+Inspeciona a árvore e reporta: declarações de runtime que não valem mais
+(primeiro — uma fiação quebrada é o motivo de a última execução ter
+mentido), changes abertas (proposal faltando, tasks desmarcadas, deltas
+prontos para aplicar, aplicadas-mas-não-arquivadas), ADRs ainda em
+status `proposed`, ADRs aceitos sem nada que os comprove ainda
+(sugerindo `decision land`), um nudge único de captura de skill quando
+nenhuma existe e uma change arquivada tem cara de fix, e o drift do
+index por último (ADR 0011). Quando nada está aberto, diz isso e aponta
+para `change new` / `spec new`.
 
-Read-only; sempre sai 0. Pensado para agentes e humanos retomarem
-o trabalho sem reler a árvore inteira. `--json` emite `{ actions }`
-para pipelines.
+Read-only sem `--run`, e nesse caso sempre sai 0. Pensado para agentes e
+humanos retomarem o trabalho sem reler a árvore inteira.
+
+### Ações são registros, não prosa
+
+`--json` emite `{ actions }`, onde cada ação é:
+
+```json
+{
+  "id": "change-archive-pending",
+  "command": "change archive",
+  "args": ["0031-fix-parser"],
+  "why": "applied but not archived",
+  "gate": "archive",
+  "severity": "blocking",
+  "runnable": true,
+  "text": "doctrina change archive 0031-fix-parser — applied but not archived"
+}
+```
+
+Decida pelos campos `command` e `args` — o consumidor reemite a operação
+sem interpretar inglês. `text` é a mesma linha que o terminal imprime,
+construída a partir desses campos, então a frase e o registro não podem
+divergir. `id` nomeia o TIPO da ação, não a instância, então é estável
+para casar.
+
+> **Mudança de payload.** Antes disso, `actions` era um array de strings.
+> Um consumidor que apenas as imprimia continua funcionando via
+> `actions[i].text`; um que concatenava o array precisa ser atualizado.
+
+### `--run`
+
+Executa a primeira ação **runnable** em processo e para — uma ação, não
+a fila, porque a lista é recalculada a partir da árvore depois de cada
+mudança nela. Sai com o código do próprio comando executado.
+
+Uma ação é runnable somente quando executá-la sem supervisão é seguro E
+é tudo o que a ação pede. Qualquer coisa que exija uma pessoa para
+*decidir* nunca é runnable, por mais mecânica que seja a edição:
+
+| Ação | Runnable | Por quê |
+|---|---|---|
+| `index rebuild`, `triage`, `intake`, `analyze` | sim | mecânica e idempotente |
+| `change apply`, `change archive` | sim | têm gate próprio |
+| aceitar uma ADR | **não** | isso é a decisão, não uma edição de cabeçalho |
+| completar uma task | **não** | marcar a caixa não é fazer o trabalho |
+| escrever uma proposal, capturar uma skill | **não** | autoria |
+
+Sem nada runnable, `--run` nomeia a ação que precisa de uma pessoa e sai
+0 — recusar não é falha. Use `doctrina close` quando quiser uma sequência
+inteira executada para você.
 
 ## `doctrina status`
 

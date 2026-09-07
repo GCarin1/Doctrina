@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.36.0
+**Version:** 0.37.0
 
 ## Purpose
 
@@ -326,6 +326,8 @@ owns the surface itself and the conventions every command shares.
 - When `doctrina work` receives a prompt that classifies as RUNTIME with a margin over the runner-up lane, the system shall hold the request with the precondition exit code, name the diagnosis path, and scaffold nothing.
 - When `doctrina skill suggest --from-error <text|file>` runs, the system shall draft one skill from that failure with a trigger built from the error's paths, identifiers and distinctive terms, and shall treat the flag given without a value as a usage error.
 - When `doctrina context --for "<task>"` runs, the system shall rank on-demand skills by the task's match against their trigger and mark the ones that match.
+- When `doctrina next` runs, the system shall compute the recommended actions as records carrying a stable kind id, the operation and its arguments, the reason, the gate it clears, a severity, and whether it may be run unattended, and shall derive the printed line from those same fields.
+- When `doctrina next --run` runs, the system shall execute the first runnable action in process and stop, exiting with that command's own code; when no action is runnable it shall name the action that requires a person and exit successfully.
 
 ### State-driven
 
@@ -369,6 +371,7 @@ owns the surface itself and the conventions every command shares.
 - The system shall not emit terminal colour codes in JSON output, and shall not let a command writing directly to the output stream escape the envelope.
 
 - The system shall not accept a value-taking flag written without a value; it shall report a usage error rather than fall back to the default.
+- The system shall not treat an action that requires a human decision — accepting a decision, completing a task, authoring a proposal or a skill — as runnable, however mechanical the resulting edit would be.
 
 ### Optional
 
@@ -429,6 +432,9 @@ The CLI is v0 spec-compliant when:
 25. [verified] A runtime-shaped prompt is held by `work` with exit 3 and scaffolds nothing, while `--force` and `--chore` proceed — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
 26. [verified] The classifier separates the three lanes and defaults an unclassifiable prompt to PRODUCT — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
 27. [verified] `skill suggest --from-error` drafts a trigger that satisfies validate's trigger check, and refuses a valueless flag — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+28. [verified] An action carries the operation and its arguments, so a consumer re-issues it without parsing prose — verified by `packages/doctrina-cli/test/actions.test.js`.
+29. [verified] The lines printed by `next`, `prime` and `handoff` are unchanged by the move to records — verified by `packages/doctrina-cli/test/actions.test.js`.
+30. [verified] `--run` executes a runnable action and refuses one that needs a person, ticking and accepting nothing on the way past — verified by `packages/doctrina-cli/test/actions.test.js`.
 
 ## Out of scope for this spec
 

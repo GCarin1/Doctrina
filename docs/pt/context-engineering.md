@@ -115,27 +115,34 @@ do pack que precisava dela.
 --budget <n>  >  index.json "config": { "context_budget": <n> }  >  15000
 ```
 
-**3. Degradação, não truncamento.** Acima do orçamento, um ADR cai
-para sua decisão em uma frase e uma spec para seu propósito — do
-menos relevante primeiro — antes de qualquer coisa ser descartada.
-Uma decisão reduzida a uma frase ainda carrega a decisão; uma
-omitida não carrega nada. Truncar nas primeiras N linhas
-preservaria a seção Context do ADR, justamente a que menos importa.
+**3. Degradação, não truncamento.** Acima do orçamento, um ADR cai para
+sua decisão em uma frase e uma spec para seu propósito — do menos
+relevante primeiro — antes de qualquer coisa ser descartada. Uma decisão
+reduzida a uma frase ainda carrega a decisão; uma omitida não carrega
+nada. Truncar nas primeiras N linhas preservaria a seção Context do ADR,
+justamente a que menos importa.
 
 Toda degradação e omissão é nomeada no relatório:
 
 ```
 within budget ~14511 of 15000 tokens (97%) after assembly:
   14 ADRs reduced to title + summary (least relevant first)
+  18 parked changes reduced to a queue line — name one to read it in full
   scope an ADR to shrink this permanently: doctrina decision scope --write
 ```
 
 O **core** — regras raiz, verdade de produto, a spec da capability
-nomeada, changes abertos — nunca é degradado nem descartado.
-Quando só o core já excede o orçamento, o comando diz isso e sai
-com 1. Isso é um achado real (uma spec grande demais, um change
-aberto parado), e escondê-lo atrás de um pack silenciosamente
-grande demais não ajuda ninguém.
+nomeada, e a change em foco — nunca é degradado nem descartado. Quando só o
+core já excede o orçamento, o comando diz isso e sai com 1: é um achado real
+(uma spec grande demais), não algo a esconder atrás de um pack grande demais.
+
+**4. Um backlog é uma fila, não um corpus.** Changes abertas eram core por
+inteiro, então o *tamanho da fila* decidia se o read path funcionava —
+vinte changes planejadas puseram todo pack acima do teto. Exatamente uma
+fica **em foco** e permanece inteira; toda outra vira uma linha de fila
+degradável (status, motivo, progresso, specs afetadas). O foco segue a
+capability nomeada e a query do `--for`, e é **singular por construção,
+nunca adivinhado**: se várias casam igualmente, nenhuma fica em foco.
 
 ### Recuperação por tarefa
 

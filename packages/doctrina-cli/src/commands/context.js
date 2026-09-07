@@ -45,9 +45,25 @@ export const DEFAULT_BUDGET = 15000;
 
 // Tiers, worst-first in the degradation ladder. The CORE is the pack's
 // irreducible minimum: the rules, the product truth, the named capability's
-// spec, and the work in flight. It is never degraded and never dropped — if
-// it alone exceeds the budget, that is a finding, not something to hide.
-const TIER = { CORE: 0, SPEC: 1, DEPENDENCY: 2, DECISION: 3 };
+// spec, and the change this pack is FOR. It is never degraded and never
+// dropped — if it alone exceeds the budget, that is a finding, not
+// something to hide.
+//
+// CHANGE is its own tier since change 0035. Every open change used to sit
+// in CORE, so a backlog — trabalho legítimo, planned and parked — was an
+// irreducible subtraction from every pack: 21 open changes took this
+// repository's own packs from 95% of the ceiling to 230% of it, `context`
+// exited 1, and the CI budget gate went red. The size of the queue decided
+// whether the read path worked at all, which is the one thing a context
+// budget must never be hostage to. Work in flight is still the last thing
+// dropped — it is what a resuming agent cannot reconstruct — but it
+// degrades like everything else.
+// Exported so the ladder's own tests name the tiers instead of repeating
+// their numbers: the fixture hard-coded `3` for a decision, so inserting
+// CHANGE at 2 silently reclassified every ADR in it as a dependency and
+// the ladder tests failed for a reason that had nothing to do with the
+// ladder.
+export const TIER = { CORE: 0, SPEC: 1, CHANGE: 2, DEPENDENCY: 3, DECISION: 4 };
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -168,32 +184,110 @@ export async function run(positional, cmdFlags) {
     // is how you ask for its truth in full. That is the whole thesis:
     // without a task there is nothing to retrieve ON, so the honest
     // answer is an index, not a dump.
+    const specItems = [];
     for (const cap of readdirSync(specsRoot).sort()) {
       const specRel = `.doctrina/specs/${cap}/spec.md`;
       const full = path.join(projectRoot, specRel);
       if (!wanted(specRel) || !isFile(full)) continue;
       const text = read(full);
-      pushFile(specRel, `spec: ${cap}`, {
+      const item = pushFile(specRel, `spec: ${cap}`, {
         tier: TIER.SPEC,
         rank: relevance(text, terms, `${cap} ${getTitle(text) ?? ""}`),
         title: getTitle(text) ?? cap,
         summary: sectionSummary(text, "Purpose"),
       });
+      if (item) specItems.push(item);
+    }
+
+    // `--for` IS naming a capability, indirectly — so the spec the query
+    // unambiguously points at joins the CORE, exactly as a named one does.
+    // Without this the ladder treats it as one summarisable spec among
+    // eight, and on a tree where a single spec is half the budget the
+    // answer to "what is this task about?" is the one thing that gets
+    // summarised away. Same unambiguous-leader rule the change focus uses:
+    // a tie means the query did not pick anything.
+    if (terms.length > 0 && specItems.length > 0) {
+      const ranked = [...specItems].sort((a, b) => compareRank(b.rank, a.rank) || (a.rel < b.rel ? -1 : 1));
+      const leader = ranked[0];
+      if (leader.rank[1] > 0 && (ranked.length === 1 || compareRank(leader.rank, ranked[1].rank) > 0)) {
+        leader.tier = TIER.CORE;
+        leader.note = `${leader.note} (the task's capability)`;
+      }
     }
   }
 
-  // 4. Open changes (their proposal, tasks, and deltas) — never diff-filtered,
-  //    never degraded. Work in flight is the one thing a resuming agent
-  //    cannot reconstruct from anywhere else.
+  // 4. Open changes (their proposal, tasks, and deltas) — never
+  //    diff-filtered: work in flight is the one thing a resuming agent
+  //    cannot reconstruct from anywhere else, so it is always present.
+  //
+  //    But present is not the same as WHOLE (change 0035). One change is
+  //    the one this pack is for; the rest are a queue, and a queue belongs
+  //    in a pack as a list of what is open, not as every word of it. The
+  //    focus change stays in CORE; the others degrade to a line each.
   const changesDir = path.join(projectRoot, ".doctrina", "changes");
   if (isDir(changesDir)) {
+    const open = [];
     for (const id of readdirSync(changesDir).sort()) {
       if (id === "archive" || id.startsWith(".")) continue;
-      if (!isDir(path.join(changesDir, id))) continue;
-      for (const f of walk(path.join(changesDir, id))) {
-        if (!f.endsWith(".md")) continue;
-        pushFile(relPath(projectRoot, f), `open change: ${id}`);
+      const changeDir = path.join(changesDir, id);
+      if (!isDir(changeDir)) continue;
+      const files = walk(changeDir).filter((f) => f.endsWith(".md"));
+      if (files.length === 0) continue;
+      // Does this change carry a delta for the named capability? Read from
+      // the delta's own folder, the same place `close` reads its touched
+      // set from.
+      const touches = capability !== null && files.some((f) =>
+        relPath(projectRoot, f).replaceAll("\\", "/").includes(`/specs/${capability}/`));
+      const body = files.map((f) => read(f)).join("\n");
+      // Best-first: the capability it touches outranks a query match,
+      // which outranks the id — so a tie goes to the newest change.
+      open.push({ id, files, rank: [touches ? 1 : 0, ...relevance(body, terms, id)] });
+    }
+
+    // EXACTLY ONE change is in focus, and only when the signals pick it
+    // UNAMBIGUOUSLY. Two rules, both learned the hard way here:
+    //
+    //   Being *about* the named capability is not focus. Nine of this
+    //   repository's own changes carry a `gates` delta; exempting all nine
+    //   from degradation put the pack straight back over the ceiling.
+    //
+    //   A tie is not a winner. `context cli` matches five changes equally,
+    //   and picking the lowest-numbered one gave a whole change CORE
+    //   standing for no reason a reader could see — the pack silently
+    //   decided what you were working on. When nothing distinguishes the
+    //   candidates there is no focus, and the queue is the honest answer;
+    //   `--for "<task>"` is how you say which one you mean.
+    //
+    // Everything else is a ranked queue the ladder shortens worst-first,
+    // so the runners-up still survive whole whenever there is room.
+    const ranked = [...open].sort((a, b) => compareRank(b.rank, a.rank) || (a.id < b.id ? -1 : 1));
+    const leader = ranked[0];
+    const unambiguous = leader
+      && leader.rank.some((n) => n > 0)
+      && (ranked.length === 1 || compareRank(leader.rank, ranked[1].rank) > 0);
+    const focusId = unambiguous ? leader.id : null;
+
+    for (const ch of open) {
+      if (ch.id === focusId) {
+        // The change being worked on: every file, whole, in CORE.
+        for (const f of ch.files) pushFile(relPath(projectRoot, f), `open change: ${ch.id}`);
+        continue;
       }
+      // A PARKED change is ONE entry in a queue, not three documents. It
+      // used to contribute its proposal, its tasks and every delta
+      // separately — 21 parked changes meant 63 pack entries, and even
+      // summarised they crowded out every ADR. What a reader needs from
+      // work they are not doing is that it exists, what it is about, and
+      // how far along it is; its proposal anchors that, and the summary
+      // carries the rest.
+      const anchor = ch.files.find((f) => path.basename(f) === "proposal.md") ?? ch.files[0];
+      const rel = relPath(projectRoot, anchor);
+      pushFile(rel, `open change: ${ch.id} (parked)`, {
+        tier: TIER.CHANGE,
+        rank: ch.rank,
+        title: ch.id,
+        summary: parkedSummary(projectRoot, ch),
+      });
     }
   }
 
@@ -353,6 +447,83 @@ function degradedBody(item) {
   return lines.join("\n");
 }
 
+// A parked change as ONE queue line: status, what it is about, how far
+// along, and which specs it will move. Deliberately terse — twenty of
+// these share the pack with the ADRs, and a paragraph each is what pushed
+// the decisions out of it. The reader who wants more names the change.
+function parkedSummary(projectRoot, ch) {
+  let status = "proposed";
+  let why = null;
+  let done = 0;
+  let total = 0;
+  const caps = new Set();
+
+  for (const f of ch.files) {
+    const base = path.basename(f);
+    if (base === "proposal.md") {
+      const text = read(f);
+      status = listHeader(text, "Status") ?? status;
+      why = sectionSummary(text, "Why", 130);
+    } else if (base === "tasks.md") {
+      for (const line of read(f).split(/\r?\n/)) {
+        const m = line.match(/^\s*-\s+\[([ xX])\]\s/);
+        if (!m) continue;
+        total += 1;
+        if (m[1] !== " ") done += 1;
+      }
+    } else if (base === "delta.md") {
+      const cap = relPath(projectRoot, f).replaceAll("\\", "/").match(/\/specs\/([^/]+)\/delta\.md$/);
+      if (cap) caps.add(cap[1]);
+    }
+  }
+
+  const parts = [`[${status}]`];
+  if (why) parts.push(why);
+  if (total > 0) parts.push(`${done}/${total} tasks`);
+  if (caps.size > 0) parts.push(`specs: ${[...caps].sort().join(", ")}`);
+  return parts.join(" · ");
+}
+
+// What one file of an open change reduces to: enough to know it exists,
+// what it is about, and how far along it is — which is what a queue owes a
+// reader. Never null, so a change file can always degrade; an item with no
+// summary is refused by the ladder and would sit at full size forever.
+export function changeSummary(rel, text) {
+  const base = path.basename(rel.replaceAll("\\", "/"));
+
+  if (base === "proposal.md") {
+    const status = listHeader(text, "Status") ?? "proposed";
+    const why = sectionSummary(text, "Why", 240);
+    return why ? `[${status}] ${why}` : `[${status}] no rationale written yet.`;
+  }
+
+  if (base === "tasks.md") {
+    let done = 0;
+    let total = 0;
+    const open = [];
+    for (const line of text.split(/\r?\n/)) {
+      const m = line.match(/^\s*-\s+\[([ xX])\]\s*(.*)$/);
+      if (!m) continue;
+      total += 1;
+      if (m[1] === " ") {
+        if (m[2].trim()) open.push(m[2].trim());
+      } else done += 1;
+    }
+    if (total === 0) return "no checklist.";
+    const head = `${done}/${total} tasks checked.`;
+    return open.length === 0 ? head : `${head} Next: ${open.slice(0, 2).join("; ")}`;
+  }
+
+  if (base === "delta.md") {
+    const op = listHeader(text, "Operation") ?? "?";
+    const target = listHeader(text, "Target spec on apply") ?? "?";
+    return `${op} → ${target}`;
+  }
+
+  // design.md and anything else a change carries.
+  return sectionSummary(text, "Purpose", 240) ?? `${base} in this change.`;
+}
+
 // The opening paragraph of a named section, flattened to one line. This is
 // a spec's Purpose: enough to know whether this capability is the one the
 // task is about, which is all an orientation read owes you.
@@ -398,9 +569,11 @@ export function fitToBudget(pack, budget, capability = null) {
   /** @type {Array<[number, (item: PackItem) => void]>} */
   const ladder = [
     [TIER.DECISION, degrade],   // 1. every decision to title + summary
-    [TIER.SPEC, degrade],       // 2. every unnamed capability to title + purpose
-    [TIER.DECISION, drop],      // 3. only now, let decisions go
-    [TIER.DEPENDENCY, drop],    // 4. then dependency specs (never the named one)
+    [TIER.CHANGE, degrade],     // 2. every parked change to status + why + progress
+    [TIER.SPEC, degrade],       // 3. every unnamed capability to title + purpose
+    [TIER.DECISION, drop],      // 4. only now, let decisions go
+    [TIER.DEPENDENCY, drop],    // 5. then dependency specs (never the named one)
+    [TIER.CHANGE, drop],        // 6. last: a parked change, already one line
   ];
   for (const [tier, apply] of ladder) {
     for (const item of worstFirst(tier)) {
@@ -427,12 +600,19 @@ function reportBudget(totalTokens, budget, fit, log) {
   }
   log(c.green("within budget") + c.gray(` ~${totalTokens} of ${budget} tokens (${pct}%) after assembly:`));
   const adrs = fit.summarised.filter((i) => i.adrId);
-  const specs = fit.summarised.filter((i) => !i.adrId);
+  const changes = fit.summarised.filter((i) => i.tier === TIER.CHANGE);
+  const specs = fit.summarised.filter((i) => !i.adrId && i.tier !== TIER.CHANGE);
   if (adrs.length > 0) {
     log(c.gray(`  ${adrs.length} ADR${adrs.length === 1 ? "" : "s"} reduced to title + summary (least relevant first)`));
   }
   if (specs.length > 0) {
     log(c.gray(`  ${specs.length} spec${specs.length === 1 ? "" : "s"} reduced to title + purpose — name one to read it in full`));
+  }
+  // Parked changes are their own line: reporting them as "specs" is how a
+  // pack that had summarised twenty queue entries claimed to have
+  // summarised twenty capabilities.
+  if (changes.length > 0) {
+    log(c.gray(`  ${changes.length} parked change${changes.length === 1 ? "" : "s"} reduced to a queue line — name one to read it in full`));
   }
   if (fit.dropped.length > 0) {
     log(c.gray(`  ${fit.dropped.length} omitted: `) + fit.dropped.map((i) => i.adrId ?? path.basename(path.dirname(i.rel))).join(", "));

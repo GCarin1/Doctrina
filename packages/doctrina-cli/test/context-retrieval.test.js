@@ -6,7 +6,8 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import {
-  fitToBudget, relevance, compareRank, queryTerms, DEFAULT_BUDGET,
+  fitToBudget, relevance, compareRank, queryTerms, changeSummary,
+  DEFAULT_BUDGET, TIER,
 } from "../src/commands/context.js";
 import { parseAdrScope, adrSummary, deriveIndex } from "../src/lib/scan.js";
 
@@ -146,12 +147,12 @@ function fixture() {
     title: rel, summary: "One sentence.", ...extra,
   });
   return [
-    item("AGENTS.md", 0, 1000, []),
-    item(".doctrina/specs/a/spec.md", 1, 2000, [0, 1, 5]),
-    item(".doctrina/specs/b/spec.md", 1, 2000, [1, 2, 9]),
-    item(".doctrina/decisions/0001-a.md", 3, 900, [0, 0, 0, 1], { adrId: "0001" }),
-    item(".doctrina/decisions/0002-b.md", 3, 900, [0, 0, 0, 2], { adrId: "0002" }),
-    item(".doctrina/decisions/0003-c.md", 3, 900, [1, 0, 0, 3], { adrId: "0003" }),
+    item("AGENTS.md", TIER.CORE, 1000, []),
+    item(".doctrina/specs/a/spec.md", TIER.SPEC, 2000, [0, 1, 5]),
+    item(".doctrina/specs/b/spec.md", TIER.SPEC, 2000, [1, 2, 9]),
+    item(".doctrina/decisions/0001-a.md", TIER.DECISION, 900, [0, 0, 0, 1], { adrId: "0001" }),
+    item(".doctrina/decisions/0002-b.md", TIER.DECISION, 900, [0, 0, 0, 2], { adrId: "0002" }),
+    item(".doctrina/decisions/0003-c.md", TIER.DECISION, 900, [1, 0, 0, 3], { adrId: "0003" }),
   ];
 }
 
@@ -175,7 +176,7 @@ test("the ladder degrades everything before it drops anything", () => {
   const pack = fixture();
   const fit = fitToBudget(pack, 3000);
   const dropped = pack.filter((i) => i.dropped);
-  const full = pack.filter((i) => !i.dropped && !i.degraded && i.tier !== 0);
+  const full = pack.filter((i) => !i.dropped && !i.degraded && i.tier !== TIER.CORE);
   assert.equal(full.length, 0,
     `dropped ${dropped.length} artifact(s) while ${full.length} were still at full size`);
   assert.ok(fit.summarised.length > 0);
@@ -393,4 +394,122 @@ test("a query matching no skill leaves the list unranked and unmarked", () => {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+// ------------------------------------------------- backlog (change 0035)
+//
+// Open changes used to be irreducible CORE, so the SIZE OF THE QUEUE
+// decided whether the read path worked: 21 parked changes took this
+// repository's packs from 95% of the ceiling to 230% of it and `context`
+// started exiting 1. A project must never be blocked by having planned
+// work, so a parked change is now one degradable queue line and only the
+// change actually being worked on stays whole.
+
+const TOPICS = [
+  "quota", "retry", "webhook", "cursor", "ledger", "digest", "throttle",
+  "beacon", "manifest", "shard", "envelope", "cascade", "harness", "lattice",
+  "prism", "quarry", "ripple", "sonar", "tundra", "vellum",
+];
+
+function backlogProject(count) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "doctrina-backlog-"));
+  assert.equal(run(dir, ["init", "--non-interactive", "--project-name", "Acme"]).status, 0);
+  for (let i = 1; i <= count; i += 1) {
+    // Each change gets a distinctive noun, so a query can pick ONE out.
+    // Without it every change reads the same and the tie rule (correctly)
+    // refuses to choose — which is its own test below.
+    const topic = TOPICS[(i - 1) % TOPICS.length];
+    const id = `${String(i).padStart(4, "0")}-${topic}-work`;
+    assert.equal(run(dir, ["change", "new", id, `${topic} work`]).status, 0);
+    const changeDir = path.join(dir, ".doctrina", "changes", id);
+    // A parked change is PLANNED: real prose and real tasks, unchecked.
+    writeFileSync(path.join(changeDir, "proposal.md"),
+      `# Change ${id} — ${topic} work\r\n\r\n- **Status:** proposed\r\n\r\n` +
+      "## Why\r\n\r\n" +
+      `The ${topic} needs work, at enough length to be worth summarising. `.repeat(12) +
+      "\r\n\r\n## What\r\n\r\n" +
+      `The shape of the ${topic} change. `.repeat(12) + "\r\n");
+    writeFileSync(path.join(changeDir, "tasks.md"),
+      `# Tasks — Change ${id}\r\n\r\n- [ ] first ${topic} step\r\n- [x] second ${topic} step\r\n`);
+    const deltaDir = path.join(changeDir, "specs", "core");
+    mkdirSync(deltaDir, { recursive: true });
+    writeFileSync(path.join(deltaDir, "delta.md"),
+      "# Spec Delta — capability: core\r\n\r\n**Operation:** MODIFIED\r\n" +
+      "**Target spec on apply:** `.doctrina/specs/core/spec.md`\r\n\r\n---\r\n\r\n" +
+      `The delta body for the ${topic}. `.repeat(20) + "\r\n");
+  }
+  return dir;
+}
+
+test("a backlog of open changes never pushes a pack over its budget", () => {
+  const dir = backlogProject(20);
+  try {
+    const res = run(dir, ["context"]);
+    assert.equal(res.status, 0, "a planned backlog must not make the pack unassemblable");
+    const total = tokensOf(res.stdout);
+    assert.ok(total <= DEFAULT_BUDGET, `pack is ~${total} tokens, over the ${DEFAULT_BUDGET} default`);
+    // Every change is still PRESENT — work in flight is never invisible.
+    for (const topic of ["quota", "ledger", "vellum"]) {
+      assert.match(res.stdout, new RegExp(`${topic}-work`), `the ${topic} change vanished from the pack`);
+    }
+
+    // And under a ceiling this backlog cannot meet whole, it shortens the
+    // queue and says so, instead of exiting 1 the way it used to.
+    const tight = run(dir, ["context", "--budget", "6000"]);
+    assert.equal(tight.status, 0, "a backlog must shorten, not block");
+    assert.match(tight.stdout, /parked change/, "the report must name what it shortened");
+    assert.ok(tokensOf(tight.stdout) <= 6000);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a parked change is one queue line; only the change in focus stays whole", () => {
+  const dir = backlogProject(20);
+  try {
+    const out = run(dir, ["context", "--for", "the throttle is wrong"]).stdout;
+    const lines = out.split("\n").filter((l) => /open change:/.test(l));
+
+    const focus = lines.filter((l) => l.includes("0007-throttle-work"));
+    assert.equal(focus.length, 3, "the change in focus keeps its proposal, tasks and delta");
+    for (const l of focus) assert.doesNotMatch(l, /summary/, `focus must not degrade: ${l.trim()}`);
+
+    const parked = lines.filter((l) => l.includes("0012-cascade-work"));
+    assert.equal(parked.length, 1, "a parked change is ONE entry, not three documents");
+    assert.match(parked[0], /parked/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a tie is not a focus: with nothing to choose on, no change is exempt", () => {
+  const dir = backlogProject(20);
+  try {
+    // Every change carries a `core` delta, so naming the capability matches
+    // all twenty equally. Picking the lowest-numbered one would silently
+    // decide what the reader is working on.
+    const lines = run(dir, ["context", "core"]).stdout.split("\n").filter((l) => /open change:/.test(l));
+    assert.ok(lines.length > 0);
+    assert.ok(lines.every((l) => l.includes("(parked)")),
+      "an ambiguous match must leave every change in the queue");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("changeSummary says what each file of a change is worth in one line", () => {
+  const proposal = "# Change 0001-x — x\r\n\r\n- **Status:** applied\r\n\r\n## Why\r\n\r\nBecause the parser broke.\r\n";
+  assert.match(changeSummary(".doctrina/changes/0001-x/proposal.md", proposal), /^\[applied\] Because the parser broke\./);
+
+  const tasks = "# Tasks\r\n\r\n- [x] done one\r\n- [ ] do two\r\n- [ ] do three\r\n";
+  const t = changeSummary(".doctrina/changes/0001-x/tasks.md", tasks);
+  assert.match(t, /1\/3 tasks checked/);
+  assert.match(t, /Next: do two/);
+
+  const delta = "# Spec Delta\r\n\r\n**Operation:** MODIFIED\r\n**Target spec on apply:** `.doctrina/specs/cli/spec.md`\r\n";
+  assert.match(changeSummary(".doctrina/changes/0001-x/specs/cli/delta.md", delta), /MODIFIED →/);
+
+  // Never null: an item with no summary is refused by the ladder and would
+  // sit in the pack at full size forever.
+  assert.ok(changeSummary(".doctrina/changes/0001-x/design.md", "# Design\r\n"));
 });

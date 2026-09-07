@@ -3,7 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
 import { collectStatus } from "./status.js";
-import { computeActions } from "./next.js";
+import { computeActions } from "../lib/actions.js";
 import { openChanges } from "./prime.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
@@ -76,7 +76,7 @@ export async function run(_positional, _flags) {
   if (actions.length === 0) {
     console.log("1. nothing pending — `doctrina next` will confirm; pick up new work");
   } else {
-    actions.forEach((a, i) => console.log(`${i + 1}. ${a}`));
+    actions.forEach((a, i) => console.log(`${i + 1}. ${a.text}`));
   }
 
   console.log("");

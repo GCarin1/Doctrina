@@ -120,15 +120,31 @@ Every degradation and omission is named in the report:
 ```
 within budget ~14511 of 15000 tokens (97%) after assembly:
   14 ADRs reduced to title + summary (least relevant first)
+  18 parked changes reduced to a queue line — name one to read it in full
   scope an ADR to shrink this permanently: doctrina decision scope --write
 ```
 
 The **core** — root rules, product truth, the named capability's
-spec, open changes — is never degraded and never dropped. When
-the core alone exceeds the budget, the command says so and exits
-1. That is a real finding (an oversized spec, a stale open
-change), and hiding it behind a silently oversized pack helps
-nobody.
+spec, and the change in focus — is never degraded and never
+dropped. When the core alone exceeds the budget, the command says
+so and exits 1. That is a real finding (an oversized spec), and
+hiding it behind a silently oversized pack helps nobody.
+
+**4. A backlog is a queue, not a corpus.** Open changes used to
+be core in full, so the *size of the queue* decided whether the
+read path worked: twenty planned-but-unstarted changes put every
+pack over its ceiling and `context` exited 1. Having planned work
+must never block a project. So exactly one change is **in focus**
+and stays whole; every other is one degradable queue line:
+
+```
+0034-um-unico-mapa-de-gates  [proposed] Four gate maps for one concept · 0/10 tasks · specs: gates
+```
+
+Focus follows the same signals that order the pack — the named
+capability, then the `--for` query — and is **singular by
+construction, never guessed**: when several changes match equally
+none is in focus, and the backlog reads as the queue it is.
 
 ### Retrieval by task
 

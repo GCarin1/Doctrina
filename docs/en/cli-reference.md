@@ -1251,20 +1251,69 @@ matches the tree. Wire it into CI next to `validate`.
 Print the recommended next workflow actions, in priority order.
 
 ```
-doctrina next
+doctrina next [--json] [--run]
 ```
 
-Inspects the tree and reports: open changes (missing proposal,
-unchecked tasks, deltas ready to apply, applied-but-unarchived),
-ADRs still in `proposed` status, accepted ADRs with nothing proving
-them yet (suggesting `decision land`), a one-time skill-capture nudge
-when no skill exists and an archived change is fix-shaped, and index
-drift last (ADR 0011). When nothing is open it says so and points at
-`change new` / `spec new`.
+Inspects the tree and reports: runtime declarations that no longer hold
+(first — a broken wiring is why the last run lied), open changes
+(missing proposal, unchecked tasks, deltas ready to apply,
+applied-but-unarchived), ADRs still in `proposed` status, accepted ADRs
+with nothing proving them yet (suggesting `decision land`), a one-time
+skill-capture nudge when no skill exists and an archived change is
+fix-shaped, and index drift last (ADR 0011). When nothing is open it
+says so and points at `change new` / `spec new`.
 
-Read-only; always exits 0. Intended for agents and humans resuming
-work without re-reading the whole tree. `--json` emits `{ actions }`
-for pipelines.
+Read-only without `--run`, and always exits 0 then. Intended for agents
+and humans resuming work without re-reading the whole tree.
+
+### Actions are records, not prose
+
+`--json` emits `{ actions }` where each action is:
+
+```json
+{
+  "id": "change-archive-pending",
+  "command": "change archive",
+  "args": ["0031-fix-parser"],
+  "why": "applied but not archived",
+  "gate": "archive",
+  "severity": "blocking",
+  "runnable": true,
+  "text": "doctrina change archive 0031-fix-parser — applied but not archived"
+}
+```
+
+Branch on `command` and `args` — a consumer re-issues the operation
+without parsing English. `text` is the same line the terminal prints,
+built from those fields, so the sentence and the record cannot drift.
+`id` names the KIND of action, not the instance, so it is stable to
+match on.
+
+> **Payload change.** Before this, `actions` was an array of strings.
+> A consumer that printed them still works via `actions[i].text`; one
+> that concatenated the array directly must be updated.
+
+### `--run`
+
+Executes the first **runnable** action in-process and stops — one
+action, not the queue, because the list is recomputed from the tree
+after every change to it. Exits with that command's own code.
+
+An action is runnable only when running it unattended is both safe and
+the whole of what the action asks for. Anything that needs a person to
+*decide* is never runnable, however mechanical its edit would be:
+
+| Action | Runnable | Why |
+|---|---|---|
+| `index rebuild`, `triage`, `intake`, `analyze` | yes | mechanical and idempotent |
+| `change apply`, `change archive` | yes | gated in their own right |
+| accept an ADR | **no** | that is the decision, not a header edit |
+| complete a task | **no** | ticking the box is not doing the work |
+| write a proposal, capture a skill | **no** | authorship |
+
+With nothing runnable, `--run` names the action that needs a person and
+exits 0 — refusing is not a failure. Use `doctrina close` when you want
+a whole sequence run for you.
 
 ## `doctrina status`
 

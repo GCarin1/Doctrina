@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.7.1
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -309,10 +309,13 @@ constraints (exit codes, zero-deps, no-network).
 - When `doctrina analyze <change-id>` runs, the system shall refuse a change whose text raises a declared OUTPUT budget above the ceiling its contract records.
 - When `doctrina validate --runtime` runs, the system shall run the same runtime checks as `contract check` in addition to the structural checks, and shall report their errors as validation errors.
 - When `doctrina doctor` runs, the system shall report the runtime surface as one further diagnostic row, and with `--env` shall additionally check the local `.env` against the declared names and enums.
+- When a context pack is assembled, the system shall place at most one open change in the irreducible core — the one the named capability or the task query identifies unambiguously — and shall place none there when several match equally.
+- When a task query is given and no capability is named, the system shall place the spec that query identifies unambiguously in the irreducible core.
 
 ### State-driven
 
 - While a pack exceeds its budget, the system shall reduce accepted ADRs to title plus summary, and unnamed capability specs to title plus purpose, least relevant first, before omitting any artifact.
+- While a change is open but not in focus, the system shall carry it in the context pack as a single degradable entry stating its status, its rationale, its task progress and the capabilities its deltas target.
 
 ### Unwanted-behavior (must-not)
 
@@ -331,6 +334,7 @@ constraints (exit codes, zero-deps, no-network).
 - The system shall not invoke a gate through a resolver that installs a missing package from a registry; a gate whose tool is absent shall fail loudly rather than run something fetched in its place.
 - The system shall not print the value of an environment variable when reporting a local `.env` finding; it shall name the variable and the allowed set only.
 - The system shall not report a workflow it cannot read as one that omits a declared variable; it shall report the file as unreadable instead.
+- The system shall not let the number of open changes decide whether a context pack can be assembled within its budget.
 
 ### Optional
 
@@ -375,6 +379,9 @@ The gate surface is spec-compliant when:
 25. [verified] A wiring row declaring `<origin>:<source>` silences the name-mismatch warning while the workflow agrees, and warns again when either side moves — verified by `packages/doctrina-cli/test/runtime.test.js`.
 26. [verified] Declaring a source does not switch off the empty-vs-unset check for that row — verified by `packages/doctrina-cli/test/runtime.test.js`.
 27. [verified] A check with an output expectation emits its output progressively rather than in one block at the end — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+28. [verified] A backlog of twenty open changes leaves every capability pack within the default budget, and each change is still present — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+29. [verified] The change in focus keeps its proposal, tasks and deltas whole while every parked change is a single entry — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+30. [verified] Several changes matching equally leaves none in focus, so the pack never silently decides what the reader is working on — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 
 ## Out of scope for this spec
 

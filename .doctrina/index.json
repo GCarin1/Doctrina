@@ -15,7 +15,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.36.0",
+        "version": "0.37.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.8.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -388,13 +388,6 @@
     ],
     "changes": [
       {
-        "id": "0032-next-devolve-acoes-executaveis",
-        "title": "next devolve acoes executaveis",
-        "path": ".doctrina/changes/0032-next-devolve-acoes-executaveis",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
-      {
         "id": "0033-o-gate-de-runtime-entra-no-close-e-no-ci",
         "title": "o gate de runtime entra no close e no CI",
         "path": ".doctrina/changes/0033-o-gate-de-runtime-entra-no-close-e-no-ci",
@@ -405,13 +398,6 @@
         "id": "0034-um-unico-mapa-de-gates",
         "title": "um unico mapa de gates",
         "path": ".doctrina/changes/0034-um-unico-mapa-de-gates",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
-      {
-        "id": "0035-o-pack-de-contexto-nunca-bloqueia",
-        "title": "o pack de contexto nunca bloqueia",
-        "path": ".doctrina/changes/0035-o-pack-de-contexto-nunca-bloqueia",
         "status": "proposed",
         "opened": "2026-09-07"
       },
@@ -962,6 +948,32 @@
         "path": ".doctrina/changes/archive/2026-09-04-0031-a-wiring-row-may-declare-the-source-variable",
         "status": "applied",
         "applied": "2026-09-04",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0032-next-devolve-acoes-executaveis",
+        "title": "next devolve acoes executaveis",
+        "path": ".doctrina/changes/archive/2026-09-07-0032-next-devolve-acoes-executaveis",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0035-o-pack-de-contexto-nunca-bloqueia",
+        "title": "o pack de contexto nunca bloqueia",
+        "path": ".doctrina/changes/archive/2026-09-07-0035-o-pack-de-contexto-nunca-bloqueia",
+        "status": "applied",
+        "applied": "2026-09-07",
         "specs_affected": [
           {
             "capability": "gates",

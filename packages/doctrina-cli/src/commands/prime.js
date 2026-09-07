@@ -5,7 +5,7 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { listHeader } from "../lib/scan.js";
 import { collectStatus } from "./status.js";
-import { computeActions } from "./next.js";
+import { computeActions } from "../lib/actions.js";
 import { acceptedDecisions, productSection } from "./constitution.js";
 import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
@@ -75,7 +75,7 @@ export async function run(_positional, _flags) {
   if (actions.length === 0) {
     console.log(c.gray("  nothing pending — pick up new work"));
   } else {
-    actions.slice(0, 5).forEach((a, i) => console.log(`  ${i + 1}. ${a}`));
+    actions.slice(0, 5).forEach((a, i) => console.log(`  ${i + 1}. ${a.text}`));
     if (actions.length > 5) console.log(c.gray(`  … ${actions.length - 5} more — \`doctrina next\``));
   }
 

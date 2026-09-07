@@ -338,8 +338,12 @@ test("next puts a broken runtime declaration ABOVE the artifact chores", () => {
     );
     const res = run(dir, ["next", "--json"]);
     const payload = JSON.parse(res.stdout);
-    assert.match(payload.actions[0], /doctrina triage/);
-    assert.match(payload.actions[0], /do(es)? not hold/);
+    // Actions are RECORDS since change 0032: a consumer branches on
+    // `command`/`args` rather than re-reading the sentence the CLI built.
+    assert.equal(payload.actions[0].command, "triage");
+    assert.equal(payload.actions[0].id, "runtime-declarations");
+    assert.match(payload.actions[0].why, /do(es)? not hold/);
+    assert.match(payload.actions[0].text, /doctrina triage/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
