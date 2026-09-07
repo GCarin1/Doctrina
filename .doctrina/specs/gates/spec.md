@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.8.0
+**Version:** 0.9.0
 
 ## Purpose
 
@@ -207,7 +207,7 @@ constraints (exit codes, zero-deps, no-network).
   citing missing proof, dropped product intent, and contract collisions —
   exiting 0 as a report and 1 under `--strict` when any hard break exists;
   it never judges semantic fidelity (review 2026-06-27).
-- When `doctrina close <id>` runs, the system shall drive the closing
+- When `doctrina close <id>` runs, the system shall drive the closing sequence in one pass — analyze → change apply → runtime → verify (skipped with a note when no `verify.json`) → coverage `--strict` → trace (advisory) → change archive → validate — stopping at the first failure with the exact command to rerun, and exit non-zero on that failure (review 2026-06-27).
   sequence in one pass — analyze → change apply → verify (skipped with a
   note when no `verify.json`) → coverage `--strict` → trace (advisory) →
   change archive → validate — stopping at the first failure with the exact
@@ -311,6 +311,8 @@ constraints (exit codes, zero-deps, no-network).
 - When `doctrina doctor` runs, the system shall report the runtime surface as one further diagnostic row, and with `--env` shall additionally check the local `.env` against the declared names and enums.
 - When a context pack is assembled, the system shall place at most one open change in the irreducible core — the one the named capability or the task query identifies unambiguously — and shall place none there when several match equally.
 - When a task query is given and no capability is named, the system shall place the spec that query identifies unambiguously in the irreducible core.
+- When `doctrina close <id>` reaches the runtime gate, the system shall evaluate the same runtime checks `contract check` renders and refuse the close when any finding is an error, while reporting a finding that is only a warning and continuing.
+- When the shipped CI action runs, the system shall run the declared runtime checks as one of its gate steps, so a declaration that no longer holds fails the pipeline instead of passing it.
 
 ### State-driven
 
@@ -382,6 +384,9 @@ The gate surface is spec-compliant when:
 28. [verified] A backlog of twenty open changes leaves every capability pack within the default budget, and each change is still present — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 29. [verified] The change in focus keeps its proposal, tasks and deltas whole while every parked change is a single entry — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 30. [verified] Several changes matching equally leaves none in focus, so the pack never silently decides what the reader is working on — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+31. [verified] A change whose contract declares wiring the named workflow does not export is refused by `doctrina close` at the runtime gate, and the same change closes once the export exists — verified by `packages/doctrina-cli/test/integration.test.js`.
+32. [verified] A project with no contracts, and one whose contracts declare no rows, close unchanged — the second reported as unchecked rather than passing — verified by `packages/doctrina-cli/test/integration.test.js`.
+33. [verified] The shipped CI action carries the runtime step, and the command it runs exits 1 on the same broken declaration — verified by `packages/doctrina-cli/test/integration.test.js`, `action.yml`.
 
 ## Out of scope for this spec
 

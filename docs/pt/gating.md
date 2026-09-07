@@ -85,6 +85,34 @@ um agente e produziu ação errada. Se ninguém esbarra, ninguém
 conserta. O `doctrina validate` não checa frescor de doc — humanos
 checam, por revisão de PR e pela pergunta-gatilho acima.
 
+## O único gate que você não escolhe: runtime
+
+Tudo acima trata de *quando* abrir um change. O gate de runtime é
+diferente: ele roda em todo `doctrina close` e na action de CI, tendo o
+trabalho valido ou não um change, porque o que ele checa não é um
+documento — é se as declarações que um contrato faz sobre o sistema em
+execução ainda valem (RT01-RT05: a variável que nenhum workflow exporta,
+o default que um valor vazio do CI nunca dispara, o enum que ninguém
+valida, o seletor que não casa com nada e mesmo assim sai 0).
+
+Essa classe de quebra sobrevive a todos os outros gates: os artefatos
+estão bem formados, as specs traçam, os critérios citam prova, e o
+pipeline fica verde enquanto o processo nunca vê a variável. Por isso o
+check fica na sequência, e não no seu julgamento.
+
+O custo é limitado pelo que você declarou:
+
+- **Sem contratos** — uma linha, saída 0. Nada muda.
+- **Contratos sem linhas de `Wiring`/`Selectors`** — reportado como
+  **UNCHECKED**, nunca como aprovado. Silêncio não é prova; é a ausência
+  de uma declaração a checar.
+- **Linhas declaradas** — um erro bloqueia o close, um aviso é reportado
+  e o close segue.
+
+Ou seja: o gate não custa nada até você declarar algo, e a partir daí ele
+cobra o que foi declarado. Essa é a troca a fazer de propósito: declare
+as linhas que importam, não todas as que caberiam.
+
 ## Antipattern: gating em tudo
 
 O ponto do Doctrina é reduzir surpresas, não fabricar cerimônia.

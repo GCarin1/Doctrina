@@ -1347,17 +1347,32 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Drives analyze → **ADR checkpoint** (advisory: the accepted ADRs whose
 text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
-`change apply` → verify → `coverage --strict` → trace → **docs** →
-`change archive` → validate → **skill suggest** (advisory: fix-shaped
-lessons not yet captured, surfaced while they are fresh), stopping at
-the first failure with the exact command to rerun. The coverage gate is
-**scoped to the capabilities the change's deltas touch** (`--only`
-under the hood), so a deliberately deferred spec elsewhere in the tree
-cannot block an unrelated close; a change with no deltas gates on the
-whole tree. verify is skipped (with a note) when no `verify.json` is
-declared; trace and both advisories never block. A driver over the
+`change apply` → **runtime** → verify → `coverage --strict` → trace →
+**docs** → `change archive` → validate → **skill suggest** (advisory:
+fix-shaped lessons not yet captured, surfaced while they are fresh),
+stopping at the first failure with the exact command to rerun. The
+coverage gate is **scoped to the capabilities the change's deltas touch**
+(`--only` under the hood), so a deliberately deferred spec elsewhere in
+the tree cannot block an unrelated close; a change with no deltas gates
+on the whole tree. verify is skipped (with a note) when no `verify.json`
+is declared; trace and both advisories never block. A driver over the
 existing commands — it adds one check of its own, the docs gate — so
 the agent makes one call instead of nine.
+
+**The runtime gate.** The RT01-RT05 checks `doctrina contract check`
+renders, run here as a step: a variable a contract declares under
+`vars`/`secrets` that the named workflow does not export, a consumer
+default an empty CI value never triggers, a declared enum nothing
+validates, a selector that matches zero targets and still exits 0. It
+runs after `apply`, because the deltas just merged are what may have
+moved the surface the contract describes. Severity decides the level: an
+**error blocks** the close (rerun with `doctrina contract check`), a
+**warning is reported** and the close continues. A project with no
+contracts prints one line and passes; contracts that declare no
+`Wiring`/`Selectors` rows are reported **UNCHECKED**, never as passing —
+silence is the absence of a declaration, not proof that the wiring holds.
+No check is duplicated: `close`, `contract check`, `validate --runtime`,
+`triage` and `doctor` all render the same findings from the same source.
 
 **The docs gate.** A change that alters a documented surface — a
 command, a flag, an exit code — closes only when documentation moved

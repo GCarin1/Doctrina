@@ -47,7 +47,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.8.0",
+        "version": "0.9.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -387,13 +387,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0033-o-gate-de-runtime-entra-no-close-e-no-ci",
-        "title": "o gate de runtime entra no close e no CI",
-        "path": ".doctrina/changes/0033-o-gate-de-runtime-entra-no-close-e-no-ci",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0034-um-unico-mapa-de-gates",
         "title": "um unico mapa de gates",
@@ -964,6 +957,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0033-o-gate-de-runtime-entra-no-close-e-no-ci",
+        "title": "o gate de runtime entra no close e no CI",
+        "path": ".doctrina/changes/archive/2026-09-07-0033-o-gate-de-runtime-entra-no-close-e-no-ci",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

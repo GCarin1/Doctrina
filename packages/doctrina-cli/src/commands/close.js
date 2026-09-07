@@ -8,6 +8,7 @@ import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "./change.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { checkDocsImpact } from "../lib/docs-impact.js";
+import { collectRuntimeFindings } from "../lib/runtime.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
@@ -18,8 +19,8 @@ import * as validate from "./validate.js";
 import * as skill from "./skill.js";
 
 // One-command close (review 2026-06-27 passive-user feature #2). The work
-// playbook lists the closing sequence — analyze → apply → verify → coverage →
-// trace → archive → validate — and the agent runs it step by step, which is
+// playbook lists the closing sequence — analyze → apply → runtime → verify →
+// coverage → trace → archive → validate — and the agent runs it step by step, which is
 // exactly where a gate gets skipped. `close` runs the whole sequence in one
 // pass, in-process, stopping at the first failure with the exact command to
 // rerun, so the agent makes one call and the human approves once. It is a
@@ -103,6 +104,51 @@ async function closeOne(projectRoot, id, flags) {
       },
     },
     { label: "apply", rerun: `doctrina change apply ${id}`, run: () => change.run(["apply", id], new Map()) },
+    // The RUNTIME gate (audit finding F2). RT01–RT05 live in lib/runtime.js
+    // and no default driver ran them: `close` did not, `validate` only under
+    // --runtime, and the published action not at all — so the one class of
+    // break every structural gate is blind to (the declaration that no
+    // longer matches the running system) reached production green. It sits
+    // here, after `apply`, because the deltas the apply just merged are what
+    // may have moved the surface the contract describes. A driver over
+    // lib/runtime.js: the same findings `contract check`, `triage` and
+    // `doctor` render, so the five can never disagree.
+    //
+    // Severity decides the level: an `error` blocks the close, a `warn` is
+    // reported and the close continues. A project with no contracts — or
+    // with contracts that declare no Wiring/Selectors rows — is not passing,
+    // it is UNCHECKED, and saying so is what stops silence from reading as
+    // proof.
+    {
+      label: "runtime",
+      rerun: "doctrina contract check",
+      run: async () => {
+        const { findings, contracts, declared } = collectRuntimeFindings(projectRoot);
+        if (contracts === 0) {
+          console.log(c.gray("·      no contracts — nothing declares a runtime surface"));
+          return 0;
+        }
+        for (const f of findings) {
+          const mark = f.level === "error" ? c.red("  ✗ ") : c.yellow("  ! ");
+          console.log(mark + `${f.contract}: ${f.message}` + c.gray(` [${f.code}]`));
+          console.log(`      ${c.gray(`fix: ${f.remedy}`)}`);
+        }
+        const errs = findings.filter((f) => f.level === "error").length;
+        if (errs > 0) {
+          console.error(c.red("error:") + ` ${errs} declared row${errs === 1 ? " does" : "s do"} not hold`);
+          return 1;
+        }
+        if (declared === 0) {
+          console.log(c.yellow("warn:  ") +
+            `${contracts} contract${contracts === 1 ? "" : "s"}, 0 Wiring/Selectors rows — the runtime surface is unchecked`);
+          return 0;
+        }
+        const warns = findings.length;
+        console.log(c.green("ok") + ` ${declared} declared row${declared === 1 ? " holds" : "s hold"}` +
+          (warns > 0 ? c.gray(`; ${warns} advisory finding${warns === 1 ? "" : "s"} above`) : ""));
+        return 0;
+      },
+    },
     verifyConfigured
       ? { label: "verify", rerun: "doctrina verify", run: () => verify.run([], new Map()) }
       : { label: "verify", skip: "no .doctrina/verify.json — declare the real gate with `doctrina verify --init`" },
@@ -142,7 +188,7 @@ async function closeOne(projectRoot, id, flags) {
     { label: "validate", rerun: "doctrina validate", run: () => validate.run([], new Map()) },
   ];
 
-  console.log(c.bold(`Closing change ${id}`) + c.gray(" — analyze → ADR checkpoint → apply → verify → coverage → trace → docs → archive → validate"));
+  console.log(c.bold(`Closing change ${id}`) + c.gray(" — analyze → ADR checkpoint → apply → runtime → verify → coverage → trace → docs → archive → validate"));
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
@@ -221,14 +267,19 @@ Usage: doctrina close <id...> [--force]
 Run the whole closing sequence for a change in one pass, stopping at the
 first failure with the exact command to rerun:
 
-  analyze → ADR checkpoint (advisory) → change apply → verify → coverage
-  --strict (scoped to the change's touched capabilities) → trace → change
-  archive → validate → skill suggest (advisory)
+  analyze → ADR checkpoint (advisory) → change apply → runtime → verify →
+  coverage --strict (scoped to the change's touched capabilities) → trace →
+  change archive → validate → skill suggest (advisory)
 
 The coverage gate is scoped to the capabilities the change's deltas touch,
 so a deliberately deferred spec elsewhere cannot block an unrelated close;
-a change with no deltas gates on the whole tree. verify is skipped (with a
-note) when no .doctrina/verify.json is declared; trace, the ADR checkpoint
+a change with no deltas gates on the whole tree. The runtime gate holds the
+contracts' declared wiring, enums and selectors to the implementation (the
+RT01-RT05 checks \`contract check\` renders): an error blocks, a warning is
+reported and the close continues, and a project with no contracts — or with
+contracts declaring no rows — is reported UNCHECKED rather than passing.
+verify is skipped (with a note) when no .doctrina/verify.json is declared;
+trace, the ADR checkpoint
 (accepted ADRs citing the touched capabilities — amend via \`decision
 supersede\`, not silence), and the closing skill-suggest listing are
 advisory (reports, never blockers). This is a driver over the existing

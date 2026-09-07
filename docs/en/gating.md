@@ -78,6 +78,34 @@ agent and produced wrong action. If nobody hits it, nobody fixes it.
 Doctrina's `validate` does not check doc freshness — humans do, by
 PR review and by the trigger above.
 
+## The one gate you do not choose: runtime
+
+Everything above is about *when* to open a change. The runtime gate is
+different: it runs on every `doctrina close` and in the CI action,
+whether or not the work was worth a change, because what it checks is
+not a document — it is whether the declarations a contract makes about
+the running system still hold (RT01-RT05: the variable no workflow
+exports, the default an empty CI value never triggers, the enum nothing
+validates, the selector that matches nothing and still exits 0).
+
+That class of break survives every other gate: the artifacts are
+well-formed, the specs trace, the criteria cite proof, and the pipeline
+is green while the process never sees the variable. So the check sits in
+the sequence rather than in your judgement.
+
+The cost is bounded by what you declared:
+
+- **No contracts** — one line, exit 0. Nothing changes.
+- **Contracts with no `Wiring`/`Selectors` rows** — reported as
+  **UNCHECKED**, never as passing. Silence is not proof; it is the
+  absence of a declaration to check.
+- **Declared rows** — an error blocks the close, a warning is reported
+  and the close continues.
+
+Which means the gate costs nothing until you declare something, and from
+that moment it holds you to what you declared. That is the trade to make
+deliberately: declare the rows that matter, not every row you could.
+
 ## Anti-pattern: gating everything
 
 The point of Doctrina is to reduce surprises, not to manufacture

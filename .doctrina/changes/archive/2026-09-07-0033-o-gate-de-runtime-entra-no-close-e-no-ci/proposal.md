@@ -1,6 +1,7 @@
 # Change 0033-o-gate-de-runtime-entra-no-close-e-no-ci — o gate de runtime entra no close e no CI
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** gates
@@ -32,11 +33,11 @@ da fila — a prioridade está declarada, só a execução falta.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma change cujo contrato declara wiring que não vale é recusada por `doctrina close`.
-- [ ] O mesmo caso faz o job de gates do `action.yml` sair diferente de zero.
-- [ ] Um projeto sem contratos, ou com contratos sem linhas declaradas, fecha normalmente.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma change cujo contrato declara wiring que não vale é recusada por `doctrina close`.
+- [x] O mesmo caso faz o job de gates do `action.yml` sair diferente de zero.
+- [x] Um projeto sem contratos, ou com contratos sem linhas declaradas, fecha normalmente.
 
 ## Open questions
 

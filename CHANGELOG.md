@@ -17,6 +17,26 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The runtime gate runs in the close and in CI.** `lib/runtime.js` held
+  RT01-RT05 and no default driver executed them: `close` did not run them,
+  `validate` only under `--runtime`, and the published action not at all —
+  so the one class of break every structural gate is blind to (a contract
+  whose declared wiring, enum or selector no longer matches the running
+  system) reached a green pipeline. `doctrina close` now runs a `runtime`
+  step after `apply`, and `action.yml` runs `doctrina contract check`
+  alongside the other gates. No new check and no second implementation:
+  the same findings `contract check`, `validate --runtime`, `triage` and
+  `doctor` already render.
+- Severity decides the level in the close: an `error` blocks, a `warn` is
+  reported and the close continues. A project with no contracts prints one
+  line and passes; contracts declaring no `Wiring`/`Selectors` rows are
+  reported UNCHECKED rather than passing, because silence is the absence of
+  a declaration, not proof that the wiring holds.
+- `.doctrina/verify.json` gained the matching `contract-check` entry, so the
+  local verify set stays equal to what CI runs.
+
 ## [0.15.1] — 2026-09-04
 
 Defects that dogfooding 0.15.0 on this repository surfaced within hours of

@@ -4335,3 +4335,119 @@ test("an empty .doctrina/templates/ behaves exactly as before", () => {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// ── Change 0033: the runtime gate runs in the close and in CI. ──
+//
+// RT01–RT05 lived in lib/runtime.js with no default driver behind them:
+// `close` did not run them, `validate` only under --runtime, and the
+// published action not at all. These pin the two drivers that now do, and
+// the silence that must NOT read as a pass.
+
+// A contract declaring one wiring row, plus the workflow it names. When
+// `exported` is false the workflow has no env: block, so the declaration
+// does not hold (RT01) — the "I set the variable in CI and nothing saw it"
+// case, which every structural gate is blind to.
+function wiringFixture(tmp, { exported }) {
+  mkdirSync(path.join(tmp, ".doctrina", "contracts"), { recursive: true });
+  mkdirSync(path.join(tmp, ".github", "workflows"), { recursive: true });
+  writeFileSync(path.join(tmp, ".doctrina", "contracts", "system.md"),
+    "# Contract — system\n\n**Status:** active\n**Last updated:** 2026-09-07\n\n## Wiring\n\n" +
+    "| Variable     | Origin | Workflow                  | Job/Step | Consumer  |\n" +
+    "|--------------|--------|---------------------------|----------|-----------|\n" +
+    "| AXE_SEVERITY | vars   | .github/workflows/e2e.yml | test     | config.py |\n");
+  writeFileSync(path.join(tmp, ".github", "workflows", "e2e.yml"),
+    "name: e2e\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n" +
+    (exported ? "    env:\n      AXE_SEVERITY: ${{ vars.AXE_SEVERITY }}\n" : "") +
+    "    steps:\n      - run: behave\n");
+  runCli(["index", "rebuild"], { cwd: tmp });
+}
+
+test("close refuses a change whose declared wiring does not hold, and closes once it does", () => {
+  const tmp = initedProject();
+  try {
+    wiringFixture(tmp, { exported: false });
+    runCli(["change", "new", "0001-wired", "wire the severity"], { cwd: tmp });
+    completeChange(tmp, "0001-wired");
+
+    const blocked = runCli(["close", "0001-wired"], { cwd: tmp });
+    assert.equal(blocked.status, 1, blocked.stdout + blocked.stderr);
+    assert.match(blocked.stdout, /runtime/);
+    assert.match(blocked.stdout + blocked.stderr, /RT01/);
+    assert.match(blocked.stdout, /close stopped at "runtime"/);
+    assert.match(blocked.stdout, /doctrina contract check/, "it must name the command that reruns the gate");
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0001-wired")),
+      "a refused close must not archive the change");
+
+    // The declaration holds once the workflow exports it — same change, same
+    // command, and now the close runs through.
+    wiringFixture(tmp, { exported: true });
+    const ok = runCli(["close", "0001-wired"], { cwd: tmp });
+    assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+    assert.match(ok.stdout, /1 declared row holds/);
+    assert.match(ok.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close's runtime gate reports an undeclared surface as unchecked, never as passing", () => {
+  const tmp = initedProject();
+  try {
+    // A contract with no Wiring/Selectors rows: nothing to check is not the
+    // same as nothing wrong, and a green line here would be the exact false
+    // confidence the gate exists to prevent.
+    mkdirSync(path.join(tmp, ".doctrina", "contracts"), { recursive: true });
+    writeFileSync(path.join(tmp, ".doctrina", "contracts", "system.md"),
+      "# Contract — system\n\n**Status:** active\n**Last updated:** 2026-09-07\n\n## Ports\n\n| Service | Port |\n|---|---|\n| api | 8080 |\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+    runCli(["change", "new", "0001-quiet", "no runtime surface"], { cwd: tmp });
+    completeChange(tmp, "0001-quiet");
+
+    const r = runCli(["close", "0001-quiet"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /the runtime surface is unchecked/);
+    assert.match(r.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("a project with no contracts closes unchanged, the runtime gate saying so", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-plain", "no contracts at all"], { cwd: tmp });
+    completeChange(tmp, "0001-plain");
+    const r = runCli(["close", "0001-plain"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /no contracts — nothing declares a runtime surface/);
+    assert.match(r.stdout, /closed/);
+    const archive = path.join(tmp, ".doctrina", "changes", "archive");
+    assert.ok(readdirSync(archive).some((n) => n.endsWith("0001-plain")));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("the gates action runs the runtime check, and `contract check` exits 1 on a broken declaration", () => {
+  // The CI half of the same gate: the composite action the README tells
+  // projects to use must carry the step, and the command that step runs must
+  // exit non-zero on the case above — otherwise the job is green on a
+  // declaration that does not hold.
+  const action = readFileSync(path.resolve(here, "..", "..", "..", "action.yml"), "utf8");
+  assert.match(action, /doctrina contract check/, "action.yml must run the runtime gate");
+  assert.match(action, /\bcontract check\b/);
+
+  const tmp = initedProject();
+  try {
+    wiringFixture(tmp, { exported: false });
+    const broken = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(broken.status, 1, broken.stdout + broken.stderr);
+    assert.match(broken.stdout, /RT01/);
+
+    wiringFixture(tmp, { exported: true });
+    const fixed = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(fixed.status, 0, fixed.stdout + fixed.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

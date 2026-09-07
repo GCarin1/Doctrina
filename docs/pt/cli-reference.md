@@ -1390,17 +1390,33 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
 texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
-`change apply` → verify → `coverage --strict` → trace → **docs** →
-`change archive` → validate → **skill suggest** (advisory: lições
-fix-shaped ainda não capturadas, sugeridas enquanto estão frescas),
-parando na primeira falha com o comando exato para reexecutar. O gate de
-coverage é **escopado às capabilities que os deltas da change tocam**
-(`--only` por baixo), então uma spec deliberadamente adiada em outro
-canto da árvore não bloqueia um close que nunca a tocou; uma change sem
-deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
+`change apply` → **runtime** → verify → `coverage --strict` → trace →
+**docs** → `change archive` → validate → **skill suggest** (advisory:
+lições fix-shaped ainda não capturadas, sugeridas enquanto estão
+frescas), parando na primeira falha com o comando exato para reexecutar.
+O gate de coverage é **escopado às capabilities que os deltas da change
+tocam** (`--only` por baixo), então uma spec deliberadamente adiada em
+outro canto da árvore não bloqueia um close que nunca a tocou; uma change
+sem deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
 não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
 driver sobre os comandos existentes — adiciona uma checagem própria, o
 gate de docs — então o agente faz uma chamada em vez de nove.
+
+**O gate de runtime.** Os checks RT01-RT05 que o `doctrina contract
+check` renderiza, rodando aqui como um passo: uma variável que o contrato
+declara sob `vars`/`secrets` e que o workflow nomeado não exporta, um
+default do consumidor que um valor vazio do CI nunca dispara, um enum
+declarado que ninguém valida, um seletor que casa com zero alvos e mesmo
+assim sai 0. Roda depois do `apply`, porque os deltas recém-mesclados são
+justamente o que pode ter movido a superfície que o contrato descreve. A
+severidade decide o nível: um **erro bloqueia** o close (reexecute com
+`doctrina contract check`), um **aviso é reportado** e o close segue. Um
+projeto sem contratos imprime uma linha e passa; contratos que não
+declaram linhas de `Wiring`/`Selectors` são reportados como
+**UNCHECKED**, nunca como aprovados — silêncio é ausência de declaração,
+não prova de que o wiring vale. Nenhum check é duplicado: `close`,
+`contract check`, `validate --runtime`, `triage` e `doctor` renderizam os
+mesmos findings a partir da mesma fonte.
 
 **O gate de docs.** Uma change que altera uma superfície documentada —
 um comando, uma flag, um código de saída — só fecha quando a

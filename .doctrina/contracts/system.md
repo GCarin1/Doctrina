@@ -101,8 +101,10 @@ external consumer (a CI job, another agent) actually integrates against.
 - **`--json`** — every command emits a stable envelope carrying the
   schema version, so a machine consumer never parses human output.
 - **The composite action** (`action.yml`) — runs `validate`,
-  `index rebuild --check`, `coverage` and `trace`. Note that it does NOT
-  run `verify`: the build gate is the project's own to run.
+  `index rebuild --check`, `contract check`, `coverage` and `trace`. The
+  `contract check` step is what runs RT01-RT05 in CI, so a declaration that
+  no longer holds fails the pipeline instead of passing it silently. Note
+  that it does NOT run `verify`: the build gate is the project's own to run.
 
 ## References
 

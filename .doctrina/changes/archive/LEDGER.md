@@ -39,3 +39,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0099-probe — abandoned
 - 2026-09-07 — 0035-o-pack-de-contexto-nunca-bloqueia — o pack de contexto nunca bloqueia (specs: gates MODIFIED)
 - 2026-09-07 — 0032-next-devolve-acoes-executaveis — next devolve acoes executaveis (specs: cli MODIFIED)
+- 2026-09-07 — 0033-o-gate-de-runtime-entra-no-close-e-no-ci — o gate de runtime entra no close e no CI (specs: gates MODIFIED)
