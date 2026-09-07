@@ -13,6 +13,7 @@ import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gat
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js";
 import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
@@ -543,18 +544,8 @@ function changeArchive(args, flags) {
   // Append a one-line summary to the archive ledger so history stays
   // scannable without opening folders (the archive is out of the default
   // read path; the ledger is the cheap way back in).
-  const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
-  if (!exists(ledgerPath)) {
-    write(ledgerPath,
-      "# Change ledger\n\n" +
-      "One line per archived change, newest last. Appended by\n" +
-      "`doctrina change archive`; edit freely, the CLI only appends.\n\n");
-  }
-  const specsSummary = specsAffected.length > 0
-    ? ` (specs: ${specsAffected.map((s) => `${s.capability} ${s.operation}`).join(", ")})`
-    : "";
-  write(ledgerPath, read(ledgerPath) + `- ${date} — ${id} — ${title}${specsSummary}\n`, { force: true });
-  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerPath)}`);
+  const ledgerFile = appendLedgerLine(projectRoot, archivedLine(id, title, specsAffected, date));
+  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
 
   const index = idx.load(projectRoot);
   idx.moveChangeToArchive(index, id, {
@@ -622,16 +613,8 @@ async function changeAbandon(args, flags) {
   console.log(c.green("removed") + ` ${relPath(projectRoot, changeDir)}`);
 
   // Ledger line so the abandonment is part of the visible history.
-  const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
-  if (!exists(ledgerPath)) {
-    write(ledgerPath,
-      "# Change ledger\n\n" +
-      "One line per archived change, newest last. Appended by\n" +
-      "`doctrina change archive`; edit freely, the CLI only appends.\n\n");
-  }
-  const reasonSuffix = reason ? ` — ${reason}` : "";
-  write(ledgerPath, read(ledgerPath) + `- ${date} — ${id} — abandoned${reasonSuffix}\n`, { force: true });
-  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerPath)}`);
+  const ledgerFile = appendLedgerLine(projectRoot, abandonedLine(id, reason, date));
+  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
 
   // Drop the change entry; rebuild from the tree so nothing drifts.
   const current = idx.load(projectRoot);

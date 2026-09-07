@@ -7,8 +7,9 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
-import { changedFiles } from "../lib/git.js";
-import { parseDependsOn } from "../lib/scan.js";
+import { readLedger, churnByCapability } from "../lib/ledger.js";
+import { changedFiles, windowCutoff } from "../lib/git.js";
+import { dependentsOf } from "../lib/scan.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { summarize as coverageSummary } from "../lib/coverage-model.js";
 import { summarize as traceSummary } from "../lib/trace-model.js";
@@ -26,6 +27,12 @@ import { summarize as traceSummary } from "../lib/trace-model.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
+// How far back the churn note looks, and how many landed changes make it
+// worth saying at all. A window rather than "all time": a capability that
+// moved nine times two years ago is history, not news.
+const CHURN_WINDOW_DAYS = 60;
+const CHURN_NOTABLE = 3;
+
 export const flags = { boolean: ["json", "strict"], string: ["diff"] };
 
 export async function run(_positional, flags) {
@@ -70,16 +77,22 @@ export async function run(_positional, flags) {
   // 1b. Dependents of touched capabilities (the machine-readable
   //     **Depends on:** header): a spec that builds on something you changed
   //     may silently no longer hold. Advisory — a pointer, not a verdict.
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  if (isDir(specsDir) && touched.size > 0) {
-    for (const cap of readdirSync(specsDir).sort()) {
-      if (touched.has(cap)) continue;
-      const specPath = path.join(specsDir, cap, "spec.md");
-      if (!isFile(specPath)) continue;
-      const deps = parseDependsOn(read(specPath)).filter((d) => touched.has(d));
-      if (deps.length > 0) {
-        notes.push(`capability "${cap}" depends on touched ${deps.map((d) => `"${d}"`).join(", ")} — confirm it still holds (\`doctrina why ${cap}\`)`);
-      }
+  for (const dep of dependentsOf(projectRoot, touched)) {
+    notes.push(`capability "${dep.capability}" depends on touched ${dep.dependsOn.map((d) => `"${d}"`).join(", ")} — confirm it still holds (\`doctrina why ${dep.capability}\`)`);
+  }
+
+  // 1c. How often each touched capability has moved lately, from the archive
+  //     ledger (change 0046). Reported as a NUMBER and never as a verdict:
+  //     frequent change can mean a spec that was drawn badly or a spec that
+  //     is simply where the work is, and nothing here can tell those apart
+  //     (ADR 0005). It is context for the human reading the review, not a
+  //     finding — so it goes in the notes even when the count is high.
+  if (touched.size > 0) {
+    const since = windowCutoff(CHURN_WINDOW_DAYS);
+    const churn = churnByCapability(readLedger(projectRoot).entries, { since })
+      .filter((row) => touched.has(row.capability) && row.changes >= CHURN_NOTABLE);
+    for (const row of churn) {
+      notes.push(`capability "${row.capability}" landed ${row.changes} changes in the last ${CHURN_WINDOW_DAYS} days (last ${row.last}) — history, not a verdict: read it as "this area is moving", not "this area is wrong"`);
     }
   }
 

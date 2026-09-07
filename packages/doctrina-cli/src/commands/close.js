@@ -11,8 +11,8 @@ import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { checkDocsImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
-import { derivedImplementations, implementationMismatch } from "../lib/coverage-model.js";
-import { specHeader } from "../lib/scan.js";
+import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
+import { specHeader, dependentsOf } from "../lib/scan.js";
 import { sequence, stepRerun } from "../lib/gates.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
@@ -21,6 +21,7 @@ import * as verify from "./verify.js";
 import * as coverage from "./coverage.js";
 import * as trace from "./trace.js";
 import * as validate from "./validate.js";
+import { appendLedgerLine, docsGapLine, ledgerPath as ledgerFile } from "../lib/ledger.js";
 import * as review from "./review.js";
 import * as skill from "./skill.js";
 
@@ -218,7 +219,11 @@ async function closeOne(projectRoot, id, flags) {
     coverage: {
       label: touched.length > 0 ? `coverage (scoped: ${touched.join(", ")})` : "coverage",
       rerun: coverageRerun,
-      run: () => coverage.run([], coverageFlags),
+      run: async () => {
+        const code = await coverage.run([], coverageFlags);
+        reportDependentCoverage(projectRoot, touched);
+        return code;
+      },
     },
 
     // trace is advisory (provenance is a warning, not a hard gate): report it,
@@ -318,9 +323,11 @@ async function closeOne(projectRoot, id, flags) {
   // Record a forced docs gap in the ledger, so history shows the change
   // shipped without its documentation rather than showing nothing.
   if (docsGap) {
-    const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
+    const ledgerPath = ledgerFile(projectRoot);
     if (isFile(ledgerPath)) {
-      appendFileSync(ledgerPath, `  - docs gap: ${id} closed with --force; ${docsGap.signals.join("; ")} documented nowhere\n`);
+      // Written in the ledger's own entry grammar (change 0046): a waived
+      // gate no reader can find is the same as an unrecorded one.
+      appendLedgerLine(projectRoot, docsGapLine(id, docsGap.signals));
       console.log(c.yellow("ledger") + " recorded the docs gap");
     }
   }
@@ -364,6 +371,30 @@ function spawnStep(step, id, projectRoot) {
 
 // The capabilities this change's deltas target — the honest scope for its
 // coverage gate. Read from the change folder's specs/**/delta.md files.
+// The capabilities that DECLARE a dependency on what this change touched,
+// with their coverage — advisory, never part of the verdict (change 0046).
+//
+// The scope exists because one deliberately deferred spec elsewhere in the
+// tree must not block a change that never went near it, and widening the gate
+// to dependents would give that problem straight back. What a closing agent
+// actually needs is the pointer: this change moved ground something else
+// stands on, and here is how well that something is proven today.
+function reportDependentCoverage(projectRoot, touched) {
+  if (touched.length === 0) return;
+  const dependents = dependentsOf(projectRoot, touched);
+  if (dependents.length === 0) return;
+  const byCap = new Map(summarize(projectRoot).perCap.map((r) => [r.cap, r]));
+  console.log(c.gray("  dependents of the touched capabilities (advisory — not part of this gate):"));
+  for (const dep of dependents) {
+    const row = byCap.get(dep.capability);
+    const proof = row && row.total > 0
+      ? `${row.covered}/${row.total} criteria proven` + (row.dangling ? `, ${row.dangling} dangling` : "")
+      : "no acceptance criteria";
+    console.log(`    ${c.cyan(dep.capability)} depends on ${dep.dependsOn.join(", ")} — ${proof}` +
+      c.gray(`  (doctrina why ${dep.capability})`));
+  }
+}
+
 function touchedCapabilities(projectRoot, id) {
   const specsDir = path.join(projectRoot, ".doctrina", "changes", id, "specs");
   const caps = new Set();

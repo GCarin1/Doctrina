@@ -19,6 +19,30 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The archive ledger becomes a source you can read.** `LEDGER.md` records,
+  per line, the date, the change id, the title and the capabilities that
+  change touched with the operation on each — the only record in the tree
+  written in capabilities rather than files. Two things read it: an id set in
+  `decision scope` and a cross-check in `validate`, each with its own regex,
+  while `metrics` derived everything from git, which knows about files and
+  nothing about capabilities. `lib/ledger.js` now owns the grammar for both
+  directions: the three writers (archive, abandon, a waived gate) append
+  through it, and the parse is deliberately tolerant, because the file's own
+  header invites humans to edit it — a line outside the grammar is read as a
+  note and skipped, never rewritten and never fatal.
+- Three surfaces now read it, all advisory: `report` lists capability churn
+  for the period, `review` notes a touched capability that has landed several
+  changes in the last 60 days, and `close` names the capabilities that declare
+  a dependency on the ones the change touched, with their coverage. The churn
+  number carries no verdict — a capability that moves often may be badly drawn
+  or may simply be where the work is, and nothing here can tell those apart
+  (ADR 0005). The dependents stay outside the gate: the close scopes coverage
+  to what the change touched precisely so a deferred spec elsewhere cannot
+  block it, and widening that scope would hand the problem back.
+- A docs gap closed with `--force` is now written in the ledger's own entry
+  grammar instead of as loose prose: a waived gate no reader can find is the
+  same as an unrecorded one.
+
 - **`doctor` stops spawning itself.** It called two collectors in process and
   answered three of its rows by running this same binary again — `validate
   --json`, `index rebuild --check`, `verify --clean` — and parsing its own

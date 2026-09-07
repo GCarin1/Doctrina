@@ -28,6 +28,7 @@ import { parseAcceptanceCriteria, isVerified } from "./criteria.js";
 import { parsePipeline, checkPipeline } from "./pipeline.js";
 import { collectRuntimeFindings } from "./runtime.js";
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
+import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
 // documents at least this many real commands; below it, the file defers to
@@ -575,20 +576,20 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   //     disagree are worse than one: an incomplete ledger makes the
   //     history look shorter than it is. When the ledger exists, every
   //     archived change must appear in both, or validation fails.
-  const ledgerPath = path.join(changesDir, "archive", "LEDGER.md");
-  if (index?.artifacts && isFile(ledgerPath)) {
-    const ledgerIds = new Set();
-    for (const line of read(ledgerPath).split(/\r?\n/)) {
-      const m = line.match(/^-\s+\d{4}-\d{2}-\d{2}\s+[—-]\s+(\S+)\s+[—-]\s+(.*)$/);
-      if (!m) continue;
-      // An abandoned change is ledger-only BY DESIGN: `change abandon`
-      // records the discard in history but deletes the folder, so there is
-      // deliberately no archive entry to cross-check. Requiring one made
-      // every abandonment turn validate permanently red (found dogfooding
-      // change 0001-review-followups).
-      if (/^abandoned\b/i.test(m[2].trim())) continue;
-      ledgerIds.add(m[1]);
-    }
+  if (index?.artifacts && isFile(ledgerFile(projectRoot))) {
+    // One parse of the ledger grammar, in lib/ledger.js (change 0046). This
+    // check used to carry its own regex, so the file's readers and its
+    // writers could drift apart with nothing to notice.
+    //
+    // An abandoned change is ledger-only BY DESIGN: `change abandon` records
+    // the discard in history but deletes the folder, so there is deliberately
+    // no archive entry to cross-check. Requiring one made every abandonment
+    // turn validate permanently red (found dogfooding change
+    // 0001-review-followups). A gap line records a waived gate, not a change
+    // that landed, so it is not cross-checked either.
+    const ledgerIds = new Set(
+      readLedger(projectRoot).entries.filter((e) => e.kind === "archived").map((e) => e.id),
+    );
     const archiveIds = new Set((index.artifacts.changes_archive ?? []).map((ch) => ch.id));
     for (const id of archiveIds) {
       if (!ledgerIds.has(id)) {

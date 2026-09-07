@@ -152,6 +152,35 @@ it. That noise has to be measured across real changes before it is allowed
 to refuse anything — the ledger and the usage log are what will measure it.
 A project that wants CI to block today still has `doctrina review --strict`.
 
+## What the ledger knows
+
+`.doctrina/changes/archive/LEDGER.md` is one append-only line per archived
+change: the date, the id, the title, and the capabilities the change touched
+with the operation performed on each. It is the only record in the tree
+written in **capabilities** rather than files — git can tell you a file
+changed nine times; only the ledger can tell you a capability did.
+
+Three surfaces read it:
+
+- `doctrina report` lists **capability churn** for the period.
+- `doctrina review` notes a touched capability that has landed several
+  changes lately.
+- `doctrina close` lists the **dependents** of the capabilities the change
+  touched, with their coverage.
+
+All three are advisory, and the churn number carries no verdict. A
+capability that moves often may be badly drawn or may simply be where the
+work is, and nothing in the CLI can tell those apart (ADR 0005) — the number
+is context for the person reading, not a finding. The dependent list is
+advisory for a different reason: the close scopes its coverage gate to the
+capabilities the change touched, precisely so one deferred spec elsewhere
+cannot block a change that never went near it. Widening the gate to
+dependents would hand that problem straight back; naming them does not.
+
+The file's own header promises the CLI only appends and invites you to edit
+it. That promise is kept: a line that does not match the grammar is read as
+a note and skipped, never rewritten and never fatal.
+
 ## The one gate you do not choose: runtime
 
 Everything above is about *when* to open a change. The runtime gate is

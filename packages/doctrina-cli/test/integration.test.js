@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { parseLedger } from "../src/lib/ledger.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
@@ -3851,8 +3852,12 @@ test("close refuses a change that alters a documented surface with no docs chang
     const forced = runCli(["close", "0001-flagged", "--force"], { cwd: tmp });
     assert.equal(forced.status, 0, forced.stdout + forced.stderr);
     assert.match(forced.stdout, /recorded the docs gap/);
+    // The gap is written in the ledger's own entry grammar (change 0046), so
+    // the record a reader can find is the same record the parser can read.
     const ledger = readFileSync(path.join(tmp, ".doctrina", "changes", "archive", "LEDGER.md"), "utf8");
-    assert.match(ledger, /docs gap: 0001-flagged/);
+    assert.match(ledger, /0001-flagged — docs gap: closed with --force/);
+    const gap = parseLedger(ledger).entries.find((e) => e.kind === "gap");
+    assert.ok(gap && gap.id === "0001-flagged", "the docs gap must parse as a gap entry");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

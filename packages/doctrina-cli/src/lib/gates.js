@@ -5,6 +5,7 @@ import { appendFileSync, writeFileSync } from "node:fs";
 import { exists, isFile, mkdirp, read } from "./fs-ops.js";
 import { today } from "./dates.js";
 import { collectAnalysis } from "./analysis.js";
+import { appendLedgerLine, forcedLine } from "./ledger.js";
 
 // The gate-to-transition map (audit item C6).
 //
@@ -277,25 +278,11 @@ export function checkTransition(projectRoot, changeDir, transition) {
 // waved through is part of the visible history rather than nothing at all
 // — the same posture `change archive --force` and `change abandon` take.
 export function recordForcedGap(projectRoot, id, transition, blockers) {
-  const archiveDir = path.join(projectRoot, ".doctrina", "changes", "archive");
-  const ledgerPath = path.join(archiveDir, "LEDGER.md");
-  // Create the ledger if this is the first entry. A forced transition can
-  // happen before any change has ever been archived, and a gap that goes
-  // unrecorded because the file did not exist yet is exactly the silence
-  // this is meant to break.
-  if (!exists(ledgerPath)) {
-    mkdirp(archiveDir);
-    writeFileSync(ledgerPath,
-      "# Change ledger\n\n" +
-      "One line per archived change, newest last. Appended by\n" +
-      "`doctrina change archive`; edit freely, the CLI only appends.\n\n");
-  }
-  const summary = blockers.map((b) => `${b.gate}: ${b.message}`).join("; ");
-  appendFileSync(
-    ledgerPath,
-    `  - ${today()} — ${id} — forced ${transition} past ${blockers.length} ` +
-    `blocker${blockers.length === 1 ? "" : "s"} (${summary})\n`,
-  );
+  // The ledger owns its own format and its own creation (lib/ledger.js): a
+  // forced transition can happen before any change has ever been archived,
+  // and a gap that goes unrecorded because the file did not exist yet is
+  // exactly the silence this is meant to break.
+  appendLedgerLine(projectRoot, forcedLine(id, transition, blockers));
   return true;
 }
 

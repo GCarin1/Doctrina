@@ -9,6 +9,7 @@ import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
 import { acceptedDecisions, productSection } from "./constitution-model.js";
 import { computeActions } from "./actions.js";
+import { readLedger } from "./ledger.js";
 import { summarizeSignoffs } from "./signoff.js";
 
 // ONE collector, several views (audit finding F7).
@@ -66,6 +67,11 @@ export function collectSnapshot(projectRoot, { actions = true } = {}) {
     // The lane each open change was born in, for the report's mix. Read from
     // the index rather than re-parsed, so one derivation owns the field.
     openLanes: (index?.artifacts?.changes ?? []).map((c) => c.lane ?? null),
+    // The archive ledger, parsed (change 0046). The index records WHICH
+    // changes landed; the ledger records what each one touched and when, in
+    // one append-only file — which is what a question like "how often has
+    // this capability moved?" is actually asking about.
+    ledger: readLedger(projectRoot).entries,
   };
 }
 

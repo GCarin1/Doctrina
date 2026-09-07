@@ -1,0 +1,23 @@
+{
+  "$schema_version": "0.1.0",
+  "project": "Acme",
+  "framework_version": "0.15.1",
+  "last_updated": "2026-09-07",
+  "artifacts": {
+    "entrypoint": {
+      "path": "AGENTS.md"
+    },
+    "product": {
+      "path": ".doctrina/product.md",
+      "status": "active",
+      "version": "0.1.0",
+      "last_updated": "2026-09-07"
+    },
+    "specs": [],
+    "decisions": [],
+    "changes": [],
+    "changes_archive": [],
+    "skills": [],
+    "contracts": []
+  }
+}

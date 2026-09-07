@@ -159,6 +159,35 @@ provar isso. Esse ruído precisa ser medido em changes reais antes de poder
 recusar alguma coisa — o ledger e o log de uso é que vão medir. Quem quiser
 que o CI bloqueie hoje continua tendo o `doctrina review --strict`.
 
+## O que o ledger sabe
+
+`.doctrina/changes/archive/LEDGER.md` é uma linha append-only por change
+arquivada: a data, o id, o título e as capabilities que a change tocou, com a
+operação feita em cada uma. É o único registro da árvore escrito em
+**capabilities** e não em arquivos — o git conta que um arquivo mudou nove
+vezes; só o ledger conta que uma capability mudou.
+
+Três superfícies o leem:
+
+- `doctrina report` lista o **churn por capability** do período.
+- `doctrina review` anota uma capability tocada que aterrissou várias
+  changes recentemente.
+- `doctrina close` lista os **dependentes** das capabilities tocadas, com a
+  cobertura de cada um.
+
+Os três são consultivos, e o número de churn não carrega veredito. Uma
+capability que muda muito pode estar mal desenhada ou pode ser simplesmente
+onde o trabalho está, e nada na CLI distingue os dois casos (ADR 0005) — o
+número é contexto para quem lê, não um achado. A lista de dependentes é
+consultiva por outro motivo: o close restringe o gate de coverage às
+capabilities que a change tocou, justamente para que uma spec adiada em
+outro canto não bloqueie uma change que nunca chegou perto dela. Ampliar o
+gate até os dependentes devolveria esse problema; nomeá-los, não.
+
+O cabeçalho do próprio arquivo promete que a CLI só faz append e convida
+você a editá-lo. A promessa é cumprida: uma linha fora da gramática é lida
+como nota e ignorada, nunca reescrita e nunca fatal.
+
 ## O único gate que você não escolhe: runtime
 
 Tudo acima trata de *quando* abrir um change. O gate de runtime é

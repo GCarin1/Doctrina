@@ -376,3 +376,31 @@ function describeDrift(current, derived) {
   if (lines.length === 0) lines.push("structural difference (key order or missing category)");
   return lines;
 }
+
+/**
+ * Which capabilities declare a dependency on any of `caps`.
+ *
+ * The `**Depends on:**` header is the tree's only machine-readable statement
+ * that one capability builds on another, and two commands ask the same
+ * question of it: `review` notes a dependent whose ground moved, and `close`
+ * reports their coverage alongside the change's own. One definition, so they
+ * cannot disagree about who depends on what.
+ *
+ * @param {string} projectRoot
+ * @param {Iterable<string>} caps
+ * @returns {{capability: string, dependsOn: string[]}[]} sorted by capability
+ */
+export function dependentsOf(projectRoot, caps) {
+  const wanted = new Set(caps);
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (wanted.size === 0 || !isDir(specsDir)) return [];
+  const out = [];
+  for (const cap of readdirSync(specsDir).sort()) {
+    if (wanted.has(cap)) continue;
+    const specPath = path.join(specsDir, cap, "spec.md");
+    if (!isFile(specPath)) continue;
+    const deps = parseDependsOn(read(specPath)).filter((d) => wanted.has(d));
+    if (deps.length > 0) out.push({ capability: cap, dependsOn: deps });
+  }
+  return out;
+}

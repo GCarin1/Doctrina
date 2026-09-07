@@ -1,6 +1,7 @@
 // @ts-check
 import { c } from "./colors.js";
 import { today } from "./dates.js";
+import { churnByCapability } from "./ledger.js";
 
 // Executed proof and signed proof are different claims (change 0039). One
 // phrasing, used by every view, so none of them can quietly add the two
@@ -289,6 +290,22 @@ export function report(s, { days = 7, cutoffIso = "", git = null } = {}) {
     for (const [lane, n] of lanes.rows) out.push(`- ${lane}: ${n}`);
     if (lanes.overridden > 0) {
       out.push(`- of which the operator opened a different lane than read: ${lanes.overridden}`);
+    }
+  }
+
+  // WHERE the work landed, from the ledger rather than from git (change
+  // 0046). git counts files; the ledger counts capabilities, which is the
+  // unit the specs, the gates and this report are all written in. The number
+  // is reported, never judged: a capability that moves often may be badly
+  // drawn or may simply be where the work is, and nothing here can tell those
+  // apart (ADR 0005).
+  const churn = churnByCapability(s.ledger ?? [], { since: cutoffIso });
+  if (churn.length > 0) {
+    out.push("");
+    out.push("## Capability churn (in period)");
+    out.push("");
+    for (const row of churn) {
+      out.push(`- ${row.capability}: ${row.changes} change${row.changes === 1 ? "" : "s"} (last ${row.last})`);
     }
   }
 
