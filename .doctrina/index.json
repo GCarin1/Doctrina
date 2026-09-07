@@ -1038,6 +1038,19 @@
         ]
       },
       {
+        "id": "0040-uma-porta-para-o-git-um-lexico",
+        "title": "uma porta para o git, um lexico",
+        "path": ".doctrina/changes/archive/2026-09-07-0040-uma-porta-para-o-git-um-lexico",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
         "id": "0053-split-gates-into-gates-and-insight",
         "title": "split gates into gates and insight",
         "path": ".doctrina/changes/archive/2026-09-07-0053-split-gates-into-gates-and-insight",
@@ -1051,19 +1064,6 @@
           {
             "capability": "insight",
             "operation": "ADDED"
-          }
-        ]
-      },
-      {
-        "id": "0040-uma-porta-para-o-git-um-lexico",
-        "title": "uma porta para o git, um lexico",
-        "path": ".doctrina/changes/archive/2026-09-07-0040-uma-porta-para-o-git-um-lexico",
-        "status": "applied",
-        "applied": "2026-09-07",
-        "specs_affected": [
-          {
-            "capability": "cli",
-            "operation": "MODIFIED"
           }
         ]
       }
