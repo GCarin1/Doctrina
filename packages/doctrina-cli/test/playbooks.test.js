@@ -21,10 +21,15 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // against them. A migration that quietly reworded the procedure would be a
 // different change wearing this one's name.
 //
-// One number in them has moved since: change 0040 unified the capability
-// ranker with `context`'s, so the `score` column reports the shared lexicon's
-// value. That is ranking OUTPUT, not playbook prose — the goldens were
-// re-captured for it, and every line around it is still the original.
+// Two things in them have moved since, and both are BEHAVIOUR the goldens
+// happen to capture rather than playbook prose they were written to pin:
+//   - change 0040 unified the capability ranker with `context`'s, so the
+//     `score` column reports the shared lexicon's value;
+//   - change 0044 scaffolds the delta from a confident ranked winner too, so
+//     `work.txt` gains the `created ...delta.md` line and step 3 renders its
+//     already-scaffolded branch.
+// The goldens were re-captured for each, and every line around the change is
+// still the original.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

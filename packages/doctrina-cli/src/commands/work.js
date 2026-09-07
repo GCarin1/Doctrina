@@ -14,9 +14,9 @@ import { changeNew } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
 import { changedFiles } from "../lib/git.js";
-import { terms, score, fold } from "../lib/lexicon.js";
-import { rankCapabilitiesByDiff } from "../lib/work-model.js";
-export { rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
+import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
+export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
 // prompt ("add login") becomes a fully scaffolded change plus a playbook
@@ -158,33 +158,35 @@ export async function run(positional, flags) {
     if (updated !== txt) write(proposalPath, updated, { force: true });
   }
 
-  // A pinned capability is an explicit statement of intent, so the delta —
-  // historically the only 100% hand-authored file in the flow, and the one
-  // whose missing **Operation:** header exploded days later at analyze
-  // (operator review 2026-07-19 §3.2) — is scaffolded from the template with
-  // the Operation prefilled: MODIFIED when the spec exists, ADDED when it
-  // does not. Never scaffolded from a ranked GUESS (that would put a wrong
-  // capability's delta in the change); only from --capability.
-  if (pinned && !chore) {
-    const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", pinned, "delta.md");
-    if (!exists(deltaPath)) {
-      const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
-      const op = isFile(path.join(projectRoot, ".doctrina", "specs", pinned, "spec.md")) ? "MODIFIED" : "ADDED";
-      const body = substitute(tpl, { CAPABILITY: pinned })
-        .replace(/^\*\*Operation:\*\*.*$/m, `**Operation:** ${op}`);
-      mkdirp(path.dirname(deltaPath));
-      write(deltaPath, body);
-      console.log(c.green("created") + ` ${relPath(projectRoot, deltaPath)}` + c.gray(` (Operation: ${op} prefilled)`));
-    }
-  }
-
   // Capability hint: term overlap for a prompt, changed-file overlap for a diff
   // (review F10 — rank by what the working tree touched, not just prompt words).
   const allChanged = fromDiff ? files : changedFiles(projectRoot).files;
   const diffMatches = pinned ? [] : rankCapabilitiesByDiff(projectRoot, allChanged);
-  const matches = pinned ? [] : (fromDiff ? diffMatches : rankCapabilities(projectRoot, effPrompt));
+  const promptMatches = pinned || fromDiff ? [] : rankCapabilities(projectRoot, effPrompt);
+  const matches = pinned ? [] : (fromDiff ? diffMatches : promptMatches);
   const capability = pinned ?? matches[0]?.id ?? null;
   const clarity = assessBrief(effPrompt, { kind: "prompt" });
+
+  // The delta is scaffolded whenever the CLI can NAME the capability — from
+  // --capability, or from a prompt ranking whose winner leads the runner-up
+  // by a real margin (change 0044). It was historically the only 100%
+  // hand-authored file in the flow, and the one whose missing **Operation:**
+  // header exploded days later at analyze (operator review 2026-07-19 §3.2);
+  // leaving the default path hand-authoring it left the failure in place for
+  // every run that did not pin. A wrong, obvious file costs less than an
+  // absent, silent one — so the guess is MARKED as one, and below the margin
+  // nothing is written at all: a weak guess in the wrong folder is worse
+  // than no file.
+  //
+  // Only the PROMPT ranking scaffolds. The diff ranker scores on its own
+  // scale (path/citation points, no density term), so CONFIDENT_MARGIN does
+  // not transfer to it, and a backfill normally touches several capabilities
+  // at once — one scaffolded winner would be the wrong shape there.
+  const winner = promptMatches[0];
+  const guess = winner && winner.margin >= CONFIDENT_MARGIN ? winner : null;
+  const scaffolded = chore || !capability || (!pinned && !guess)
+    ? null
+    : scaffoldDelta(projectRoot, { id, capability, guess, runnerUp: promptMatches[1] ?? null });
 
   // --quiet: registering backlog, not starting now (operator review §3.7 — 19
   // works printed 19 identical 50-line playbooks). One line per change; the
@@ -201,11 +203,61 @@ export async function run(positional, flags) {
     printChorePlaybook(projectRoot, { id, prompt: effPrompt });
   } else {
     printPlaybook(projectRoot, {
-      id, prompt: effPrompt, pinned, matches, capability, clarity,
+      id, prompt: effPrompt, pinned, matches, capability, clarity, scaffolded,
       fromDiff, diffMatches: fromDiff ? [] : diffMatches,
     });
   }
   return 0;
+}
+
+// Write the change's spec delta from the template with **Operation:**
+// prefilled — MODIFIED when the target spec exists, ADDED when it does not.
+//
+// A GUESS (the ranked winner rather than a pinned capability) can only ever
+// be MODIFIED: the ranker scores existing specs, so it cannot name one that
+// is not there. It carries a comment saying it is a guess and how to correct
+// it, because the whole trade this makes is that a wrong file the agent can
+// see beats a missing file nothing reports.
+//
+// Returns what was written, or null when the file already exists.
+function scaffoldDelta(projectRoot, { id, capability, guess = null, runnerUp = null }) {
+  const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", capability, "delta.md");
+  if (exists(deltaPath)) return null;
+  const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
+  const op = isFile(path.join(projectRoot, ".doctrina", "specs", capability, "spec.md")) ? "MODIFIED" : "ADDED";
+  let body = substitute(tpl, { CAPABILITY: capability })
+    .replace(/^\*\*Operation:\*\*.*$/m, `**Operation:** ${op}`);
+  if (guess) body = body.replace(/(\*\*Target spec on apply:\*\*.*\r?\n)/, `$1\n${guessNote(id, guess, runnerUp)}\n`);
+  mkdirp(path.dirname(deltaPath));
+  write(deltaPath, body);
+  console.log(c.green("created") + ` ${relPath(projectRoot, deltaPath)}` +
+    c.gray(guess
+      ? ` (Operation: ${op} prefilled — ranked guess, correct it if wrong)`
+      : ` (Operation: ${op} prefilled)`));
+  return { capability, op, guess: Boolean(guess) };
+}
+
+// The words that make a guessed delta self-describing on disk: --resume
+// prints nothing it did not write itself, so the file is the only place a
+// later session can learn the capability was ranked rather than chosen.
+const GUESS_MARK = "RANKED GUESS";
+
+// The mark a guessed delta carries. It names the evidence (the score and the
+// runner-up it beat) and the exact correction, so the agent can overrule the
+// ranking in one step instead of inheriting it silently.
+function guessNote(id, guess, runnerUp) {
+  const beat = runnerUp
+    ? `beating \`${runnerUp.id}\` (${runnerUp.score})`
+    : "the only spec the prompt matched";
+  return [
+    `<!-- ${GUESS_MARK} — no --capability was given. \`doctrina work\` picked`,
+    `     \`${guess.id}\` by deterministic term overlap (score ${guess.score}, ${beat}).`,
+    "     It is a hint, never a decision (ADR 0005). If it is the wrong",
+    "     capability, delete this folder and write the right one instead:",
+    `         rm -r .doctrina/changes/${id}/specs/${guess.id}`,
+    `         .doctrina/changes/${id}/specs/<capability>/delta.md`,
+    "     Delete this comment once the capability is confirmed. -->",
+  ].join("\n");
 }
 
 // Render the Lane header: the classifier's verdict, how sure it was, the
@@ -321,9 +373,17 @@ function resumeChange(projectRoot, resumeId) {
   const matches = rankCapabilities(projectRoot, prompt);
   const capability = matches[0]?.id ?? null;
   const clarity = assessBrief(prompt, { kind: "prompt" });
+  // --resume creates nothing, but it must not tell the agent to write a delta
+  // the first run already scaffolded (pinned or guessed): it reads the folder.
+  const deltaPath = capability
+    ? path.join(projectRoot, ".doctrina", "changes", resumeId, "specs", capability, "delta.md")
+    : null;
+  const existing = deltaPath && isFile(deltaPath)
+    ? { capability, op: null, guess: read(deltaPath).includes(GUESS_MARK) }
+    : null;
   console.log(c.bold(`Resuming change ${resumeId}`) + c.gray(" — agent-executed (ADR 0005)."));
   console.log("");
-  printPlaybook(projectRoot, { id: resumeId, prompt, pinned: null, matches, capability, clarity });
+  printPlaybook(projectRoot, { id: resumeId, prompt, pinned: null, matches, capability, clarity, scaffolded: existing });
   return 0;
 }
 
@@ -346,34 +406,6 @@ export function slugify(text) {
   return slug.length > 0 ? slug : "task";
 }
 
-// Deterministic term overlap: fold prompt and spec text with the SHARED
-// lexicon, then score. This is a hint for the agent, never a decision
-// (ADR 0005).
-//
-// Before change 0040 this carried its own stop list and its own fold, while
-// `context --for` carried different ones — and the work playbook tells the
-// agent to run `context` immediately after `work`. Two rankers, in sequence,
-// on the same prompt, free to disagree about which capability it is about.
-// Both now read lib/lexicon.js, and the score below is that module's
-// PROJECTION of the relevance tuple, not a second calculation.
-export function rankCapabilities(projectRoot, prompt) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  const queryTerms = terms(prompt);
-  if (queryTerms.length === 0 || !isDir(specsDir)) return [];
-
-  const ranked = [];
-  for (const cap of readdirSync(specsDir).sort()) {
-    const specPath = path.join(specsDir, cap, "spec.md");
-    if (!isFile(specPath)) continue;
-    // The capability name is the emphasis: a term in the name says far more
-    // about what the prompt is about than the same term buried in the body.
-    const points = score(read(specPath), queryTerms, cap.split("-").join(" "));
-    if (points > 0) ranked.push({ id: cap, score: points, path: `.doctrina/specs/${cap}/spec.md` });
-  }
-  return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, 3);
-}
-
-
 // A chore is a spec-less change (review F9): the playbook drops the spec-delta
 // steps and goes straight to implement → verify → archive → validate, so the
 // agent is not prompted to invent a delta for infra/docs/build work.
@@ -386,7 +418,7 @@ function printChorePlaybook(projectRoot, { id, prompt }) {
   printPlaybookTemplate(projectRoot, "chore", { CHANGE_ID: id, PROMPT: prompt });
 }
 
-function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, fromDiff = false, diffMatches = [] }) {
+function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, scaffolded = null, fromDiff = false, diffMatches = [] }) {
   printPlaybookTemplate(projectRoot, "work", {
     TITLE: fromDiff ? "Backfill playbook" : "Work playbook",
     CHANGE_ID: id,
@@ -410,9 +442,15 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
     DIFF_MATCHES: !fromDiff && diffMatches.length > 0
       ? c.gray("Also touched by your working tree: ") + diffMatches.map((m) => c.cyan(m.id)).join(", ")
       : "",
-    STEP3_INTRO: pinned
+    STEP3_INTRO: scaffolded
       ? "3. A delta is already scaffolded (Operation prefilled) at\n" +
-        `   .doctrina/changes/${id}/specs/${pinned}/delta.md — fill its body.\n` +
+        `   .doctrina/changes/${id}/specs/${scaffolded.capability}/delta.md — fill its body.\n` +
+        (scaffolded.guess
+          // Coloured per line: a span left open across a newline survives a
+          // terminal but not every pager the output gets piped into.
+          ? c.yellow("   It was RANKED, not pinned — confirm the capability first; the file") + "\n" +
+            c.yellow("   says how to correct it if the ranking got it wrong.") + "\n"
+          : "") +
         "   Add one more delta per additional affected capability:"
       : "3. Write one delta per affected capability at\n" +
         `   .doctrina/changes/${id}/specs/<capability>/delta.md:`,
@@ -457,6 +495,12 @@ context → spec delta → tasks → implement → analyze → apply → verify
 (verify + coverage) → archive → validate. No natural-language
 interpretation happens in the CLI.
 
+The change's spec delta is scaffolded with **Operation:** prefilled
+whenever the CLI can name the capability: from --capability, or from the
+ranking when the winner leads the runner-up by a whole matched term. A
+ranked delta is always MODIFIED and says in the file that it is a guess,
+with the command that corrects it. Below that margin nothing is written.
+
 When the prompt is a bare "continue"/"prossiga"/"next" and a change is
 already open, work suggests resuming it instead of opening a junk change
 named after that word (review G1). Use --resume to do so directly.
@@ -464,10 +508,8 @@ named after that word (review G1). Use --resume to do so directly.
 Options:
   --title "<short>"    Short display title: drives the slug and the proposal
                        H1; the full prompt still lands under ## Why
-  --capability <cap>   Pin the capability instead of ranking matches. Also
-                       scaffolds specs/<cap>/delta.md in the change with the
-                       Operation header prefilled (MODIFIED when the spec
-                       exists, ADDED when it does not)
+  --capability <cap>   Pin the capability instead of ranking matches, and
+                       drop the guess comment from the scaffolded delta
   --quiet              Register the change and print one line — no playbook
                        (backlog entry; reprint later with --resume <id>)
   --id <id>            Override the derived change id

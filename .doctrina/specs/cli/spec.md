@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.39.0
+**Version:** 0.40.0
 
 ## Purpose
 
@@ -294,7 +294,7 @@ owns the surface itself and the conventions every command shares.
 
 - When `doctrina change tick <id>` runs, the system shall list the unchecked boxes of `tasks.md` and the proposal's `## Verification` section in one ordinal space, and shall check the boxes named by ordinal arguments or every box under `--all`.
 
-- When `doctrina work` runs with `--capability <cap>`, the system shall scaffold `specs/<cap>/delta.md` inside the change with the `**Operation:**` header prefilled (MODIFIED when the target spec exists, ADDED when it does not), and under `--quiet` shall print a one-line confirmation instead of the playbook.
+- When `doctrina work` opens a change and can name the affected capability — pinned with `--capability <cap>`, or ranked first by term overlap with a margin over the runner-up that the ranking's length tie-breaker alone cannot produce — the system shall scaffold `specs/<cap>/delta.md` inside the change with the `**Operation:**` header prefilled (MODIFIED when the target spec exists, ADDED when it does not), and under `--quiet` shall print a one-line confirmation instead of the playbook.
 
 - When `doctrina close`, `doctrina change apply`, `doctrina change archive`, or `doctrina change check` receive multiple ids, the system shall run each id independently and exit with the worst per-id result.
 
@@ -333,6 +333,7 @@ owns the surface itself and the conventions every command shares.
 - When a caller asks which files changed, the system shall distinguish an empty answer from an inability to answer, and shall let the caller choose whether untracked files and a branch's earlier commits count.
 - When `doctrina work` opens a change, the system shall record in the proposal the lane the request classified as, how confident that reading was, the signals that decided it, and any lane the operator chose instead.
 - When a period is reported, the system shall aggregate the recorded lanes and count a change with no recorded lane as unknown rather than assigning it one.
+- When `doctrina work` scaffolds a delta from the ranking rather than from `--capability`, the system shall mark the file as a guess — naming the score it won on, the capability it beat, and the command that removes it — and shall say so in the playbook's spec-delta step, including on `--resume`, where the mark is read back from the file.
 
 ### State-driven
 
@@ -378,6 +379,7 @@ owns the surface itself and the conventions every command shares.
 - The system shall not accept a value-taking flag written without a value; it shall report a usage error rather than fall back to the default.
 - The system shall not treat an action that requires a human decision — accepting a decision, completing a task, authoring a proposal or a skill — as runnable, however mechanical the resulting edit would be.
 - The system shall not let a recorded lane change what any gate decides; it is a historical record, and a change carrying an unrecognised lane shall be treated exactly as one carrying none.
+- The system shall not scaffold a delta from a ranked capability whose lead over the runner-up is within the ranking's length tie-breaker, nor from the `--from-diff` or `--chore` paths.
 
 ### Optional
 
@@ -448,6 +450,7 @@ The CLI is v0 spec-compliant when:
 35. [verified] A change opened by `work` records its lane, confidence and signals, and an operator who overrides the reading has that disagreement recorded too — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 36. [verified] The lane reaches the index, its absence is left absent rather than guessed, and a report counts an unrecorded lane as unknown — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 37. [verified] Rewriting a proposal's lane to a nonsense value changes no gate's verdict or output — verified by `packages/doctrina-cli/test/lane-record.test.js`.
+38. [verified] `work` scaffolds the winning capability's delta with `**Operation:** MODIFIED` and a guess mark when the prompt ranking has a real margin, writes nothing when it does not, and never marks a pinned delta a guess — verified by `packages/doctrina-cli/test/scaffolded-delta.test.js`.
 
 ## Out of scope for this spec
 

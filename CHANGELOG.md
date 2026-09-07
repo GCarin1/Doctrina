@@ -19,6 +19,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The spec delta is scaffolded on the default path too.** `work` prefilled
+  `**Operation:**` only under `--capability`, so on the ordinary path the
+  agent still hand-wrote the one file whose missing header used to surface
+  days later at the closing `analyze`. The delta is now scaffolded whenever
+  the CLI can name the capability — pinned, or ranked first by term overlap
+  with a margin over the runner-up — and the ranked case says in the file
+  that it is a guess, naming the score it won on, the capability it beat,
+  and the one command that removes it. The playbook's spec-delta step says
+  the same, on `--resume` as well, where the mark is read back from the file.
+- The margin is a whole matched term (`CONFIDENT_MARGIN`, in `lib/lexicon.js`
+  beside the density cap it derives from): the smallest gap the ranking's
+  length tie-breaker cannot produce on its own. Below it nothing is written —
+  a coin toss placed in a folder is worse than no file. A ranked delta is
+  always `MODIFIED`, because the ranker only ever sees specs that exist, and
+  `--chore` and `--from-diff` scaffold nothing.
+
 - **The runtime gate runs in the close and in CI.** `lib/runtime.js` held
   RT01-RT05 and no default driver executed them: `close` did not run them,
   `validate` only under `--runtime`, and the published action not at all —

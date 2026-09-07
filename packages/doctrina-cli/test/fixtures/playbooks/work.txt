@@ -2,6 +2,7 @@ created .doctrina/changes/0001-add-a-billing-invoice-export/proposal.md
 created .doctrina/changes/0001-add-a-billing-invoice-export/tasks.md
 
 Change opened. Add spec deltas under .doctrina/changes/0001-add-a-billing-invoice-export/specs/<capability>/delta.md
+created .doctrina/changes/0001-add-a-billing-invoice-export/specs/billing/delta.md (Operation: MODIFIED prefilled — ranked guess, correct it if wrong)
 
 Work playbook — change 0001-add-a-billing-invoice-export — agent-executed (ADR 0005).
 
@@ -21,8 +22,11 @@ Execute in order, in a single linear pass:
    "**Realizes:** SC1" header (or "n/a — <why>"). `doctrina validate` warns
    on an active spec with no Realizes; `doctrina trace` reports the link.
 
-3. Write one delta per affected capability at
-   .doctrina/changes/0001-add-a-billing-invoice-export/specs/<capability>/delta.md:
+3. A delta is already scaffolded (Operation prefilled) at
+   .doctrina/changes/0001-add-a-billing-invoice-export/specs/billing/delta.md — fill its body.
+   It was RANKED, not pinned — confirm the capability first; the file
+   says how to correct it if the ranking got it wrong.
+   Add one more delta per additional affected capability:
        # Spec Delta — capability: <capability>
        **Operation:** ADDED | MODIFIED | REMOVED
        **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`

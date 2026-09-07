@@ -18,8 +18,11 @@ Execute in order, in a single linear pass:
 [90m   "**Realizes:** SC1" header (or "n/a — <why>"). `doctrina validate` warns[39m
 [90m   on an active spec with no Realizes; `doctrina trace` reports the link.[39m
 
-3. Write one delta per affected capability at
-   .doctrina/changes/0001-add-a-billing-invoice-export/specs/<capability>/delta.md:
+3. A delta is already scaffolded (Operation prefilled) at
+   .doctrina/changes/0001-add-a-billing-invoice-export/specs/billing/delta.md — fill its body.
+[33m   It was RANKED, not pinned — confirm the capability first; the file[39m
+[33m   says how to correct it if the ranking got it wrong.[39m
+   Add one more delta per additional affected capability:
 [90m       # Spec Delta — capability: <capability>[39m
 [90m       **Operation:** ADDED | MODIFIED | REMOVED[39m
 [90m       **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`[39m

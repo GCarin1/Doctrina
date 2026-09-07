@@ -46,10 +46,11 @@ that runs them, while keeping the CLI itself offline and deterministic
   instead of scaffolding each spec by hand.
 - **`doctrina work "<prompt>"`** turns a one-line prompt ("add login")
   into a scaffolded change plus a **work playbook**: it derives the
-  change id, records your prompt as the proposal's `## Why`, hints at the
-  likely capability, and lists the steps from spec delta through
-  `apply` → `verify` (`doctrina verify` + `doctrina coverage`) →
-  `archive` → `validate`.
+  change id, records your prompt as the proposal's `## Why`, names the
+  likely capability — scaffolding that delta with its `**Operation:**`
+  filled in, marked as a guess, when the winner clearly leads — and lists
+  the steps from spec delta through `apply` → `verify` (`doctrina verify`
+  + `doctrina coverage`) → `archive` → `validate`.
 
 The CLI does the deterministic half (scaffold, slug, index, term-match)
 and the agent does the semantic half (write product, specs, deltas,
@@ -104,13 +105,12 @@ capability used to look, read the archive. If you need to know how it
 looks now, read the spec.
 
 The change folder doubles as a self-contained context package for
-handoffs between phases (and, if you swap agents across phases,
-between agents). This is the same insight BMAD-METHOD's "story
-file" implements: the unit of work carries everything the next
-phase needs to read, so context does not leak through chat
-history or session state. Doctrina's change folder is its
-equivalent — the workflow benefit holds without buying into
-BMAD's role-based agent topology.
+handoffs between phases (and, if you swap agents across phases, between
+agents). This is the same insight BMAD-METHOD's "story file" implements:
+the unit of work carries everything the next phase needs to read, so
+context does not leak through chat history or session state. Doctrina's
+change folder is its equivalent — the workflow benefit holds without
+buying into BMAD's role-based agent topology.
 
 ## Lifecycle of a decision
 

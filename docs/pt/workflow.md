@@ -53,9 +53,11 @@ determinístico (veja o ADR 0005):
 - **`doctrina work "<prompt>"`** transforma um prompt de uma linha
   ("adicionar login") num change montado mais um **playbook de trabalho**:
   ele deriva o id do change, registra seu prompt como o `## Why` do
-  proposal, sugere a capability provável e lista os passos do delta de
-  spec até `apply` → `verify` (`doctrina verify` + `doctrina coverage`) →
-  `archive` → `validate`.
+  proposal, nomeia a capability provável — montando aquele delta com o
+  `**Operation:**` preenchido, marcado como palpite, quando o vencedor
+  lidera com folga — e lista os passos do delta de spec até `apply` →
+  `verify` (`doctrina verify` + `doctrina coverage`) → `archive` →
+  `validate`.
 
 O CLI faz a metade determinística (montar, sluggar, indexar, casar
 termos) e o agente faz a metade semântica (escrever product, specs,
@@ -110,14 +112,13 @@ agente. Se você precisa saber como uma capability **costumava**
 ser, leia o archive. Se você precisa saber como ela **é hoje**,
 leia a spec.
 
-A pasta de change funciona também como pacote de contexto
-autocontido para handoffs entre fases (e, se você troca agentes
-entre fases, entre agentes). É o mesmo insight que o "story
-file" do BMAD-METHOD implementa: a unidade de trabalho carrega
-tudo que a próxima fase precisa ler, então contexto não vaza por
-histórico de chat ou estado de sessão. A pasta de change do
-Doctrina é o equivalente — o benefício de workflow é mantido sem
-comprar a topologia de agentes-por-papel do BMAD.
+A pasta de change funciona também como pacote de contexto autocontido
+para handoffs entre fases (e, se você troca agentes entre fases, entre
+agentes). É o mesmo insight que o "story file" do BMAD-METHOD implementa:
+a unidade de trabalho carrega tudo que a próxima fase precisa ler, então
+contexto não vaza por histórico de chat ou estado de sessão. A pasta de
+change do Doctrina é o equivalente — o benefício de workflow é mantido
+sem comprar a topologia de agentes-por-papel do BMAD.
 
 ## Ciclo de vida de uma decisão
 
@@ -131,10 +132,9 @@ proposed  -> accepted  -> superseded by NNNN
 ```
 
 Editar o corpo de um ADR aceito é a falha operacional canônica de
-frameworks SDD. Doctrina previne isso por convenção e pelo ADR
-0001. O único comando que toca um ADR existente é
-`doctrina decision supersede`, e ele toca somente os dois headers
-mencionados.
+frameworks SDD. Doctrina previne isso por convenção e pelo ADR 0001. O
+único comando que toca um ADR existente é `doctrina decision supersede`,
+e ele toca somente os dois headers mencionados.
 
 ## Como specs e changes interagem
 

@@ -157,3 +157,20 @@ export function detectLanguage(text) {
   const en = (String(text).match(EN_GRAMMAR) ?? []).length;
   return pt > en ? "pt" : "en";
 }
+
+/**
+ * The margin a ranked winner must hold over the runner-up before a caller
+ * may ACT on the ranking rather than merely display it.
+ *
+ * `triage` calls a verdict confident when the winning lane beats the
+ * runner-up by 2. Copying that number here would copy a unit, not the
+ * notion: on `score()` above, every signal is worth 10 or 100 and the
+ * density tie-breaker alone moves the number by up to 9. A gap of 2 can
+ * therefore mean the two specs matched exactly the same terms and one of
+ * them is shorter — the opposite of confidence.
+ *
+ * 10 is the smallest gap density CANNOT produce: it is one whole body
+ * term. Density is capped at 9 precisely so it can only break ties, so a
+ * margin at or above 10 says the winner led on term overlap itself.
+ */
+export const CONFIDENT_MARGIN = 10;

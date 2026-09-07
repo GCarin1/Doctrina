@@ -192,17 +192,24 @@ playbook closes with `doctrina close <id>` (the attested one-pass close)
 after an explicit ADR checkpoint — "does this change decide something
 structural? record it before closing."
 
-With `--capability`, the change also gets a **scaffolded delta** at
-`specs/<cap>/delta.md` with the `**Operation:**` header prefilled
-(`MODIFIED` when the spec exists, `ADDED` when it does not) — the delta
-was historically the only 100% hand-authored file in the flow, and a
-missing header used to surface days later at the closing `analyze`.
-Never scaffolded from a ranked guess; only from an explicit pin.
+The change also gets a **scaffolded delta** at `specs/<cap>/delta.md`
+with the `**Operation:**` header prefilled (`MODIFIED` when the spec
+exists, `ADDED` when it does not) — the delta was historically the only
+100% hand-authored file in the flow, and a missing header used to
+surface days later at the closing `analyze`. It is written whenever the
+CLI can name the capability: from `--capability`, or from the ranking
+when the winner leads the runner-up by a real margin (one whole matched
+term, which the length tie-breaker alone can never produce). A ranked
+delta is always `MODIFIED` — the ranker only sees specs that exist — and
+carries a comment saying it is a guess, naming the score it won on and
+the one command that corrects it. Below the margin nothing is written:
+a coin toss placed in a folder is worse than no file at all. The
+prompt ranking scaffolds; `--from-diff` and `--chore` do not.
 
 | Flag | Purpose |
 |------|---------|
 | `--title "<short>"` | Short display title: drives the slug and the proposal H1; the full prompt still lands under `## Why`. Without it a long prompt becomes a long H1. |
-| `--capability <cap>` | Pin the capability instead of ranking matches, and scaffold a prefilled `delta.md` for it. |
+| `--capability <cap>` | Pin the capability instead of ranking matches. The delta is prefilled either way; pinning also drops the guess comment. |
 | `--quiet` | Register the change and print one line — no playbook. For backlog entry ("record 19 works now, start none"); reprint later with `--resume <id>`. |
 | `--id <id>` | Override the derived change id. |
 | `--chore`, `--no-spec` | Open a spec-less chore change (infra/docs/build) whose playbook skips the spec-delta steps. |

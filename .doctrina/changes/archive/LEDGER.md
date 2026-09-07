@@ -50,3 +50,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0041-review-entra-no-close — review entra no close (specs: gates MODIFIED)
 - 2026-09-07 — 0042-a-lane-fica-registrada-na-proposta — a lane fica registrada na proposta (specs: cli MODIFIED)
 - 2026-09-07 — 0043-a-gramatica-on-disk-tem-um-dono — a gramatica on-disk tem um dono (specs: validation MODIFIED)
+- 2026-09-07 — 0044-o-delta-e-sempre-scaffoldado — o delta e sempre scaffoldado (specs: cli MODIFIED)

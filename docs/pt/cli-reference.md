@@ -199,17 +199,25 @@ o playbook fecha com `doctrina close <id>` (o fechamento atestado em uma
 passada) depois de um checkpoint explícito de ADR — "esta change decide
 algo estrutural? registre antes de fechar."
 
-Com `--capability`, o change também ganha um **delta esqueletizado** em
+O change também ganha um **delta esqueletizado** em
 `specs/<cap>/delta.md` com o header `**Operation:**` pré-preenchido
 (`MODIFIED` quando a spec existe, `ADDED` quando não) — o delta era
 historicamente o único arquivo 100% escrito à mão do fluxo, e um header
-ausente só explodia dias depois no `analyze` do fechamento. Nunca
-esqueletizado a partir de um palpite do ranking; só do pin explícito.
+ausente só explodia dias depois no `analyze` do fechamento. Ele é escrito
+sempre que a CLI consegue nomear a capability: por `--capability`, ou
+pelo ranking quando o primeiro colocado supera o segundo por uma margem
+real (um termo casado inteiro, que o desempate por tamanho sozinho nunca
+produz). Um delta vindo do ranking é sempre `MODIFIED` — o ranqueador só
+enxerga specs que existem — e carrega um comentário dizendo que é
+palpite, com o score que venceu e o comando que corrige. Abaixo da
+margem nada é escrito: um cara-ou-coroa colocado numa pasta é pior que
+arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
+`--chore` não.
 
 | Flag | Função |
 |------|--------|
 | `--title "<curto>"` | Título curto de exibição: dirige o slug e o H1 da proposal; o prompt completo continua indo para o `## Why`. Sem ela, um prompt longo vira um H1 longo. |
-| `--capability <cap>` | Fixa a capability em vez de ranquear matches, e esqueletiza um `delta.md` pré-preenchido para ela. |
+| `--capability <cap>` | Fixa a capability em vez de ranquear matches. O delta é pré-preenchido de todo modo; o pin apenas dispensa o comentário de palpite. |
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
