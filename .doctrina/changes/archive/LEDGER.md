@@ -55,3 +55,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0045-doctor-para-de-se-auto-spawnar — doctor para de se auto-spawnar (specs: gates MODIFIED)
 - 2026-09-07 — 0046-o-ledger-vira-fonte-legivel — o ledger vira fonte legivel (specs: gates MODIFIED)
 - 2026-09-07 — 0047-uma-superficie-de-configuracao — uma superficie de configuracao (specs: scaffolding MODIFIED)
+- 2026-09-07 — 0048-o-changelog-do-agente-e-rascunhado — o changelog do agente e rascunhado (specs: templates MODIFIED)

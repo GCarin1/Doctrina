@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.17.0
+**Version:** 0.18.0
 
 ## Purpose
 
@@ -82,6 +82,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When a project is scaffolded or upgraded, the system shall write a marker-delimited agent-facing changelog naming only what alters agent behaviour in the installed version.
 - When a playbook is rendered, the system shall expand its colour markup before substituting tokens, so a token's value cannot introduce markup, and shall remove a line that holds only a token whose value is empty.
 - When `doctrina templates check` runs, the system shall report a playbook that does not resolve, and one whose body is empty, has no numbered first step, or leaves a colour span unclosed.
+- When the agent-facing changelog is drafted, the system shall propose one candidate bullet per archived change in the window that touched a documented surface, newest first, capped at the block's bullet limit, and shall name the window it used and every candidate that did not fit.
+- When an archived change in the window touched no documented surface, the system shall propose no bullet for it and shall say that it proposed none, rather than emitting an empty block.
 
 ### State-driven
 
@@ -103,6 +105,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not require a project to vendor the whole template tree in order to override one file.
 - The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
 - A freshly scaffolded contract shall not fail its own `contract check`: placeholder rows are scaffolding, not declarations.
+- The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
 
 ### Optional
 
@@ -159,6 +162,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 20. [verified] A playbook placed in the project's template directory overrides the bundled one per file, leaving the others bundled — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 21. [verified] A token's value carrying colour markup is printed literally rather than expanded — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 22. [verified] A missing or malformed playbook is reported by `templates check` with the remedy that clears it — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+23. [verified] A change touching a command, flag or exit code proposes exactly one bullet and one touching none proposes nothing; the draft is newest-first, capped at the block's limit, and states its window and what it truncated — verified by `packages/doctrina-cli/test/agent-changelog.test.js`.
 
 ## Out of scope for this spec
 

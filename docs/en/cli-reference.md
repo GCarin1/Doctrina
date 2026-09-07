@@ -1688,11 +1688,36 @@ doctrina report --since 30
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `--since <days>` | `7` | Window size in days. |
+| `--agent-changelog` | off | Draft the AGENTS.md "What changed" block instead of the digest. |
 
 Sections: gate state, changes archived in the window (from the index
-ledger), open work with task progress, artifact counts, and a
-local-git summary (commits, fix share, top-churn files). Read-only;
-no network. `doctrina metrics` has the deeper git-derived numbers.
+ledger), capability churn (from the archive ledger), open work with
+task progress, artifact counts, and a local-git summary (commits, fix
+share, top-churn files). Read-only; no network. `doctrina metrics` has
+the deeper git-derived numbers.
+
+### Drafting the agent changelog
+
+`--agent-changelog` answers a different question for a different
+audience: what must an agent arriving at the next release do
+differently? It proposes one candidate bullet per archived change that
+touched a **documented surface** — a command, a flag, an exit code —
+newest first, capped at the five bullets the block is allowed. The
+window is "since the last tag" unless `--since` names one, and the
+output states which window it used.
+
+```
+doctrina report --agent-changelog
+```
+
+It **proposes**; a person cuts and rewrites. The draft knows which
+surface a change touched, not what an agent must now do about it, and
+that judgement is not one the CLI makes (ADR 0005). A change that
+touched no documented surface proposes nothing — which is a valid
+answer, not an empty one. The cap is not a style preference either:
+`AGENTS.md` is always-loaded context under a hard line budget, so
+candidates that do not fit are listed and left for you to choose
+between, never dropped silently.
 
 ## `doctrina completion <bash|zsh|pwsh>`
 

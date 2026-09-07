@@ -196,3 +196,17 @@ export function changedFiles(cwd, { since = null, untracked = true, mergeBase = 
 
   return { ok: true, files: [...out].sort(), state: GIT_STATE.OK };
 }
+
+/**
+ * The date of the most recent tag, as YYYY-MM-DD, or null.
+ *
+ * The left edge of "what has landed since the last release". Null when there
+ * is no tag, no history, or no repository — the caller then has to say which
+ * window it used rather than pretend there was one.
+ */
+export function lastTagDate(cwd) {
+  const tags = gitLines(cwd, ["for-each-ref", "--sort=-creatordate", "--count=1",
+    "--format=%(creatordate:short)", "refs/tags"]);
+  const date = tags[0] ?? "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+}

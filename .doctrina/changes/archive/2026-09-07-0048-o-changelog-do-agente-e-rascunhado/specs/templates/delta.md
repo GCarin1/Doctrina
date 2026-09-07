@@ -35,3 +35,16 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+The block that tells an arriving agent what to do differently stops being
+something a releaser has to remember. It is drafted from what the archived
+changes said they touched — and still written by a person, because "what an
+agent must now do" is a judgement, not an extraction.
+
+```ops
+append-requirement event: When the agent-facing changelog is drafted, the system shall propose one candidate bullet per archived change in the window that touched a documented surface, newest first, capped at the block's bullet limit, and shall name the window it used and every candidate that did not fit.
+append-requirement event: When an archived change in the window touched no documented surface, the system shall propose no bullet for it and shall say that it proposed none, rather than emitting an empty block.
+append-requirement unwanted: The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
+append-criterion [verified] A change touching a command, flag or exit code proposes exactly one bullet and one touching none proposes nothing; the draft is newest-first, capped at the block's limit, and states its window and what it truncated — verified by `packages/doctrina-cli/test/agent-changelog.test.js`.
+bump-version minor
+```

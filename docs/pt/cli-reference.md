@@ -1739,12 +1739,36 @@ doctrina report --since 30
 | Flag | Default | Função |
 |------|---------|--------|
 | `--since <dias>` | `7` | Tamanho da janela em dias. |
+| `--agent-changelog` | off | Rascunha o bloco "What changed" do AGENTS.md em vez do digest. |
 
 Seções: estado dos gates, changes arquivadas na janela (do ledger do
-index), trabalho aberto com progresso de tasks, contagens de
-artefatos e um resumo do git local (commits, share de fix, arquivos
-de maior churn). Read-only; sem rede. `doctrina metrics` tem os
-números git mais profundos.
+index), churn por capability (do ledger do archive), trabalho aberto
+com progresso de tasks, contagens de artefatos e um resumo do git
+local (commits, share de fix, arquivos de maior churn). Read-only; sem
+rede. `doctrina metrics` tem os números git mais profundos.
+
+### Rascunhando o changelog do agente
+
+`--agent-changelog` responde outra pergunta, para outro público: o que
+um agente que chega na próxima release precisa fazer de diferente? Ele
+propõe um bullet candidato por change arquivada que tocou uma
+**superfície documentada** — um comando, uma flag, um código de saída —
+do mais novo para o mais antigo, limitado aos cinco bullets que o bloco
+permite. A janela é "desde a última tag", a menos que `--since` diga
+outra, e a saída declara qual janela usou.
+
+```
+doctrina report --agent-changelog
+```
+
+Ele **propõe**; uma pessoa corta e reescreve. O rascunho sabe qual
+superfície a change tocou, não o que um agente deve fazer a respeito, e
+esse juízo não é da CLI (ADR 0005). Uma change que não tocou superfície
+documentada não propõe nada — o que é uma resposta válida, não uma
+resposta vazia. O teto também não é preferência de estilo: o
+`AGENTS.md` é contexto sempre carregado com orçamento de linhas rígido,
+então candidatos que não couberem são listados e deixados para você
+escolher, nunca descartados em silêncio.
 
 ## `doctrina completion <bash|zsh|pwsh>`
 

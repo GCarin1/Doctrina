@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`doctrina report --agent-changelog` drafts the AGENTS.md "What changed"
+  block.** That block is at most five bullets telling an arriving agent what
+  it must now DO, and it was an object literal somebody edited by hand at
+  every release, in parallel with a 57 KB prose CHANGELOG describing the same
+  changes for people — the comment above it already admitted the approach
+  "worked once and does not scale". The draft proposes one candidate per
+  archived change that touched a documented surface (a command, a flag, an
+  exit code — the signals the docs gate already extracts), newest first,
+  capped at the block's five bullets, windowed since the last tag and stating
+  which window it used.
+- It proposes; a person cuts and rewrites. The draft knows which surface a
+  change touched, not what an agent must do about it, and that judgement is
+  not one the CLI makes (ADR 0005). A change that touched no documented
+  surface proposes nothing, and candidates over the cap are listed rather
+  than dropped — the cap is AGENTS.md's line budget, so the answer is to
+  choose, not to raise it.
+
 - **One configuration surface, and a readout of it.** Five files configured a
   project and only one had an `--init`. Two of them — `config.json` (the
   language) and `rules.json` (the project rules) — were created by nothing,

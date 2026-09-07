@@ -93,7 +93,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.17.0",
+        "version": "0.18.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -425,13 +425,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0048-o-changelog-do-agente-e-rascunhado",
-        "title": "o changelog do agente e rascunhado",
-        "path": ".doctrina/changes/0048-o-changelog-do-agente-e-rascunhado",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0049-encolher-a-superficie-de-comandos",
         "title": "encolher a superficie de comandos",
@@ -1099,6 +1092,19 @@
         "specs_affected": [
           {
             "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0048-o-changelog-do-agente-e-rascunhado",
+        "title": "o changelog do agente e rascunhado",
+        "path": ".doctrina/changes/archive/2026-09-07-0048-o-changelog-do-agente-e-rascunhado",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]
