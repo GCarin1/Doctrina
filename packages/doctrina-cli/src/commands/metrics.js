@@ -1,14 +1,13 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
-import { GIT_STATE, historyState } from "../lib/git.js";
+import { GIT_STATE, historyState, git } from "../lib/git.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
@@ -59,7 +58,7 @@ export async function run(_positional, flags) {
     "log", `--since=${since}`, "--date=unix",
     "--pretty=format:@@%H|%ct|%s", "--name-only",
   ]);
-  if (log.status !== 0) {
+  if (log.state !== GIT_STATE.OK) {
     console.error(c.red("error:") + ` git log failed: ${log.stderr.trim()}`);
     return EXIT.ENVIRONMENT;
   }
@@ -184,10 +183,6 @@ function parseLog(stdout) {
     }
   }
   return commits;
-}
-
-function git(cwd, args) {
-  return spawnSync("git", args, { cwd, encoding: "utf8" });
 }
 
 function round(x) {

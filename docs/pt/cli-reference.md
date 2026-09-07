@@ -1607,7 +1607,7 @@ pack; veja [`doctrina decision scope`](#doctrina-decision-scope-number).
 
 | Flag | Função |
 |------|--------|
-| `--for "<tarefa>"` | Ranqueia o pack por relevância a uma descrição de tarefa, para que o que sobrevive ao orçamento seja o que a tarefa é. O ranqueamento é cobertura de termos e depois densidade, nunca tamanho do documento. |
+| `--for "<tarefa>"` | Ranqueia o pack por relevância a uma descrição de tarefa, para que o que sobrevive ao orçamento seja o que a tarefa é. O ranqueamento é cobertura de termos e depois densidade, nunca tamanho do documento. Ele lê o **léxico compartilhado** (`packages/doctrina-cli/src/lib/lexicon.js`), o mesmo com que o `doctrina work` ranqueia um prompt — os dois não têm como discordar sobre qual capability uma tarefa é, o que importa porque o playbook do work manda o agente rodar um logo depois do outro. O léxico dobra acentos (um prompt em português casa com uma spec em ASCII) e descarta os verbos que todo prompt carrega — "add", "new", "criar", "implementar" — junto com a gramática, já que nenhum deles diz *qual* capability. |
 | `--concat` | Imprime o conteúdo dos arquivos com separadores em vez da lista — pronto para entregar a um agente. O veredito de budget vai para stderr, mantendo o stdout puro. Artefatos degradados saem como título + resumo + um ponteiro para o texto completo. |
 | `--budget <n>` | Teto de tokens desta chamada, sobrepondo o `config.context_budget` do projeto. |
 | `--diff <ref>` | Restringe os artefatos estáveis (AGENTS.md, product.md, specs, ADRs) aos alterados desde o ref do git; changes abertas entram sempre. A leitura de retomada de sessão. |

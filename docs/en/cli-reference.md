@@ -1560,7 +1560,7 @@ pack; see [`doctrina decision scope`](#doctrina-decision-scope-number).
 
 | Flag | Purpose |
 |------|---------|
-| `--for "<task>"` | Rank the pack by relevance to a task description, so what survives the budget is what the task is about. Ranking is term coverage then density, never document length. |
+| `--for "<task>"` | Rank the pack by relevance to a task description, so what survives the budget is what the task is about. Ranking is term coverage then density, never document length. It reads the **shared lexicon** (`packages/doctrina-cli/src/lib/lexicon.js`), the same one `doctrina work` ranks a prompt with — the two cannot disagree about which capability a task is about, which matters because the work playbook tells the agent to run them back to back. The lexicon folds accents (a Portuguese prompt matches an ASCII spec) and drops the verbs every prompt carries — "add", "new", "create", "implementar" — alongside the grammar, since none of them says anything about *which* capability. |
 | `--concat` | Print the file contents with path separators instead of the list — ready to hand to an agent. The budget verdict goes to stderr, keeping stdout pure. Degraded artifacts print as title + summary + a pointer to the full text. |
 | `--budget <n>` | Token ceiling for this call, overriding the project's `config.context_budget`. |
 | `--diff <ref>` | Scope the stable artifacts (AGENTS.md, product.md, specs, ADRs) to those changed since the git ref; open changes are always included. The resume-session read. |

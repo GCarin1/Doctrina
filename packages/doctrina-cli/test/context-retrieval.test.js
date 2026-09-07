@@ -246,9 +246,16 @@ test("--for pulls the capability the task is about into the pack at full size", 
 });
 
 test("queryTerms drops connective words and keeps every domain term", () => {
-  assert.deepEqual(queryTerms("add a new gate for the exit codes"), ["add", "new", "gate", "exit", "codes"]);
+  // Since change 0040 this is the SHARED lexicon `work` ranks with too, and it
+  // drops the verbs every prompt carries — "add", "new", "create",
+  // "implementar" — alongside the grammar. They are connective tissue for
+  // retrieval: neither says anything about WHICH capability a prompt is about,
+  // and keeping them let a long spec win on volume.
+  assert.deepEqual(queryTerms("add a new gate for the exit codes"), ["gate", "exit", "codes"]);
   assert.deepEqual(queryTerms(""), []);
   assert.deepEqual(queryTerms(undefined), []);
+  // Domain terms survive, in either language, accents folded.
+  assert.deepEqual(queryTerms("exportação de invoice"), ["exportacao", "invoice"]);
 });
 
 test("--for with no usable terms is a usage error, not an empty pack", () => {

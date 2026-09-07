@@ -7,7 +7,7 @@ Work playbook — change 0001-add-a-billing-invoice-export — agent-executed (A
 
 Prompt: "add a billing invoice export"
 Likely capabilities (deterministic term match — a hint, not a decision):
-    billing              score   7   .doctrina/specs/billing/spec.md
+    billing              score 110   .doctrina/specs/billing/spec.md
 
 Execute in order, in a single linear pass:
 

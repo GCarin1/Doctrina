@@ -2,14 +2,14 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { listHeader, parseDependsOn, parseAdrScope, adrSummary } from "../lib/scan.js";
 import { getTitle, getSectionParagraph } from "../lib/doc-model.js";
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { GIT_STATE, historyState } from "../lib/git.js";
+import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
+import { terms as queryTerms, relevance } from "../lib/lexicon.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
 
@@ -624,52 +624,11 @@ function reportBudget(totalTokens, budget, fit, log) {
   }
 }
 
-// Content words in a --for query. Deliberately tiny: the stop list covers
-// the connective tissue of an English task description, nothing domain-
-// specific, so retrieval never quietly discards a real term.
-const STOPWORDS = new Set([
-  "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
-  "from", "has", "have", "how", "i", "if", "in", "into", "is", "it", "its",
-  "of", "on", "or", "should", "that", "the", "then", "this", "to", "up",
-  "was", "we", "what", "when", "where", "which", "why", "will", "with",
-]);
-
-export function queryTerms(query) {
-  if (query === undefined || query === null) return [];
-  return [...new Set(
-    String(query).toLowerCase().match(/[a-z][a-z0-9-]{1,}/g)?.filter((w) => !STOPWORDS.has(w)) ?? [],
-  )];
-}
-
-// How strongly a document answers the query, as a comparable tuple rather
-// than one blended number — so the tiebreak order is readable and no
-// weighting constant has to be guessed:
-//
-//   [ terms in the title/id, terms in the body, hits per 1000 chars ]
-//
-// Density, not raw hit count, breaks the final tie. Raw hits reward a
-// document for being long: the 473-line `cli` spec out-scored `skills` on
-// the query "write a skill from git history" purely on volume, which is
-// the length bias that makes naive retrieval useless on a mature tree.
-export function relevance(text, terms, emphasis = "") {
-  if (terms.length === 0) return [0, 0, 0];
-  const hay = text.toLowerCase();
-  const head = emphasis.toLowerCase();
-  let inTitle = 0;
-  let inBody = 0;
-  let hits = 0;
-  for (const term of terms) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const boundary = `(^|[^a-z0-9-])${escaped}`;
-    const n = (hay.match(new RegExp(boundary, "g")) ?? []).length;
-    if (n > 0) {
-      inBody += 1;
-      hits += n;
-    }
-    if (new RegExp(boundary).test(head)) inTitle += 1;
-  }
-  return [inTitle, inBody, Math.round((hits * 1000) / Math.max(text.length, 1))];
-}
+// Query terms and relevance both come from the SHARED lexicon (change 0040):
+// `work` ranked the same prompt against the same specs with a different stop
+// list, and the work playbook tells the agent to run `context` right after.
+// One vocabulary, so the two cannot disagree about what a prompt is about.
+export { terms as queryTerms, relevance } from "../lib/lexicon.js";
 
 // Ascending comparison of two rank tuples, shorter-is-smaller on a prefix.
 // Ties are broken by the caller (on path), so two runs over the same tree
@@ -697,21 +656,14 @@ function changedPaths(projectRoot, ref) {
     }
     return null;
   }
-  const run = (args) => spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-  const diff = run(["diff", "--name-only", ref, "--"]);
-  if (diff.status !== 0) {
-    console.error(c.red("error:") + ` git diff against "${ref}" failed${diff.stderr ? `: ${diff.stderr.trim().split("\n")[0]}` : ""}`);
+  const changed = changedFiles(projectRoot, { since: ref });
+  if (!changed.ok) {
+    // An unresolvable ref is a usage error, not an empty diff — reporting it
+    // as "nothing changed" would silently hand back the whole pack.
+    console.error(c.red("error:") + ` git diff against "${ref}" failed (${changed.state})`);
     return null;
   }
-  const untracked = run(["ls-files", "--others", "--exclude-standard"]);
-  const out = new Set();
-  for (const chunk of [diff.stdout, untracked.status === 0 ? untracked.stdout : ""]) {
-    for (const line of chunk.split(/\r?\n/)) {
-      const p = line.trim();
-      if (p) out.add(p);
-    }
-  }
-  return out;
+  return new Set(changed.files);
 }
 
 export const help = `

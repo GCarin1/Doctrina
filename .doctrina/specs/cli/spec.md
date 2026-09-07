@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.37.0
+**Version:** 0.38.0
 
 ## Purpose
 
@@ -51,7 +51,7 @@ owns the surface itself and the conventions every command shares.
 
 - The system shall define the exit-code classes in one module, print them in the top-level help from that same definition, and document them in the user-facing reference.
 
-- The system shall interpret git availability in one module, distinguishing a repository with no commits, a directory that is not a repository, and git being absent from the machine.
+- The system shall invoke and interpret git in one module, distinguishing a repository with history from an empty one, from a directory that is not a repository, and from a command that failed; no other module shall invoke git directly.
 
 - The system shall accept a JSON output flag on every command and emit a payload carrying a schema version, the invocation, a success flag, and the exit code.
 
@@ -61,6 +61,7 @@ owns the surface itself and the conventions every command shares.
 - The system shall record which operation ran only when the operator names a log file, shall record the operation alone and never its arguments, and shall make no network call.
 - The system shall treat the lane classification as a hint and never a refusal: `--force` opens the change regardless, and `--chore` selects the spec-less lane directly.
 - The system shall default an unclassifiable request to the PRODUCT lane, so that a lane is only changed by a signal and never by the absence of one.
+- The system shall define in one module the vocabulary it reads natural language with — how text is folded, which words carry no signal, and how strongly a document answers a query — and every command that ranks or classifies text shall read it from there.
 
 ### Event-driven
 
@@ -328,6 +329,8 @@ owns the surface itself and the conventions every command shares.
 - When `doctrina context --for "<task>"` runs, the system shall rank on-demand skills by the task's match against their trigger and mark the ones that match.
 - When `doctrina next` runs, the system shall compute the recommended actions as records carrying a stable kind id, the operation and its arguments, the reason, the gate it clears, a severity, and whether it may be run unattended, and shall derive the printed line from those same fields.
 - When `doctrina next --run` runs, the system shall execute the first runnable action in process and stop, exiting with that command's own code; when no action is runnable it shall name the action that requires a person and exit successfully.
+- When two surfaces rank the same text, the system shall rank it identically, deriving any single score from the same relevance it orders by rather than computing a second one.
+- When a caller asks which files changed, the system shall distinguish an empty answer from an inability to answer, and shall let the caller choose whether untracked files and a branch's earlier commits count.
 
 ### State-driven
 
@@ -435,6 +438,10 @@ The CLI is v0 spec-compliant when:
 28. [verified] An action carries the operation and its arguments, so a consumer re-issues it without parsing prose — verified by `packages/doctrina-cli/test/actions.test.js`.
 29. [verified] The lines printed by `next`, `prime` and `handoff` are unchanged by the move to records — verified by `packages/doctrina-cli/test/actions.test.js`.
 30. [verified] `--run` executes a runnable action and refuses one that needs a person, ticking and accepting nothing on the way past — verified by `packages/doctrina-cli/test/actions.test.js`.
+31. [verified] No module outside the git door invokes git, and no module outside the lexicon carries a second stop list or fix-shaped pattern — verified by `packages/doctrina-cli/test/one-door.test.js`.
+32. [verified] The changed-files door reports a clean tree and an unanswerable question differently, and its merge-base option is what makes a branch's earlier commits count — verified by `packages/doctrina-cli/test/one-door.test.js`.
+33. [verified] `work` and `context --for` choose the same capability for the same prompt, in either language, with accents folded — verified by `packages/doctrina-cli/test/one-door.test.js`.
+34. [verified] Relevance is a tuple and the score is its projection, so a long document cannot out-rank a focused one on volume — verified by `packages/doctrina-cli/test/one-door.test.js`.
 
 ## Out of scope for this spec
 

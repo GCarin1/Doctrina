@@ -5,6 +5,7 @@ import { isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import * as idx from "./index-json.js";
 import { deriveIndex, indexesMatch, listHeader } from "./scan.js";
 import { collectRuntimeFindings } from "./runtime.js";
+import { FIX_SHAPED } from "./lexicon.js";
 
 // What comes next, as DATA (change 0032).
 //
@@ -274,7 +275,6 @@ export function computeActions(projectRoot) {
 // been written yet (skills/ holds nothing but .gitkeep) AND the archive shows a
 // fix-shaped change whose lesson is the textbook case for a skill. Deterministic
 // pattern match on the archived folder name — a hint, never a decision (ADR 0005).
-const FIX_SHAPED = /(?:^|-)(fix|bug|hotfix|patch|parse|parsing|tolerate|workaround|race|deadlock|flaky|retry|escape|sanitize|sanitise)(?:-|$)/;
 
 function suggestSkillCapture(projectRoot) {
   const skillsDir = path.join(projectRoot, ".doctrina", "skills");

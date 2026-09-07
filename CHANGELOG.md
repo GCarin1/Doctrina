@@ -125,6 +125,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `split-an-oversized-spec` skill. `gates` is 333 lines, `insight` 149, and no
   pack omits an artifact any more.
 
+- **One door to git, one lexicon.** Two abstractions had been built and then
+  not adopted. `lib/git.js` was written to be the single door, and two modules
+  used it while four carried their own "which files changed" — each reading a
+  non-zero exit as an empty list rather than a refusal, so "not a repository"
+  and "clean tree" looked identical to all of them. `changedFiles(root, opts)`
+  is now that answer, with the semantics that genuinely differ between callers
+  as options (compare against a ref, count untracked files, include a branch's
+  earlier commits via the merge-base) rather than as four implementations.
+- `lib/lexicon.js` holds the whole vocabulary the CLI reads natural language
+  with: the fold, the EN+PT stop words, the relevance tuple, and the
+  fix-shaped patterns that had been living byte for byte in two modules.
+  `work` ranked a prompt with one stop list while `context --for` used
+  another — in a flow whose own playbook runs them back to back. They now
+  agree by construction, and the score `work` prints is a projection of the
+  tuple `context` orders by, not a second calculation. Two structural tests
+  fail on a fifth private git call or a second stop list.
+- Ranking therefore changed, deliberately: retrieval drops the verbs every
+  prompt carries ("add", "new", "create", "implementar") alongside the
+  grammar, since neither says anything about which capability a prompt is
+  about.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

@@ -136,3 +136,63 @@ export function gitWindow(cwd, days) {
   const churn = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   return { commits: subjects.length, fixes, churn };
 }
+
+// ---------------------------------------------------------------------------
+// Changed files: the one answer, four callers (audit finding F5)
+// ---------------------------------------------------------------------------
+//
+// `work`, `review`, `context` and `docs-impact` each carried their own
+// "which files changed" — four spawnSync helpers, four slightly different
+// answers, and each one reading a non-zero exit as an empty list rather than
+// a refusal. The semantics that genuinely differ between them are OPTIONS
+// here, not separate implementations: `docs-impact` needs the merge-base so a
+// branch's earlier commits count, `context --diff` compares against a named
+// ref, and a review against a ref does not want untracked files mixed in.
+
+/**
+ * The files that changed, as the caller defines "changed".
+ *
+ * @param {string} cwd
+ * @param {object} [opts]
+ * @param {string|null} [opts.since]      Compare against this ref instead of HEAD.
+ * @param {boolean} [opts.untracked]      Include untracked, non-ignored files (default true).
+ * @param {boolean} [opts.mergeBase]      Also include everything since the merge-base with the
+ *                                        default branch, so a branch's earlier commits count.
+ * @param {string[]} [opts.bases]         Which branch names to try as the merge-base target.
+ * @returns {{ ok: boolean, files: string[], state: string }}
+ *   `ok` is false when git could not answer — outside a repository, with git
+ *   absent, or on a real failure. A caller that treats "not ok" as "nothing
+ *   changed" is making the mistake this door exists to prevent, so the state
+ *   is returned rather than folded into an empty list.
+ */
+export function changedFiles(cwd, { since = null, untracked = true, mergeBase = false, bases = ["main", "master"] } = {}) {
+  const out = new Set();
+  const add = (r) => {
+    for (const line of r.lines) {
+      const p = line.trim();
+      if (p) out.add(p.replace(/\\/g, "/"));
+    }
+  };
+
+  const diff = git(cwd, since ? ["diff", "--name-only", since, "--"] : ["diff", "--name-only", "HEAD"]);
+  if (diff.state !== GIT_STATE.OK) return { ok: false, files: [], state: diff.state };
+  add(diff);
+
+  if (untracked) {
+    const others = git(cwd, ["ls-files", "--others", "--exclude-standard"]);
+    if (others.state === GIT_STATE.OK) add(others);
+  }
+
+  if (mergeBase) {
+    for (const base of bases) {
+      const mb = git(cwd, ["merge-base", "HEAD", base]);
+      if (mb.state === GIT_STATE.OK && mb.lines[0]) {
+        const since = git(cwd, ["diff", "--name-only", `${mb.lines[0].trim()}..HEAD`]);
+        if (since.state === GIT_STATE.OK) add(since);
+        break;
+      }
+    }
+  }
+
+  return { ok: true, files: [...out].sort(), state: GIT_STATE.OK };
+}

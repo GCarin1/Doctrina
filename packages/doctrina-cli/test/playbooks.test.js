@@ -20,6 +20,11 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // before a line of it moved, and every variant is asserted byte for byte
 // against them. A migration that quietly reworded the procedure would be a
 // different change wearing this one's name.
+//
+// One number in them has moved since: change 0040 unified the capability
+// ranker with `context`'s, so the `score` column reports the shared lexicon's
+// value. That is ranking OUTPUT, not playbook prose — the goldens were
+// re-captured for it, and every line around it is still the original.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

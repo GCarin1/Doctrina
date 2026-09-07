@@ -13,6 +13,8 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
+import { changedFiles } from "../lib/git.js";
+import { terms, score, fold } from "../lib/lexicon.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
 export { rankCapabilitiesByDiff } from "../lib/work-model.js";
 
@@ -49,7 +51,7 @@ export async function run(positional, flags) {
   const chore = flagBool(flags, "chore", false) || flagBool(flags, "no-spec", false);
   let files = [];
   if (fromDiff) {
-    files = changedFiles(projectRoot);
+    files = changedFiles(projectRoot).files;
     if (files.length === 0) {
       console.error(c.red("error:") + " --from-diff found no working-tree changes to backfill from");
       console.error(c.gray("hint: ") + "make (or stage) the code changes first, then run `doctrina work --from-diff`");
@@ -165,7 +167,7 @@ export async function run(positional, flags) {
 
   // Capability hint: term overlap for a prompt, changed-file overlap for a diff
   // (review F10 — rank by what the working tree touched, not just prompt words).
-  const allChanged = fromDiff ? files : changedFiles(projectRoot);
+  const allChanged = fromDiff ? files : changedFiles(projectRoot).files;
   const diffMatches = pinned ? [] : rankCapabilitiesByDiff(projectRoot, allChanged);
   const matches = pinned ? [] : (fromDiff ? diffMatches : rankCapabilities(projectRoot, effPrompt));
   const capability = pinned ?? matches[0]?.id ?? null;
@@ -191,22 +193,6 @@ export async function run(positional, flags) {
     });
   }
   return 0;
-}
-
-// Changed files in the working tree (tracked + untracked), for the diff-based
-// capability hint and `--from-diff` backfill. Empty outside a git repo or with
-// no changes. Read-only: never invokes a mutating git command.
-function changedFiles(projectRoot) {
-  const run = (args) => {
-    const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-    if (r.error || r.status !== 0) return [];
-    return r.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  };
-  const set = new Set([
-    ...run(["diff", "--name-only", "HEAD"]),                 // tracked, staged + unstaged
-    ...run(["ls-files", "--others", "--exclude-standard"]),  // untracked
-  ]);
-  return [...set];
 }
 
 // Next sequential NNNN across open changes and the archive, so work-driven
@@ -317,51 +303,29 @@ export function slugify(text) {
   return slug.length > 0 ? slug : "task";
 }
 
-// Deterministic term overlap: fold prompt and spec text to ASCII lowercase,
-// drop short/stop words, score name hits heavily and body hits lightly.
-// This is a hint for the agent, never a decision (ADR 0005).
-const STOPWORDS = new Set([
-  // en
-  "the", "and", "for", "with", "from", "that", "this", "into", "when",
-  "then", "shall", "should", "must", "can", "will", "make", "add", "new",
-  "use", "create", "implement", "feature", "system", "user", "users",
-  // pt (ASCII-folded)
-  "uma", "umas", "uns", "dos", "das", "nos", "nas", "por", "para", "com",
-  "que", "sem", "aos", "faca", "fazer", "criar", "crie", "novo", "nova",
-  "adicionar", "adicione", "implementar", "implemente", "funcionalidade",
-  "sistema", "usuario", "usuarios",
-]);
-
-function fold(text) {
-  return text.normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
-}
-
-function promptTerms(prompt) {
-  return [...new Set(
-    fold(prompt)
-      .split(/[^a-z0-9]+/)
-      .filter((t) => t.length >= 3 && !STOPWORDS.has(t)),
-  )];
-}
-
+// Deterministic term overlap: fold prompt and spec text with the SHARED
+// lexicon, then score. This is a hint for the agent, never a decision
+// (ADR 0005).
+//
+// Before change 0040 this carried its own stop list and its own fold, while
+// `context --for` carried different ones — and the work playbook tells the
+// agent to run `context` immediately after `work`. Two rankers, in sequence,
+// on the same prompt, free to disagree about which capability it is about.
+// Both now read lib/lexicon.js, and the score below is that module's
+// PROJECTION of the relevance tuple, not a second calculation.
 export function rankCapabilities(projectRoot, prompt) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  const terms = promptTerms(prompt);
-  if (terms.length === 0 || !isDir(specsDir)) return [];
+  const queryTerms = terms(prompt);
+  if (queryTerms.length === 0 || !isDir(specsDir)) return [];
 
   const ranked = [];
   for (const cap of readdirSync(specsDir).sort()) {
     const specPath = path.join(specsDir, cap, "spec.md");
     if (!isFile(specPath)) continue;
-    const body = fold(read(specPath));
-    const nameTokens = cap.split("-");
-    let score = 0;
-    for (const term of terms) {
-      if (nameTokens.includes(term)) score += 5;
-      const hits = body.split(term).length - 1;
-      score += Math.min(hits, 5);
-    }
-    if (score > 0) ranked.push({ id: cap, score, path: `.doctrina/specs/${cap}/spec.md` });
+    // The capability name is the emphasis: a term in the name says far more
+    // about what the prompt is about than the same term buried in the body.
+    const points = score(read(specPath), queryTerms, cap.split("-").join(" "));
+    if (points > 0) ranked.push({ id: cap, score: points, path: `.doctrina/specs/${cap}/spec.md` });
   }
   return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, 3);
 }

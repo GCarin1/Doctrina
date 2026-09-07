@@ -1,9 +1,9 @@
 // @ts-check
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { isFile, read, walk } from "./fs-ops.js";
 import { COMMAND_NAMES } from "./commands.js";
 import { locateTemplatesDir } from "./templates.js";
+import { changedFiles, isRepo } from "./git.js";
 
 // "Docs ship inside the change, never after it" (audit item D2).
 //
@@ -116,31 +116,16 @@ export function documentedSurfaceSignals(changeDir) {
 // all, and attributing a hunk to a change would need guesswork the rest of
 // the framework refuses to do (ADR 0005).
 export function docsTouched(projectRoot) {
-  const git = (args) => {
-    const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-    if (r.error || r.status !== 0) return [];
-    return r.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  };
-  const set = new Set();
-  for (const f of git(["diff", "--name-only", "HEAD"])) set.add(f);
-  for (const f of git(["ls-files", "--others", "--exclude-standard"])) set.add(f);
-  for (const base of ["main", "master"]) {
-    const mb = git(["merge-base", "HEAD", base]);
-    if (mb.length > 0) {
-      for (const f of git(["diff", "--name-only", `${mb[0]}..HEAD`])) set.add(f);
-      break;
-    }
-  }
-  return [...set]
-    .map((f) => f.replace(/\\/g, "/"))
+  // mergeBase: a branch's EARLIER commits count as documentation that moved
+  // with the change — the gate asks "did docs ship with this work", not "did
+  // docs change since the last commit".
+  return changedFiles(projectRoot, { mergeBase: true })
+    .files
     .filter((f) => DOC_PATHS.some((re) => re.test(f)));
 }
 
 export function isGitRepo(projectRoot) {
-  const r = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
-    cwd: projectRoot, encoding: "utf8",
-  });
-  return !r.error && r.status === 0;
+  return isRepo(projectRoot);
 }
 
 // The gate itself: { ok, signals, touched, reason }. `ok` is true when the

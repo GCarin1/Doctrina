@@ -4,7 +4,7 @@
 
 Prompt: "add a billing invoice export"
 Likely capabilities (deterministic term match — a hint, not a decision):
-    [36mbilling             [39m score   7   [90m.doctrina/specs/billing/spec.md[39m
+    [36mbilling             [39m score 110   [90m.doctrina/specs/billing/spec.md[39m
 
 Execute in order, in a single linear pass:
 

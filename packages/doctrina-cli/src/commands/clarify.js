@@ -5,6 +5,7 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { detectLanguage } from "../lib/lexicon.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
@@ -59,8 +60,6 @@ const RULES_PT = [
 // Language for a file: the project-declared `.doctrina/config.json`
 // ("language": "pt-BR" / "pt" / "en") wins; otherwise a deterministic
 // stopword count over the file text decides. Never semantic (ADR 0005).
-const PT_STOPWORDS = /\b(que|n[aã]o|para|uma|como|mais|ser|quando|est[aá]|s[aã]o|pela|pelo|dos|das|ou seja|deve)\b/gi;
-const EN_STOPWORDS = /\b(the|and|that|with|shall|when|this|from|are|not|for|must)\b/gi;
 
 function projectLanguage(projectRoot) {
   const cfgPath = path.join(projectRoot, ".doctrina", "config.json");
@@ -74,10 +73,10 @@ function projectLanguage(projectRoot) {
   return null;
 }
 
+// Which lexicon a document is written in — the shared detector (change
+// 0040), so `clarify` and any future consumer count the same grammar words.
 function detectLang(text) {
-  const pt = (text.match(PT_STOPWORDS) ?? []).length;
-  const en = (text.match(EN_STOPWORDS) ?? []).length;
-  return pt > en ? "pt" : "en";
+  return detectLanguage(text);
 }
 
 function rulesFor(projectRoot, text, forcedLang = null) {

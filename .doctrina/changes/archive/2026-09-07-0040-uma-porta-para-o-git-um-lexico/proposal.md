@@ -1,6 +1,7 @@
 # Change 0040-uma-porta-para-o-git-um-lexico — uma porta para o git, um lexico
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** cli
@@ -30,12 +31,19 @@ byte a byte em `next.js` e `skill.js`.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Nenhum `spawnSync("git", ...)` fora de `src/lib/git.js`, provado por teste estrutural.
-- [ ] Nenhuma lista de stopwords nem `FIX_SHAPED` duplicada fora de `src/lib/lexicon.js`.
-- [ ] `work "<prompt>"` e `context --for "<prompt>"` concordam sobre a capacidade mais relevante.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Nenhum `spawnSync("git", ...)` fora de `src/lib/git.js`, provado por teste estrutural.
+- [x] Nenhuma lista de stopwords nem `FIX_SHAPED` duplicada fora de `src/lib/lexicon.js`.
+- [x] `work "<prompt>"` e `context --for "<prompt>"` concordam sobre a capacidade mais relevante.
 
 ## Open questions
 
-- O `relevance` do `context` devolve uma tupla de três componentes e o `rankCapabilities` do `work` devolve um escalar. Unificar na tupla (mais expressiva) ou manter as duas saídas sobre o mesmo cálculo?
+- Resolvida: as DUAS saídas, sobre UM cálculo. O `relevance` continua devolvendo
+  a tupla (título, corpo, densidade) — é ela que ordena, e a densidade é o que
+  impede um documento longo de ganhar por volume. O `score` do `work` passa a
+  ser uma PROJEÇÃO declarada dessa tupla, com pesos que só precisam preservar a
+  ordem que a comparação lexicográfica já define. É o mesmo padrão que a
+  ADR 0025 registrou para as vistas: um cálculo, duas renderizações. Unificar
+  na tupla só teria trocado uma coluna legível por três números numa saída que
+  é lida por humanos.

@@ -7,6 +7,7 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { changedFiles } from "../lib/git.js";
 import { parseDependsOn } from "../lib/scan.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { summarize as coverageSummary } from "../lib/coverage-model.js";
@@ -35,7 +36,7 @@ export async function run(_positional, flags) {
   const strict = flagBool(flags, "strict", false);
   const against = flagString(flags, "diff"); // optional git ref to diff against
 
-  const { all, sourceFiles } = changedFiles(projectRoot, against);
+  const { all, sourceFiles } = reviewScope(projectRoot, against);
   console.log(c.bold("Review") + c.gray(against ? ` — vs ${against}` : " — working-tree changes"));
   console.log("");
 
@@ -133,21 +134,12 @@ export async function run(_positional, flags) {
 }
 
 // Changed paths between a base (a git ref, or HEAD + untracked for the working
-// tree) and now. Returns the full list and the subset outside .doctrina/.
-function changedFiles(projectRoot, against) {
-  const run = (args) => {
-    const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-    if (r.error || r.status !== 0) return [];
-    return r.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  };
-  const set = new Set();
-  if (against) {
-    for (const f of run(["diff", "--name-only", against])) set.add(f);
-  } else {
-    for (const f of run(["diff", "--name-only", "HEAD"])) set.add(f);
-    for (const f of run(["ls-files", "--others", "--exclude-standard"])) set.add(f);
-  }
-  const all = [...set];
+// tree) and now, split into the full list and the subset outside .doctrina/.
+// The git question itself goes through the one door (lib/git.js).
+function reviewScope(projectRoot, against) {
+  // Against a named ref, untracked files are noise: the question is what this
+  // branch changed, not what is lying around uncommitted.
+  const all = changedFiles(projectRoot, { since: against, untracked: !against }).files;
   const sourceFiles = all.filter((f) => !f.replace(/\\/g, "/").startsWith(".doctrina/"));
   return { all, sourceFiles };
 }
