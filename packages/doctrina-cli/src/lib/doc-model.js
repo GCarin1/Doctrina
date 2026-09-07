@@ -362,3 +362,36 @@ export function isUntouchedScaffold(specText, capability) {
     /##\s+Requirements \(EARS\)[\s\S]*?### Ubiquitous\s*\n\s*-\s*\n/.test(specText)
   );
 }
+
+
+/**
+ * The title a change proposal's H1 states, or null.
+ *
+ * The H1 the template writes is `# Change <id> — <title>`, and the id itself
+ * contains hyphens (`NNNN-slug`) — which is what four separate copies of this
+ * regex kept getting wrong in four slightly different ways. The one that read
+ * `[^—-]*` for the id stopped at the FIRST hyphen, which in any multi-word id
+ * is the id's own, so `prime`, `handoff` and `report` printed the slug glued
+ * in front of the title on every change `work` had ever generated. The ones
+ * that read `\s*[—-]\s*` accepted a bare hyphen with no spaces around it, so
+ * an H1 with no separator at all had its last segment read as the title.
+ *
+ * The separator is a dash WITH whitespace on both sides; an id's hyphens
+ * never have that, which is the whole ambiguity, resolved. Both the em dash
+ * and the plain hyphen are accepted, because the character was never the
+ * problem — a hand-written H1 using `-` reads exactly as clearly.
+ *
+ * The `Change <id> —` prefix is optional: an H1 written without it is a title
+ * in its own right and is returned whole (ADR 0021 — one owner for the
+ * on-disk grammar).
+ *
+ * @param {string} text  the proposal, or just its first line
+ * @returns {string|null}
+ */
+export function parseChangeTitle(text) {
+  const first = String(text ?? "").split(/\r?\n/).find((l) => /^#\s+\S/.test(l));
+  if (!first) return null;
+  const m = first.match(/^#\s+(?:Change\s+\S+\s+[—-]\s+)?(.+)$/);
+  const title = m?.[1]?.trim();
+  return title ? title : null;
+}

@@ -1,5 +1,5 @@
 // @ts-check
-import { getSection, getHeader } from "../lib/doc-model.js";
+import { getSection, getHeader, parseChangeTitle } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
@@ -542,13 +542,9 @@ function changeArchive(args, flags) {
   // Title from proposal
   const proposal = path.join(archiveDir, "proposal.md");
   if (exists(proposal)) {
-    // First line may end in \r on Windows checkouts (autocrlf); split on
-    // either ending so the title regex is not defeated by a stray \r.
-    const firstLine = read(proposal).split(/\r?\n/, 1)[0] ?? "";
-    // The id itself may contain hyphens (NNNN-slug), so match it as \S+
-    // and split on the em-dash/hyphen separator that follows whitespace.
-    const m = firstLine.match(/^#\s+Change\s+\S+\s*[—-]\s*(.+)$/);
-    if (m) title = m[1].trim();
+    // One owner for the H1's grammar (ADR 0021): the id contains hyphens,
+    // and every copy of this parse got that wrong in a different way.
+    title = parseChangeTitle(read(proposal)) ?? title;
   }
 
   // Append a one-line summary to the archive ledger so history stays

@@ -10,6 +10,7 @@ import { summarize as traceSummary } from "./trace-model.js";
 import { acceptedDecisions, productSection } from "./constitution-model.js";
 import { computeActions } from "./actions.js";
 import { readLedger } from "./ledger.js";
+import { parseChangeTitle } from "./doc-model.js";
 import { summarizeSignoffs } from "./signoff.js";
 
 // ONE collector, several views (audit finding F7).
@@ -123,7 +124,7 @@ export function openChanges(projectRoot) {
     if (!isDir(path.join(changesDir, id))) continue;
     const proposalPath = path.join(changesDir, id, "proposal.md");
     const proposal = isFile(proposalPath) ? read(proposalPath) : null;
-    const title = proposal?.match(/^#\s+(?:Change\s+[^—-]*[—-]\s*)?(.+)$/m)?.[1]?.trim() ?? null;
+    const title = proposal ? parseChangeTitle(proposal) : null;
     const status = proposal ? (listHeader(proposal, "Status") ?? "proposed") : "no proposal.md";
     const tasksPath = path.join(changesDir, id, "tasks.md");
     let tasksDone = 0, tasksTotal = 0;

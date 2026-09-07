@@ -66,7 +66,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented"
       },
@@ -101,7 +101,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -436,15 +436,7 @@
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
-    "changes": [
-      {
-        "id": "0052-o-titulo-da-change-nao-sai-duplicado",
-        "title": "o titulo da change nao sai duplicado",
-        "path": ".doctrina/changes/0052-o-titulo-da-change-nao-sai-duplicado",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1143,6 +1135,23 @@
         "specs_affected": [
           {
             "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0052-o-titulo-da-change-nao-sai-duplicado",
+        "title": "o titulo da change nao sai duplicado",
+        "path": ".doctrina/changes/archive/2026-09-07-0052-o-titulo-da-change-nao-sai-duplicado",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]

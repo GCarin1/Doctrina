@@ -1,5 +1,5 @@
 // @ts-check
-import { getHeader, getSection } from "./doc-model.js";
+import { getHeader, getSection, parseChangeTitle } from "./doc-model.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
@@ -190,10 +190,10 @@ export function deriveIndex(projectRoot, current) {
     const prev = (cur.changes ?? []).find((c) => c.id === id);
     const proposalPath = path.join(changesDir, id, "proposal.md");
     const proposal = isFile(proposalPath) ? read(proposalPath) : "";
-    const titleMatch = proposal.match(/^#\s+Change\s+\S+\s*[—-]\s*(.+)$/m);
+    const title = parseChangeTitle(proposal);
     out.artifacts.changes.push({
       id,
-      title: titleMatch ? titleMatch[1].trim() : prev?.title ?? id,
+      title: title ?? prev?.title ?? id,
       path: `.doctrina/changes/${id}`,
       status: listHeader(proposal, "Status") ?? prev?.status ?? "proposed",
       opened: listHeader(proposal, "Date") ?? prev?.opened ?? date,
@@ -212,7 +212,7 @@ export function deriveIndex(projectRoot, current) {
     const prev = (cur.changes_archive ?? []).find((c) => c.path?.endsWith(name));
     const proposalPath = path.join(archiveDir, name, "proposal.md");
     const proposal = isFile(proposalPath) ? read(proposalPath) : "";
-    const titleMatch = proposal.match(/^#\s+Change\s+\S+\s*[—-]\s*(.+)$/m);
+    const title = parseChangeTitle(proposal);
     const specsAffected = [];
     for (const deltaPath of walk(path.join(archiveDir, name, "specs"))) {
       if (!deltaPath.endsWith("delta.md")) continue;
@@ -224,7 +224,7 @@ export function deriveIndex(projectRoot, current) {
     }
     out.artifacts.changes_archive.push({
       id: m[2],
-      title: titleMatch ? titleMatch[1].trim() : prev?.title ?? m[2],
+      title: title ?? prev?.title ?? m[2],
       path: `.doctrina/changes/archive/${name}`,
       status: "applied",
       applied: m[1],

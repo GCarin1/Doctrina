@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-09-07
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -123,6 +123,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 
 - The system shall not silently omit an artifact from a pack; every degradation and omission shall be named in the report.
 - The system shall not let the number of open changes decide whether a context pack can be assembled within its budget.
+- The system shall not render a change's identifier as part of its title in any read-only view; the id and the title are separate fields and are printed as such.
 
 ## Acceptance criteria
 
@@ -140,6 +141,7 @@ The read path is spec-compliant when:
 10. [verified] Every view is a pure function of the snapshot, and each renders byte-identical output whether reached by its own command or by the view flag — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 11. [verified] An unknown view name exits with the usage code naming the nearest real one, and the machine-readable envelope keeps its shape whichever view is asked for — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 12. [verified] `constitution` and `prime --rules` produce byte-identical output, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+13. [verified] `prime`, `handoff` and `report` print the title of a change with a multi-word id without the id in front of it, and the index records the same — verified by `packages/doctrina-cli/test/change-title.test.js`.
 
 ## Out of scope for this spec
 

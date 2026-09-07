@@ -17,6 +17,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The change title stopped coming out doubled.** A proposal's H1 is
+  `# Change <id> — <title>` and the id itself contains hyphens, so the parser
+  that read the id as `[^—-]*` stopped at the id's FIRST hyphen: every
+  multi-word id — the norm `work` generates — printed the slug glued in front
+  of the title in `prime`, `handoff` and `report`. Four copies of that parse
+  existed and two of them were wrong, in two different ways: the other broken
+  variant accepted a bare hyphen with no spaces, so a heading with no
+  separator had the id's last segment read as its title.
+- One parser owns the grammar now (`parseChangeTitle`, in the document model
+  ADR 0021 names), and all four callers read it from there. The separator is
+  a dash WITH whitespace on both sides — an id's hyphens never have that,
+  which is the whole ambiguity — so a hand-written `-` still reads correctly
+  and requiring an em dash would have cost compatibility for nothing.
+
 ### Added
 
 - **`doctrina init` takes the intake inline.** `--intake-text "<text>"` is
