@@ -9,6 +9,7 @@ import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
 import { acceptedDecisions, productSection } from "./constitution-model.js";
 import { computeActions } from "./actions.js";
+import { summarizeSignoffs } from "./signoff.js";
 
 // ONE collector, several views (audit finding F7).
 //
@@ -88,12 +89,18 @@ export function collectStatus(projectRoot) {
 
 function readVerifyConfig(projectRoot) {
   const p = path.join(projectRoot, VERIFY_CONFIG_REL);
-  if (!isFile(p)) return { configured: false, checks: 0, invalid: false };
+  if (!isFile(p)) return { configured: false, checks: 0, invalid: false, signoffs: null };
   try {
     const cfg = JSON.parse(read(p));
-    return { configured: true, checks: Array.isArray(cfg?.checks) ? cfg.checks.length : 0, invalid: false };
+    const checks = Array.isArray(cfg?.checks) ? cfg.checks : [];
+    // Executed proof and SIGNED proof are different claims (change 0039), and
+    // a report that adds them together hides which is which. The counts ride
+    // along so every view can say so without loading the sign-off store
+    // itself.
+    const signoffs = summarizeSignoffs(projectRoot, checks);
+    return { configured: true, checks: checks.length, invalid: false, signoffs };
   } catch {
-    return { configured: true, checks: 0, invalid: true };
+    return { configured: true, checks: 0, invalid: true, signoffs: null };
   }
 }
 

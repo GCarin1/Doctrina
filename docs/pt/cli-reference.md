@@ -1187,6 +1187,37 @@ quando assinada e é reportada como *pendente* caso contrário — não-bloquean
 por padrão, falhando só sob `--strict`. Sign-offs ficam em
 `.doctrina/verify.signoffs.json`.
 
+### Um sign-off manual vence
+
+Uma assinatura é uma afirmação sobre o código num momento. Quando esse
+código muda, a afirmação deixa de ser prova e vira histórico — então um
+sign-off grava o commit em que foi feito e os `paths` que o check declara
+cobrir (**declarados, nunca inferidos**, como todo o resto do
+`verify.json`). O `verify` compara os dois com a árvore de trabalho e
+reporta um de quatro estados:
+
+| Estado | Significado | Passa? |
+|--------|-------------|--------|
+| **fresh** | assinado, e nada do que cobre mudou desde então | sim |
+| **expired** | um caminho coberto mudou depois da assinatura | não |
+| **unverifiable** | sem commit gravado, sem `paths` declarados, ou fora de um repositório git — então "mudou?" não tem resposta | não |
+| **pending** | nunca assinado | não |
+
+Só *fresh* passa. Os outros três são **não-bloqueantes por padrão e falham
+sob `--strict`** — a regra que o `pending` sempre seguiu, mantida como uma
+regra só em vez de duas. Mudanças commitadas e edições não commitadas
+contam igual, porque a assinatura é sobre o código como ele está.
+
+Uma assinatura feita antes disso existir não carrega commit, então é
+reportada como **unverifiable**: nem confiada, nem chamada de vencida,
+porque ninguém sabe que ela está. Uma re-assinatura resolve, e o `verify
+--signoff` avisa na hora de assinar quando o check não declara `paths` —
+uma assinatura sem âncora é uma que nada consegue cobrar do código.
+
+O `status`, `prime`, `handoff`, `report` e `doctor` distinguem prova
+EXECUTADA de prova ASSINADA, para que um verde total não esconda quanto
+dele foi a palavra de uma pessoa.
+
 ### Expectativas de saída — fail-closed numa execução que não fez nada
 
 Um exit code responde "o runner quebrou?", nunca "o runner rodou alguma

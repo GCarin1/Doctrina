@@ -2,6 +2,21 @@
 import { c } from "./colors.js";
 import { today } from "./dates.js";
 
+// Executed proof and signed proof are different claims (change 0039). One
+// phrasing, used by every view, so none of them can quietly add the two
+// together and call the total green.
+function signoffNote(verify, { verbose = false } = {}) {
+  const s = verify.signoffs;
+  if (!s || s.manual === 0) return "";
+  const stale = s.expired + s.unverifiable + s.pending;
+  if (stale === 0) return verbose ? ` (${s.manual} signed, all current)` : ` · ${s.manual} signed`;
+  const parts = [];
+  if (s.expired) parts.push(`${s.expired} expired`);
+  if (s.unverifiable) parts.push(`${s.unverifiable} unverifiable`);
+  if (s.pending) parts.push(`${s.pending} unsigned`);
+  return ` (${s.manual} signed, ${parts.join(", ")})`;
+}
+
 // The four VIEWS of one snapshot (audit finding F7).
 //
 // `status`, `prime`, `handoff` and `report` differ only in shape: a
@@ -70,7 +85,12 @@ export function dashboard(s) {
     verifyLine = c.red("invalid JSON");
   } else if (s.verify.configured) {
     const n = s.verify.checks;
-    verifyLine = c.cyan(`${n} check${n === 1 ? "" : "s"}`) + c.gray(" — run `doctrina verify`");
+    const stale = s.verify.signoffs
+      ? s.verify.signoffs.expired + s.verify.signoffs.unverifiable + s.verify.signoffs.pending
+      : 0;
+    verifyLine = c.cyan(`${n} check${n === 1 ? "" : "s"}`) +
+      (stale > 0 ? c.yellow(signoffNote(s.verify)) : c.gray(signoffNote(s.verify))) +
+      c.gray(" — run `doctrina verify`");
   }
   out.push(`    ${"verify".padEnd(11)} ${verifyLine}`);
 
@@ -99,7 +119,9 @@ export function prime(s) {
 
   const cov = `${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria})`;
   const tr = s.trace.anchors === 0 ? "no anchors" : `${s.trace.realized}/${s.trace.anchors}`;
-  const verify = s.verify.configured ? `${s.verify.checks} verify checks` : "verify not configured";
+  const verify = s.verify.configured
+    ? `${s.verify.checks} verify checks${signoffNote(s.verify)}`
+    : "verify not configured";
   out.push(c.bold("Gates  ") + `index ${s.indexState} · coverage ${cov} · trace ${tr} · ${verify}`);
   const implBreak = Object.entries(s.specs.impl).map(([k, v]) => `${v} ${k}`).join(", ");
   out.push(
@@ -155,7 +177,7 @@ export function handoff(s) {
     (s.coverage.totalConditional ? `, ${s.coverage.totalConditional} conditional` : "") + ")");
   const tr = s.trace.anchors === 0 ? "no anchors declared" : `${s.trace.realized}/${s.trace.anchors} anchors realized`;
   out.push(`- trace: ${tr}` + (s.trace.untraceable ? ` (${s.trace.untraceable} untraceable)` : ""));
-  out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared — run \`doctrina verify\`` : "not configured"}`);
+  out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared${signoffNote(s.verify, { verbose: true })} — run \`doctrina verify\`` : "not configured"}`);
 
   out.push("");
   if (s.openChanges.length === 0) {
@@ -210,7 +232,7 @@ export function report(s, { days = 7, cutoffIso = "", git = null } = {}) {
     (s.coverage.totalDangling ? ` — ${s.coverage.totalDangling} dangling` : "") +
     (s.coverage.totalConditional ? ` — ${s.coverage.totalConditional} conditional` : ""));
   out.push(`- trace: ${s.trace.anchors === 0 ? "no anchors declared" : `${s.trace.realized}/${s.trace.anchors} anchors realized`}`);
-  out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared` : "not configured"}`);
+  out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared${signoffNote(s.verify, { verbose: true })}` : "not configured"}`);
 
   out.push("");
   out.push("## Changes");

@@ -198,7 +198,25 @@ export async function run(_positional, _flags) {
         row("warn", "verify config", "no verify.json — the build gate is undeclared", "doctrina verify --init");
         warningsTotal += 1;
       } else {
-        row("ok", "verify config", `${s.verify.checks} check${s.verify.checks === 1 ? "" : "s"} declared (run \`doctrina verify\` to execute)`);
+        // Executed proof and signed proof are different claims (change 0039):
+        // a row that counts them together is the false confidence this
+        // command exists to prevent.
+        const so = s.verify.signoffs;
+        const stale = so ? so.expired + so.unverifiable + so.pending : 0;
+        const detail = `${s.verify.checks} check${s.verify.checks === 1 ? "" : "s"} declared` +
+          (so && so.manual > 0 ? `, ${so.manual} signed rather than executed` : "") +
+          " (run `doctrina verify` to execute)";
+        if (stale > 0) {
+          const parts = [];
+          if (so.expired) parts.push(`${so.expired} expired`);
+          if (so.unverifiable) parts.push(`${so.unverifiable} unverifiable`);
+          if (so.pending) parts.push(`${so.pending} unsigned`);
+          row("warn", "verify config", `${detail} — ${parts.join(", ")}`,
+            "doctrina verify   (each names the re-sign command)");
+          warningsTotal += 1;
+        } else {
+          row("ok", "verify config", detail);
+        }
       }
     },
   };

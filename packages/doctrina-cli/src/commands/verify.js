@@ -7,6 +7,7 @@ import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
+import { loadSignoffs, saveSignoffs, recordSignoff, signoffState, short, SIGNOFF_REL } from "../lib/signoff.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // The build/verify gate `validate` is not. `validate` checks the shape of
@@ -18,7 +19,7 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 // `.doctrina/verify.json`, and `verify` runs exactly that, in order.
 
 const CONFIG_REL = ".doctrina/verify.json";
-const SIGNOFF_REL = ".doctrina/verify.signoffs.json";
+
 
 const STARTER = {
   $comment:
@@ -117,12 +118,11 @@ export async function run(_positional, flags) {
     return 1;
   }
 
-  // Sign-off store for manual checks: { "<check name>": { date, note } }.
-  const signoffPath = path.join(projectRoot, SIGNOFF_REL);
-  let signoffs = {};
-  if (isFile(signoffPath)) {
-    try { signoffs = JSON.parse(read(signoffPath)) ?? {}; } catch { signoffs = {}; }
-  }
+  // Sign-off store for manual checks. Since change 0039 a record carries what
+  // it covered and the commit it covered it at, so the signature can expire
+  // (lib/signoff.js); a pre-expiry record is read unchanged and reported as
+  // unverifiable rather than silently trusted.
+  const signoffs = loadSignoffs(projectRoot);
 
   // --signoff "<name>=<note>" records a manual check's human/eval sign-off
   // (date stamped today) and exits. The name must be a declared manual check.
@@ -140,9 +140,22 @@ export async function run(_positional, flags) {
         : `add one: { "name": "${name || "quality"}", "type": "manual", "rubric": "<the question>" }`));
       return 1;
     }
-    signoffs[name] = { date: today(), note };
-    write(signoffPath, JSON.stringify(signoffs, null, 2) + "\n", { force: true });
-    console.log(c.green("signed off") + ` ${name} on ${today()}${note ? `: ${note}` : ""}`);
+    signoffs[name] = recordSignoff(projectRoot, target, note);
+    saveSignoffs(projectRoot, signoffs);
+    const stamped = signoffs[name];
+    console.log(c.green("signed off") + ` ${name} on ${stamped.date}${note ? `: ${note}` : ""}`);
+    // Say what the signature is anchored to, so its expiry is not a surprise
+    // later: an unanchored signature is one nothing can hold to the code.
+    if (stamped.sha && stamped.paths) {
+      console.log(c.gray(`   covers ${stamped.paths.join(", ")} as of ${short(stamped.sha)}`));
+      console.log(c.gray("   expires when one of those paths changes"));
+    } else if (!stamped.paths) {
+      console.log(c.yellow("warn:") + ` "${name}" declares no "paths" — the sign-off cannot expire, ` +
+        "so `verify` will report it as unverifiable rather than passing");
+      console.log(c.gray(`   fix: add "paths": ["src/..."] to the check in ${CONFIG_REL}`));
+    } else {
+      console.log(c.yellow("warn:") + " not a git repository — nothing can tell when this signature goes stale");
+    }
     return 0;
   }
 
@@ -178,13 +191,29 @@ export async function run(_positional, flags) {
     // can require the human/eval sign-off without blocking local runs.
     if (ch.type === "manual") {
       console.log(c.gray(`──── ${name}: `) + c.gray(`manual${ch.rubric ? " — " + ch.rubric : ""}`));
-      const so = signoffs[name];
-      if (so && so.date) {
-        console.log(c.green(`✓ ${name}`) + c.gray(` — signed off ${so.date}${so.note ? `: ${so.note}` : ""}`));
-        results.push({ name, ok: true, kind: "manual" });
+      // Four states, one rule: only a signature that still demonstrably
+      // covers the code passes. The other three warn by default and fail
+      // under --strict — which is what `pending` already did, so a manual
+      // check keeps ONE rule rather than gaining a second.
+      const verdict = signoffState(projectRoot, ch, signoffs[name]);
+      const so = verdict.record;
+      const resign = c.gray(` (doctrina verify --signoff "${name}=<note>")`);
+      if (verdict.state === "fresh") {
+        console.log(c.green(`✓ ${name}`) + c.gray(` — signed off ${so.date}${so.note ? `: ${so.note}` : ""}`) +
+          c.gray(` · still covers ${so.paths.join(", ")} at ${short(so.sha)}`));
+        results.push({ name, ok: true, kind: "manual", signoff: "fresh" });
+      } else if (verdict.state === "expired") {
+        console.log(c.yellow(`○ ${name} — sign-off expired`) +
+          c.gray(` (signed ${so.date} at ${short(so.sha)}; changed since: ${verdict.changed.slice(0, 3).join(", ")}` +
+            `${verdict.changed.length > 3 ? `, +${verdict.changed.length - 3} more` : ""})`) + resign);
+        results.push({ name, ok: false, kind: "manual", pending: true, signoff: "expired" });
+      } else if (verdict.state === "unverifiable") {
+        console.log(c.yellow(`○ ${name} — sign-off cannot be verified`) +
+          c.gray(` (signed ${so.date}; ${verdict.why})`) + resign);
+        results.push({ name, ok: false, kind: "manual", pending: true, signoff: "unverifiable" });
       } else {
-        console.log(c.yellow(`○ ${name} — pending sign-off`) + c.gray(` (doctrina verify --signoff "${name}=<note>")`));
-        results.push({ name, ok: false, kind: "manual", pending: true });
+        console.log(c.yellow(`○ ${name} — pending sign-off`) + resign);
+        results.push({ name, ok: false, kind: "manual", pending: true, signoff: "pending" });
       }
       continue;
     }

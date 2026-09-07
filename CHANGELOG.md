@@ -91,6 +91,40 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   pre-rendered into a plain token, so a template stays a document rather than a
   language with conditionals in it.
 
+- **A manual sign-off expires.** `verify --signoff` recorded `{date, note}`,
+  nothing but `verify` ever read the file, and the signature held forever — so
+  the one deliberate escape hatch from the build gate was also the one place a
+  green gate could lie indefinitely: sign off "the error copy reads well",
+  rewrite every message the next morning, and the gate still said yes. That is
+  ADR 0008 turned on the escape hatch itself.
+  A record now carries the commit it was made at and the `paths` the check
+  declares it covers (declared, never inferred). `verify` reports four states —
+  **fresh** (passes), **expired**, **unverifiable**, **pending** — where only
+  fresh passes and the other three warn by default and fail `--strict`, which
+  is the rule `pending` already followed. Uncommitted edits count too; a change
+  outside the declared paths does not.
+- A signature made before this existed carries no commit, so it reads as
+  **unverifiable**: not trusted, and not accused of being stale either, since
+  nobody can know that it is. One re-signature clears it, and `--signoff` warns
+  at signing time when a check declares no `paths`.
+- `status`, `prime`, `handoff`, `report` and `doctor` now separate executed
+  proof from signed proof, so a green total cannot hide how much of it was a
+  person's word.
+
+- **The `gates` spec split into `gates` and `insight`.** It had reached 424
+  lines against its own 400-line cap and occupied two thirds of every context
+  pack it appeared in, pushing those packs to the 15,000-token ceiling until
+  `context` began omitting ADRs — and the three changes before this one each
+  had to shrink their own delta to fit, which treats the symptom. The seam is
+  the one the spec's Purpose always described: a GATE reads the tree in order
+  to refuse; a VIEW assembles what is there and refuses nothing. `gates` keeps
+  the checks and their drivers; the new `insight` spec takes context assembly
+  and the read-only commands (`context`, `search`, `show`, `status`, `prime`,
+  `handoff`, `report`, `why`, `constitution`). Every requirement moved
+  verbatim — nothing reworded, nothing dropped — per the repository's own
+  `split-an-oversized-spec` skill. `gates` is 333 lines, `insight` 149, and no
+  pack omits an artifact any more.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

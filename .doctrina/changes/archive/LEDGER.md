@@ -44,3 +44,5 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0036-implementation-derivado-do-coverage — Implementation derivado do coverage (specs: gates MODIFIED)
 - 2026-09-07 — 0037-um-coletor-varias-vistas — um coletor, varias vistas (specs: gates MODIFIED)
 - 2026-09-07 — 0038-playbooks-sao-templates — playbooks sao templates (specs: templates MODIFIED)
+- 2026-09-07 — 0053-split-gates-into-gates-and-insight — split gates into gates and insight (specs: gates MODIFIED, insight ADDED)
+- 2026-09-07 — 0039-signoff-manual-tem-validade — sign-off manual tem validade (specs: gates MODIFIED)

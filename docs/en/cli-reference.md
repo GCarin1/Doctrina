@@ -1138,16 +1138,47 @@ sign-off, not run as a command.
     { "name": "typecheck", "run": "tsc --noEmit" },
     { "name": "test",      "run": "npm test" },
     { "name": "build",     "run": "npm run build" },
-    { "name": "chronicle", "type": "manual", "rubric": "is the chronicle enjoyable to read?" }
+    { "name": "chronicle", "type": "manual", "rubric": "is the chronicle enjoyable to read?",
+      "paths": ["src/chronicle/"] }
   ]
 }
 ```
 
 Each `run` executes in order through the shell with output streamed;
 `verify` exits non-zero if any command check fails. With no config it exits
-1 and points at `--init`. A manual check passes once signed off and is
-otherwise reported as *pending* — non-blocking by default, failing only
-under `--strict`. Sign-offs live in `.doctrina/verify.signoffs.json`.
+1 and points at `--init`. Sign-offs live in
+`.doctrina/verify.signoffs.json`.
+
+### A manual sign-off expires
+
+A signature is a statement about code at a moment. When that code moves,
+the statement stops being evidence and becomes history — so a sign-off
+records the commit it was made at, and the `paths` the check declares it
+covers (**declared, never inferred**, like everything else in
+`verify.json`). `verify` compares the two against the working tree and
+reports one of four states:
+
+| State | Meaning | Passes? |
+|-------|---------|---------|
+| **fresh** | signed, and nothing it covers has moved since | yes |
+| **expired** | a covered path changed after the signature | no |
+| **unverifiable** | no commit recorded, no `paths` declared, or not a git repository — so "has it moved?" has no answer | no |
+| **pending** | never signed off | no |
+
+Only *fresh* passes. The other three are **non-blocking by default and
+fail under `--strict`** — the rule `pending` always followed, kept as one
+rule rather than two. Both committed changes and uncommitted working-tree
+edits count, because a signature is about the code as it stands.
+
+A signature made before this existed carries no commit, so it is reported
+as **unverifiable**: not trusted, and not called expired either, because
+nobody knows that it is. One re-signature clears it, and `verify
+--signoff` warns at signing time when a check declares no `paths` — an
+unanchored signature is one nothing can hold to the code.
+
+`status`, `prime`, `handoff`, `report` and `doctor` all distinguish
+executed proof from signed proof, so a green total cannot hide how much of
+it was a human's word.
 
 ### Output expectations — fail-closed on a run that did nothing
 

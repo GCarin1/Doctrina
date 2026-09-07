@@ -47,8 +47,16 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.12.0",
+        "version": "1.0.0",
         "last_updated": "2026-08-06",
+        "implementation": "implemented"
+      },
+      {
+        "id": "insight",
+        "path": ".doctrina/specs/insight/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-09-07",
         "implementation": "implemented"
       },
       {
@@ -406,13 +414,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0039-signoff-manual-tem-validade",
-        "title": "sign-off manual tem validade",
-        "path": ".doctrina/changes/0039-signoff-manual-tem-validade",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0040-uma-porta-para-o-git-um-lexico",
         "title": "uma porta para o git, um lexico",
@@ -1027,6 +1028,36 @@
           {
             "capability": "templates",
             "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0039-signoff-manual-tem-validade",
+        "title": "sign-off manual tem validade",
+        "path": ".doctrina/changes/archive/2026-09-07-0039-signoff-manual-tem-validade",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0053-split-gates-into-gates-and-insight",
+        "title": "split gates into gates and insight",
+        "path": ".doctrina/changes/archive/2026-09-07-0053-split-gates-into-gates-and-insight",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "ADDED"
           }
         ]
       }

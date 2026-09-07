@@ -2936,8 +2936,17 @@ test("verify manual check is a non-blocking qualitative gate until signed off", 
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
-    const cfg = { checks: [{ name: "quality", type: "manual", rubric: "is it good?" }] };
+    spawnSync("git", ["init", "-q", "."], { cwd: tmp });
+    mkdirSync(path.join(tmp, "src"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "copy.js"), "the error copy\n");
+    // Since change 0039 a signature is held to something: the check declares
+    // the paths it covers, and `verify` records the commit it was signed at.
+    // A check that declares none can still be signed, but is reported as
+    // unverifiable rather than passing — see test/signoff.test.js.
+    const cfg = { checks: [{ name: "quality", type: "manual", rubric: "is it good?", paths: ["src/copy.js"] }] };
     writeFileSync(path.join(tmp, ".doctrina", "verify.json"), JSON.stringify(cfg, null, 2));
+    spawnSync("git", ["add", "-A"], { cwd: tmp });
+    spawnSync("git", ["-c", "user.email=a@b", "-c", "user.name=t", "commit", "-qm", "init"], { cwd: tmp });
 
     // Pending is non-blocking by default…
     const pending = runCli(["verify"], { cwd: tmp });
