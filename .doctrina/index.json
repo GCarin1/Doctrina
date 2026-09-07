@@ -12,6 +12,17 @@
     },
     "specs": [
       {
+        "id": "authoring",
+        "path": ".doctrina/specs/authoring/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-09-07",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli"
+        ]
+      },
+      {
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
@@ -1088,6 +1099,23 @@
           {
             "capability": "insight",
             "operation": "ADDED"
+          }
+        ]
+      },
+      {
+        "id": "0054-split-cli-into-cli-and-authoring",
+        "title": "split cli into cli and authoring",
+        "path": ".doctrina/changes/archive/2026-09-07-0054-split-cli-into-cli-and-authoring",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "ADDED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
           }
         ]
       }

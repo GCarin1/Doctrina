@@ -19,6 +19,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The `cli` spec split into `cli` and `authoring`.** Its third split, and
+  the same seam each time: the surface on one side, a kind of work on the
+  other. At 475 lines against a 400-line cap it took 8,636 of its own pack's
+  15,000 tokens, and once the change in focus was added the irreducible core
+  reached 13,295 — `context` began omitting the global ADRs that are supposed
+  to appear in every pack. `cli` keeps the surface and the conventions every
+  command shares (the executable, help and version, flag declaration and
+  parsing, the five exit classes, the JSON envelope, the git door, the
+  lexicon, the usage log); the new `authoring` spec takes the commands that
+  write the tree — `intake`, `work`, `spec`, `change`, `decision`,
+  `contract`, `skill`, `intent` and `triage`. Every requirement and criterion
+  moved verbatim — 67 event-driven requirements became 21 + 46, 38 criteria
+  became 28 + 10, nothing reworded and nothing dropped — per the repository's
+  own `split-an-oversized-spec` skill. `cli` is 249 lines, `authoring` 317,
+  and the `cli` pack is back to 95% of budget with no artifact omitted.
+
 - **The spec delta is scaffolded on the default path too.** `work` prefilled
   `**Operation:**` only under `--capability`, so on the ordinary path the
   agent still hand-wrote the one file whose missing header used to surface

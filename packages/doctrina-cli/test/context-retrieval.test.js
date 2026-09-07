@@ -26,6 +26,14 @@ function run(cwd, args) {
   return spawnSync(process.execPath, [cliEntry, ...args], { cwd, encoding: "utf8" });
 }
 
+// Every capability the index knows about. Read, never listed: three of these
+// packs exist because a spec was split, and each split used to leave a
+// hardcoded list here one capability short of the tree it was checking.
+function capabilities() {
+  const idx = JSON.parse(readFileSync(path.join(repoRoot, ".doctrina", "index.json"), "utf8"));
+  return idx.artifacts.specs.map((s) => s.id).sort();
+}
+
 function tokensOf(stdout) {
   const m = stdout.match(/~(\d+) tokens total/);
   return m ? Number.parseInt(m[1], 10) : null;
@@ -71,8 +79,7 @@ test("a scoped ADR joins only the packs of the capabilities it governs", () => {
   const governed = run(repoRoot, ["context", scoped.scope[0]]).stdout;
   assert.match(governed, new RegExp(path.basename(scoped.path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 
-  const other = ["cli", "core", "docs", "gates", "skills", "templates", "validation"]
-    .find((cap) => cap !== scoped.scope[0]);
+  const other = capabilities().find((cap) => !scoped.scope.includes(cap));
   const excluded = run(repoRoot, ["context", other]).stdout;
   assert.doesNotMatch(excluded, new RegExp(path.basename(scoped.path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
     `ADR ${scoped.id} is scoped to ${scoped.scope[0]} but still loaded into the "${other}" pack`);
@@ -83,7 +90,7 @@ test("a scoped ADR joins only the packs of the capabilities it governs", () => {
 test("the scoped pack for every capability fits the default budget", () => {
   // The audit's acceptance number: `context cli` below 15,000 tokens. It
   // was ~37,900.
-  for (const cap of ["cli", "core", "docs", "gates", "skills", "templates", "validation"]) {
+  for (const cap of capabilities()) {
     const res = run(repoRoot, ["context", cap]);
     const total = tokensOf(res.stdout);
     assert.ok(total !== null, `no token total reported for "${cap}"`);
