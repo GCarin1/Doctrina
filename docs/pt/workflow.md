@@ -64,6 +64,16 @@ linear — a disciplina de orquestrador único do ADR 0004 não muda. Se uma
 descrição ou prompt é genuinamente ambíguo, o agente pergunta antes de
 assumir.
 
+**Os playbooks são templates, não prosa nesta página.** Os passos moram em
+`.doctrina/templates/playbooks/{work,chore,bootstrap}.md.template` e
+resolvem projeto-sobre-bundled como qualquer outro scaffold (ADR 0019):
+rode o comando para ler o playbook atual, e ponha o seu próprio arquivo em
+`.doctrina/templates/playbooks/` para adaptá-lo ao processo do seu time —
+um passo de review a mais, um close diferente. Esta página deliberadamente
+não repete os passos, porque um procedimento escrito em dois lugares é um
+procedimento que vai discordar de si mesmo; o `doctrina templates check`
+verifica que cada playbook ainda resolve e está bem formado.
+
 Na prática o bootstrap é um comando só: rode
 `doctrina init --intake <arquivo>` (o playbook é impresso na hora),
 depois abra seu agente e mande começar. O `AGENTS.md` gerado instrui

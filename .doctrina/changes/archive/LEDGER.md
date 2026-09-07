@@ -43,3 +43,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0034-um-unico-mapa-de-gates — um unico mapa de gates (specs: gates MODIFIED)
 - 2026-09-07 — 0036-implementation-derivado-do-coverage — Implementation derivado do coverage (specs: gates MODIFIED)
 - 2026-09-07 — 0037-um-coletor-varias-vistas — um coletor, varias vistas (specs: gates MODIFIED)
+- 2026-09-07 — 0038-playbooks-sao-templates — playbooks sao templates (specs: templates MODIFIED)

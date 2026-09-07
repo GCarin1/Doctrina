@@ -12,6 +12,7 @@ import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
+import { printPlaybookTemplate } from "../lib/playbook.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
 export { rankCapabilitiesByDiff } from "../lib/work-model.js";
 
@@ -369,149 +370,71 @@ export function rankCapabilities(projectRoot, prompt) {
 // A chore is a spec-less change (review F9): the playbook drops the spec-delta
 // steps and goes straight to implement → verify → archive → validate, so the
 // agent is not prompted to invent a delta for infra/docs/build work.
+// Both playbooks are rendered from templates (lib/playbook.js), resolved
+// project-over-bundled like every other scaffold. What stays here is the only
+// part that is not prose: computing the variable blocks. Each is PRE-RENDERED
+// into a token, so `substitute` stays a plain string map and the template
+// stays a document rather than a language with conditionals in it.
 function printChorePlaybook(projectRoot, { id, prompt }) {
-  console.log(c.bold(`Chore playbook — change ${id}`) + c.gray(" — agent-executed (ADR 0005); no spec deltas."));
-  console.log("");
-  console.log(`Prompt: "${prompt}"`);
-  console.log("");
-  console.log("Execute in order, in a single linear pass:");
-  console.log("");
-  console.log(`1. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
-  console.log("   with small, checkable steps; implement them, checking each box.");
-  console.log(c.gray("   (Do it before implementing — analyze/close refuse leftover scaffold"));
-  console.log(c.gray("   placeholders, and `change tick` will not tick an empty box.)"));
-  console.log("2. Prove it (archive refuses unchecked boxes):");
-  console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
-  console.log(`       ${c.cyan("doctrina verify --clean")} — clean-checkout reproducibility lint`);
-  console.log("   Then check the proposal's ## Verification boxes and every task.");
-  console.log("3. This is a chore: no spec changes. If you find yourself needing a");
-  console.log(`   spec delta, it is not a chore — reopen with ${c.cyan("doctrina work \"<prompt>\"")}.`);
-  console.log(`4. ${c.cyan(`doctrina change apply ${id}`)}  (zero deltas → flips to applied).`);
-  console.log(`5. ${c.cyan(`doctrina change archive ${id}`)}, then ${c.cyan("doctrina validate")}.`);
-  console.log(c.gray("   If this fix taught a lesson worth not relearning, capture it: ") +
-    c.cyan("doctrina skill new <slug>") + c.gray("."));
+  printPlaybookTemplate(projectRoot, "chore", { CHANGE_ID: id, PROMPT: prompt });
 }
 
 function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, fromDiff = false, diffMatches = [] }) {
-  const capToken = capability ?? "<capability>";
-  const title = fromDiff ? "Backfill playbook" : "Work playbook";
-  console.log(c.bold(`${title} — change ${id}`) + c.gray(" — agent-executed (ADR 0005)."));
-  console.log("");
-  console.log(`Prompt: "${prompt}"`);
-  if (fromDiff) {
-    console.log(c.gray("Code-first: write the spec that describes what the working tree already does."));
-  }
+  printPlaybookTemplate(projectRoot, "work", {
+    TITLE: fromDiff ? "Backfill playbook" : "Work playbook",
+    CHANGE_ID: id,
+    PROMPT: prompt,
+    CAPABILITY: capability ?? "<capability>",
+    FROM_DIFF_NOTE: fromDiff
+      ? c.gray("Code-first: write the spec that describes what the working tree already does.")
+      : "",
+    // Clarification gate (review Topic A): a thin prompt is the moment to ask
+    // the user, not to invent a spec. Advisory — the change is still
+    // scaffolded (it is a draft), but the agent is told to resolve the gaps
+    // first. The leading blank line belongs to the block, so an absent
+    // warning leaves no gap behind.
+    THIN_WARNING: clarity?.thin && !fromDiff
+      ? ["", c.yellow("⚠ thin prompt — clarify with the user before writing spec deltas:"),
+         ...clarity.reasons.map((r) => `    - ${r}`)].join("\n")
+      : "",
+    CAPABILITY_BLOCK: capabilityBlock(projectRoot, { pinned, matches, fromDiff }),
+    // Extra signal (review F10): even for a prompt-driven change, show which
+    // capabilities the working tree touched — often the truer hint.
+    DIFF_MATCHES: !fromDiff && diffMatches.length > 0
+      ? c.gray("Also touched by your working tree: ") + diffMatches.map((m) => c.cyan(m.id)).join(", ")
+      : "",
+    STEP3_INTRO: pinned
+      ? "3. A delta is already scaffolded (Operation prefilled) at\n" +
+        `   .doctrina/changes/${id}/specs/${pinned}/delta.md — fill its body.\n` +
+        "   Add one more delta per additional affected capability:"
+      : "3. Write one delta per affected capability at\n" +
+        `   .doctrina/changes/${id}/specs/<capability>/delta.md:`,
+    FROM_DIFF_DELTA_NOTE: fromDiff
+      ? [c.gray("   --from-diff: the code already exists — describe its CURRENT behaviour, and"),
+         c.gray("   mark each criterion [unverified] until a test proves it (don't assume the"),
+         c.gray("   diff is tested). The changed files are listed in the proposal's ## Why.")].join("\n")
+      : "",
+  });
+}
 
-  // Clarification gate (review Topic A): a thin prompt is the moment to ask
-  // the user, not to invent a spec. Advisory — the change is still scaffolded
-  // (it is a draft), but the agent is told to resolve the gaps first.
-  if (clarity?.thin && !fromDiff) {
-    console.log("");
-    console.log(c.yellow("⚠ thin prompt — clarify with the user before writing spec deltas:"));
-    for (const r of clarity.reasons) console.log(`    - ${r}`);
-  }
-
+// Which capability the change is about, as far as the CLI can tell: pinned by
+// the operator, ranked by term overlap, or nothing — a hint in every case,
+// never a decision (ADR 0005).
+function capabilityBlock(projectRoot, { pinned, matches, fromDiff }) {
   if (pinned) {
     const hasSpec = isFile(path.join(projectRoot, ".doctrina", "specs", pinned, "spec.md"));
-    console.log(`Capability (pinned): ${c.cyan(pinned)}` +
-      (hasSpec ? "" : c.yellow(" — no spec yet; create it in step 2")));
-  } else if (matches.length > 0) {
+    return `Capability (pinned): ${c.cyan(pinned)}` +
+      (hasSpec ? "" : c.yellow(" — no spec yet; create it in step 2"));
+  }
+  if (matches.length > 0) {
     const how = fromDiff ? "touched by your working tree" : "deterministic term match";
-    console.log(`Likely capabilities (${how} — a hint, not a decision):`);
-    for (const m of matches) {
-      console.log(`    ${c.cyan(m.id.padEnd(20))} score ${String(m.score).padStart(3)}   ${c.gray(m.path)}`);
-    }
-  } else {
-    console.log(c.gray(fromDiff
-      ? "No existing spec matches the changed files — likely a new capability."
-      : "No existing spec matches the prompt — likely a new capability."));
+    return [`Likely capabilities (${how} — a hint, not a decision):`,
+      ...matches.map((m) => `    ${c.cyan(m.id.padEnd(20))} score ${String(m.score).padStart(3)}   ${c.gray(m.path)}`),
+    ].join("\n");
   }
-
-  // Extra signal (review F10): even for a prompt-driven change, show which
-  // capabilities the working tree touched — often the truer hint.
-  if (!fromDiff && diffMatches.length > 0) {
-    console.log(c.gray("Also touched by your working tree: ") +
-      diffMatches.map((m) => c.cyan(m.id)).join(", "));
-  }
-
-  console.log("");
-  console.log("Execute in order, in a single linear pass:");
-  console.log("");
-  console.log("1. Read the context pack and confirm (or correct) the capability:");
-  console.log(`       ${c.cyan(`doctrina context ${capToken} --concat`)}`);
-  console.log("");
-  console.log("2. If the capability has no spec yet:");
-  console.log(`       ${c.cyan("doctrina spec new <capability>")}`);
-  console.log(c.gray("   Trace it to product intent: tag the product.md success-criteria bullet"));
-  console.log(c.gray("   it serves with an anchor (\"- [SC1] ...\") and set the spec's"));
-  console.log(c.gray("   \"**Realizes:** SC1\" header (or \"n/a — <why>\"). `doctrina validate` warns"));
-  console.log(c.gray("   on an active spec with no Realizes; `doctrina trace` reports the link."));
-  console.log("");
-  if (pinned) {
-    console.log(`3. A delta is already scaffolded (Operation prefilled) at`);
-    console.log(`   .doctrina/changes/${id}/specs/${pinned}/delta.md — fill its body.`);
-    console.log("   Add one more delta per additional affected capability:");
-  } else {
-    console.log("3. Write one delta per affected capability at");
-    console.log(`   .doctrina/changes/${id}/specs/<capability>/delta.md:`);
-  }
-  console.log(c.gray("       # Spec Delta — capability: <capability>"));
-  console.log(c.gray("       **Operation:** ADDED | MODIFIED | REMOVED"));
-  console.log(c.gray("       **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`"));
-  console.log(c.gray("       ---"));
-  console.log(c.gray("       <EARS body. Keep the two axes honest (Status vs Implementation),"));
-  console.log(c.gray("        keep aspiration under ## Maturity → Future, and cite the proof per"));
-  console.log(c.gray("        criterion: \"1. [unverified] <signal> — verified by `path/to/test`\">"));
-  console.log(c.gray("   New capability? `spec new` then an ADDED delta with the FULL body — apply"));
-  console.log(c.gray("   replaces the untouched scaffold. Bookkeeping edits? MODIFIED with an ops"));
-  console.log(c.gray("   block, applied mechanically (all ops or none):"));
-  console.log(c.gray("       ```ops"));
-  console.log(c.gray("       set-header Implementation: verified — `src/x.js`"));
-  console.log(c.gray("       bump-version minor"));
-  console.log(c.gray("       set-criterion 1: verified"));
-  console.log(c.gray("       append-criterion [unverified] new signal — verified by `test/y.test.js`"));
-  console.log(c.gray("       append-requirement event: When <trigger>, the system shall <action>."));
-  console.log(c.gray("       replace-requirement ubiquitous 2: The system shall <action>."));
-  console.log(c.gray("       ```"));
-  console.log(c.gray("   append-* ops number/position at APPLY time, so concurrent changes"));
-  console.log(c.gray("   appending to the same spec never collide. Only free-prose rewrites"));
-  console.log(c.gray("   (Purpose, Maturity, ...) stay a by-hand merge."));
-  if (fromDiff) {
-    console.log(c.gray("   --from-diff: the code already exists — describe its CURRENT behaviour, and"));
-    console.log(c.gray("   mark each criterion [unverified] until a test proves it (don't assume the"));
-    console.log(c.gray("   diff is tested). The changed files are listed in the proposal's ## Why."));
-  }
-  console.log("");
-  console.log(`4. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
-  console.log("   with small, checkable implementation tasks (a few hours each, max),");
-  console.log("   and record the change's What/Scope in its proposal.md. Do this BEFORE");
-  console.log("   implementing — analyze and close refuse a change whose scaffold");
-  console.log("   placeholders were never replaced, and `change tick` will not tick them.");
-  console.log("");
-  console.log("5. Implement task by task, checking each box as it lands. Advance the");
-  console.log("   spec's Implementation: planned → partial → implemented as code lands.");
-  console.log("   If the prompt is genuinely ambiguous, ask the user before assuming.");
-  console.log("");
-  console.log(`6. ADR checkpoint — does this change decide something structural`);
-  console.log("   (an architecture, a boundary, a trade-off a future session must");
-  console.log(`   not relitigate)? If yes: ${c.cyan("doctrina decision new \"<title>\"")} now,`);
-  console.log("   before closing — the definition of done requires it recorded.");
-  console.log(c.gray("   (close re-checks this: it warns when the change touches capabilities"));
-  console.log(c.gray("   cited by an accepted ADR — amend via decision supersede, not silence.)"));
-  console.log("   Touching an integration surface (ports, env vars, public endpoints)?");
-  console.log(`   Own it in a contract: ${c.cyan("doctrina contract new <id>")} · ${c.cyan("doctrina contract check")}.`);
-  console.log("");
-  console.log(`7. Close in one attested pass (preferred — runs every gate and stops`);
-  console.log("   at the first failure with the exact rerun command):");
-  console.log(`       ${c.cyan(`doctrina close ${id}`)}`);
-  console.log(c.gray("   (equivalent, step by step: ") +
-    c.gray(`analyze → change apply → verify → coverage → trace → change archive → validate)`));
-  console.log("   Before it: check the proposal's ## Verification boxes and every task,");
-  console.log("   closing steps included, and bump Implementation to verified.");
-  console.log("");
-  console.log(`8. ${c.cyan("doctrina next")} for the follow-up.`);
-  console.log(c.gray("   If this change taught a reusable lesson (a fix you'd hate to relearn,"));
-  console.log(c.gray("   a recurring convention), capture it: ") + c.cyan("doctrina skill new <slug>") + c.gray("."));
+  return c.gray(fromDiff
+    ? "No existing spec matches the changed files — likely a new capability."
+    : "No existing spec matches the prompt — likely a new capability.");
 }
 
 export const help = `

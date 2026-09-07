@@ -74,7 +74,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.16.0",
+        "version": "0.17.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -406,13 +406,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0038-playbooks-sao-templates",
-        "title": "playbooks sao templates",
-        "path": ".doctrina/changes/0038-playbooks-sao-templates",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0039-signoff-manual-tem-validade",
         "title": "sign-off manual tem validade",
@@ -1020,6 +1013,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0038-playbooks-sao-templates",
+        "title": "playbooks sao templates",
+        "path": ".doctrina/changes/archive/2026-09-07-0038-playbooks-sao-templates",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

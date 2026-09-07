@@ -75,6 +75,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sequencing whole commands, not reaching into their internals. Recorded as
   ADR 0025.
 
+- **Playbooks are templates.** `printPlaybook()` was ~100 lines of literal
+  `console.log` — including the documentation of the ops grammar — and the same
+  procedure was written out again in AGENTS.md and twice in the workflow docs.
+  Four homes for one fact, and no way for an adopting team to say "our close
+  has an extra review step". The work, chore and bootstrap playbooks now live
+  in `.doctrina/templates/playbooks/` and resolve project-over-bundled per file
+  like every other scaffold (ADR 0019); `templates check` verifies each still
+  resolves and is well-formed.
+- The migration is faithful, and proved so: goldens captured from the previous
+  implementation before a line of it moved, and every variant — work, chore,
+  pinned capability, thin prompt, bootstrap — asserted byte for byte against
+  them, ANSI colour codes included. Colour is inline markup expanded *before*
+  substitution, so a prompt can never inject it; every variable part is
+  pre-rendered into a plain token, so a template stays a document rather than a
+  language with conditionals in it.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

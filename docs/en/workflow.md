@@ -58,6 +58,16 @@ single-orchestrator discipline of ADR 0004 is unchanged. If a
 description or prompt is genuinely ambiguous, the agent asks before
 assuming.
 
+**The playbooks are templates, not prose in this page.** Their steps live
+in `.doctrina/templates/playbooks/{work,chore,bootstrap}.md.template` and
+resolve project-over-bundled like every other scaffold (ADR 0019): run
+the command to read the current playbook, and drop your own file in
+`.doctrina/templates/playbooks/` to adapt it to your team's process — an
+extra review step, a different close. This page deliberately does not
+repeat the steps, because a procedure written in two places is a
+procedure that will disagree with itself; `doctrina templates check`
+verifies each playbook still resolves and is well-formed.
+
 In practice the bootstrap is one command: run
 `doctrina init --intake <file>` (the playbook prints inline), then open
 your agent and tell it to start. The scaffolded `AGENTS.md` instructs

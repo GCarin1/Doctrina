@@ -1,0 +1,19 @@
+[[b]]Chore playbook — change {{CHANGE_ID}}[[/b]][[g]] — agent-executed (ADR 0005); no spec deltas.[[/g]]
+
+Prompt: "{{PROMPT}}"
+
+Execute in order, in a single linear pass:
+
+1. Replace the placeholder tasks in .doctrina/changes/{{CHANGE_ID}}/tasks.md
+   with small, checkable steps; implement them, checking each box.
+[[g]]   (Do it before implementing — analyze/close refuse leftover scaffold[[/g]]
+[[g]]   placeholders, and `change tick` will not tick an empty box.)[[/g]]
+2. Prove it (archive refuses unchecked boxes):
+       [[c]]doctrina verify[[/c]]     — the project's typecheck/test/build gate
+       [[c]]doctrina verify --clean[[/c]] — clean-checkout reproducibility lint
+   Then check the proposal's ## Verification boxes and every task.
+3. This is a chore: no spec changes. If you find yourself needing a
+   spec delta, it is not a chore — reopen with [[c]]doctrina work "<prompt>"[[/c]].
+4. [[c]]doctrina change apply {{CHANGE_ID}}[[/c]]  (zero deltas → flips to applied).
+5. [[c]]doctrina change archive {{CHANGE_ID}}[[/c]], then [[c]]doctrina validate[[/c]].
+[[g]]   If this fix taught a lesson worth not relearning, capture it: [[/g]][[c]]doctrina skill new <slug>[[/c]][[g]].[[/g]]

@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.16.0
+**Version:** 0.17.0
 
 ## Purpose
 
@@ -52,6 +52,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall hold the generated surface block to a declared line budget, reporting an overrun as a finding rather than growing the block.
 - The contract template shall carry Wiring, Selectors and Budgets tables, and a Values column on Environment, each documenting what the corresponding runtime check verifies.
 - The spec template shall carry an optional `### Pipeline` block documenting that a step may only require what an earlier step produced.
+- The system shall treat the playbooks it prints as templates resolved project-over-bundled per file, so an adopting team can replace the procedure its agent executes.
+- The system shall pre-render every variable part of a playbook into a plain token value, and shall not evaluate conditionals or loops declared inside a template.
 
 ### Event-driven
 
@@ -78,6 +80,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When a scaffolding command uses a project template rather than the bundled one, the system shall say so.
 - When `doctrina templates list` runs, the system shall label each template with the source it resolved from and mark a project file that shadows a bundled one.
 - When a project is scaffolded or upgraded, the system shall write a marker-delimited agent-facing changelog naming only what alters agent behaviour in the installed version.
+- When a playbook is rendered, the system shall expand its colour markup before substituting tokens, so a token's value cannot introduce markup, and shall remove a line that holds only a token whose value is empty.
+- When `doctrina templates check` runs, the system shall report a playbook that does not resolve, and one whose body is empty, has no numbered first step, or leaves a colour span unclosed.
 
 ### State-driven
 
@@ -151,6 +155,10 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 16. [verified] Every command declares a purpose, a when-trigger, and a known moment, and the block carries those triggers within its declared budget — verified by `packages/doctrina-cli/test/commands.test.js`.
 17. [verified] The agent-facing changelog is three to six agent-scoped bullets for the running version, written at init and refreshed by upgrade — verified by `packages/doctrina-cli/test/commands.test.js`, `packages/doctrina-cli/test/integration.test.js`.
 18. [verified] A scaffolded contract passes `contract check` and reports its runtime surface as unchecked — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+19. [verified] Every playbook variant — work, chore, pinned capability, thin prompt and bootstrap — renders byte-identically to the pre-migration implementation, colour codes included — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+20. [verified] A playbook placed in the project's template directory overrides the bundled one per file, leaving the others bundled — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+21. [verified] A token's value carrying colour markup is printed literally rather than expanded — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+22. [verified] A missing or malformed playbook is reported by `templates check` with the remedy that clears it — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 
 ## Out of scope for this spec
 

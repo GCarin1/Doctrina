@@ -7,6 +7,8 @@
 import path from "node:path";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./fs-ops.js";
 import { adapterFiles, isHubPointer, listAdapterNames } from "./adapters.js";
+import { readTemplate } from "./templates.js";
+import { PLAYBOOKS } from "./playbook.js";
 import { COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
 // Recommended sections per file kind. Adopters whose files lack these
 // headings get a warning from `templates check`; they are recommendations,
@@ -137,6 +139,45 @@ export function collectFindings(projectRoot) {
   }
 
   // Output
+  // The playbooks (change 0038). A playbook is the procedure the agent
+  // actually executes, and since it became a template an adopter can replace
+  // it — which means it can also be MISSING or malformed, and a playbook that
+  // does not render is a broken session, not a cosmetic gap. Each is checked
+  // for resolution and for the shape every playbook must have: a title line
+  // and the ordered steps.
+  for (const name of PLAYBOOKS) {
+    const rel = `playbooks/${name}.md.template`;
+    let body = null;
+    try {
+      body = readTemplate(projectRoot, rel).body;
+    } catch {
+      body = null;
+    }
+    if (body === null) {
+      findings.push({
+        message: `playbook "${name}" does not resolve (${rel} is missing from the project AND the installed CLI)`,
+        remedy: "reinstall doctrina-cli, or restore .doctrina/templates/" + rel,
+      });
+      continue;
+    }
+    const problems = [];
+    if (body.trim() === "") problems.push("it is empty");
+    if (!/^\s*1\./m.test(body)) problems.push("it has no numbered first step");
+    for (const [open, close] of [["[[c]]", "[[/c]]"], ["[[g]]", "[[/g]]"], ["[[b]]", "[[/b]]"], ["[[y]]", "[[/y]]"]]) {
+      const opens = body.split(open).length - 1;
+      const closes = body.split(close).length - 1;
+      if (opens !== closes) problems.push(`${opens} ${open} spans but ${closes} ${close}`);
+    }
+    if (problems.length > 0) {
+      findings.push({
+        message: `playbook "${name}" is malformed: ${problems.join("; ")}`,
+        remedy: `fix .doctrina/templates/${rel}, or delete it to fall back to the bundled playbook`,
+      });
+    } else {
+      ok.push(`playbook: ${name}`);
+    }
+  }
+
   return { findings, ok };
 }
 

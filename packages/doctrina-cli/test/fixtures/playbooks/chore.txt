@@ -1,0 +1,24 @@
+created .doctrina/changes/0002-chore/proposal.md
+created .doctrina/changes/0002-chore/tasks.md
+
+Chore opened. No spec deltas expected — implement, check the tasks, then doctrina change apply 0002-chore and doctrina change archive 0002-chore.
+
+Chore playbook — change 0002-chore — agent-executed (ADR 0005); no spec deltas.
+
+Prompt: "tidy the CI matrix"
+
+Execute in order, in a single linear pass:
+
+1. Replace the placeholder tasks in .doctrina/changes/0002-chore/tasks.md
+   with small, checkable steps; implement them, checking each box.
+   (Do it before implementing — analyze/close refuse leftover scaffold
+   placeholders, and `change tick` will not tick an empty box.)
+2. Prove it (archive refuses unchecked boxes):
+       doctrina verify     — the project's typecheck/test/build gate
+       doctrina verify --clean — clean-checkout reproducibility lint
+   Then check the proposal's ## Verification boxes and every task.
+3. This is a chore: no spec changes. If you find yourself needing a
+   spec delta, it is not a chore — reopen with doctrina work "<prompt>".
+4. doctrina change apply 0002-chore  (zero deltas → flips to applied).
+5. doctrina change archive 0002-chore, then doctrina validate.
+   If this fix taught a lesson worth not relearning, capture it: doctrina skill new <slug>.
