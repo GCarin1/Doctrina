@@ -1706,14 +1706,17 @@ e você não sabe qual gate consultar.
 doctrina doctor
 ```
 
-Sequencia os checks existentes — `validate` (lido por máquina), o
+Sequencia os checks existentes — os checks estruturais (`validate`), o
 check de drift do index, as razões de coverage/trace, o lint de
 checkout limpo (`verify --clean`), o check de forma dos templates, a
 superfície de **runtime** e a presença de config do verify — e reporta
 cada área como ok/warn/FAIL **com o comando exato de correção**. Um
-driver sobre comandos existentes e sobre `lib/runtime.js` (como o
+driver sobre as mesmas coleções que os gates renderizam (como o
 `close`): não adiciona checks próprios, então nunca discorda dos gates
-que apresenta. Read-only. Sai 1 quando alguma área falha.
+que apresenta, e a execução inteira é um processo só — ele não inicia a
+CLI de novo para responder a uma linha. Read-only, o que aqui também
+quer dizer que ele nunca repara: `validate --fix` cura um índice em
+drift, o `doctor` apenas reporta. Sai 1 quando alguma área falha.
 
 A linha de runtime reporta um projeto com contratos mas sem linhas de
 Wiring ou Selectors como **não checado**, nunca como ok: uma superfície

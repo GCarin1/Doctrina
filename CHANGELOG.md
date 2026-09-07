@@ -19,6 +19,24 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`doctor` stops spawning itself.** It called two collectors in process and
+  answered three of its rows by running this same binary again — `validate
+  --json`, `index rebuild --check`, `verify --clean` — and parsing its own
+  output back: two integration styles inside one command, three extra Node
+  processes per run, and a failure path ("did not produce a report") that
+  existed only because of the choice. The checks those rows wanted are now
+  collections in `lib/`: `collectValidation` (the structural gate),
+  `collectIndexDrift` (index ↔ tree), and `collectReproducibility` (the
+  clean-checkout lint). `validate`, `index rebuild` and `verify --clean`
+  render them; `doctor` reports them. One process per run, proved by the
+  project's own usage log — four samples before, one now — and the
+  diagnostic and the gate can no longer answer the same question
+  differently, because there is only one answer.
+- `collectValidation` takes `fix` as an option and RETURNS what it repaired
+  instead of printing it, so the caller decides. `doctor` never passes it: a
+  diagnostic that repaired the tree while reporting on it could not be run to
+  find out what is wrong.
+
 - **The `cli` spec split into `cli` and `authoring`.** Its third split, and
   the same seam each time: the surface on one side, a kind of work on the
   other. At 475 lines against a 400-line cap it took 8,636 of its own pack's

@@ -52,3 +52,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0043-a-gramatica-on-disk-tem-um-dono — a gramatica on-disk tem um dono (specs: validation MODIFIED)
 - 2026-09-07 — 0044-o-delta-e-sempre-scaffoldado — o delta e sempre scaffoldado (specs: cli MODIFIED)
 - 2026-09-07 — 0054-split-cli-into-cli-and-authoring — split cli into cli and authoring (specs: authoring ADDED, cli MODIFIED)
+- 2026-09-07 — 0045-doctor-para-de-se-auto-spawnar — doctor para de se auto-spawnar (specs: gates MODIFIED)

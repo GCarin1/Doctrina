@@ -4,6 +4,8 @@ import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { today } from "./dates.js";
+import { cliVersion } from "./version.js";
+import { load } from "./index-json.js";
 import { parseFrontmatter } from "./doc-model.js";
 import { parseCapabilityFromDelta } from "./doc-model.js";
 import { parseOperation } from "./doc-model.js";
@@ -312,3 +314,65 @@ function laneOf(proposal, prev) {
   return { lane: raw };
 }
 
+/**
+ * Is the on-disk index still what the tree derives to, and if not, how does
+ * it differ?
+ *
+ * `index rebuild` renders this (and writes the derived index when asked);
+ * `doctor` reports it as one row. Before this it was the command's private
+ * business, so `doctor` answered "has the index drifted?" by spawning the
+ * CLI again and reading an exit code (audit finding F4).
+ *
+ * The framework stamp is migrated to the running CLI here rather than in the
+ * caller: deriveIndex carries the old value over so `next` does not nag on a
+ * version-only difference, and overriding it lets a stale stamp COUNT as
+ * drift, so `index rebuild` both reports and fixes it instead of
+ * short-circuiting on "nothing to do".
+ *
+ * @param {string} projectRoot
+ * @returns {{ok: boolean, drift: string[], derived: any, current: any, unreadable: string|null}}
+ */
+export function collectIndexDrift(projectRoot) {
+  let current = null;
+  let unreadable = null;
+  try {
+    current = load(projectRoot);
+  } catch (err) {
+    unreadable = err.message;
+  }
+  const derived = deriveIndex(projectRoot, current);
+  derived.framework_version = cliVersion();
+  if (indexesMatch(derived, current)) {
+    return { ok: true, drift: [], derived, current, unreadable };
+  }
+  return { ok: false, drift: describeDrift(current, derived), derived, current, unreadable };
+}
+
+// Human-readable category-level drift between the on-disk index and the
+// derived one: added / removed / changed entry ids.
+function describeDrift(current, derived) {
+  const lines = [];
+  if (!current) return ["index.json missing or unreadable"];
+  if ((current.framework_version ?? null) !== (derived.framework_version ?? null)) {
+    lines.push(`framework_version: ${current.framework_version ?? "unset"} -> ${derived.framework_version}`);
+  }
+  const categories = ["specs", "decisions", "changes", "changes_archive", "skills"];
+  for (const cat of categories) {
+    const cur = new Map((current.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
+    const der = new Map((derived.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
+    for (const id of der.keys()) {
+      if (!cur.has(id)) lines.push(`${cat}: "${id}" on disk but not in index`);
+      else if (stableStringify(cur.get(id)) !== stableStringify(der.get(id))) {
+        lines.push(`${cat}: "${id}" metadata differs from the files`);
+      }
+    }
+    for (const id of cur.keys()) {
+      if (!der.has(id)) lines.push(`${cat}: "${id}" in index but not on disk`);
+    }
+  }
+  if (stableStringify(current.artifacts?.product ?? null) !== stableStringify(derived.artifacts.product)) {
+    lines.push("product: metadata differs");
+  }
+  if (lines.length === 0) lines.push("structural difference (key order or missing category)");
+  return lines;
+}

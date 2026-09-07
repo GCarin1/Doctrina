@@ -58,7 +58,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -425,13 +425,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0045-doctor-para-de-se-auto-spawnar",
-        "title": "doctor para de se auto-spawnar",
-        "path": ".doctrina/changes/0045-doctor-para-de-se-auto-spawnar",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0046-o-ledger-vira-fonte-legivel",
         "title": "o ledger vira fonte legivel",
@@ -1081,6 +1074,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0045-doctor-para-de-se-auto-spawnar",
+        "title": "doctor para de se auto-spawnar",
+        "path": ".doctrina/changes/archive/2026-09-07-0045-doctor-para-de-se-auto-spawnar",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

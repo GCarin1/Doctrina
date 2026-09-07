@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 1.1.0
+**Version:** 1.2.0
 
 ## Purpose
 
@@ -214,7 +214,7 @@ codes, zero-deps, no-network).
   note when no `verify.json`) → coverage `--strict` → trace (advisory) →
   change archive → validate — stopping at the first failure with the exact
   command to rerun, and exit non-zero on that failure (review 2026-06-27).
-- When `doctrina doctor` runs, the system shall drive the diagnostic
+- When `doctrina doctor` runs, the system shall drive the diagnostic set — the structural checks, the index drift check, the coverage/trace ratios, the clean-checkout lint, the template shape, the runtime surface, and the verify-config presence — by reading each as a collection IN THE SAME PROCESS, reporting each area with its exact remediation command, adding no checks of its own, and exiting 1 when any area fails (advisory findings stay exit 0).
   set — `validate` (machine-read), the index drift check, the
   coverage/trace ratios, `verify --clean`, `templates check`, and the
   verify-config presence — reporting each area with its exact
@@ -246,6 +246,7 @@ codes, zero-deps, no-network).
 - When `doctrina close <id>` reaches the implementation step, the system shall report the derived state for each capability the change touched and print the header operation that would apply it.
 - When `doctrina spec set <cap> --implementation auto` runs, the system shall write the derived state, and shall refuse without writing when the spec declares no acceptance criteria to derive from.
 - When `doctrina close <id>` reaches the review step, the system shall report the conformance breaks between the change and the spec tree before applying any delta, so a finding can still change what is written.
+- When a check is rendered by one command and reported by another, the system shall express it once as a collection under `lib/` and let both read it, so that no command starts a second process to ask a question this one can answer.
 
 ### State-driven
 
@@ -270,6 +271,7 @@ codes, zero-deps, no-network).
 - The system shall not rewrite an implementation header from a gate; a derived state shall be proposed and applied only by an explicit command.
 - The system shall not infer which paths a manual check covers; an undeclared coverage shall make the sign-off unverifiable rather than assumed.
 - The system shall not let an advisory step decide a driver's exit code; a step declared advisory shall report and the sequence shall continue.
+- The system shall not report a diagnostic row by running its own binary and parsing that output, and shall not repair the tree from a read-only diagnostic; a declared row with no reporter shall be reported unchecked, never silently skipped.
 
 ### Optional
 
@@ -323,6 +325,7 @@ The gate surface is spec-compliant when:
 34. [verified] A sign-off with no recorded commit, no declared paths, or made outside a repository is reported unverifiable rather than passing, and warned about at signing time — verified by `packages/doctrina-cli/test/signoff.test.js`.
 35. [verified] Every non-fresh state is non-blocking by default and fails `--strict`, each manual check falls into exactly one state, and every read-only view and `doctor` report signed proof separately from executed proof — verified by `packages/doctrina-cli/test/signoff.test.js`.
 36. [verified] The review runs before the apply, reports a capability whose code moved while its spec stood still, and leaves the close's exit code untouched — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/gate-sequences.test.js`.
+37. [verified] A whole `doctor` run is one CLI invocation — proved by the usage log, which recorded four before this — and its rows agree with the commands that render the same collections — verified by `packages/doctrina-cli/test/doctor-in-process.test.js`.
 
 ## Out of scope for this spec
 

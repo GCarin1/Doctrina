@@ -1,6 +1,7 @@
 # Change 0045-doctor-para-de-se-auto-spawnar — doctor para de se auto-spawnar
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** gates
@@ -32,11 +33,11 @@ processos Node a mais por execução.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] `doctor` não cria nenhum processo filho, provado por teste.
-- [ ] A saída de `doctor` é byte-idêntica à anterior nos casos verde, amarelo e vermelho.
-- [ ] O caminho de erro "did not produce a report" deixa de existir.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] `doctor` não cria nenhum processo filho, provado por teste.
+- [x] A saída de `doctor` é byte-idêntica à anterior nos casos verde, amarelo e vermelho.
+- [x] O caminho de erro "did not produce a report" deixa de existir.
 
 ## Open questions
 

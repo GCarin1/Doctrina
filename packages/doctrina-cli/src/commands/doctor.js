@@ -1,8 +1,6 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { exists } from "../lib/fs-ops.js";
 import { collectStatus } from "../lib/snapshot.js";
 import { collectFindings } from "../lib/templates-model.js";
@@ -11,6 +9,9 @@ import { flagBool } from "../lib/args.js";
 import { collectRuntimeFindings, checkLocalEnv } from "../lib/runtime.js";
 import { sequence, stepRerun } from "../lib/gates.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { collectValidation } from "../lib/validation-model.js";
+import { collectIndexDrift } from "../lib/scan.js";
+import { collectReproducibility } from "../lib/reproducibility.js";
 
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
@@ -18,8 +19,13 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 // each with its exact remediation command. A DRIVER over existing commands
 // (like `close`): it adds no checks of its own, so it can never disagree
 // with the authoritative gates it fronts.
-
-const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.js");
+//
+// Every row is a COLLECTION read in this process (change 0045). Three of them
+// used to be a `spawnSync` of this same binary with `--json`, whose output
+// this command then parsed — two integration styles inside one command, three
+// extra Node processes per run, and a failure mode — the report that never
+// arrived — that existed only because of the choice. A driver calls its
+// collectors.
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -58,21 +64,15 @@ export async function run(_positional, _flags) {
 
     // 1. Structural gate (validate), machine-read so the counts are exact.
     validate: () => {
-      const v = runSelf(["validate", "--json"], projectRoot);
-      let vParsed = null;
-      try {
-        vParsed = JSON.parse(v.stdout);
-      } catch {
-        vParsed = null;
-      }
-      if (!vParsed) {
-        row("fail", "validate", "did not produce a report", "doctrina validate");
-      } else if (!vParsed.ok) {
-        row("fail", "validate", `${vParsed.errors.length} error${vParsed.errors.length === 1 ? "" : "s"}, ${vParsed.warnings.length} warning${vParsed.warnings.length === 1 ? "" : "s"}`, "doctrina validate  (then `doctrina validate --fix` for index drift)");
-        for (const e of vParsed.errors.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e}`);
-      } else if (vParsed.warnings.length > 0) {
-        warningsTotal += vParsed.warnings.length;
-        row("warn", "validate", `0 errors, ${vParsed.warnings.length} warning${vParsed.warnings.length === 1 ? "" : "s"}`, "doctrina validate  (warnings listed there)");
+      // Read-only: `doctor` never passes fix — a diagnostic that repaired the
+      // tree while reporting on it could not be run to find out what is wrong.
+      const { errors, warnings } = collectValidation(projectRoot);
+      if (errors.length > 0) {
+        row("fail", "validate", `${errors.length} error${errors.length === 1 ? "" : "s"}, ${warnings.length} warning${warnings.length === 1 ? "" : "s"}`, "doctrina validate  (then `doctrina validate --fix` for index drift)");
+        for (const e of errors.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e}`);
+      } else if (warnings.length > 0) {
+        warningsTotal += warnings.length;
+        row("warn", "validate", `0 errors, ${warnings.length} warning${warnings.length === 1 ? "" : "s"}`, "doctrina validate  (warnings listed there)");
       } else {
         row("ok", "validate", "all structural checks pass");
       }
@@ -80,8 +80,8 @@ export async function run(_positional, _flags) {
 
     // 2. Index ↔ tree drift.
     index: () => {
-      const drift = runSelf(["index", "rebuild", "--check"], projectRoot);
-      if (drift.status === 0) row("ok", "index", "index.json matches the tree");
+      const drift = collectIndexDrift(projectRoot);
+      if (drift.ok) row("ok", "index", "index.json matches the tree");
       else row("fail", "index", "index.json has drifted from the tree", "doctrina validate --fix   (or `doctrina index rebuild`)");
     },
 
@@ -112,8 +112,8 @@ export async function run(_positional, _flags) {
 
     // 4. Clean-checkout reproducibility lint (ADR 0008).
     "clean-checkout": () => {
-      const clean = runSelf(["verify", "--clean"], projectRoot);
-      if (clean.status === 0) row("ok", "clean-checkout", "no reproducibility footguns detected");
+      const clean = collectReproducibility(projectRoot);
+      if (clean.findings.length === 0) row("ok", "clean-checkout", "no reproducibility footguns detected");
       else row("fail", "clean-checkout", "a fresh clone would not build/run as-is", "doctrina verify --clean   (fix the listed package.json footguns)");
     },
 
@@ -222,9 +222,11 @@ export async function run(_positional, _flags) {
   };
 
   // The sequence, in the declared order. A step gated on a flag is skipped
-  // silently when that flag is absent; a step with no reporter above runs its
-  // declared argv and is reported by exit code, so the declaration alone is
-  // enough to put a new gate on this surface.
+  // silently when that flag is absent. A step declared without a reporter is
+  // reported as UNCHECKED and names the command that answers it: this command
+  // reads collections, and a row it cannot compute here is a gap in this file,
+  // not something to shell out for. Silence would be the false confidence the
+  // whole diagnostic exists to prevent.
   for (const step of sequence("doctor")) {
     if (step.flag && !flagBool(_flags, step.flag, false)) continue;
     const report = reporters[step.id];
@@ -232,11 +234,8 @@ export async function run(_positional, _flags) {
       report();
       continue;
     }
-    if (!step.argv) continue;
-    const r = runSelf(step.argv, projectRoot);
-    if (r.status === 0) row("ok", step.label, "passes");
-    else row(step.level === "advisory" ? "warn" : "fail", step.label, "reported findings", stepRerun(step));
-    if (r.status !== 0 && step.level === "advisory") warningsTotal += 1;
+    row("warn", step.label, "declared in the doctor sequence but has no reporter here", stepRerun(step));
+    warningsTotal += 1;
   }
 
   console.log("");
@@ -250,14 +249,6 @@ export async function run(_positional, _flags) {
   }
   console.log(c.green("ok") + " every diagnostic is green — `doctrina verify` remains the build gate to execute");
   return 0;
-}
-
-function runSelf(args, cwd) {
-  return spawnSync(process.execPath, [cliEntry, ...args], {
-    cwd,
-    encoding: "utf8",
-    env: { ...process.env, NO_COLOR: "1" },
-  });
 }
 
 export const help = `
@@ -274,7 +265,9 @@ exact remediation command.
            enums. Reports membership only; a rejected value is never
            printed, so this is safe to run and to paste.
 
-A driver over the existing commands and lib/runtime.js; it adds no
-checks of its own, so it can never disagree with the gates it fronts.
-Read-only. Exits 1 when any area fails, 0 otherwise (warnings allowed).
+A driver over the same collections the gates themselves render; it adds
+no checks of its own, so it can never disagree with the gates it fronts,
+and it runs entirely in this process — no subprocess, no re-parsing of
+its own output. Read-only: it never repairs what it reports. Exits 1
+when any area fails, 0 otherwise (warnings allowed).
 `;

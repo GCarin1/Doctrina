@@ -1656,14 +1656,17 @@ wrong and you do not know which gate to ask.
 doctrina doctor
 ```
 
-Sequences the existing checks — `validate` (machine-read), the index
-drift check, the coverage/trace ratios, the clean-checkout lint
+Sequences the existing checks — the structural checks (`validate`), the
+index drift check, the coverage/trace ratios, the clean-checkout lint
 (`verify --clean`), the template-shape check, the **runtime** surface,
 and the verify-config presence — and reports each area as ok/warn/FAIL
-**with its exact remediation command**. A driver over existing commands
-and `lib/runtime.js` (like `close`): it adds no checks of its own, so it
-can never disagree with the gates it fronts. Read-only. Exits 1 when any
-area fails.
+**with its exact remediation command**. A driver over the same
+collections the gates render (like `close`): it adds no checks of its
+own, so it can never disagree with the gates it fronts, and the whole
+run is one process — it does not start the CLI again to answer a row.
+Read-only, which here also means it never repairs: `validate --fix`
+heals a drifted index, `doctor` only reports one. Exits 1 when any area
+fails.
 
 The runtime row reports a project with contracts but no Wiring or
 Selectors rows as **unchecked**, never as ok: an undeclared surface is
