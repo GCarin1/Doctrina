@@ -192,6 +192,27 @@ um procedimento durável. Agentes pegam a skill relevante em
 qualquer estágio onde o trigger dispara. Veja
 [skills.md](skills.md) para o design.
 
+## A lane em que a change nasceu
+
+O `doctrina work` classifica todo prompt numa lane — PRODUCT, RUNTIME ou CHORE
+— e segura um prompt claramente runtime antes de esqueletizar qualquer coisa
+(ADR 0024). Esse veredito agora fica **registrado** no cabeçalho da proposta:
+
+```
+- **Lane:** product (confident; signals: add, export)
+```
+
+É histórico, não gate: nada o lê para decidir, e um valor sem sentido não muda
+comportamento nenhum. Com ele, o `doctrina report` diz que tipo de trabalho um
+período teve — pergunta que nenhum relatório respondia enquanto o veredito era
+calculado, impresso e descartado — e o classificador ganha acertos e erros.
+
+**Os desacordos também são registrados** (`— opened anyway (--force)`, `—
+opened as chore`): registrar só as concordâncias formaria um conjunto de
+calibração feito dos casos que não precisam dela. Uma change sem lane — aberta
+antes do campo, ou à mão — conta como **unknown**, nunca dobrada numa lane à
+qual pode não pertencer.
+
 ## Lendo a árvore: um coletor, quatro vistas
 
 Quatro comandos read-only respondem "como estão as coisas?" em formas

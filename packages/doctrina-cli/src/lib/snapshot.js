@@ -63,6 +63,9 @@ export function collectSnapshot(projectRoot, { actions = true } = {}) {
     nonGoals: productSection(projectRoot, "Non-goals"),
     actions: actions ? computeActions(projectRoot) : [],
     archive: index?.artifacts?.changes_archive ?? [],
+    // The lane each open change was born in, for the report's mix. Read from
+    // the index rather than re-parsed, so one derivation owns the field.
+    openLanes: (index?.artifacts?.changes ?? []).map((c) => c.lane ?? null),
   };
 }
 

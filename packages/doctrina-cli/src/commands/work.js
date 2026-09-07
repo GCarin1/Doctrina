@@ -85,9 +85,16 @@ export async function run(positional, flags) {
   // prompt is stopped here, once, with the diagnosis path named. It is a
   // deterministic term match and it can be wrong, so --force proceeds and
   // the message says so.
-  if (!fromDiff && !chore && !flagBool(flags, "force", false)) {
-    const verdict = classify(prompt);
-    if (verdict.lane === "runtime" && verdict.confident) {
+  // The verdict is computed for EVERY prompt, not only the ones the hold
+  // applies to (change 0042). It used to be calculated, printed and thrown
+  // away, so an archived proposal never recorded which lane the change was
+  // born in — no report could say what kind of work the team does, and the
+  // classifier had no set of right and wrong answers to be calibrated
+  // against. It is recorded as HISTORY: a gate never reads it to decide.
+  const verdict = prompt ? classify(prompt) : null;
+  const forced = flagBool(flags, "force", false);
+  if (!fromDiff && !chore && !forced) {
+    if (verdict && verdict.lane === "runtime" && verdict.confident) {
       console.error(c.yellow("hold:") + " this reads as a RUNTIME problem, not a change of behaviour");
       console.error(c.gray(`signals: ${[...new Set(verdict.scores.runtime.hits)].slice(0, 6).join(", ")}`));
       console.error("");
@@ -123,6 +130,12 @@ export async function run(positional, flags) {
 
   const code = changeNew([id, title], flags);
   if (code !== 0) return code;
+
+  // Stamp the lane the classifier read, and — when the operator went a
+  // different way — what they did instead. Recording only the agreements
+  // would make the calibration set exactly the one that needs no
+  // calibrating; the disagreements are the data.
+  writeLane(projectRoot, id, verdict, { forced, chore, fromDiff });
 
   // Record the prompt verbatim as the change's Why — the raw intent has
   // one home, and it is the proposal, not the playbook output. For --from-diff,
@@ -193,6 +206,36 @@ export async function run(positional, flags) {
     });
   }
   return 0;
+}
+
+// Render the Lane header: the classifier's verdict, how sure it was, the
+// signals that decided it, and any operator override. One line, so the
+// proposal header stays a header.
+function laneRecord(verdict, { forced, chore, fromDiff }) {
+  const override = chore ? "chore" : fromDiff ? "backfill" : null;
+  if (!verdict) return override ? `${override} (no prompt to classify)` : "";
+  const hits = [...new Set(verdict.scores[verdict.lane]?.hits ?? [])].slice(0, 6);
+  const detail = hits.length > 0 ? `; signals: ${hits.join(", ")}` : "";
+  let line = `${verdict.lane} (${verdict.confident ? "confident" : "uncertain"}${detail})`;
+  // The operator disagreed with the classifier, or overrode its hold. That is
+  // the row calibration actually needs: recording only the agreements would
+  // make the set exactly the one that needs no calibrating.
+  if (override) line += ` — opened as ${override}`;
+  else if (forced && verdict.lane === "runtime") line += " — opened anyway (--force)";
+  return line;
+}
+
+function writeLane(projectRoot, id, verdict, opts) {
+  const line = laneRecord(verdict, opts);
+  if (!line) return;
+  const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
+  if (!isFile(proposalPath)) return;
+  const text = read(proposalPath);
+  // CRLF-safe: the scaffolded proposals are CRLF, and a `.*$` pattern
+  // silently matches nothing against them — the `patch-doctrina-files-as-crlf`
+  // skill exists for exactly this mistake.
+  const updated = text.replace(/^(-[ \t]+\*\*Lane:\*\*)[^\r\n]*/m, `$1 ${line}`);
+  if (updated !== text) write(proposalPath, updated, { force: true });
 }
 
 // Next sequential NNNN across open changes and the archive, so work-driven

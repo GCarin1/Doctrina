@@ -31,6 +31,26 @@ function signoffNote(verify, { verbose = false } = {}) {
 
 export const VIEWS = ["dashboard", "prime", "handoff", "report"];
 
+// Count the recorded lanes, keeping "unknown" as its own row rather than
+// dropping it: a mix that silently omits the changes it could not classify
+// reports a cleaner project than the one that exists.
+function laneMix(records) {
+  const counts = new Map();
+  let overridden = 0;
+  let total = 0;
+  for (const raw of records) {
+    total += 1;
+    if (!raw) {
+      counts.set("unknown", (counts.get("unknown") ?? 0) + 1);
+      continue;
+    }
+    const lane = String(raw).split(/[\s(]/)[0] || "unknown";
+    counts.set(lane, (counts.get(lane) ?? 0) + 1);
+    if (/opened as|opened anyway/.test(raw)) overridden += 1;
+  }
+  return { total, overridden, rows: [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) };
+}
+
 /** Render one named view. Unknown names are a caller error, not a fallback. */
 export function renderView(name, snapshot, options = {}) {
   switch (name) {
@@ -253,6 +273,22 @@ export function report(s, { days = 7, cutoffIso = "", git = null } = {}) {
     for (const ch of s.openChanges) {
       const tasks = ch.tasksTotal > 0 ? ` (tasks ${ch.tasksDone}/${ch.tasksTotal})` : "";
       out.push(`  - \`${ch.id}\`${ch.title ? ` ${ch.title}` : ""}${tasks}`);
+    }
+  }
+
+  // What KIND of work the period held (change 0042). The classifier's verdict
+  // used to be computed, printed and thrown away, so no report could answer
+  // this — and the classifier had no set of right and wrong answers to be
+  // calibrated against. A change with no recorded lane is counted as unknown,
+  // never folded into a lane it might not belong to.
+  const lanes = laneMix([...archived.map((ch) => ch.lane ?? null), ...s.openLanes]);
+  if (lanes.total > 0) {
+    out.push("");
+    out.push("## Lanes");
+    out.push("");
+    for (const [lane, n] of lanes.rows) out.push(`- ${lane}: ${n}`);
+    if (lanes.overridden > 0) {
+      out.push(`- of which the operator opened a different lane than read: ${lanes.overridden}`);
     }
   }
 

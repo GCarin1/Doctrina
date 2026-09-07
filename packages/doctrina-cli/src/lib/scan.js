@@ -195,6 +195,10 @@ export function deriveIndex(projectRoot, current) {
       path: `.doctrina/changes/${id}`,
       status: listHeader(proposal, "Status") ?? prev?.status ?? "proposed",
       opened: listHeader(proposal, "Date") ?? prev?.opened ?? date,
+      // The lane the change was born in (change 0042). Optional: a change
+      // opened before the field existed simply has none, and every consumer
+      // treats its absence as "unknown" rather than as a lane.
+      ...laneOf(proposal, prev),
     });
   }
 
@@ -297,3 +301,14 @@ export function indexesMatch(a, b) {
   };
   return stableStringify(normalize(a)) === stableStringify(normalize(b));
 }
+
+// The lane recorded in a proposal header (change 0042), as an index field —
+// or nothing at all. A change opened before the field existed, or one whose
+// header is still the empty scaffold, has no lane, and "unknown" is the
+// honest answer rather than a default that would poison the mix.
+function laneOf(proposal, prev) {
+  const raw = (listHeader(proposal, "Lane") ?? "").trim();
+  if (!raw) return prev?.lane ? { lane: prev.lane } : {};
+  return { lane: raw };
+}
+

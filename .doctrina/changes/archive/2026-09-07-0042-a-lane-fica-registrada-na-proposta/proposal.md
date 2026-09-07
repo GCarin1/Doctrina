@@ -1,6 +1,7 @@
 # Change 0042-a-lane-fica-registrada-na-proposta — a lane fica registrada na proposta
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-07
 - **Date:** 2026-09-07
 - **Owner:**
 - **Affects specs:** cli
@@ -36,12 +37,17 @@ o registro, esse dado se perde no terminal.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma change aberta por `work` carrega a lane e os sinais no cabeçalho da proposta.
-- [ ] `validate` aceita o cabeçalho novo e o índice o registra sem drift.
-- [ ] `report` mostra o mix por lane no período.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma change aberta por `work` carrega a lane e os sinais no cabeçalho da proposta.
+- [x] `validate` aceita o cabeçalho novo e o índice o registra sem drift.
+- [x] `report` mostra o mix por lane no período.
 
 ## Open questions
 
-- Gravar também quando o agente sobrepõe o veredito com `--force` ou `--chore`? Registrar o desacordo é o que tornaria a calibração possível.
+- Resolvida: SIM, e é o registro mais importante dos dois. O cabeçalho grava o
+  veredito do classificador e, quando o operador foi por outro caminho, o que
+  ele fez — `— opened anyway (--force)`, `— opened as chore`. Gravar só as
+  concordâncias formaria um conjunto de calibração feito exatamente dos casos
+  que não precisam de calibração. O sinal desta sessão é o exemplo: três das
+  changes abertas foram seguradas como RUNTIME e nenhuma era diagnóstico.

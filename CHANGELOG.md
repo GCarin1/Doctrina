@@ -160,6 +160,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   gets measured before it is allowed to refuse anything; `review --strict`
   remains the door for a project that wants CI to block today.
 
+- **The lane a change was born in is recorded.** `doctrina work` classified
+  every prompt, decided whether to hold it, printed the signals that matched —
+  and threw the verdict away. So an archived proposal never said which lane the
+  change came from: no report could describe what kind of work a team does, and
+  the classifier had no set of right and wrong answers to be calibrated
+  against. Proposals now carry
+  `- **Lane:** product (confident; signals: add, export)`, the index records
+  it, and `doctrina report` aggregates the mix for a period.
+- **Disagreements are recorded too** — `— opened anyway (--force)` when the
+  operator overrode a hold, `— opened as chore` when they chose another lane.
+  Recording only the agreements would build a calibration set made entirely of
+  the cases that need no calibrating. A change with no recorded lane counts as
+  *unknown*, never folded into one it might not belong to.
+- The field is history, and enforced as such: no gate reads it, and a proposal
+  carrying a nonsense lane behaves exactly like one carrying none.
+
 - **`doctrina ci --emit github`** writes the composite action from the same
   declaration. The action stays versioned — a project writing
   `uses: <owner>/<repo>@v1` has no CLI to generate it with — and a drift test

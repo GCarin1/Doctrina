@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.38.0
+**Version:** 0.39.0
 
 ## Purpose
 
@@ -331,6 +331,8 @@ owns the surface itself and the conventions every command shares.
 - When `doctrina next --run` runs, the system shall execute the first runnable action in process and stop, exiting with that command's own code; when no action is runnable it shall name the action that requires a person and exit successfully.
 - When two surfaces rank the same text, the system shall rank it identically, deriving any single score from the same relevance it orders by rather than computing a second one.
 - When a caller asks which files changed, the system shall distinguish an empty answer from an inability to answer, and shall let the caller choose whether untracked files and a branch's earlier commits count.
+- When `doctrina work` opens a change, the system shall record in the proposal the lane the request classified as, how confident that reading was, the signals that decided it, and any lane the operator chose instead.
+- When a period is reported, the system shall aggregate the recorded lanes and count a change with no recorded lane as unknown rather than assigning it one.
 
 ### State-driven
 
@@ -375,6 +377,7 @@ owns the surface itself and the conventions every command shares.
 
 - The system shall not accept a value-taking flag written without a value; it shall report a usage error rather than fall back to the default.
 - The system shall not treat an action that requires a human decision — accepting a decision, completing a task, authoring a proposal or a skill — as runnable, however mechanical the resulting edit would be.
+- The system shall not let a recorded lane change what any gate decides; it is a historical record, and a change carrying an unrecognised lane shall be treated exactly as one carrying none.
 
 ### Optional
 
@@ -442,6 +445,9 @@ The CLI is v0 spec-compliant when:
 32. [verified] The changed-files door reports a clean tree and an unanswerable question differently, and its merge-base option is what makes a branch's earlier commits count — verified by `packages/doctrina-cli/test/one-door.test.js`.
 33. [verified] `work` and `context --for` choose the same capability for the same prompt, in either language, with accents folded — verified by `packages/doctrina-cli/test/one-door.test.js`.
 34. [verified] Relevance is a tuple and the score is its projection, so a long document cannot out-rank a focused one on volume — verified by `packages/doctrina-cli/test/one-door.test.js`.
+35. [verified] A change opened by `work` records its lane, confidence and signals, and an operator who overrides the reading has that disagreement recorded too — verified by `packages/doctrina-cli/test/lane-record.test.js`.
+36. [verified] The lane reaches the index, its absence is left absent rather than guessed, and a report counts an unrecorded lane as unknown — verified by `packages/doctrina-cli/test/lane-record.test.js`.
+37. [verified] Rewriting a proposal's lane to a nonsense value changes no gate's verdict or output — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 
 ## Out of scope for this spec
 

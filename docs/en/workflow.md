@@ -184,6 +184,35 @@ procedure. Agents pick the relevant skill up at any stage in
 which the trigger fires. See [skills.md](skills.md) for the
 design.
 
+## The lane a change was born in
+
+`doctrina work` classifies every prompt into a lane — PRODUCT (a change of
+behaviour), RUNTIME (an incident in the running system), or CHORE (infra,
+docs, build) — and holds a confidently runtime-shaped prompt before
+scaffolding anything (ADR 0024). That verdict is now **recorded** in the
+proposal header:
+
+```
+- **Lane:** product (confident; signals: add, export)
+```
+
+It is history, not a gate: nothing reads it to decide anything, and a
+nonsense value changes no command's behaviour. Two things follow from
+recording it:
+
+- `doctrina report` can say what kind of work a period actually held, which
+  is a question no report could answer while the verdict was computed,
+  printed and thrown away.
+- The classifier gains a set of right and wrong answers. **Disagreements are
+  recorded too** — `— opened anyway (--force)` when the operator overrode a
+  hold, `— opened as chore` when they chose a different lane. Recording only
+  the agreements would build a calibration set made entirely of the cases
+  that need no calibrating.
+
+A change opened before the field existed, or opened by hand with `change
+new`, simply has no lane. Reports count those as **unknown** rather than
+folding them into a lane they might not belong to.
+
 ## Reading the tree: one collector, four views
 
 Four read-only commands answer "where do things stand?" in different
