@@ -5,7 +5,7 @@ import { parseArgs } from "./lib/args.js";
 import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
-import { surfaceHelp, OPERATIONS } from "./lib/commands.js";
+import { surfaceHelp, OPERATIONS, deprecationFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
 import { recordUsage } from "./lib/usage.js";
@@ -126,6 +126,16 @@ async function main(argv) {
   if (flags.get("help") || flags.get("h")) {
     process.stdout.write(command.help ?? `(no help for ${commandName})\n`);
     return 0;
+  }
+
+  // A deprecated name keeps working and says so, once, before it runs
+  // (change 0049). On stderr, so a piped stdout stays exactly what it was —
+  // a warning that corrupts the output it warns about is a breaking change
+  // wearing a deprecation's clothes.
+  const deprecated = deprecationFor(positional);
+  if (deprecated) {
+    console.error(c.yellow("deprecated:") + ` this command is superseded — use ${c.cyan(deprecated.use)}`);
+    console.error(c.gray(`            ${deprecated.why}; the old name still works and will be removed in a later minor.`));
   }
 
   try {

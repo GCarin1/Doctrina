@@ -7,6 +7,8 @@ import { listHeader } from "../lib/scan.js";
 import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { acceptedDecisions, productSection } from "../lib/constitution-model.js";
+import { collectSnapshot } from "../lib/snapshot.js";
+import { renderView } from "../lib/views.js";
 
 // Read by the project snapshot as well; see lib/constitution-model.js.
 export { acceptedDecisions, productSection } from "../lib/constitution-model.js";
@@ -32,42 +34,11 @@ export async function run(_positional, _flags) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
-
-  const project = projectName(projectRoot);
-  console.log(
-    c.bold("Doctrina constitution") +
-      c.gray(` — ${project}  (standing rules: accepted decisions + non-goals)`),
-  );
-
-  // Principles — the accepted ADRs, by number. Every accepted decision is a
-  // binding rule; superseded/withdrawn/proposed ADRs are not yet (or no longer)
-  // in force and stay out.
-  console.log("");
-  console.log(c.bold("  Principles") + c.gray("  (immutable — supersede an ADR to change one)"));
-  const adrs = acceptedDecisions(projectRoot);
-  if (adrs.length === 0) {
-    console.log(`    ${c.gray("no accepted ADRs yet — record decisions with `doctrina decision new`")}`);
-  } else {
-    for (const a of adrs) console.log(`    ${c.cyan("ADR " + a.id)}  ${a.title}`);
-  }
-
-  // Non-goals — the explicit "what this project will not be", from product.md.
-  console.log("");
-  console.log(c.bold("  Non-goals") + c.gray("  (.doctrina/product.md)"));
-  const nonGoals = productSection(projectRoot, "Non-goals");
-  if (nonGoals.length === 0) {
-    console.log(`    ${c.gray("none declared — add a `## Non-goals` section to product.md")}`);
-  } else {
-    for (const g of nonGoals) console.log(`    ${c.gray("•")} ${g}`);
-  }
-
-  console.log("");
-  console.log(
-    c.gray(
-      `  ${adrs.length} accepted decision${adrs.length === 1 ? "" : "s"} · ` +
-        `${nonGoals.length} non-goal${nonGoals.length === 1 ? "" : "s"} · read-only`,
-    ),
-  );
+  // Deprecated (change 0049): the standing rules are a VIEW of the shared
+  // collection, and `prime --rules` renders it. This command prints the same
+  // lines — not a similar set, the same ones — so the deprecation is a
+  // rename with a warning rather than a loss.
+  for (const line of renderView("rules", collectSnapshot(projectRoot))) console.log(line);
   return 0;
 }
 
@@ -91,4 +62,7 @@ already own; it never writes.
 
 This is the Spec Kit \`constitution.md\` analogue: a single place to see the
 non-negotiables. To change one, supersede the ADR or edit product.md.
+
+DEPRECATED: use \`doctrina prime --rules\`, which prints exactly these lines.
+This name keeps working and will be removed in a future minor.
 `;

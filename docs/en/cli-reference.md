@@ -449,12 +449,18 @@ but never planned): the listing marks it, and ticking it is refused —
 write the real task (or delete the line) first. `analyze` and `close`
 hard-fail on leftover placeholders, so a hollow change cannot close.
 
-## `doctrina change diff <id>`
+## `doctrina change diff <id>` — deprecated
+
+> **Deprecated.** Use `doctrina change check <id> --verbose`, which runs
+> every ops block against the target spec *and* prints this same per-delta
+> preview. The old name still works, warns on stderr, and will be removed in
+> a later minor.
 
 Preview every spec delta in a change before applying it.
 
 ```
-doctrina change diff 0042-add-saml
+doctrina change check 0042-add-saml --verbose   # preferred
+doctrina change diff 0042-add-saml              # deprecated alias
 ```
 
 Per delta:
@@ -468,7 +474,7 @@ Per delta:
   not necessarily removals.
 
 Read-only; never modifies files. Pairs with `analyze`: `analyze`
-checks the change's shape, `diff` shows its content.
+checks the change's shape, this shows its content.
 
 ## `doctrina change abandon <id>`
 
@@ -1471,12 +1477,17 @@ delivers this promise?".
 
 Read-only in both directions.
 
-## `doctrina constitution`
+## `doctrina constitution` — deprecated
+
+> **Deprecated.** Use `doctrina prime --rules`, which prints exactly these
+> lines from the same collection. The old name still works, warns on stderr,
+> and will be removed in a later minor.
 
 Print the project's standing rules in one read.
 
 ```
-doctrina constitution
+doctrina prime --rules      # preferred
+doctrina constitution       # deprecated alias
 ```
 
 Assembles, read-only: the accepted ADRs (the immutable decisions that govern
@@ -1608,11 +1619,18 @@ doctrina prime
 
 Prints, in one read: the gate digest (index state, coverage %, trace
 anchors, verify checks), the artifact counts, the standing rules
-(accepted ADR titles + non-goal count — `constitution` has the full
-text), every open change with its task progress, and the top next
-actions. It sits between `status` (numbers only) and
-`context --concat` (everything): enough to act, cheap enough to run
-every session. Read-only; always exits 0.
+(accepted ADR titles + non-goal count), every open change with its
+task progress, and the top next actions. It sits between `status`
+(numbers only) and `context --concat` (everything): enough to act,
+cheap enough to run every session. Read-only; always exits 0.
+
+| Flag | Purpose |
+|------|---------|
+| `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The lines `doctrina constitution` printed, from the same collection. |
+
+The primer keeps a fixed size on purpose — it is read at the start of
+every session — so the full non-goal text lives behind `--rules`
+rather than in the primer itself.
 
 ## `doctrina show <ref>`
 

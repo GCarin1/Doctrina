@@ -35,3 +35,14 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+Deprecation becomes a declared, uniform thing rather than a decision taken
+per command: one record, one warning, one rule about the surface block.
+
+```ops
+append-requirement ubiquitous: The system shall declare each deprecated operation in one place with the command that replaces it, the reason, and the version from which it is deprecated, and shall keep the deprecated name working until a later release removes it.
+append-requirement event: When a deprecated operation is invoked, the system shall run it and warn once on the error stream, naming the replacement, so that a caller reading standard output receives exactly what it received before.
+append-requirement unwanted: The system shall not list a deprecated operation in the generated command-surface block, and shall not report its absence from that block as documentation drift.
+append-criterion [verified] A deprecated command runs, warns on stderr only, and is absent from the surface block; every deprecation names a replacement that exists and is not itself deprecated — verified by `packages/doctrina-cli/test/deprecation.test.js`, `packages/doctrina-cli/test/commands.test.js`.
+bump-version minor
+```

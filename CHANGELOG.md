@@ -19,6 +19,30 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The command surface starts shrinking, by merging rather than guessing.**
+  The generated block carries a hard 40-line budget so that adding a command
+  forces the question "what comes off?" — and for two releases the answer was
+  "nothing", while the budget was met by compressing a whole moment onto one
+  line. Two commands are now deprecated, and both are merges into a survivor
+  that already does everything they did:
+  - `doctrina constitution` → `doctrina prime --rules`. The standing rules
+    are a view of the shared collection; both names render it, so the outputs
+    are byte-identical by construction.
+  - `doctrina change diff <id>` → `doctrina change check <id> --verbose`.
+    `check` already executed every ops block against the target spec; it now
+    prints the same per-delta preview as well.
+- A deprecated name keeps working and warns once, on **stderr** — a warning
+  that corrupted the output it warns about would be a breaking change wearing
+  a deprecation's clothes. It leaves the surface block, because that block is
+  the list of commands to reach for, and `validate` no longer reports its
+  absence as documentation drift.
+- **ADR 0026 sets the bar for retiring a command: demonstrated redundancy, not
+  a usage count.** `clarify` was the third candidate and it stays: the
+  bootstrap playbook invokes it on every project, and it makes no claim to
+  detect ambiguity — it runs a fixed checklist, which is the cheap half of the
+  job. Usage counts can show a command is unloved; only redundancy can show it
+  is unnecessary.
+
 - **`doctrina report --agent-changelog` drafts the AGENTS.md "What changed"
   block.** That block is at most five bullets telling an arriving agent what
   it must now DO, and it was an object literal somebody edited by hand at

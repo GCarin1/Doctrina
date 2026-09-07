@@ -102,7 +102,7 @@ protocol surfaces validate as a bottleneck.
   acceptance criteria.
 - **Centralised constitution document — shipped in 0.10.0.** Rather
   than a separate `constitution.md` (a second home for facts already
-  in the ADRs), `doctrina constitution` assembles the view on demand
+  in the ADRs), `doctrina prime --rules` assembles the view on demand
   from the accepted ADRs plus the product non-goals. Read-only; owns
   nothing of its own.
 

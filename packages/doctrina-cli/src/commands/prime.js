@@ -2,6 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
+import { flagBool } from "../lib/args.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectSnapshot } from "../lib/snapshot.js";
 import { renderView } from "../lib/views.js";
@@ -21,14 +22,18 @@ import { renderView } from "../lib/views.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json"], string: [] };
+export const flags = { boolean: ["json", "rules"], string: [] };
 
-export async function run(_positional, _flags) {
+export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
-  for (const line of renderView("prime", collectSnapshot(projectRoot))) console.log(line);
+  // --rules: the standing rules in full, which is what `constitution` printed
+  // (change 0049). The primer names the ADRs and counts the non-goals; this
+  // prints both lists, from the same collection, so the two cannot disagree.
+  const view = flagBool(flags, "rules", false) ? "rules" : "prime";
+  for (const line of renderView(view, collectSnapshot(projectRoot))) console.log(line);
   return 0;
 }
 
@@ -42,6 +47,11 @@ start without paying for the full context pack.
 
 The same view as \`doctrina status --view prime\`; both render one
 collection of the tree, so they cannot disagree.
+
+  --rules   Print the standing rules in full instead of the primer: every
+            accepted ADR and every declared non-goal. The same lines
+            \`doctrina constitution\` printed, from the same collection —
+            that command is deprecated and delegates here.
 
 Read-only; always exits 0. Deeper reads: \`doctrina context\`,
 \`doctrina why <cap>\`, \`doctrina show <ref>\`.

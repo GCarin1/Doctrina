@@ -28,12 +28,11 @@ flowchart TD
         delta["spec delta + tasks.md<br/>(bloco ops: headers · critérios · requisitos EARS)"]
         specset["doctrina spec set (cap)<br/>avança Implementation / bump"]
         ctick["doctrina change tick (id) --all<br/>marca caixas em lote"]
-        ccheck["doctrina change check (id)<br/>dry-run pré-fechamento"]
-        cdiff["doctrina change diff (id)<br/>preview dos deltas"]
+        ccheck["doctrina change check (id) [--verbose]<br/>dry-run pré-fechamento + preview dos deltas"]
         capply["doctrina change apply (id...)<br/>funde deltas nas specs"]
         carchive["doctrina change archive (id...)<br/>recusa trabalho aberto"]
         cabandon["doctrina change abandon (id)<br/>descarta limpo"]
-        work --> context --> delta --> specset --> ctick --> ccheck --> cdiff --> capply --> carchive
+        work --> context --> delta --> specset --> ctick --> ccheck --> capply --> carchive
         delta -. "inviável" .-> cabandon
     end
 
@@ -132,11 +131,12 @@ flowchart TD
   canônica, com estimativas de tokens. Rode em qualquer tarefa, não só no
   `work` (`--budget <n>` limita o tamanho; `--diff <ref>` é o pack de
   retomada de sessão).
-- `doctrina change tick <id> [--all]` → `change check <id>` → `analyze <id>` →
-  `change diff <id>` → `change apply <id...>` → `change archive <id...>` —
-  marca as caixas em lote, dry-run de tudo que o close recusaria, pré-checa,
-  preview, funde deltas nas specs (blocos ops cobrem headers, critérios e os
-  bullets EARS de requisito) e arquiva (recusando trabalho aberto).
+- `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
+  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
+  marca as caixas em lote, dry-run de tudo que o close recusaria (com
+  `--verbose`, também o preview por delta), pré-checa, funde deltas nas specs
+  (blocos ops cobrem headers, critérios e os bullets EARS de requisito) e
+  arquiva (recusando trabalho aberto).
   apply/archive/check aceitam vários ids. `change abandon <id>` descarta.
 
 **Gates (verdade-base).**

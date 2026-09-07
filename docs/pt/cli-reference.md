@@ -465,12 +465,18 @@ recusado — escreva a task real (ou delete a linha) primeiro. `analyze`
 e `close` falham duro com placeholders restantes, então um change oco
 não fecha.
 
-## `doctrina change diff <id>`
+## `doctrina change diff <id>` — depreciado
+
+> **Depreciado.** Use `doctrina change check <id> --verbose`, que executa
+> cada bloco de ops contra a spec alvo *e* imprime esta mesma pré-visualização
+> por delta. O nome antigo continua funcionando, avisa no stderr e será
+> removido num minor futuro.
 
 Pré-visualiza cada spec delta de uma change antes de aplicar.
 
 ```
-doctrina change diff 0042-add-saml
+doctrina change check 0042-add-saml --verbose   # preferido
+doctrina change diff 0042-add-saml              # alias depreciado
 ```
 
 Por delta:
@@ -1516,12 +1522,17 @@ entrega esta promessa?".
 
 Read-only nas duas direções.
 
-## `doctrina constitution`
+## `doctrina constitution` — depreciado
+
+> **Depreciado.** Use `doctrina prime --rules`, que imprime exatamente estas
+> linhas, da mesma coleção. O nome antigo continua funcionando, avisa no
+> stderr e será removido num minor futuro.
 
 Imprime as regras vigentes do projeto em uma leitura.
 
 ```
-doctrina constitution
+doctrina prime --rules      # preferido
+doctrina constitution       # alias depreciado
 ```
 
 Monta, read-only: os ADRs aceitos (as decisões imutáveis que governam como o
@@ -1657,11 +1668,18 @@ doctrina prime
 Imprime, numa leitura só: o resumo dos gates (estado do index,
 coverage %, âncoras do trace, checks do verify), as contagens de
 artefatos, as regras vigentes (títulos dos ADRs aceitos + contagem de
-non-goals — `constitution` tem o texto completo), cada change aberta
-com seu progresso de tasks, e as próximas ações. Fica entre o
-`status` (só números) e o `context --concat` (tudo): o bastante para
-agir, barato o bastante para rodar toda sessão. Read-only; sempre
-sai 0.
+non-goals), cada change aberta com seu progresso de tasks, e as
+próximas ações. Fica entre o `status` (só números) e o
+`context --concat` (tudo): o bastante para agir, barato o bastante
+para rodar toda sessão. Read-only; sempre sai 0.
+
+| Flag | Função |
+|------|--------|
+| `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. As linhas que o `doctrina constitution` imprimia, da mesma coleção. |
+
+O primer tem tamanho fixo de propósito — ele é lido no início de toda
+sessão — então o texto completo dos non-goals mora atrás de `--rules`,
+não dentro do primer.
 
 ## `doctrina show <ref>`
 

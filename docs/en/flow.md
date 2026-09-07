@@ -25,12 +25,11 @@ flowchart TD
         delta["spec delta + tasks.md<br/>(ops block: headers · criteria · EARS requirements)"]
         specset["doctrina spec set (cap)<br/>advance Implementation / bump"]
         ctick["doctrina change tick (id) --all<br/>check boxes in bulk"]
-        ccheck["doctrina change check (id)<br/>pre-close dry-run"]
-        cdiff["doctrina change diff (id)<br/>preview deltas"]
+        ccheck["doctrina change check (id) [--verbose]<br/>pre-close dry-run + delta preview"]
         capply["doctrina change apply (id...)<br/>merge deltas into specs"]
         carchive["doctrina change archive (id...)<br/>refuses unchecked work"]
         cabandon["doctrina change abandon (id)<br/>discard cleanly"]
-        work --> context --> delta --> specset --> ctick --> ccheck --> cdiff --> capply --> carchive
+        work --> context --> delta --> specset --> ctick --> ccheck --> capply --> carchive
         delta -. "not viable" .-> cabandon
     end
 
@@ -127,11 +126,12 @@ flowchart TD
 - `doctrina context [<cap>] --concat` — assemble the read pack in canonical
   order, with token estimates. Run it for any task, not only `work`
   (`--budget <n>` gates the size; `--diff <ref>` is the resume-session pack).
-- `doctrina change tick <id> [--all]` → `change check <id>` → `analyze <id>` →
-  `change diff <id>` → `change apply <id...>` → `change archive <id...>` —
-  bulk-check the boxes, dry-run everything close would refuse, pre-flight,
-  preview, merge deltas into specs (ops blocks cover headers, criteria, and
-  EARS requirement bullets), then archive (which refuses unchecked work).
+- `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
+  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
+  bulk-check the boxes, dry-run everything close would refuse (with
+  `--verbose`, the per-delta preview too), pre-flight, merge deltas into
+  specs (ops blocks cover headers, criteria, and EARS requirement bullets),
+  then archive (which refuses unchecked work).
   apply/archive/check take multiple ids. `change abandon <id>` discards.
 
 **Gates (ground truth).**

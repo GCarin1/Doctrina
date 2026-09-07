@@ -26,7 +26,7 @@ const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abando
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec"], string: ["reason"] };
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -38,7 +38,8 @@ export async function run(positional, flags) {
     case "archive":
       return forEachId(positional.slice(1), "archive", (id) => changeArchive([id], flags));
     case "check":
-      return forEachId(positional.slice(1), "check", (id) => changeCheck(id));
+      return forEachId(positional.slice(1), "check", (id) =>
+        changeCheck(id, { verbose: flagBool(flags, "verbose", false) }));
     case "tick":
       return changeTick(positional.slice(1), flags);
     case "diff":
@@ -279,7 +280,7 @@ function changeApply(args, flags) {
 // Pre-close dry-run (operator review 2026-07-19 §4.4): everything analyze,
 // apply, and archive would refuse, listed BEFORE any of them runs, with the
 // remediation next to each finding. Read-only — the per-change `doctor`.
-async function changeCheck(id) {
+async function changeCheck(id, { verbose = false } = {}) {
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
@@ -330,6 +331,15 @@ async function changeCheck(id) {
   }
   if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
   if (opsFindings > 0) failures += 1;
+
+  // --verbose: the same per-delta preview `change diff` prints. The dry-run
+  // above says whether the ops WOULD apply; this says what the file would
+  // look like afterwards, which is the question the separate command existed
+  // to answer (change 0049).
+  if (verbose && deltaFiles.length > 0) {
+    console.log(c.gray("──── deltas in full (--verbose)"));
+    if (printDeltaPreview(projectRoot, changeDir, deltaFiles) > 0) failures += 1;
+  }
 
   // 3. Archive gate preview: what archive will refuse, listed with the fix.
   console.log(c.gray("──── 3/3 archive gate"));
@@ -625,27 +635,15 @@ async function changeAbandon(args, flags) {
   return 0;
 }
 
-function changeDiff(args, _flags) {
-  const id = args[0];
-  if (!id) {
-    console.error(c.red("error:") + " change diff requires <id>");
-    return 2;
-  }
-  const projectRoot = process.cwd();
-  ensureDoctrinaProject(projectRoot);
-
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
-  if (!isDir(changeDir)) {
-    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
-  }
-
-  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
-  if (deltaFiles.length === 0) {
-    console.log(c.gray("no spec deltas in this change; nothing to diff"));
-    return 0;
-  }
-
+// The per-delta preview: what applying this delta would do to its target.
+// ADDED reports the body it would write, REMOVED the spec it would delete,
+// MODIFIED a line diff against the current spec.
+//
+// One renderer, two callers (change 0049): `change diff` is this and nothing
+// else, and `change check --verbose` prints it after its ops dry-run — which
+// is what makes the merge honest rather than a claim. Returns the number of
+// deltas it could not read.
+export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
   let errors = 0;
   for (const deltaPath of deltaFiles) {
     const rel = relPath(changeDir, deltaPath);
@@ -688,7 +686,31 @@ function changeDiff(args, _flags) {
       console.log(out);
     }
   }
+  return errors;
+}
 
+function changeDiff(args, _flags) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change diff requires <id>");
+    return 2;
+  }
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
+    return 1;
+  }
+
+  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  if (deltaFiles.length === 0) {
+    console.log(c.gray("no spec deltas in this change; nothing to diff"));
+    return 0;
+  }
+
+  const errors = printDeltaPreview(projectRoot, changeDir, deltaFiles);
   console.log("");
   return errors > 0 ? 1 : 0;
 }

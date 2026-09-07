@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.40.0
+**Version:** 0.41.0
 
 ## Purpose
 
@@ -64,6 +64,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall record which operation ran only when the operator names a log file, shall record the operation alone and never its arguments, and shall make no network call.
 
 - The system shall define in one module the vocabulary it reads natural language with — how text is folded, which words carry no signal, and how strongly a document answers a query — and every command that ranks or classifies text shall read it from there.
+- The system shall declare each deprecated operation in one place with the command that replaces it, the reason, and the version from which it is deprecated, and shall keep the deprecated name working until a later release removes it.
 
 ### Event-driven
 
@@ -126,6 +127,7 @@ command shares (git, the lexicon, the usage log).
 - When a caller asks which files changed, the system shall distinguish an empty answer from an inability to answer, and shall let the caller choose whether untracked files and a branch's earlier commits count.
 
 - When a period is reported, the system shall aggregate the recorded lanes and count a change with no recorded lane as unknown rather than assigning it one.
+- When a deprecated operation is invoked, the system shall run it and warn once on the error stream, naming the replacement, so that a caller reading standard output receives exactly what it received before.
 
 ### State-driven
 
@@ -158,6 +160,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not accept a value-taking flag written without a value; it shall report a usage error rather than fall back to the default.
 
 - The system shall not treat an action that requires a human decision — accepting a decision, completing a task, authoring a proposal or a skill — as runnable, however mechanical the resulting edit would be.
+- The system shall not list a deprecated operation in the generated command-surface block, and shall not report its absence from that block as documentation drift.
 
 ### Optional
 
@@ -219,6 +222,7 @@ The CLI is v0 spec-compliant when:
 26. [verified] The changed-files door reports a clean tree and an unanswerable question differently, and its merge-base option is what makes a branch's earlier commits count — verified by `packages/doctrina-cli/test/one-door.test.js`.
 27. [verified] `work` and `context --for` choose the same capability for the same prompt, in either language, with accents folded — verified by `packages/doctrina-cli/test/one-door.test.js`.
 28. [verified] Relevance is a tuple and the score is its projection, so a long document cannot out-rank a focused one on volume — verified by `packages/doctrina-cli/test/one-door.test.js`.
+29. [verified] A deprecated command runs, warns on stderr only, and is absent from the surface block; every deprecation names a replacement that exists and is not itself deprecated — verified by `packages/doctrina-cli/test/deprecation.test.js`, `packages/doctrina-cli/test/commands.test.js`.
 
 ## Out of scope for this spec
 

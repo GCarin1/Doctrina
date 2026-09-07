@@ -40,7 +40,7 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina intake` — store the intent and print the bootstrap playbook. *When:* you have a full project description and no specs yet.
 - `doctrina adapter list|add|remove` — install/remove agent adapters (additive). *When:* adding or removing an agent's pointer files.
 **Orient**
-- `doctrina prime (session start)` — gates, standing rules, and open work in one read. *When:* at the START of every session.
+- `doctrina prime (session start)` — gates, open work and next steps in one read (--rules for the full standing rules). *When:* at the START of every session.
 - `doctrina context [<cap>] --for "<task>" --concat` — the read pack, assembled to fit a token budget. *When:* before working on any task, to load the right files.
 - `doctrina show` — point-read a single artifact by reference. *When:* you need one requirement, criterion, or ADR, not a file.
 - `doctrina search` — search the artifact tree, grouped by category. *When:* you do not know which artifact mentions a term.
@@ -48,12 +48,11 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina next` — the recommended next workflow action. *When:* you finished something and do not know what follows.
 - `doctrina why` — provenance: intent, proof, ADRs, and history. *When:* you need to justify or trace a capability's existence.
 - `doctrina handoff (before compaction/handover)` — a resume note: open work, task state, next command. *When:* BEFORE compaction or handing over to another session.
-- `doctrina constitution` — accepted ADRs and product non-goals. *When:* you need the standing rules before deciding something.
 **Change**
 - `doctrina triage` — classify the lane (product/runtime/chore) and check the declared runtime surface. *When:* a request arrives — BEFORE scaffolding, especially if it smells like an incident.
 - `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* a request arrives that changes behaviour (triage says PRODUCT).
 - `doctrina spec new|list|set` — create, list, and edit capability specs. *When:* a capability needs creating or its headers advancing.
-- `doctrina change new|apply|archive|check|tick|diff|abandon` — new / apply / archive / check / tick / diff / abandon. *When:* driving a change through its lifecycle by hand.
+- `doctrina change new|apply|archive|check|tick|abandon` — new / apply / archive / check (--verbose) / tick / abandon. *When:* driving a change through its lifecycle by hand.
 - `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.
 - `doctrina decision new|accept|land|supersede|list|scope` — record, accept, land, scope, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
 - `doctrina skill new|list|sync|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.

@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -26,7 +26,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.40.0",
+        "version": "0.41.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -66,7 +66,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented"
       },
@@ -422,16 +422,21 @@
           "gates"
         ],
         "summary": "A module under `src/commands/` is a RENDERER."
+      },
+      {
+        "id": "0026",
+        "path": ".doctrina/decisions/0026-clarify-stays-a-deterministic-smell-test-the-bootstrap-already-runs.md",
+        "title": "Clarify stays: a deterministic smell test the bootstrap already runs",
+        "status": "accepted",
+        "date": "2026-09-07",
+        "scope": [
+          "gates",
+          "authoring"
+        ],
+        "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
     "changes": [
-      {
-        "id": "0049-encolher-a-superficie-de-comandos",
-        "title": "encolher a superficie de comandos",
-        "path": ".doctrina/changes/0049-encolher-a-superficie-de-comandos",
-        "status": "proposed",
-        "opened": "2026-09-07"
-      },
       {
         "id": "0050-metricas-e-uso-realimentam-o-fluxo",
         "title": "metricas e uso realimentam o fluxo",
@@ -1105,6 +1110,27 @@
         "specs_affected": [
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0049-encolher-a-superficie-de-comandos",
+        "title": "encolher a superficie de comandos",
+        "path": ".doctrina/changes/archive/2026-09-07-0049-encolher-a-superficie-de-comandos",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ]

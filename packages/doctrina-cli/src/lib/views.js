@@ -30,7 +30,7 @@ function signoffNote(verify, { verbose = false } = {}) {
 // is what makes "the four views agree" a property of the code rather than a
 // promise, and what lets `doctrina status --view <name>` render any of them.
 
-export const VIEWS = ["dashboard", "prime", "handoff", "report"];
+export const VIEWS = ["dashboard", "prime", "handoff", "report", "rules"];
 
 // Count the recorded lanes, keeping "unknown" as its own row rather than
 // dropping it: a mix that silently omits the changes it could not classify
@@ -59,6 +59,7 @@ export function renderView(name, snapshot, options = {}) {
     case "prime": return prime(snapshot);
     case "handoff": return handoff(snapshot);
     case "report": return report(snapshot, options);
+    case "rules": return rules(snapshot);
     default: throw new Error(`unknown view "${name}" (declared: ${VIEWS.join(", ")})`);
   }
 }
@@ -152,7 +153,7 @@ export function prime(s) {
   );
 
   out.push("");
-  out.push(c.bold("Rules") + c.gray(`  (${s.adrs.length} accepted ADRs — \`doctrina constitution\` for detail)`));
+  out.push(c.bold("Rules") + c.gray(`  (${s.adrs.length} accepted ADRs — \`doctrina prime --rules\` for detail)`));
   for (const a of s.adrs) out.push(`  ${c.cyan(a.id)}  ${a.title}`);
   if (s.nonGoals.length > 0) {
     out.push(c.gray(`  + ${s.nonGoals.length} non-goal${s.nonGoals.length === 1 ? "" : "s"} declared in product.md`));
@@ -232,6 +233,40 @@ export function handoff(s) {
 
   out.push("");
   out.push("*Generated read-only from the tree — regenerate anytime with `doctrina handoff`.*");
+  return out;
+}
+
+// ------------------------------------------------------------------- rules
+//
+// The project's standing rules, in full: the accepted ADRs and the product's
+// declared non-goals. Assembled, never owned — to change a principle you
+// supersede its ADR, to change a non-goal you edit product.md.
+//
+// One rendering, two callers (change 0049). `prime --rules` prints it, and
+// `doctrina constitution` — deprecated, kept working — prints the same lines,
+// so the merge is demonstrable rather than asserted. `prime` on its own still
+// shows the ADR titles and a non-goal COUNT: the primer is a fixed-size read,
+// and the full list is what `--rules` is for.
+export function rules(s) {
+  const out = [];
+  out.push(c.bold("Standing rules") + c.gray(`  — ${s.project}  (accepted decisions + non-goals)`));
+  out.push("");
+  out.push(c.bold("  Principles") + c.gray("  (immutable — supersede an ADR to change one)"));
+  if (s.adrs.length === 0) {
+    out.push(`    ${c.gray("no accepted ADRs yet — record decisions with `doctrina decision new`")}`);
+  } else {
+    for (const a of s.adrs) out.push(`    ${c.cyan("ADR " + a.id)}  ${a.title}`);
+  }
+  out.push("");
+  out.push(c.bold("  Non-goals") + c.gray("  (.doctrina/product.md)"));
+  if (s.nonGoals.length === 0) {
+    out.push(`    ${c.gray("none declared — add a `## Non-goals` section to product.md")}`);
+  } else {
+    for (const g of s.nonGoals) out.push(`    ${c.gray("•")} ${g}`);
+  }
+  out.push("");
+  out.push(c.gray(`  ${s.adrs.length} accepted decision${s.adrs.length === 1 ? "" : "s"} · ` +
+    `${s.nonGoals.length} non-goal${s.nonGoals.length === 1 ? "" : "s"} · read-only`));
   return out;
 }
 

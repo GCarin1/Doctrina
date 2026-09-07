@@ -23,7 +23,7 @@ import { today } from "./dates.js";
 import { kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
-import { COMMAND_NAMES, referencedCommands } from "./commands.js";
+import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
 import { parseAcceptanceCriteria, isVerified } from "./criteria.js";
 import { parsePipeline, checkPipeline } from "./pipeline.js";
 import { collectRuntimeFindings } from "./runtime.js";
@@ -88,7 +88,11 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
     const documented = [...referenced].filter((cmd) => known.has(cmd));
     const defersToHelp = /doctrina(?:-cli)?\s+--help/.test(agentsText);
     if (documented.length >= CATALOG_THRESHOLD && !defersToHelp) {
-      const missing = COMMAND_NAMES.filter((cmd) => !referenced.has(cmd));
+      // A DEPRECATED command is absent from the generated block on purpose
+      // (change 0049): the block lists what to reach for, and a name that
+      // warns when used is not that. Counting it as a gap would make the
+      // deprecation permanently red.
+      const missing = COMMAND_NAMES.filter((cmd) => !referenced.has(cmd) && !DEPRECATED[cmd]);
       if (missing.length > 0) {
         warnings.push(
           `AGENTS.md documents the doctrina command surface but omits ` +

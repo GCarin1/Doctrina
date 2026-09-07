@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-09-07
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Purpose
 
@@ -52,7 +52,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   implementation state, and proof ratio), and the archived changes behind
   those capabilities — read-only, erroring with the known anchors when
   the anchor does not exist.
-- When `doctrina constitution` runs, the system shall print the project's
+- When `doctrina prime --rules` runs — or the deprecated `doctrina constitution`, which prints the same lines — the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them.
   standing rules in one read — the accepted ADRs (immutable governing
   decisions, oldest first) and the `## Non-goals` of `product.md` — assembled
   read-only from artifacts those files already own (no new fact home); it
@@ -112,6 +112,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - When a context pack is assembled, the system shall place at most one open change in the irreducible core — the one the named capability or the task query identifies unambiguously — and shall place none there when several match equally.
 - When a task query is given and no capability is named, the system shall place the spec that query identifies unambiguously in the irreducible core.
 - When a read-only view is requested by name, the system shall render it from the shared collection, refuse an unknown name with the usage exit code and the names that exist rather than defaulting silently, and emit the same machine-readable envelope whichever view was named.
+- When `doctrina prime` runs without `--rules`, the system shall keep the primer a fixed-size read: the accepted ADRs by title and the number of non-goals, never their full text.
 
 ### State-driven
 
@@ -138,6 +139,7 @@ The read path is spec-compliant when:
 9. [verified] No command module imports a binding out of a sibling command module, and no library module depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 10. [verified] Every view is a pure function of the snapshot, and each renders byte-identical output whether reached by its own command or by the view flag — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 11. [verified] An unknown view name exits with the usage code naming the nearest real one, and the machine-readable envelope keeps its shape whichever view is asked for — verified by `packages/doctrina-cli/test/one-collector.test.js`.
+12. [verified] `constitution` and `prime --rules` produce byte-identical output, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 
 ## Out of scope for this spec
 
