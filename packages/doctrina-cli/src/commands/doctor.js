@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { exists } from "../lib/fs-ops.js";
+import { exists, isFile, read, relPath } from "../lib/fs-ops.js";
 import { collectStatus } from "../lib/snapshot.js";
 import { collectFindings } from "../lib/templates-model.js";
 import { c } from "../lib/colors.js";
@@ -13,6 +13,8 @@ import { collectValidation } from "../lib/validation-model.js";
 import { collectIndexDrift } from "../lib/scan.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
 import { configRows } from "../lib/config.js";
+import { USAGE_ENV, summarise } from "../lib/usage.js";
+import { OPERATIONS } from "../lib/commands.js";
 
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
@@ -233,6 +235,36 @@ export async function run(_positional, _flags) {
         : `${set.length} of ${rows.length} options configured`);
       for (const r of rows) {
         console.log(`        ${" ".repeat(16)} ${c.gray("·")} ${r.option.padEnd(15)} ${r.value.padEnd(22)} ${c.gray(r.source)}`);
+      }
+    },
+
+    // 10. Which of the catalog's operations have never been reached for —
+    //     but ONLY when the operator turned the log on. `lib/usage.js` was
+    //     built to instrument the surface before shrinking it, and the only
+    //     reader was a command someone had to think to type, so the decision
+    //     it exists to inform kept being taken on opinion (audit finding
+    //     F16). It reports and never writes: no log file is created here.
+    usage: () => {
+      const target = process.env[USAGE_ENV];
+      if (!target || !isFile(target)) return;
+      const catalog = OPERATIONS.map(([op]) => op);
+      const { samples, unused } = summarise(read(target), catalog);
+      if (samples === 0) {
+        row("ok", "usage", `${relPath(projectRoot, target)} is empty — nothing recorded yet`);
+        return;
+      }
+      const detail = `${samples} sample${samples === 1 ? "" : "s"}; ` +
+        `${unused.length} of ${catalog.length} operations never invoked`;
+      row("ok", "usage", detail);
+      // Zero samples for an operation is a CANDIDATE, never a verdict: a
+      // command reached for once a quarter and one nobody wants look
+      // identical over a week. ADR 0026: retiring one needs demonstrated
+      // redundancy, and this list is where you go looking for it.
+      for (const op of unused.slice(0, 8)) {
+        console.log(`        ${" ".repeat(16)} ${c.gray("·")} never invoked: ${op}`);
+      }
+      if (unused.length > 8) {
+        console.log(`        ${" ".repeat(16)} ${c.gray(`· … ${unused.length - 8} more — doctrina metrics --commands`)}`);
       }
     },
   };

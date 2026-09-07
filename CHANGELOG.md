@@ -19,6 +19,29 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The two instruments the project already runs start reaching a reader.**
+  The metrics snapshots are a time series versioned in the repository, and
+  the only thing that ever read them was a delta against the most recent one
+  — a year of measurement answering "better than last time?". `doctrina
+  metrics --trend` now reads the whole series: every snapshot in date order,
+  then the movement from the first to the last, so a rate that drifted up for
+  months and dipped once reads as what it is.
+- `doctrina report` carries the period's revert rate and re-edit rate, from
+  the same snapshot `metrics` renders for that window — `lib/metrics-model.js`
+  is now the one definition, so the two surfaces cannot state different
+  numbers for the same period.
+- `doctrina doctor` reports how many catalog operations were never invoked,
+  and names some — but only when the usage log exists. The log stays opt-in,
+  local, argument-free and network-free; `doctor` reads it and never creates
+  it, and a project without one behaves exactly as before.
+- No gate on any of it. Every gate in the framework can say what is wrong and
+  which command fixes it (ADR 0008); "the revert rate rose 3 points" names
+  neither, and both rates move with team size, cadence and how the window was
+  drawn — this repository's own re-edit proxy sits at 95.8% during a run of
+  small changes to the same files. The output says it is a direction, not a
+  verdict, and `docs/*/validation.md` stays the place where a person turns
+  the numbers into a decision.
+
 - **The command surface starts shrinking, by merging rather than guessing.**
   The generated block carries a hard 40-line budget so that adding a command
   forces the question "what comes off?" — and for two releases the answer was

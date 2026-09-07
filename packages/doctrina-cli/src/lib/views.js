@@ -272,11 +272,15 @@ export function rules(s) {
 
 // ------------------------------------------------------------------ report
 
+function asPct(x) {
+  return typeof x === "number" ? `${(x * 100).toFixed(1)}%` : "—";
+}
+
 /**
  * @param {object} s the snapshot
- * @param {{ days?: number, cutoffIso?: string, git?: any }} [options]
+ * @param {{ days?: number, cutoffIso?: string, git?: any, metrics?: any }} [options]
  */
-export function report(s, { days = 7, cutoffIso = "", git = null } = {}) {
+export function report(s, { days = 7, cutoffIso = "", git = null, metrics = null } = {}) {
   const out = [];
   out.push(`# Doctrina report — ${s.project} (${cutoffIso} → ${today()})`);
   out.push("");
@@ -361,6 +365,15 @@ export function report(s, { days = 7, cutoffIso = "", git = null } = {}) {
     if (git.churn.length > 0) {
       out.push(`- top-churn files:`);
       for (const [file, n] of git.churn) out.push(`  - ${file} (${n} touches)`);
+    }
+    // The rework proxies for the same window, from the same snapshot
+    // `doctrina metrics` renders (change 0050) — reported, never judged:
+    // both rates move with team size and release cadence, and iterative
+    // work trips the re-edit proxy exactly like rework does.
+    if (metrics) {
+      out.push(`- reverts: ${metrics.reverts} (${asPct(metrics.revert_rate)} of commits)`);
+      out.push(`- ${metrics.reedit_window_days}-day re-edit rate: ${asPct(metrics.reedit_rate)}` +
+        " (touches a file edited in the prior window — a proxy for rework, not a verdict)");
     }
   }
 

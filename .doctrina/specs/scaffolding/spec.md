@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-08-06
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -178,6 +178,9 @@ authoring commands, and the conventions every command shares.
 - When `doctrina init` has no project description and no terminal to ask on, the system shall refuse and name the flags that supply one, rather than scaffolding with an empty description.
 - When `doctrina init` scaffolds a project, the system shall create `.doctrina/config.json` documenting every option and its default while declaring none of them, so that the first key a project adds is the first choice it has made.
 - When `doctrina doctor` runs, the system shall print one row per configuration option with its effective value and its source, and shall never fail on account of an option sitting at its default.
+- When `doctrina metrics --trend` runs, the system shall read every saved snapshot in date order and report the movement of each tracked rate from the first snapshot to the last, stating that the direction is not a verdict, and shall say so plainly when fewer than two snapshots exist.
+- When `doctrina report` runs inside a repository with history, the system shall include the period's revert rate and re-edit rate, derived from the same snapshot `metrics` renders for that window.
+- When `doctrina doctor` runs and the usage log named by the environment exists, the system shall report how many operations in the catalog were never invoked and name some of them; with no log, or an empty one, it shall report nothing about usage.
 
 ### State-driven
 
@@ -188,6 +191,7 @@ authoring commands, and the conventions every command shares.
   `.doctrina/index.json` when the fix rewrites it. Lint, tests, and
   project-specific checks are out of scope for the shipped hook.
 - The system shall not fail to assemble a context pack, run a command, or scaffold a project because a configuration file is malformed; it shall fall back to the default for the affected option, keep working, and report the malformation through the structural gate.
+- The system shall not create, populate, or require a usage log in order to report on one, and shall not treat an operation with no samples as a defect.
 
 ### Optional
 
@@ -201,6 +205,8 @@ Project scaffolding is spec-compliant when:
 4. [verified] A project's context_budget survives `index rebuild`, and --budget overrides it — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 5. [verified] A project configured the legacy way and one configured in `config.json` resolve to the same effective values, the declared home wins per option, and the source of each value is reported — verified by `packages/doctrina-cli/test/config-surface.test.js`.
 6. [verified] `init` scaffolds a config that declares nothing, `doctor` prints every option with its value and origin, and a malformed file is reported by `validate` without stopping `context` — verified by `packages/doctrina-cli/test/config-surface.test.js`.
+7. [verified] The saved snapshots are read as a series — malformed and non-snapshot files skipped — and the trend spans first to last rather than the last two — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
+8. [verified] `report` and `metrics` state the same rates for the same window, and `doctor` reports usage only when the log exists, creating nothing — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
 
 ## Out of scope for this spec
 

@@ -9,6 +9,7 @@ import { collectSnapshot } from "../lib/snapshot.js";
 import { renderView } from "../lib/views.js";
 import { gitWindow, windowCutoff } from "../lib/git.js";
 import { draftAgentChangelog, renderDraft } from "../lib/agent-changelog.js";
+import { collectMetrics } from "../lib/metrics-model.js";
 import { cliVersion } from "../lib/version.js";
 
 // Periodic digest in Markdown — the standup/PR-description view: what was
@@ -50,7 +51,15 @@ export async function run(_positional, flags) {
     return 0;
   }
 
-  const options = { days, cutoffIso: windowCutoff(days), git: gitWindow(projectRoot, days) };
+  const options = {
+    days,
+    cutoffIso: windowCutoff(days),
+    git: gitWindow(projectRoot, days),
+    // The same snapshot `metrics` renders, for the same window (change
+    // 0050). One definition of "revert rate", so the digest and the metrics
+    // command cannot report two different numbers for one period.
+    metrics: collectMetrics(projectRoot, `${days} days ago`),
+  };
   for (const line of renderView("report", collectSnapshot(projectRoot), options)) console.log(line);
   return 0;
 }

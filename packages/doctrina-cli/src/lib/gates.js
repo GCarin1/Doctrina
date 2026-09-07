@@ -198,6 +198,11 @@ export const SEQUENCES = {
     // the CLI's source, which is how a pt-BR project sat red under `clarify`
     // with no clue why (change 0047). Advisory: a default is not a fault.
     { id: "config", label: "config", level: "advisory", argv: null, rerun: "edit .doctrina/config.json" },
+    // Also a readout, and also advisory. It appears only when the operator
+    // has switched the usage log on: an instrument that is off has nothing
+    // to say, and a row saying so every run would train the reader to skip
+    // the section (change 0050).
+    { id: "usage", label: "usage", level: "advisory", argv: null, rerun: "doctrina metrics --commands" },
   ],
 
   // The CI sequence, emitted as the composite action. Deliberately WITHOUT

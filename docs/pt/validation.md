@@ -130,6 +130,54 @@ de review de PR estourou o limite de 50% da Faros (Trigger 2
 dispara e você deveria simplificar a superfície de
 proposal/review).
 
+## O que a CLI mede para você
+
+Três daquelas colunas saem do próprio repositório, sem dashboard nenhum:
+
+```bash
+doctrina metrics --save     # fotografa a janela de hoje em .doctrina/metrics/
+doctrina metrics --trend    # todos os snapshots salvos e a direção de cada taxa
+doctrina report --since 30  # o digest do período, com as mesmas taxas
+```
+
+O `--save` escreve um JSON datado por snapshot. Esses arquivos são uma
+**série temporal**, versionada como qualquer outro artefato, e o
+`--trend` lê a série inteira: cada snapshot em ordem de data e depois o
+movimento do PRIMEIRO ao ÚLTIMO — não contra o anterior. Uma taxa que
+subiu por seis meses e caiu uma vez parece melhora no delta e aparece
+como o que é na série.
+
+O `report --since <dias>` carrega a taxa de revert e a de re-edit da
+própria janela, calculadas a partir do mesmo snapshot que o `metrics`
+renderiza — uma definição só, então as duas superfícies não conseguem
+reportar números diferentes para o mesmo período.
+
+Nenhum dos dois é gate, e nenhum carrega veredito. As duas taxas se
+movem com tamanho de time, cadência de release e com o recorte da
+janela, e o proxy de re-edit conta trabalho iterativo comum exatamente
+como conta retrabalho. Os números são insumo para os triggers abaixo; a
+leitura é sua.
+
+### A superfície de comandos, se você pediu para ser medido
+
+```bash
+export DOCTRINA_USAGE_LOG=$PWD/.doctrina/usage.jsonl
+doctrina doctor          # lista as operações do catálogo nunca invocadas
+doctrina metrics --commands
+```
+
+Desligado a menos que você defina essa variável: nenhum arquivo aparece
+e nada é registrado até você pedir. Ele guarda só a operação — nunca
+argumentos, caminhos, ids ou prompts — em um único arquivo local
+append-only, e a CLI não faz chamada de rede nenhuma. O `doctor` só
+menciona o log quando ele existe, e nunca o cria.
+
+Uma operação com zero amostras é **candidata**, nunca veredito: um
+comando usado uma vez por trimestre e um comando que ninguém quer são
+idênticos em uma semana. Aposentar um exige redundância demonstrada — um
+sobrevivente que produz o que ele produzia — e não contagem baixa
+(ADR 0026).
+
 ## Passo 4 — Aja nos triggers
 
 Para cada trigger disparado, faça algo concreto no próximo change:

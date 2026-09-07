@@ -57,3 +57,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0047-uma-superficie-de-configuracao — uma superficie de configuracao (specs: scaffolding MODIFIED)
 - 2026-09-07 — 0048-o-changelog-do-agente-e-rascunhado — o changelog do agente e rascunhado (specs: templates MODIFIED)
 - 2026-09-07 — 0049-encolher-a-superficie-de-comandos — encolher a superficie de comandos (specs: authoring MODIFIED, cli MODIFIED, insight MODIFIED)
+- 2026-09-07 — 0050-metricas-e-uso-realimentam-o-fluxo — metricas e uso realimentam o fluxo (specs: scaffolding MODIFIED)
