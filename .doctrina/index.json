@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.15.1",
-  "last_updated": "2026-09-07",
+  "last_updated": "2026-09-08",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -436,7 +436,72 @@
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0055-comentario-nao-e-conteudo",
+        "title": "comentario nao e conteudo",
+        "path": ".doctrina/changes/0055-comentario-nao-e-conteudo",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0056-o-resumo-do-contract-check-nao-mente",
+        "title": "o resumo do contract check nao mente",
+        "path": ".doctrina/changes/0056-o-resumo-do-contract-check-nao-mente",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "runtime (confident; signals: ci) — opened anyway (--force)"
+      },
+      {
+        "id": "0057-ausencia-nao-e-aprovacao",
+        "title": "ausencia nao e aprovacao",
+        "path": ".doctrina/changes/0057-ausencia-nao-e-aprovacao",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0058-a-remediacao-sai-do-projeto-checado",
+        "title": "a remediacao sai do projeto checado",
+        "path": ".doctrina/changes/0058-a-remediacao-sai-do-projeto-checado",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0059-o-tamanho-da-superficie-tem-um-dono",
+        "title": "o tamanho da superficie tem um dono",
+        "path": ".doctrina/changes/0059-o-tamanho-da-superficie-tem-um-dono",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0060-uma-resposta-por-pergunta",
+        "title": "uma resposta por pergunta",
+        "path": ".doctrina/changes/0060-uma-resposta-por-pergunta",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "runtime (confident; signals: runner) — opened anyway (--force)"
+      },
+      {
+        "id": "0061-a-depreciacao-chega-a-maquina",
+        "title": "a depreciacao chega a maquina",
+        "path": ".doctrina/changes/0061-a-depreciacao-chega-a-maquina",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0062-o-texto-alcanca-o-codigo",
+        "title": "o texto alcanca o codigo",
+        "path": ".doctrina/changes/0062-o-texto-alcanca-o-codigo",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain) — opened as chore"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
