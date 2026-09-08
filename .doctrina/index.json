@@ -436,7 +436,112 @@
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0063-o-gate-de-docs-le-o-contrato",
+        "title": "o gate de docs le o contrato",
+        "path": ".doctrina/changes/0063-o-gate-de-docs-le-o-contrato",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0064-o-next-le-os-mesmos-sinais",
+        "title": "o next le os mesmos sinais",
+        "path": ".doctrina/changes/0064-o-next-le-os-mesmos-sinais",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0065-o-molde-nao-passa-por-conteudo",
+        "title": "o molde nao passa por conteudo",
+        "path": ".doctrina/changes/0065-o-molde-nao-passa-por-conteudo",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0066-a-porta-de-bootstrap-aparece",
+        "title": "a porta de bootstrap aparece",
+        "path": ".doctrina/changes/0066-a-porta-de-bootstrap-aparece",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0067-uma-contagem-de-caixas",
+        "title": "uma contagem de caixas",
+        "path": ".doctrina/changes/0067-uma-contagem-de-caixas",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0068-o-contract-check-responde-a-maquina",
+        "title": "o contract check responde a maquina",
+        "path": ".doctrina/changes/0068-o-contract-check-responde-a-maquina",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: declare)"
+      },
+      {
+        "id": "0069-non-goals-em-prosa-contam",
+        "title": "non-goals em prosa contam",
+        "path": ".doctrina/changes/0069-non-goals-em-prosa-contam",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0070-o-titulo-nao-nasce-duplicado",
+        "title": "o titulo nao nasce duplicado",
+        "path": ".doctrina/changes/0070-o-titulo-nao-nasce-duplicado",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0071-o-intake-aceita-a-prosa-convidada",
+        "title": "o intake aceita a prosa convidada",
+        "path": ".doctrina/changes/0071-o-intake-aceita-a-prosa-convidada",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0072-o-acoplamento-dos-orcamentos-e-visivel",
+        "title": "o acoplamento dos orcamentos e visivel",
+        "path": ".doctrina/changes/0072-o-acoplamento-dos-orcamentos-e-visivel",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0073-o-adapter-remove-nao-deixa-rastro",
+        "title": "o adapter remove nao deixa rastro",
+        "path": ".doctrina/changes/0073-o-adapter-remove-nao-deixa-rastro",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0074-o-ternario-morto-sai",
+        "title": "o ternario morto sai",
+        "path": ".doctrina/changes/0074-o-ternario-morto-sai",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change) — opened as chore"
+      },
+      {
+        "id": "0075-os-adrs-seguem-a-capability",
+        "title": "os adrs seguem a capability",
+        "path": ".doctrina/changes/0075-os-adrs-seguem-a-capability",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
