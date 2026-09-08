@@ -302,7 +302,7 @@ codes, zero-deps, no-network).
 - If no intent anchor is declared, the system shall not report the trace as satisfied, because a ratio over zero anchors states nothing true about provenance.
 - If a glob carries a brace with no matching close, the system shall not expand it into a partial set of alternatives; the pattern shall match nothing so the malformed declaration is reported rather than silently covering less than it claims.
 - If a change declares the chore lane, the system shall not require documentation of a surface it named, because the lane is the author's recorded statement that no behaviour changes.
-- If a closing step has nothing to check, the system shall report that rather than reporting conformance, because a universal statement over an empty set is vacuously true and reads as a check performed.
+- If a closing step has nothing to check, the system shall not report conformance; it shall report the absence instead, because a universal statement over an empty set is vacuously true and reads as a check performed.
 
 ### Optional
 
