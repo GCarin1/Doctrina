@@ -127,7 +127,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.19.0",
+        "version": "0.20.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -505,14 +505,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0078-a-recomendacao-sabe-o-que-custa",
-        "title": "a recomendacao sabe o que custa",
-        "path": ".doctrina/changes/0078-a-recomendacao-sabe-o-que-custa",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0079-clarify-nao-confunde-pergunta-com-vagueza",
         "title": "clarify nao confunde pergunta com vagueza",
@@ -1593,6 +1585,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0078-a-recomendacao-sabe-o-que-custa",
+        "title": "a recomendacao sabe o que custa",
+        "path": ".doctrina/changes/archive/2026-09-08-0078-a-recomendacao-sabe-o-que-custa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

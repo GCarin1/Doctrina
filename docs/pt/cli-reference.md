@@ -956,6 +956,16 @@ marcadores é a única região de propriedade do CLI (ADR 0015) — tudo
 fora dele nunca é reescrito ou removido, e preencher os stubs continua
 sendo decisão humana.
 
+**A recomendação de seções diz o que custa.** O `AGENTS.md` tem um teto de
+linhas declarado (`agents-md-lines`), e é um budget de OUTPUT, então o
+`analyze` recusa uma change que resolva um estouro subindo o teto. Quando os
+stubs que faltam não cabem, o `templates check` nomeia o preço e o corte a
+fazer antes, e o `templates update --write` **segura** aquele item — imprime
+o que recusou e por quê, deixa o arquivo intocado e aplica as outras
+atualizações normalmente. Abrir o espaço que ele pede e rodar de novo limpa
+a retenção. Sem isso, um gate advisory resolvia o próprio finding entrando
+na recusa de outro gate, em silêncio.
+
 ## `doctrina hooks install`
 
 Instala o pre-commit hook do Doctrina em

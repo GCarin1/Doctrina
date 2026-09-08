@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall state what a template recommendation costs against the declared budget it spends from, whenever following that recommendation would write into a file with a declared ceiling.
+append-requirement unwanted: If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall decline to append them and shall report the shortfall, rather than resolving one gate's recommendation by breaching another gate's refusal.
+append-criterion [verified] With room, the recommendation and its remedy are unchanged and the applied cost equals the estimate; without room, the finding names the cost and the remedy names the cut — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+append-criterion [verified] Without room `templates update --write` stands down leaving the file untouched, and making the room it asks for clears the hold — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+bump-version minor
+```

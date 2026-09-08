@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A `templates check` recommendation now states what it costs.** It
+  recommended two AGENTS.md sections whose remedy worked — and on this very
+  repository took the file from 147 to 155 lines, past a ceiling `analyze`
+  refuses to raise because `agents-md-lines` is declared OUTPUT. One advisory
+  gate resolved its own finding by walking into another gate's refusal, and
+  neither mentioned the other. The finding now names the price and the cut to
+  make first, and `templates update --write` **holds** that item rather than
+  appending past the ceiling: it prints what it declined and why, leaves the
+  file untouched, and applies its other updates. Making the room it asks for
+  clears the hold, so the advice stays followable.
+
 - **`doctrina review` can see the code it reviews (ADR 0027).** Which
   capability owns a changed file was inferred from three signals — the
   capability name as a path segment, the spec citing the path, the spec citing

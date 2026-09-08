@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `.doctrina/templates/**`
 **Last updated:** 2026-08-06
-**Version:** 0.19.0
+**Version:** 0.20.0
 
 ## Purpose
 
@@ -56,6 +56,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall treat the playbooks it prints as templates resolved project-over-bundled per file, so an adopting team can replace the procedure its agent executes.
 - The system shall pre-render every variable part of a playbook into a plain token value, and shall not evaluate conditionals or loops declared inside a template.
 - The system shall resolve every declared size budget from the project's contract, falling back to the shipped default only when the project declares none, so one ceiling is never read from two places.
+- The system shall state what a template recommendation costs against the declared budget it spends from, whenever following that recommendation would write into a file with a declared ceiling.
 
 ### Event-driven
 
@@ -109,6 +110,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
 - A freshly scaffolded contract shall not fail its own `contract check`: placeholder rows are scaffolding, not declarations.
 - The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
+- If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall decline to append them and shall report the shortfall, rather than resolving one gate's recommendation by breaching another gate's refusal.
 
 ### Optional
 
@@ -168,6 +170,8 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 23. [verified] A change touching a command, flag or exit code proposes exactly one bullet and one touching none proposes nothing; the draft is newest-first, capped at the block's limit, and states its window and what it truncated — verified by `packages/doctrina-cli/test/agent-changelog.test.js`.
 24. [verified] The headroom left in the two coupled budgets is reported before either is breached, and the overflow warning still fires once one is past — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
 25. [verified] `doctor` and `templates check` quote one size for the surface block, and a ceiling declared in the contract beats the shipped literal for both budgets — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
+26. [verified] With room, the recommendation and its remedy are unchanged and the applied cost equals the estimate; without room, the finding names the cost and the remedy names the cut — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+27. [verified] Without room `templates update --write` stands down leaving the file untouched, and making the room it asks for clears the hold — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
 
 ## Out of scope for this spec
 

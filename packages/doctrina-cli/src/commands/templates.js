@@ -13,7 +13,7 @@ import { cliVersion } from "../lib/version.js";
 import { ARTIFACT_CATEGORIES } from "../lib/index-json.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { collectFindings, AGENTS_SECTIONS, PRODUCT_SECTIONS, normalizeBlock, hasHeading } from "../lib/templates-model.js";
+import { collectFindings, agentsSectionCost, AGENTS_SECTIONS, PRODUCT_SECTIONS, normalizeBlock, hasHeading } from "../lib/templates-model.js";
 
 // The findings are collected in lib/templates-model.js, which `doctor` reads
 // too (audit finding F7); this command renders and fixes them.
@@ -56,6 +56,9 @@ function updateTemplates(flags) {
   }
 
   const plan = [];
+  // Updates this run declines to make, each with the reason and the number.
+  // Standing down is a RESULT, not a silence (change 0078).
+  const held = [];
 
   // AGENTS.md command-surface block: the one CLI-OWNED span of the file
   // (marker-delimited, generated from the command catalog). Three cases:
@@ -152,6 +155,20 @@ function updateTemplates(flags) {
     if (!isFile(filePath)) continue;
     const text = read(filePath);
     const missing = sections.filter((h) => !hasHeading(text, h));
+    // AGENTS.md has a declared line ceiling, and `analyze` refuses a change
+    // that resolves an overflow by raising it — so appending stubs that do
+    // not fit would trade one gate's recommendation for another's refusal,
+    // silently. The plan says what it would cost and stands down instead
+    // (change 0078); the check's remedy already names the cut to make first.
+    if (missing.length > 0 && rel === "AGENTS.md") {
+      const budget = agentsSectionCost(projectRoot, missing);
+      if (!budget.fits) {
+        held.push(`AGENTS.md: ${missing.length} stub section(s) not appended — they cost ` +
+          `${budget.cost} lines and only ${budget.slack} remain of the declared ceiling; ` +
+          `cut ${budget.over} line(s) of prose first`);
+        continue;
+      }
+    }
     if (missing.length > 0) {
       plan.push({
         describe: missing.map((h) => `${rel}: append stub section "${h}"`),
@@ -202,7 +219,16 @@ function updateTemplates(flags) {
   }
 
   const steps = plan.flatMap((p) => p.describe);
+  for (const reason of held) {
+    console.log(c.yellow("held   ") + reason);
+  }
   if (steps.length === 0) {
+    if (held.length > 0) {
+      console.log("");
+      console.log(c.yellow("hold") + ` ${held.length} update${held.length === 1 ? "" : "s"} not applied — ` +
+        "make room first, then re-run");
+      return 0;
+    }
     console.log(c.green("ok") + " project already follows the current template shape");
     return 0;
   }

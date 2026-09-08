@@ -11,6 +11,7 @@ import { readTemplate } from "./templates.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
 import { declaredBudget } from "./runtime.js";
+import { agentsMdBudget } from "./validation-model.js";
 /**
  * The surface-block budget: how many lines the generated block spends, the
  * ceiling it spends them against, and what is left.
@@ -34,6 +35,32 @@ export function surfaceBudget(projectRoot = null) {
   return { used, budget, slack: budget - used, declared };
 }
 
+// What one appended stub section costs AGENTS.md: a blank line, the heading,
+// a blank line and the fill-me comment. Kept beside the writer that emits
+// that shape (`templates update --write`) so the estimate and the write
+// cannot drift.
+export const STUB_SECTION_LINES = 4;
+
+/**
+ * What appending stub sections to AGENTS.md would cost, against what the
+ * file has left of its declared ceiling.
+ *
+ * `templates check` recommends the sections and `agents-md-lines` caps the
+ * file, and the two never spoke: following the recommendation on this very
+ * repository took AGENTS.md from 147 to 155 lines, past a ceiling `analyze`
+ * refuses to raise because the budget is declared OUTPUT. A recommendation
+ * that cannot say what it costs is a recommendation that sends you into
+ * another gate's refusal (change 0078).
+ *
+ * @param {string} projectRoot
+ * @param {string[]} missing The recommended headings AGENTS.md does not have.
+ * @returns {{ cost: number, slack: number, fits: boolean, over: number }}
+ */
+export function agentsSectionCost(projectRoot, missing) {
+  const cost = missing.length * STUB_SECTION_LINES;
+  const { slack } = agentsMdBudget(projectRoot);
+  return { cost, slack, fits: cost <= slack, over: Math.max(0, cost - slack) };
+}
 // Recommended sections per file kind. Adopters whose files lack these
 // headings get a warning from `templates check`; they are recommendations,
 // not hard requirements (validate handles the hard requirements).
@@ -66,9 +93,27 @@ export function collectFindings(projectRoot) {
   const agentsPath = path.join(projectRoot, "AGENTS.md");
   if (isFile(agentsPath)) {
     const text = read(agentsPath);
+    const missingSections = AGENTS_SECTIONS.filter((h) => !hasHeading(text, h));
+    const budget = agentsSectionCost(projectRoot, missingSections);
     for (const heading of AGENTS_SECTIONS) {
-      if (hasHeading(text, heading)) ok.push(`AGENTS.md: ${heading}`);
-      else findings.push({ message: `AGENTS.md missing recommended section "${heading}"`, remedy: "doctrina templates update --write" });
+      if (hasHeading(text, heading)) {
+        ok.push(`AGENTS.md: ${heading}`);
+        continue;
+      }
+      // The recommendation names its price. When the stubs do not fit, the
+      // remedy names the CUT first — appending them anyway would clear this
+      // finding by breaching a ceiling `analyze` refuses to raise, which is
+      // one gate sending you into another's refusal.
+      findings.push({
+        message: `AGENTS.md missing recommended section "${heading}"` +
+          (budget.fits
+            ? ``
+            : ` — the ${missingSections.length} missing stub(s) cost ${budget.cost} lines and ` +
+              `AGENTS.md has ${budget.slack} left of its declared ceiling`),
+        remedy: budget.fits
+          ? "doctrina templates update --write"
+          : `cut ${budget.over} line(s) of prose from AGENTS.md, then \`doctrina templates update --write\``,
+      });
     }
     // Command-surface block: present and current vs the installed catalog.
     const block = findSurfaceBlock(text);

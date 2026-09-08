@@ -1,6 +1,7 @@
 # Change 0078-a-recomendacao-sabe-o-que-custa — a recomendacao sabe o que custa
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -56,11 +57,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] A recomendação diz o que custa em linhas antes de ser seguida.
-- [ ] Num projeto sem folga, seguir o remédio não estoura o teto em silêncio.
-- [ ] Num projeto com folga, o comportamento não muda.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] A recomendação diz o que custa em linhas antes de ser seguida.
+- [x] Num projeto sem folga, seguir o remédio não estoura o teto em silêncio.
+- [x] Num projeto com folga, o comportamento não muda.
 
 ## Open questions
 

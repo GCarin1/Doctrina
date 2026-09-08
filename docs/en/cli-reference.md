@@ -931,6 +931,16 @@ the one CLI-owned region (ADR 0015) — everything outside it is never
 rewritten or removed, and filling in the stubs stays a human
 decision.
 
+**The section recommendation states what it costs.** `AGENTS.md` has a
+declared line ceiling (`agents-md-lines`), and it is an OUTPUT budget, so
+`analyze` refuses a change that resolves an overflow by raising it. When the
+missing stubs would not fit, `templates check` names the price and the cut
+to make first, and `templates update --write` **holds** that item — it
+prints what it declined and why, leaves the file untouched, and applies its
+other updates normally. Making the room it asks for and re-running clears
+the hold. Without that, one advisory gate resolved its own finding by
+walking into another gate's refusal, silently.
+
 ## `doctrina hooks install`
 
 Install the Doctrina pre-commit hook into `.git/hooks/pre-commit`.
