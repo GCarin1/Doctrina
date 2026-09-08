@@ -35,3 +35,18 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+A change 0029 decidiu que uma superfície de runtime não declarada é
+REPORTADA, nunca aprovada. A linha por contrato obedecia; a linha de resumo
+— a que fica no log de CI e a que o `close` imprime — não. Ela passa a
+carregar a contagem, e a palavra "consistent" só aparece quando houve algo
+para verificar.
+
+```ops
+bump-version minor
+append-requirement event: When `contract check` finishes with no error, the system shall report in its summary line how many contracts declared no Wiring or Selectors rows, and shall exit 0.
+append-requirement unwanted: The system shall not describe a contract set as consistent in the summary of `contract check` when no Wiring or Selectors row was declared to check.
+append-criterion [verified] A scaffolded contract produces a summary that names the unchecked runtime surface and never the word "consistent"; a contract whose declared wiring holds produces both the consistency and the row count; and `contract check`, `doctor` and `triage` describe the same undeclared state the same way — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+```

@@ -1,6 +1,7 @@
 # Change 0056-o-resumo-do-contract-check-nao-mente — o resumo do contract check nao mente
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** runtime (confident; signals: ci) — opened anyway (--force)
@@ -36,11 +37,11 @@ que roda no `close` e na action publicada.
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um contrato sem Wiring/Selectors não produz a palavra "consistent" em lugar nenhum.
-- [ ] O resumo conta quantos contratos ficaram sem checar.
-- [ ] `contract check`, `doctor` e `triage` dizem a mesma coisa do mesmo estado.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um contrato sem Wiring/Selectors não produz a palavra "consistent" em lugar nenhum.
+- [x] O resumo conta quantos contratos ficaram sem checar.
+- [x] `contract check`, `doctor` e `triage` dizem a mesma coisa do mesmo estado.
 
 ## Open questions
 

@@ -1311,7 +1311,11 @@ lê um glob, padrão ou origem que o *contrato* declara.
 | `RT05` | Um seletor declarado que casa zero alvos. Uma execução despachada nele roda 0 casos e ainda sai 0. Nomeia o quase-acerto quando só o separador difere (`smoke-test` vs `smoke_test`). |
 
 Um contrato sem linhas de Wiring ou Selectors é reportado como **não
-checado**, não como aprovado: silêncio não é prova.
+checado**, não como aprovado: silêncio não é prova. A linha de resumo diz o
+mesmo — ela conta quantos contratos ficaram sem checar, e a palavra
+*consistent* só aparece quando houve algo a verificar. É o resumo que
+sobrevive no log de CI, então ele responde pelo mesmo padrão da linha por
+contrato.
 
 Sai 1 em erros, 0 só com warnings.
 

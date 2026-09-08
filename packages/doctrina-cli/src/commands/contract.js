@@ -138,6 +138,13 @@ function contractCheck(args, _flags) {
 
   let errors = 0;
   let warnings = 0;
+  // The runtime half is counted, not just printed. A contract that declares
+  // no Wiring and no Selectors was not checked — and the summary line is the
+  // one thing the CI log and the close print, so it is the line that has to
+  // say so (change 0029 decided the per-contract line; this is the same
+  // decision applied to the total).
+  let declaredRows = 0;
+  let uncheckedContracts = 0;
   for (const name of names) {
     const file = path.join(dir, `${name}.md`);
     if (!isFile(file)) {
@@ -214,22 +221,43 @@ function contractCheck(args, _flags) {
       else warnings += 1;
     }
 
-    if (decl.wiring.length + decl.selectors.length === 0) {
+    const rows = decl.wiring.length + decl.selectors.length;
+    declaredRows += rows;
+    if (rows === 0) {
       // Silence here is not proof of correctness — it is proof that nothing
       // was declared. Saying so is what stops a green check from being read
       // as "the wiring is verified".
+      uncheckedContracts += 1;
       console.log(c.gray("  · no Wiring or Selectors declared — the runtime surface is unchecked"));
     }
   }
 
   console.log("");
-  if (errors === 0 && warnings === 0) {
-    console.log(c.green("ok") + ` ${names.length} contract${names.length === 1 ? "" : "s"} consistent`);
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  if (errors > 0) {
+    console.log(c.red("fail") + ` ${plural(errors, "error")}, ${plural(warnings, "warning")}`);
+    return 1;
+  }
+
+  // "consistent" is a claim about something that was verified. Where nothing
+  // was declared there is nothing to be consistent WITH, so the word does not
+  // appear — the same state `doctor` calls "unchecked" and `triage` calls
+  // "UNCHECKED, not verified" is not allowed to read as approval here just
+  // because this is the copy that runs in CI. It stays exit 0: change 0029
+  // decided an undeclared surface is reported, not failed.
+  if (uncheckedContracts > 0) {
+    const scope = uncheckedContracts === names.length
+      ? `${plural(names.length, "contract")}`
+      : `${uncheckedContracts} of ${plural(names.length, "contract")}`;
+    console.log(c.yellow("warn") + ` ${scope} declare no Wiring/Selectors rows — the runtime surface is unchecked` +
+      (warnings > 0 ? c.gray(`; ${plural(warnings, "warning")} above`) : ""));
     return 0;
   }
-  const summary = `${errors} error${errors === 1 ? "" : "s"}, ${warnings} warning${warnings === 1 ? "" : "s"}`;
-  console.log((errors === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
-  return errors === 0 ? 0 : 1;
+
+  const held = `${plural(names.length, "contract")} consistent, ${plural(declaredRows, "declared row")} ${declaredRows === 1 ? "holds" : "hold"}`;
+  console.log(c.green("ok") + ` ${held}` + (warnings > 0 ? c.gray(`; ${plural(warnings, "warning")} above`) : ""));
+  return 0;
 }
 
 function colIndex(headers, name) {

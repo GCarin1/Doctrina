@@ -1630,7 +1630,11 @@ test("contract new scaffolds and indexes, and check passes on a consistent contr
     );
     const chk = runCli(["contract", "check"], { cwd: tmp });
     assert.equal(chk.status, 0, chk.stdout);
-    assert.match(chk.stdout, /1 contract consistent/);
+    // The static half holds. The runtime half was never declared, so the
+    // summary reports it unchecked rather than consistent (change 0056) —
+    // this contract has Ports, Environment and References and no Wiring.
+    assert.match(chk.stdout, /runtime surface is unchecked/, chk.stdout);
+    assert.doesNotMatch(chk.stdout, /1 contract consistent/, chk.stdout);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

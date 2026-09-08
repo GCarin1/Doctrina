@@ -1269,7 +1269,11 @@ pattern or origin the *contract* declares.
 | `RT05` | A declared selector matching zero targets. A run dispatched on it executes 0 cases and still exits 0. Names the near-miss when only the separator differs (`smoke-test` vs `smoke_test`). |
 
 A contract with no Wiring or Selectors rows is reported as **unchecked**,
-not as passing: silence is not proof.
+not as passing: silence is not proof. The summary line says so too — it
+names how many of the contracts went unchecked, and the word *consistent*
+appears only when there was something to check. It is the summary that
+survives in a CI log, so it is held to the same standard as the per-contract
+line.
 
 Exits 1 on errors, 0 on warnings only.
 

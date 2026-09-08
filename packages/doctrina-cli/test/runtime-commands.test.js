@@ -480,3 +480,85 @@ test("real incidents still read as RUNTIME", () => {
     assert.equal(classify(prompt).lane, "runtime", `misread: ${prompt}`);
   }
 });
+
+// ---------------------------------------- change 0056: the summary line too
+
+// The per-contract line said "unchecked" from change 0029 onward. The
+// SUMMARY still said "ok N contracts consistent" — and the summary is the
+// line the CI log keeps and the close prints, so it is the one that was
+// read. These pin the three surfaces saying the same thing about the same
+// state.
+
+test("the check summary refuses the word consistent when nothing was declared", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    const res = run(dir, ["contract", "check"]);
+    assert.equal(res.status, 0, "an undeclared surface is reported, not failed (change 0029)");
+    assert.doesNotMatch(res.stdout, /consistent/,
+      "there is nothing to be consistent with when nothing was declared");
+    assert.match(res.stdout, /^warn .*runtime surface is unchecked/m, res.stdout);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the check summary counts how many contracts went unchecked", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    run(dir, ["contract", "new", "delivery"]);
+    writeFileSync(path.join(dir, ".env.example"), "API_TOKEN=x\n");
+    writeFileSync(
+      path.join(dir, ".doctrina", "contracts", "system.md"),
+      "# Contract — system\n\n**Status:** active\n\n## Wiring\n\n" +
+      "| Variable | Origin | Consumer | Exported by |\n" +
+      "|---|---|---|---|\n" +
+      "| API_TOKEN | env | src/app.js | .env.example |\n",
+    );
+    const res = run(dir, ["contract", "check"]);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /1 of 2 contracts declare no Wiring\/Selectors rows/, res.stdout);
+    assert.doesNotMatch(res.stdout, /consistent/, res.stdout);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a declared surface that holds is reported as consistent AND as rows that hold", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    writeFileSync(path.join(dir, ".env.example"), "API_TOKEN=x\n");
+    writeFileSync(
+      path.join(dir, ".doctrina", "contracts", "system.md"),
+      "# Contract — system\n\n**Status:** active\n\n## Wiring\n\n" +
+      "| Variable | Origin | Consumer | Exported by |\n" +
+      "|---|---|---|---|\n" +
+      "| API_TOKEN | env | src/app.js | .env.example |\n",
+    );
+    const res = run(dir, ["contract", "check"]);
+    assert.equal(res.status, 0, res.stdout + res.stderr);
+    assert.match(res.stdout, /^ok 1 contract consistent, 1 declared row holds/m, res.stdout);
+    assert.doesNotMatch(res.stdout, /unchecked/, res.stdout);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("contract check, doctor and triage describe an undeclared surface the same way", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    const check = run(dir, ["contract", "check"]);
+    const doc = run(dir, ["doctor"]);
+    const tri = run(dir, ["triage", "the secret is set in GitHub but the process never sees it"]);
+    for (const [name, res] of [["contract check", check], ["doctor", doc], ["triage", tri]]) {
+      assert.match(res.stdout, /unchecked/i, `${name} must call the surface unchecked:\n${res.stdout}`);
+      assert.doesNotMatch(res.stdout, /contracts? consistent/,
+        `${name} must not call an undeclared surface consistent:\n${res.stdout}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

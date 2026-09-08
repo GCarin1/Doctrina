@@ -19,6 +19,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The `contract check` summary stopped approving what it had just called
+  unchecked.** Change 0029 established that a contract declaring no `Wiring`
+  and no `Selectors` rows is reported as UNCHECKED, never as passing. The
+  per-contract line obeyed. The summary — the line a CI log keeps and the
+  close prints — still read `ok N contracts consistent` over exactly that
+  state, while `doctor` called it "unchecked" and `triage` called it
+  "UNCHECKED, not verified". Of the three surfaces reading the same
+  collection, the one that lied was the one that runs as a gate.
+- The summary now counts the unchecked contracts and names them, the word
+  *consistent* appears only when something was actually checked, and a
+  passing run reports the declared rows that hold. It stays exit 0: an
+  undeclared surface is reported, not failed.
+
 - **A comment is annotation, not content.** Three readers of the same
   on-disk grammar disagreed about HTML comments, and two of them were wrong.
   The docs gate read the `RANKED GUESS` note that a guessed spec delta
