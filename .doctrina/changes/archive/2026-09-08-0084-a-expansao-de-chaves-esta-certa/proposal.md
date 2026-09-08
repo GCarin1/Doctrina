@@ -1,6 +1,7 @@
 # Change 0084-a-expansao-de-chaves-esta-certa — a expansao de chaves esta certa
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -58,12 +59,12 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um grupo de um elemento só casa o que ele nomeia.
-- [ ] Chaves aninhadas casam exatamente as alternativas que descrevem.
-- [ ] Uma chave sem par não vira correspondência parcial silenciosa.
-- [ ] Os padrões que já funcionavam continuam idênticos.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um grupo de um elemento só casa o que ele nomeia.
+- [x] Chaves aninhadas casam exatamente as alternativas que descrevem.
+- [x] Uma chave sem par não vira correspondência parcial silenciosa.
+- [x] Os padrões que já funcionavam continuam idênticos.
 
 ## Open questions
 

@@ -19,6 +19,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Brace expansion in a glob says what it means.** Two defects in the
+  dialect added for `**Source:**` declarations, found by auditing that
+  change's own code. `globToRegExp` computed the expansion and used it only
+  when it produced more than one alternative, so `src/{a}.js` compiled with
+  its braces as literal characters and matched nothing. And the expansion
+  closed on the first `}` rather than the matching one, so
+  `src/{a,{b,c}}.js` became `["a}", "b", "c}"]` — matching `b`, missing `a`
+  and `c`, inventing `a}`, and staying **silent** because something matched,
+  so the dead-pattern check never fired over a declaration covering a third
+  of what it claimed. Both fixed; an unmatched brace now matches nothing, so
+  a malformed pattern is reported instead of quietly covering less.
+
 - **`doctrina trace` no longer approves an empty tree.** `spec new` scaffolds
   the `Realizes:` header with a placeholder that cites no anchor, and the
   never-opted-in guard tested for the HEADER rather than for a cited anchor —

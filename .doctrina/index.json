@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.12.0",
+        "version": "1.12.1",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -504,16 +504,7 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [
-      {
-        "id": "0084-a-expansao-de-chaves-esta-certa",
-        "title": "a expansao de chaves esta certa",
-        "path": ".doctrina/changes/0084-a-expansao-de-chaves-esta-certa",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1642,6 +1633,19 @@
         "id": "0083-o-trace-nao-aprova-o-vazio",
         "title": "o trace nao aprova o vazio",
         "path": ".doctrina/changes/archive/2026-09-08-0083-o-trace-nao-aprova-o-vazio",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0084-a-expansao-de-chaves-esta-certa",
+        "title": "a expansao de chaves esta certa",
+        "path": ".doctrina/changes/archive/2026-09-08-0084-a-expansao-de-chaves-esta-certa",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [

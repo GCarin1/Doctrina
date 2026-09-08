@@ -1225,8 +1225,10 @@ exists. The agent self-reviews here before bringing work to the human.
 **Which capability a changed file belongs to is DECLARED, never inferred**
 (ADR 0027). A capability spec claims its code in an optional `**Source:**`
 header holding comma-separated globs — `*` inside a segment, `**` across
-directories, `{a,b}` alternating, the same dialect a contract's Selectors
-use:
+directories, `?` for one character, `{a,b}` alternating (nesting allowed,
+and a brace with no matching close matches nothing, so a malformed pattern
+is reported rather than quietly covering less) — the same dialect a
+contract's Selectors use:
 
 ```
 **Source:** `src/commands/{init,adapter}.js`, `docs/**`

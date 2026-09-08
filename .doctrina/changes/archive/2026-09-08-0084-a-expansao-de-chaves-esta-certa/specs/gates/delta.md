@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall expand a glob's brace groups against their matching close and split alternatives only at the group's own depth, and shall compile the pattern from that expansion rather than from the unexpanded text.
+append-requirement unwanted: If a glob carries a brace with no matching close, the system shall not expand it into a partial set of alternatives; the pattern shall match nothing so the malformed declaration is reported rather than silently covering less than it claims.
+append-criterion [verified] A one-element group and a nested group each match exactly the files they name, and an unmatched brace matches nothing — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
+append-criterion [verified] A nested `**Source:**` declaration claims every file it names and is not reported as a dead pattern, and the `*`, `**` and `?` patterns behave exactly as before — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
+bump-version patch
+```

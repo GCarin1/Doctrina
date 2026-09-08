@@ -1266,8 +1266,10 @@ dura. O agente se autorevisa aqui antes de levar o trabalho ao humano.
 **A que capability um arquivo mudado pertence é DECLARADO, nunca inferido**
 (ADR 0027). A spec de uma capability reivindica seu código num header
 opcional `**Source:**` com globs separados por vírgula — `*` dentro de um
-segmento, `**` atravessando diretórios, `{a,b}` alternando, o mesmo dialeto
-que os Selectors de um contrato usam:
+segmento, `**` atravessando diretórios, `?` para um caractere, `{a,b}`
+alternando (aninhamento permitido, e uma chave sem par não casa nada, para
+que um padrão malformado seja reportado em vez de cobrir menos em silêncio)
+— o mesmo dialeto que os Selectors de um contrato usam:
 
 ```
 **Source:** `src/commands/{init,adapter}.js`, `docs/**`

@@ -586,14 +586,44 @@ export function expandBraces(glob) {
   const text = String(glob);
   const open = text.indexOf("{");
   if (open < 0) return [text];
-  const close = text.indexOf("}", open);
+
+  // The MATCHING close, by depth — `indexOf` finds the first one, which for
+  // `{a,{b,c}}` is the inner brace: the group was split at the wrong place
+  // and expanded to ["a}", "b", "c}"], matching `b`, missing `a` and `c`,
+  // and inventing `a}`. Silent, too, because SOMETHING matched, so
+  // `validate`'s dead-pattern check stayed quiet over a declaration that
+  // covered a third of what it claimed (change 0084).
+  let depth = 0;
+  let close = -1;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "{") depth += 1;
+    else if (text[i] === "}") {
+      depth -= 1;
+      if (depth === 0) { close = i; break; }
+    }
+  }
+  // An unmatched brace expands to itself: the braces then compile as literal
+  // characters, so the pattern matches nothing and `validate` reports it
+  // rather than the caller silently covering less than it declared.
   if (close < 0) return [text];
+
   const head = text.slice(0, open);
   const tail = text.slice(close + 1);
   const out = [];
-  for (const alt of text.slice(open + 1, close).split(",")) {
-    out.push(...expandBraces(head + alt.trim() + tail));
+  // Split on commas at depth zero, for the same reason: a comma inside a
+  // nested group separates that group's alternatives, not this one's.
+  const body = text.slice(open + 1, close);
+  let cur = "";
+  depth = 0;
+  const alts = [];
+  for (const ch of body) {
+    if (ch === "{") depth += 1;
+    else if (ch === "}") depth -= 1;
+    if (ch === "," && depth === 0) { alts.push(cur); cur = ""; continue; }
+    cur += ch;
   }
+  alts.push(cur);
+  for (const alt of alts) out.push(...expandBraces(head + alt.trim() + tail));
   return out;
 }
 
@@ -601,10 +631,19 @@ export function expandBraces(glob) {
 // `{a,b}` alternates. Enough for the "where do my selectors live" and "which
 // code is mine" declarations, with no dependency and no surprises.
 export function globToRegExp(glob) {
+  // Always compile the EXPANSION, never the original. Using it only when it
+  // produced more than one alternative left `src/{a}.js` compiling with its
+  // braces as literal characters, so a one-element group matched nothing
+  // (change 0084).
   const alternatives = expandBraces(glob);
   if (alternatives.length > 1) {
-    return new RegExp(alternatives.map((g) => globToRegExp(g).source).join("|"));
+    return new RegExp(alternatives.map((g) => compileGlob(g).source).join("|"));
   }
+  return compileGlob(alternatives[0]);
+}
+
+// One expanded, brace-free glob to a RegExp.
+function compileGlob(glob) {
   const segments = String(glob).split("/");
   const parts = [];
   for (let i = 0; i < segments.length; i++) {
