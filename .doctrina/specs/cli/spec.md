@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.43.0
+**Version:** 0.44.0
 
 ## Purpose
 
@@ -131,6 +131,7 @@ command shares (git, the lexicon, the usage log).
 - When a deprecated operation is invoked, the system shall run it and warn once on the error stream, naming the replacement, so that a caller reading standard output receives exactly what it received before.
 - When a superseded command name is invoked with `--json`, the system shall include the replacement command, the version from which the old name is legacy, and the reason in the JSON envelope, in addition to the notice it writes to standard error.
 - When `doctrina next` runs, the system shall recommend an action for every gate signal the diagnostic reports — uncovered or dangling acceptance criteria, unrealized product intent, an undeclared build gate, and an active spec whose implementation is still planned — computed from the same collection the read-only views render.
+- When a refused flag is a near miss for one the command declares, the system shall name the declared flag as a suggestion, and shall still print the command's help when the help flag is present alongside it.
 
 ### State-driven
 
@@ -166,6 +167,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not list a deprecated operation in the generated command-surface block, and shall not report its absence from that block as documentation drift.
 - The system shall not add a deprecation field to the envelope of a command that is not superseded, and shall not alter the standard output of a superseded command.
 - The system shall not recommend a gate action for a project that declares no capability yet, and shall not offer the hand-authoring commands as the way to start work.
+- The system shall not silently ignore a flag a command has not declared; it shall refuse the invocation, name the flag, and exit with the usage class, so a gate can never report a verdict for a mode it was not asked to run in.
 
 ### Optional
 
@@ -230,6 +232,8 @@ The CLI is v0 spec-compliant when:
 29. [verified] A deprecated command runs, warns on stderr only, and is absent from the surface block; every deprecation names a replacement that exists and is not itself deprecated — verified by `packages/doctrina-cli/test/deprecation.test.js`, `packages/doctrina-cli/test/commands.test.js`.
 30. [verified] A superseded command and a superseded two-word operation both carry `deprecated` in the envelope, a command that is not superseded has no such key at all, and the captured stdout is exactly the human output — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 31. [verified] On a tree where `doctor` warns, `next` recommends over the same signals; the remedy each new action names clears its own finding; a project with no capability is sent to `intake`; and the snapshot still collects the tree once — verified by `packages/doctrina-cli/test/next-reads-the-gates.test.js`.
+32. [verified] On a tree where `coverage --strict` exits 1, `coverage --stricts` exits with the usage class and prints no verdict, naming the flag and suggesting the declared one — verified by `packages/doctrina-cli/test/an-unknown-flag-is-refused.test.js`.
+33. [verified] Every flag every command declares is still accepted, an undeclared one is refused on every command, and a flag's VALUE is never mistaken for a flag — verified by `packages/doctrina-cli/test/an-unknown-flag-is-refused.test.js`.
 
 ## Out of scope for this spec
 

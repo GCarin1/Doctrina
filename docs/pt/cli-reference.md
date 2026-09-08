@@ -25,6 +25,15 @@ estático garante que toda flag que um comando lê, e toda flag que o
 declarada engolia o próximo argumento como valor e reportava um erro
 enganoso.
 
+**Uma flag não declarada é recusada, nunca ignorada.** O CLI sai 2 (USAGE),
+nomeia a flag e sugere a declarada quando é um erro de digitação próximo.
+Descartá-la em silêncio era pior que qualquer erro de parse: numa mesma
+árvore, `doctrina coverage --strict` saía 1 e `doctrina coverage --stricts`
+saía 0 — o gate que o operador pediu nunca rodou, e a execução era
+indistinguível de sucesso, então um job de CI com um typo em `--strict`
+ficava verde sobre uma árvore que o gate reprovaria. O `--help` continua
+imprimindo, mesmo ao lado de um typo.
+
 ## Códigos de saída
 
 Um contrato de cinco classes (ADR 0018) — detalhe completo em

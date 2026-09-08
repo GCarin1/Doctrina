@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **An unknown flag is refused, never ignored.** Declaring each command's
+  flags stopped the parser swallowing a positional; nothing ever CHECKED the
+  declaration, so an unrecognised flag was simply dropped. On one tree,
+  `doctrina coverage --strict` exited 1 and `doctrina coverage --stricts`
+  exited **0** — the gate the operator asked for never ran, and the run was
+  indistinguishable from success. A CI job with a typo in `--strict` stayed
+  green forever over a tree the gate would reject. The CLI now exits 2
+  (USAGE), names the flag and suggests the declared one on a near miss;
+  `--help` still prints alongside a typo, and every flag every command
+  declares is still accepted.
+
 - **A change no longer carries an empty `specs/` directory.** It was created
   unconditionally as somewhere "ready" for deltas, and when the CLI could not
   name a capability nothing was ever written into it. `analyze` read that

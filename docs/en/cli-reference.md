@@ -20,6 +20,15 @@ asserts every flag a command reads, and every flag its `--help` documents
 in the Options block, is declared — an undeclared flag used to swallow the
 next argument as its value and report a misleading error.
 
+**An undeclared flag is refused, never ignored.** The CLI exits 2 (USAGE),
+names the flag, and suggests the declared one when it is a near miss.
+Dropping it silently was worse than any parse error: on one tree
+`doctrina coverage --strict` exited 1 while `doctrina coverage --stricts`
+exited 0 — the gate the operator asked for never ran, and the run was
+indistinguishable from success, so a CI job with a typo in `--strict`
+stayed green over a tree the gate would reject. `--help` still prints,
+even alongside a typo.
+
 ## Exit codes
 
 A five-class contract (ADR 0018) — full detail in

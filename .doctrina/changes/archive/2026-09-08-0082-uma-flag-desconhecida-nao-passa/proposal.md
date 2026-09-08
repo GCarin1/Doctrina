@@ -1,6 +1,7 @@
 # Change 0082-uma-flag-desconhecida-nao-passa — uma flag desconhecida nao passa
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -55,11 +56,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma flag não declarada é recusada, nomeando-a, com exit 2.
-- [ ] Toda flag declarada hoje continua aceita, em todos os comandos.
-- [ ] A recusa sugere a flag certa quando o que veio foi um typo.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma flag não declarada é recusada, nomeando-a, com exit 2.
+- [x] Toda flag declarada hoje continua aceita, em todos os comandos.
+- [x] A recusa sugere a flag certa quando o que veio foi um typo.
 
 ## Open questions
 

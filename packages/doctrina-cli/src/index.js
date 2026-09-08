@@ -128,6 +128,37 @@ async function main(argv) {
     return 0;
   }
 
+  // A flag the command does not declare is REFUSED, never ignored.
+  //
+  // Declaring the flags (C3) fixed the parser swallowing a positional; it
+  // did not make anything CHECK the declaration, so an unrecognised flag was
+  // simply dropped. On the same tree, `doctrina coverage --strict` exited 1
+  // and `doctrina coverage --stricts` exited 0: the gate the operator asked
+  // for never ran, and nothing said so. That is the most expensive failure a
+  // gate can have, because it is indistinguishable from success — a CI job
+  // with a typo in `--strict` stays green forever over a tree the gate would
+  // reject (change 0082).
+  //
+  // Usage error, not gate failure: exit 2 (ADR 0018). Checked after --help,
+  // so `doctrina <cmd> --typo --help` still explains the command instead of
+  // refusing to.
+  if (spec) {
+    const declared = new Set([
+      ...GLOBAL_FLAGS.boolean, ...GLOBAL_FLAGS.string,
+      ...(spec.boolean ?? []), ...(spec.string ?? []),
+    ]);
+    const undeclared = [...flags.keys()].filter((f) => !declared.has(f));
+    if (undeclared.length > 0) {
+      for (const f of undeclared) {
+        console.error(c.red("error:") + ` unknown flag "--${f}" for \`doctrina ${commandName}\``);
+        const guess = suggest(f, [...declared]);
+        if (guess) console.error(c.gray("hint: ") + `did you mean \`--${guess}\`?`);
+      }
+      console.error(c.gray("hint: ") + `\`doctrina ${commandName} --help\` lists the flags it accepts`);
+      return EXIT.USAGE;
+    }
+  }
+
   // A deprecated name keeps working and says so, once, before it runs
   // (change 0049). On stderr, so a piped stdout stays exactly what it was —
   // a warning that corrupts the output it warns about is a breaking change
