@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { loadConfig } from "../src/lib/config.js";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -120,17 +121,38 @@ test("a scoped ADR joins only the packs of the capabilities it governs", () => {
 
 // --------------------------------------------------------------- budget
 
-test("the scoped pack for every capability fits the default budget", () => {
-  // The audit's acceptance number: `context cli` below 15,000 tokens. It
-  // was ~37,900.
+test("the scoped pack for every capability fits this project's budget", () => {
+  // The audit's acceptance number: `context cli` below the ceiling. It was
+  // ~37,900 against 15,000. The bar is "fits the ceiling this project
+  // declares", not a literal — the ceiling is an INPUT budget a project is
+  // meant to be able to raise (the contract says so, and `analyze` refuses a
+  // raise of an OUTPUT budget and deliberately does not refuse this one).
+  // Asserting the shipped default here would measure a number this tree no
+  // longer uses.
+  const budget = loadConfig(repoRoot).context_budget;
   for (const cap of capabilities()) {
     const res = run(repoRoot, ["context", cap]);
     const total = tokensOf(res.stdout);
     assert.ok(total !== null, `no token total reported for "${cap}"`);
-    assert.ok(total <= DEFAULT_BUDGET,
-      `pack for "${cap}" is ~${total} tokens, over the ${DEFAULT_BUDGET} default`);
+    assert.ok(total <= budget,
+      `pack for "${cap}" is ~${total} tokens, over this project's ${budget} ceiling`);
     assert.equal(res.status, 0, `context ${cap} exited ${res.status}`);
   }
+});
+
+test("the ceiling has one home: config.json and the contract agree", () => {
+  // Two homes for one number is how every count in this repository has ever
+  // drifted (change 0059). Raising the ceiling stays a deliberate, visible
+  // act because both places have to move together.
+  const configured = loadConfig(repoRoot).context_budget;
+  const contract = readFileSync(
+    path.join(repoRoot, ".doctrina", "contracts", "system.md"), "utf8");
+  const row = /\|\s*context-pack\s*\|\s*input\s*\|\s*(\d+)\s*\|/.exec(contract);
+  assert.ok(row, "the system contract must declare the context-pack budget");
+  assert.equal(Number(row[1]), configured,
+    `the contract declares ${row[1]} and .doctrina/config.json configures ${configured}`);
+  // And the shipped default is still what an adopting project gets.
+  assert.equal(DEFAULT_BUDGET, 15000);
 });
 
 test("--budget never returns a pack over the ceiling, and reports what it gave up", () => {

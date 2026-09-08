@@ -1410,19 +1410,6 @@
         ]
       },
       {
-        "id": "0075-os-adrs-seguem-a-capability",
-        "title": "os adrs seguem a capability",
-        "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
-        "status": "applied",
-        "applied": "2026-09-08",
-        "specs_affected": [
-          {
-            "capability": "authoring",
-            "operation": "MODIFIED"
-          }
-        ]
-      },
-      {
         "id": "0064-o-next-le-os-mesmos-sinais",
         "title": "o next le os mesmos sinais",
         "path": ".doctrina/changes/archive/2026-09-08-0064-o-next-le-os-mesmos-sinais",
@@ -1431,6 +1418,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0075-os-adrs-seguem-a-capability",
+        "title": "os adrs seguem a capability",
+        "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ]

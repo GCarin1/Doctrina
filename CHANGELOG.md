@@ -15,6 +15,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Patch (`x.y.Z`) bumps are reserved for backward-compatible bug
   fixes and documentation updates.
 
+### Changed
+
+- **This repository's context ceiling is 50000 tokens**, declared in
+  `.doctrina/config.json` and in the system contract's Budgets table. The tree
+  needs ~29000 with a full change backlog open, and at 15000 the `authoring`
+  and `gates` packs were dropping eleven ADRs each to protect the number —
+  paying for the ceiling with the content. `context-pack` is an INPUT budget
+  precisely so this is allowed: `analyze` refuses a raise of an OUTPUT ceiling
+  and deliberately does not refuse this one. The shipped default for a project
+  that declares nothing is unchanged at 15000, and a test now binds the two
+  homes together so the number cannot drift between them.
+
 ## [Unreleased]
 
 ### Fixed

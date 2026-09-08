@@ -76,18 +76,24 @@ than a diff nobody notices.
                     is what this row is meant to keep happening.
 
   context-pack      The token ceiling `doctrina context` assembles a pack
-                    to (lib default; a project overrides it in
-                    `.doctrina/config.json`, and the `config` block of
-                    index.json is still read as the legacy home — change
-                    0047). INPUT: widening it to fit more sources is a
-                    legitimate trade-off, so it is documented here rather
-                    than gated.
+                    to. The value here is THIS project's, declared in
+                    `.doctrina/config.json` (change 0047 made that the home;
+                    the `config` block of index.json is still read as the
+                    legacy one, and the lib default for a project that
+                    declares nothing is 15000). INPUT: widening it to fit
+                    more sources is a legitimate trade-off, so it is
+                    documented here rather than gated — `analyze` refuses a
+                    raise of an OUTPUT ceiling and deliberately does not
+                    refuse this one. Raised to 50000 in 0.16.0: this tree
+                    needs ~29000 with a full change backlog open, and
+                    degrading eleven ADRs out of a pack to protect a number
+                    is paying for the ceiling with the content.
 -->
 
 | Limit           | Direction | Value |
 |-----------------|-----------|-------|
 | agents-md-lines | output    | 150   |
-| context-pack    | input     | 15000 |
+| context-pack    | input     | 50000 |
 
 ## Interfaces
 
