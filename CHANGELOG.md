@@ -46,6 +46,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A change no longer starts out with its title doubled.** Change 0052 fixed
+  the PARSE; the generation still duplicated. Without `--title` the id's slug
+  and the H1's title half were both the whole prompt, so a change opened on the
+  default path said the same sentence twice and every read surface printed both
+  — 133 characters of one `prime` line, the command whose entire value is
+  density. The id is what a person types and what sorts a backlog, so it is now
+  the prompt's first content words; the title is what a person reads, so it
+  stays whole. Capping the slug rather than truncating the title is exactly
+  what `--title` did by hand, and the reduction is deterministic — the shipped
+  stopword list, no interpretation (ADR 0005).
+- The CLI cannot write a good short name and does not try; it says once, on
+  stderr, that `--title` gives one.
+
 - **A non-goal written as prose is now read as one.** `product.md` carried a
   filled `## Non-goals` section, and `prime --rules` reported "none declared —
   add a `## Non-goals` section to product.md": it counted only bullets, while

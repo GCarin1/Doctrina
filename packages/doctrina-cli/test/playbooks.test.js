@@ -27,7 +27,10 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 //     `score` column reports the shared lexicon's value;
 //   - change 0044 scaffolds the delta from a confident ranked winner too, so
 //     `work.txt` gains the `created ...delta.md` line and step 3 renders its
-//     already-scaffolded branch.
+//     already-scaffolded branch;
+//   - change 0070 derives a SHORT id from the prompt's content words instead
+//     of slugifying the whole prompt, so the id in `work.txt` and
+//     `work-ansi.txt` is shorter. The prose around it is untouched.
 // The goldens were re-captured for each, and every line around the change is
 // still the original.
 
@@ -137,7 +140,7 @@ test("colour survives the move: the ANSI rendering is byte-identical", () => {
   const dir = project();
   try {
     assert.equal(runCli(["work", "add a billing invoice export"], dir).status, 0);
-    const r = runCli(["work", "x", "--resume", "0001-add-a-billing-invoice-export"], dir,
+    const r = runCli(["work", "x", "--resume", "0001-billing-invoice-export"], dir,
       { NO_COLOR: undefined, FORCE_COLOR: "1" });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.stdout, golden("work-ansi"));

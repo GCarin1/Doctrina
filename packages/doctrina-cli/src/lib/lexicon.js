@@ -1,4 +1,5 @@
 // @ts-check
+import { slugify } from "./dates.js";
 
 // ONE lexicon (audit findings F5/F6).
 //
@@ -165,3 +166,26 @@ export function detectLanguage(text) {
  * margin at or above 10 says the winner led on term overlap itself.
  */
 export const CONFIDENT_MARGIN = 10;
+
+// The SLUG_WORDS content words of a prompt, slugified — the short half of a
+// change id (change 0070).
+//
+// The id used to be the whole prompt slugified, and the proposal's H1 is
+// `# Change <id> — <title>` with the title defaulting to that same prompt: so
+// a change opened on the default path said the same sentence twice, and every
+// read surface printed both halves. `prime` spent 133 characters of one line
+// on it — the command whose entire value is density.
+//
+// The id is what a person types and what sorts a backlog, so it wants to be
+// short; the title is what a person reads, so it wants to be whole. Capping
+// the SLUG rather than truncating the title gives both, and is exactly what
+// `--title` did by hand. Deterministic: a shipped stopword list, first N
+// content words, no interpretation (ADR 0005).
+export const SLUG_WORDS = 4;
+
+export function slugFromPrompt(prompt, { words = SLUG_WORDS } = {}) {
+  const content = terms(prompt).slice(0, words);
+  const slug = slugify(content.join(" "));
+  // A prompt of nothing but stopwords ("do it now") still needs an id.
+  return slug || slugify(prompt).split("-").slice(0, words).join("-");
+}

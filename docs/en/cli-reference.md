@@ -210,7 +210,7 @@ prompt ranking scaffolds; `--from-diff` and `--chore` do not.
 
 | Flag | Purpose |
 |------|---------|
-| `--title "<short>"` | Short display title: drives the slug and the proposal H1; the full prompt still lands under `## Why`. Without it a long prompt becomes a long H1. |
+| `--title "<short>"` | Short display title: drives the id's slug and the proposal H1; the full prompt still lands under `## Why`. Without it the id is the prompt's first content words and the H1 keeps the prompt whole — short to type, whole to read. |
 | `--capability <cap>` | Pin the capability instead of ranking matches. The delta is prefilled either way; pinning also drops the guess comment. |
 | `--quiet` | Register the change and print one line — no playbook. For backlog entry ("record 19 works now, start none"); reprint later with `--resume <id>`. |
 | `--id <id>` | Override the derived change id. |

@@ -34,7 +34,7 @@ function changed() {
   assert.equal(run(dir, ["spec", "new", "billing"]).status, 0);
   assert.equal(run(dir, ["index", "rebuild"]).status, 0);
   assert.equal(run(dir, ["work", "flag a duplicate credit", "--quiet"]).status, 0);
-  const id = "0001-flag-a-duplicate-credit";
+  const id = "0001-flag-duplicate-credit";
   return { dir, id };
 }
 

@@ -1,6 +1,7 @@
 # Change 0070-o-titulo-nao-nasce-duplicado — o titulo nao nasce duplicado
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: change)
@@ -27,7 +28,21 @@ uma linha com a mesma frase duas vezes — e o `prime` é o comando que o
 
 ## Scope boundaries
 
-- Não muda a geração do id: o slug derivado do prompt continua sendo o id.
+**Decisão, tomada na implementação: encurtar o SLUG, não truncar o título.**
+O id é o que uma pessoa digita e o que ordena um backlog, então quer ser
+curto; o título é o que uma pessoa lê, então quer ser inteiro. As duas metades
+do H1 diziam a mesma frase porque as duas eram o prompt. Truncar o título
+perderia informação e leria mal; encurtar o slug dá as duas coisas — e é
+exatamente o que o `--title` já fazia à mão. A redução é determinística: a
+lista de stopwords que o léxico já embarca, as primeiras quatro palavras de
+conteúdo, nenhuma interpretação (ADR 0005).
+
+O CLI não sabe escrever um nome curto bom, e o ADR 0005 diz que ele não deve
+tentar. Então ele diz como conseguir um: uma linha no stderr apontando o
+`--title`, só quando o autor não passou nem `--title` nem `--id`.
+
+- ~~Não muda a geração do id~~ — muda: o id passa a ser a redução curta, e é
+  disso que a change trata.
 - Não muda o parse — ele está certo desde a 0052; o defeito é a montagem.
 - Não passa a exigir `--title`: o comando continua funcionando sem ele.
 
@@ -41,8 +56,8 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
 
 ## Open questions
 

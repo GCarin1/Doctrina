@@ -41,7 +41,7 @@ test("a change opened by work records the lane, its confidence and the signals",
   const dir = project();
   try {
     assert.equal(runCli(["work", "add a billing invoice export", "--quiet"], dir).status, 0);
-    const lane = laneOf(dir, "0001-add-a-billing-invoice-export");
+    const lane = laneOf(dir, "0001-billing-invoice-export");
     assert.match(lane, /^product \(confident; signals: /);
     assert.match(lane, /add/);
   } finally {
@@ -120,7 +120,7 @@ test("the recorded lane is history: no gate reads it to decide", () => {
   const dir = project();
   try {
     runCli(["work", "add a billing invoice export", "--quiet"], dir);
-    const id = "0001-add-a-billing-invoice-export";
+    const id = "0001-billing-invoice-export";
     const proposalPath = path.join(dir, ".doctrina", "changes", id, "proposal.md");
     const text = readFileSync(proposalPath, "utf8");
 

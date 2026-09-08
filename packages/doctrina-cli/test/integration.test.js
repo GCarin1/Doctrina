@@ -2101,15 +2101,15 @@ test("work derives a sequential id, records the prompt as Why, and prints the pl
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const r = runCli(["work", "add login with email and password"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
-    const id = "0001-add-login-with-email-and-password";
+    const id = "0001-login-email-password";
     const proposalPath = path.join(tmp, ".doctrina", "changes", id, "proposal.md");
     assert.ok(existsSync(proposalPath), "change folder should be scaffolded");
     const proposal = readFileSync(proposalPath, "utf8");
     assert.match(proposal, /## Why\r?\n\r?\nadd login with email and password/);
-    assert.match(r.stdout, /Work playbook — change 0001-add-login/);
+    assert.match(r.stdout, /Work playbook — change 0001-login-email-password/);
     // The close is one attested pass (review item 5), with an ADR checkpoint
     // before it and the ops-block syntax shown in the delta step.
-    assert.match(r.stdout, /doctrina close 0001-add-login/);
+    assert.match(r.stdout, /doctrina close 0001-login-email-password/);
     assert.match(r.stdout, /ADR checkpoint/);
     assert.match(r.stdout, /```ops/);
   } finally {
@@ -3636,7 +3636,7 @@ test("work --capability scaffolds a prefilled delta; --quiet suppresses the play
     runCli(["spec", "new", "billing"], { cwd: tmp });
     const r = runCli(["work", "add refunds", "--capability", "billing"], { cwd: tmp });
     assert.equal(r.status, 0, r.stdout + r.stderr);
-    const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-add-refunds", "specs", "billing", "delta.md");
+    const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-refunds", "specs", "billing", "delta.md");
     assert.ok(existsSync(deltaPath), "delta.md must be scaffolded for a pinned capability");
     const delta = readFileSync(deltaPath, "utf8");
     assert.match(delta, /^\*\*Operation:\*\* MODIFIED$/m, "existing spec -> MODIFIED prefilled");
@@ -3645,9 +3645,9 @@ test("work --capability scaffolds a prefilled delta; --quiet suppresses the play
     // No spec yet -> ADDED prefilled; --quiet prints one line, no playbook.
     const q = runCli(["work", "add invoices", "--capability", "invoicing", "--quiet"], { cwd: tmp });
     assert.equal(q.status, 0, q.stdout + q.stderr);
-    const qDelta = readFileSync(path.join(tmp, ".doctrina", "changes", "0002-add-invoices", "specs", "invoicing", "delta.md"), "utf8");
+    const qDelta = readFileSync(path.join(tmp, ".doctrina", "changes", "0002-invoices", "specs", "invoicing", "delta.md"), "utf8");
     assert.match(qDelta, /^\*\*Operation:\*\* ADDED$/m, "missing spec -> ADDED prefilled");
-    assert.match(q.stdout, /opened .*0002-add-invoices/);
+    assert.match(q.stdout, /opened .*0002-invoices/);
     assert.doesNotMatch(q.stdout, /Execute in order/, "--quiet must not print the playbook");
   } finally {
     rmSync(tmp, { recursive: true, force: true });

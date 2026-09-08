@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-09-07
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -269,6 +269,7 @@ keep the checks and the read path.
 - When `doctrina work` scaffolds a delta from the ranking rather than from `--capability`, the system shall mark the file as a guess — naming the score it won on, the capability it beat, and the command that removes it — and shall say so in the playbook's spec-delta step, including on `--resume`, where the mark is read back from the file.
 - When a capability spec cites a decision whose `Scope:` header does not name that capability, the system shall report it, naming the header to extend.
 - When a decision record is accepted, the system shall re-derive its whole index entry from the file, so the summary and scope the author wrote before accepting are the ones recorded.
+- When a change is opened without an explicit title, the system shall derive the identifier from the prompt's content words rather than from the whole prompt, and shall keep the whole prompt as the proposal's title.
 
 ### Unwanted-behavior (must-not)
 
@@ -307,6 +308,7 @@ The authoring commands are v0 spec-compliant when:
 11. [verified] Every line `change diff` prints appears in `change check --verbose`, and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 12. [verified] Every decision this repository's specs cite names the citing capability, the `authoring` pack keeps all of them, a decision that names a capability outranks one it only inherits even when its number is older, and an unscoped decision is never reported as a violation — verified by `packages/doctrina-cli/test/adr-scope-follows-capability.test.js`.
 13. [verified] An untouched decision record is refused with its unwritten sections named and its Status left alone, one with a one-line decision is accepted, and accepting leaves the index in sync — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
+14. [verified] A change opened on the default path has an identifier under fifty characters while its H1 still carries the whole prompt and the parse returns it whole, `--title` decides both halves as before, and the derivation is deterministic — verified by `packages/doctrina-cli/test/change-title.test.js`.
 
 ## Out of scope for this spec
 

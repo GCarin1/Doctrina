@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { readdirSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseChangeTitle } from "../src/lib/doc-model.js";
 
+import { slugFromPrompt } from "../src/lib/lexicon.js";
 // Change 0052 — the change title stops coming out doubled.
 //
 // The H1 a proposal carries is `# Change <id> — <title>`, and the id itself
@@ -119,5 +120,93 @@ test("one parser owns the H1 grammar", () => {
   for (const file of ["lib/snapshot.js", "lib/scan.js", "commands/change.js"]) {
     assert.doesNotMatch(src(file), /#\\s\+.*Change\\s\+/,
       `${file} carries its own copy of the change-title regex`);
+  }
+});
+
+// -------------------- change 0070: the title does not START out duplicated
+
+// Change 0052 fixed the PARSE. The generation still duplicated: without
+// `--title` the slug and the H1's title half were both the whole prompt, so a
+// change opened on the default path said the same sentence twice and every
+// read surface printed both — 133 characters of one `prime` line, the command
+// whose entire value is density.
+//
+// The id is what a person types and what sorts a backlog, so it stays short;
+// the title is what a person reads, so it stays whole. Capping the SLUG rather
+// than truncating the title gives both, which is what `--title` did by hand.
+
+test("slugFromPrompt keeps the content words and drops the rest", () => {
+  assert.equal(
+    slugFromPrompt("let a freelancer send a partial-payment receipt when a client pays half an invoice"),
+    "let-freelancer-send-partial-payment");
+  assert.equal(slugFromPrompt("flag a duplicate bank credit"), "flag-duplicate-bank-credit");
+});
+
+test("a prompt of nothing but stopwords still yields an id", () => {
+  const slug = slugFromPrompt("do it now");
+  assert.ok(slug.length > 0, "an id is required, so the fallback must produce one");
+  assert.match(slug, /^[a-z0-9][a-z0-9-]*$/);
+});
+
+test("slugFromPrompt is deterministic", () => {
+  const p = "reconcile a bank credit against an open invoice";
+  assert.equal(slugFromPrompt(p), slugFromPrompt(p));
+});
+
+test("without --title the id is short and the H1 still carries the whole prompt", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "doctrina-title-"));
+  try {
+    assert.equal(runCli(["init", "--non-interactive", "--project-name", "Acme"], dir).status, 0);
+    const prompt =
+      "let a freelancer send a partial-payment receipt when a client pays half an invoice";
+    assert.equal(runCli(["work", prompt, "--quiet"], dir).status, 0);
+
+    const id = readdirSync(path.join(dir, ".doctrina", "changes"))
+      .find((n) => n.startsWith("0001-"));
+    assert.ok(id, "the change was opened");
+    assert.ok(id.length < 50, `the id must be typeable, got ${id.length} chars: ${id}`);
+
+    const h1 = readFileSync(path.join(dir, ".doctrina", "changes", id, "proposal.md"), "utf8")
+      .split(/\r?\n/)[0];
+    assert.ok(h1.includes(prompt), `the whole prompt still reaches the H1:\n${h1}`);
+    assert.equal(parseChangeTitle(h1), prompt, "and the parse returns it whole");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("--title still decides both halves, unchanged", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "doctrina-title2-"));
+  try {
+    assert.equal(runCli(["init", "--non-interactive", "--project-name", "Acme"], dir).status, 0);
+    assert.equal(runCli(
+      ["work", "add a --pdf flag to the invoice export command", "--title", "pdf export", "--quiet"],
+      dir).status, 0);
+    const id = readdirSync(path.join(dir, ".doctrina", "changes"))
+      .find((n) => n.startsWith("0001-"));
+    assert.equal(id, "0001-pdf-export");
+    const h1 = readFileSync(path.join(dir, ".doctrina", "changes", id, "proposal.md"), "utf8")
+      .split(/\r?\n/)[0];
+    assert.equal(parseChangeTitle(h1), "pdf export");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the CLI says how to do better, on stderr, without touching stdout", () => {
+  // ADR 0005: the CLI reduces a prompt deterministically and does not try to
+  // write a good name. Saying so is the honest alternative.
+  const dir = mkdtempSync(path.join(os.tmpdir(), "doctrina-title3-"));
+  try {
+    assert.equal(runCli(["init", "--non-interactive", "--project-name", "Acme"], dir).status, 0);
+    const res = runCli(["work", "flag a duplicate bank credit", "--quiet"], dir);
+    assert.match(res.stderr, /--title/, res.stderr);
+    assert.doesNotMatch(res.stdout, /note:/, "the note must not pollute the piped output");
+
+    const quiet = runCli(["work", "another thing entirely", "--title", "another", "--quiet"], dir);
+    assert.doesNotMatch(quiet.stderr, /--title/,
+      "an author who already passed --title needs no nudge");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

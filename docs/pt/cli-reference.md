@@ -218,7 +218,7 @@ arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
 
 | Flag | Função |
 |------|--------|
-| `--title "<curto>"` | Título curto de exibição: dirige o slug e o H1 da proposal; o prompt completo continua indo para o `## Why`. Sem ela, um prompt longo vira um H1 longo. |
+| `--title "<curto>"` | Título curto de exibição: dirige o slug do id e o H1 da proposal; o prompt completo continua indo para o `## Why`. Sem ela, o id vira as primeiras palavras de conteúdo do prompt e o H1 mantém o prompt inteiro — curto para digitar, inteiro para ler. |
 | `--capability <cap>` | Fixa a capability em vez de ranquear matches. O delta é pré-preenchido de todo modo; o pin apenas dispensa o comentário de palpite. |
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |

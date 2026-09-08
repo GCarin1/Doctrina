@@ -13,7 +13,7 @@ import { changeNew } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
 import { changedFiles } from "../lib/git.js";
-import { fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
+import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
@@ -120,7 +120,15 @@ export async function run(positional, flags) {
   // drives the slug and the proposal H1; the whole prompt still lands, intact,
   // under ## Why. Without it a long prompt used to become a 900-char H1.
   const title = flagString(flags, "title") ?? effPrompt;
-  const slug = prompt || flags.has("title") ? slugify(title) : "backfill";
+  // The id is what a person types and what sorts a backlog, so it stays short;
+  // the title is what a person reads, so it stays whole (change 0070). With
+  // `--title` the author has already made that split, so the slug follows the
+  // title they chose; without it, the slug is the prompt's first content words
+  // and the H1's title half is the prompt, so the two halves stop being the
+  // same sentence twice.
+  const slug = flags.has("title")
+    ? slugify(title)
+    : (prompt ? slugFromPrompt(prompt) : "backfill");
   const id = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
   if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
     console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
@@ -129,6 +137,15 @@ export async function run(positional, flags) {
 
   const code = changeNew([id, title], flags);
   if (code !== 0) return code;
+
+  // The CLI reduces a prompt to an id deterministically; it cannot write a
+  // good short name, and ADR 0005 says it must not try. So it says how to get
+  // one, once, where the author is already looking.
+  if (!flags.has("title") && !flags.has("id") && prompt) {
+    console.error(c.gray("note:  ") +
+      `id derived from the prompt — \`--title "<short name>"\` gives a shorter one ` +
+      "and keeps the full prompt under ## Why");
+  }
 
   // Stamp the lane the classifier read, and — when the operator went a
   // different way — what they did instead. Recording only the agreements
