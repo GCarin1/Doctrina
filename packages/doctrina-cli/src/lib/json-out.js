@@ -27,6 +27,24 @@ export function wantsJson(flags) {
   return flags?.get?.("json") === true;
 }
 
+// A deprecation notice belongs in the ENVELOPE, not only on the terminal
+// (change 0061). Change 0049 announced a superseded name on the real stderr,
+// before capture — right for a piped stdout, which stays exactly what it
+// was, but it meant the envelope's `stderr` array came back empty and the
+// machine reading only that never learned the name it invoked is on its way
+// out. Deprecation exists so consumers migrate, and this CLI's primary
+// consumer is an agent reading JSON.
+//
+// Set once by the entrypoint, before the command runs, so BOTH json paths
+// carry it: the captured envelope and a command that builds its own payload.
+/** @type {{ use: string, since: string, why: string } | null} */
+let deprecation = null;
+
+/** @param {{ use: string, since: string, why: string } | null} record */
+export function setDeprecation(record) {
+  deprecation = record;
+}
+
 // Print a structured payload. `command` is the invocation, `data` whatever
 // that command has to say.
 export function emitJson(command, data, { ok = true, exitCode = EXIT.OK } = {}) {
@@ -35,6 +53,9 @@ export function emitJson(command, data, { ok = true, exitCode = EXIT.OK } = {}) 
     command,
     ok,
     exit_code: exitCode,
+    // Present only when the invoked name is superseded, so a consumer can
+    // branch on its presence rather than on a string.
+    ...(deprecation ? { deprecated: deprecation } : {}),
     ...data,
   }, null, 2) + "\n");
 }

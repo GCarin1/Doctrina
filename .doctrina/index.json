@@ -26,7 +26,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.41.0",
+        "version": "0.42.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -437,14 +437,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0061-a-depreciacao-chega-a-maquina",
-        "title": "a depreciacao chega a maquina",
-        "path": ".doctrina/changes/0061-a-depreciacao-chega-a-maquina",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0062-o-texto-alcanca-o-codigo",
         "title": "o texto alcanca o codigo",
@@ -1289,6 +1281,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0061-a-depreciacao-chega-a-maquina",
+        "title": "a depreciacao chega a maquina",
+        "path": ".doctrina/changes/archive/2026-09-08-0061-a-depreciacao-chega-a-maquina",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ]

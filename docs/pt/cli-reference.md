@@ -53,6 +53,7 @@ Todo payload carrega o mesmo envelope:
 | `command` | A invocação que este payload descreve. |
 | `ok` | `true` quando o comando teve sucesso. |
 | `exit_code` | O status de saída do processo — a classe documentada em [exit-codes.md](exit-codes.md). |
+| `deprecated` | **Presente só** quando o nome invocado foi substituído: `{ use, since, why }` — o comando substituto, a versão a partir da qual o nome antigo é legado, e o porquê. Ramifique pela presença da chave. |
 
 Dois níveis de suporte, declarados em vez de escondidos:
 
@@ -472,8 +473,9 @@ não fecha.
 
 > **Depreciado.** Use `doctrina change check <id> --verbose`, que executa
 > cada bloco de ops contra a spec alvo *e* imprime esta mesma pré-visualização
-> por delta. O nome antigo continua funcionando, avisa no stderr e será
-> removido num minor futuro.
+> por delta. O nome antigo continua funcionando, avisa no stderr, traz um
+> campo `deprecated` no envelope do `--json` e será removido num minor
+> futuro.
 
 Pré-visualiza cada spec delta de uma change antes de aplicar.
 
@@ -1544,7 +1546,8 @@ Read-only nas duas direções.
 
 > **Depreciado.** Use `doctrina prime --rules`, que imprime exatamente estas
 > linhas, da mesma coleção. O nome antigo continua funcionando, avisa no
-> stderr e será removido num minor futuro.
+> stderr, traz um campo `deprecated` no envelope do `--json` e será removido
+> num minor futuro.
 
 Imprime as regras vigentes do projeto em uma leitura.
 

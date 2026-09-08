@@ -1,6 +1,7 @@
 # Change 0061-a-depreciacao-chega-a-maquina — a depreciacao chega a maquina
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -33,11 +34,11 @@ CLI é um agente lendo JSON.
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] `<comando depreciado> --json` traz o substituto num campo do envelope.
-- [ ] O stdout continua JSON válido e idêntico ao de antes.
-- [ ] Um comando não depreciado não ganha o campo.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] `<comando depreciado> --json` traz o substituto num campo do envelope.
+- [x] O stdout continua JSON válido e idêntico ao de antes.
+- [x] Um comando não depreciado não ganha o campo.
 
 ## Open questions
 

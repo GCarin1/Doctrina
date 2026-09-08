@@ -9,7 +9,7 @@ import { surfaceHelp, OPERATIONS, deprecationFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
 import { recordUsage } from "./lib/usage.js";
-import { wantsJson, emitJson, captureOutput, stripAnsi } from "./lib/json-out.js";
+import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -136,6 +136,9 @@ async function main(argv) {
   if (deprecated) {
     console.error(c.yellow("deprecated:") + ` this command is superseded — use ${c.cyan(deprecated.use)}`);
     console.error(c.gray(`            ${deprecated.why}; the old name still works and will be removed in a later minor.`));
+    // And into the envelope, for the consumer that never sees a terminal
+    // (change 0061). The prose line above stays for the one that does.
+    setDeprecation({ use: deprecated.use, since: deprecated.since, why: deprecated.why });
   }
 
   try {

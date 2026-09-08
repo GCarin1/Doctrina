@@ -125,3 +125,50 @@ test("the freed lines stay freed: the block is smaller than its budget", () => {
   assert.match(md, /doctrina prime/);
   assert.match(md, /doctrina change new\|apply\|archive\|check\|tick\|abandon/);
 });
+
+// ------------------------------- change 0061: the notice reaches the machine
+
+// Change 0049 wrote the notice to the REAL stderr, before capture. Right for
+// a piped stdout, which stays exactly what it was — but it meant the
+// envelope's `stderr` array came back empty, and a consumer reading only the
+// envelope never learned the name it invoked is on its way out. Deprecation
+// exists so consumers migrate, and this CLI's primary consumer is an agent
+// reading JSON.
+
+test("a deprecated command carries its replacement in the JSON envelope", () => {
+  const res = runCli(["constitution", "--json"], repoRoot);
+  const payload = JSON.parse(res.stdout);
+  assert.ok(payload.deprecated, `no deprecation in the envelope:\n${res.stdout}`);
+  assert.equal(payload.deprecated.use, "doctrina prime --rules");
+  assert.match(payload.deprecated.since, /^\d+\.\d+\.\d+$/, payload.deprecated.since);
+  assert.ok(payload.deprecated.why.length > 0);
+});
+
+test("a deprecated two-word operation carries it too", () => {
+  const res = runCli(["change", "diff", "0000-nonexistent", "--json"], repoRoot);
+  const payload = JSON.parse(res.stdout);
+  assert.ok(payload.deprecated, res.stdout);
+  assert.equal(payload.deprecated.use, "doctrina change check --verbose");
+});
+
+test("a command that is not deprecated has no such field", () => {
+  const res = runCli(["status", "--json"], repoRoot);
+  const payload = JSON.parse(res.stdout);
+  assert.equal("deprecated" in payload, false,
+    "the field's presence is the signal; it must be absent, not null");
+});
+
+test("the deprecation does not change stdout", () => {
+  // The prose notice stays on stderr and the human output is untouched: a
+  // warning that corrupts the output it warns about is a breaking change
+  // wearing a deprecation's clothes.
+  const plain = runCli(["constitution"], repoRoot);
+  assert.equal(plain.status, 0, plain.stderr);
+  assert.match(plain.stderr, /deprecated:/, plain.stderr);
+  assert.doesNotMatch(plain.stdout, /deprecated:/, plain.stdout);
+
+  const json = runCli(["constitution", "--json"], repoRoot);
+  const payload = JSON.parse(json.stdout);
+  assert.deepEqual(payload.stdout, plain.stdout.replace(/\n$/, "").split("\n"),
+    "the captured stdout must be exactly the human output, deprecation aside");
+});

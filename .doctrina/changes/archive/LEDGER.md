@@ -66,3 +66,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0058-a-remediacao-sai-do-projeto-checado — a remediacao sai do projeto checado (specs: gates MODIFIED)
 - 2026-09-08 — 0059-o-tamanho-da-superficie-tem-um-dono — o tamanho da superficie tem um dono (specs: docs MODIFIED)
 - 2026-09-08 — 0060-uma-resposta-por-pergunta — uma resposta por pergunta (specs: gates MODIFIED)
+- 2026-09-08 — 0061-a-depreciacao-chega-a-maquina — a depreciacao chega a maquina (specs: cli MODIFIED)

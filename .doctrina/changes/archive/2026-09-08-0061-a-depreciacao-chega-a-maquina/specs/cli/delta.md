@@ -35,3 +35,17 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+O envelope JSON passa a carregar a depreciação num campo próprio — o
+substituto, a versão a partir da qual o nome antigo é legado e o porquê. A
+linha em prosa continua no stderr real, para quem está no terminal, e o
+stdout de nenhum comando muda.
+
+```ops
+bump-version minor
+append-requirement event: When a superseded command name is invoked with `--json`, the system shall include the replacement command, the version from which the old name is legacy, and the reason in the JSON envelope, in addition to the notice it writes to standard error.
+append-requirement unwanted: The system shall not add a deprecation field to the envelope of a command that is not superseded, and shall not alter the standard output of a superseded command.
+append-criterion [verified] A superseded command and a superseded two-word operation both carry `deprecated` in the envelope, a command that is not superseded has no such key at all, and the captured stdout is exactly the human output — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+```

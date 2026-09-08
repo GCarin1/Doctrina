@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A deprecation now reaches the machine.** Change 0049 announced a
+  superseded command name on the real stderr, before capture — right for a
+  piped stdout, which stays exactly what it was, but it meant the `--json`
+  envelope's `stderr` array came back empty and a consumer reading only the
+  envelope never learned the name it invoked is on its way out. Deprecation
+  exists so consumers migrate, and this CLI's primary consumer is an agent
+  reading JSON. The envelope now carries `deprecated: { use, since, why }`,
+  present only when the invoked name is superseded, so a consumer branches on
+  the key rather than on a string. The prose line on stderr stays for the
+  reader at a terminal, and no command's stdout changes.
+
 - **One answer per question, in both drivers.** A step declared in a gate
   sequence with no runner in the driver had two: `doctor` reported it
   UNCHECKED and named the command that answers it, while `close` started a
