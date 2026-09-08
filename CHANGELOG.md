@@ -19,6 +19,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The docs gate stopped being inert for adopting projects.** It is blocking
+  in `close` and exists for one thing — a change that alters documented surface
+  only closes with the documentation for it — but it recognised a command by
+  comparing against `COMMAND_NAMES`, *Doctrina's own* catalog. Measured against
+  an adopting project, four of five surface changes produced zero signals: a new
+  CLI command, a public HTTP endpoint, a renamed environment variable, a changed
+  config key. Each closed with no documentation and no complaint, while inside
+  this repository the same gate fired on nearly everything.
+- The gate now reads the names the checked project declares in its own
+  contracts — Ports, Environment, Wiring, Selectors, Interfaces — the same
+  principle ADR 0023 set for the runtime: declared, never inferred. Surface a
+  change is *adding* is not in the contract yet, so that is matched by shape
+  instead (a route, an HTTP method in front of one, an environment-variable
+  identifier). A project with no contract keeps Doctrina's catalog as the last
+  resort and behaves exactly as it did.
+- The remedy is quieter too: only a directory that actually holds prose is
+  offered as a place to write prose, so `docs/assets/` — an SVG and nothing
+  else — no longer turns up in the hint.
+
 - **An ADR now follows the capability it governs.** Splitting a spec leaves the
   ADRs behind: change 0054 made `authoring` out of `cli` and all seven ADRs the
   new spec cites kept pointing at `cli`; `insight` and `scaffolding` had the

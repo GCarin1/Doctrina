@@ -1503,7 +1503,19 @@ proposal e dos deltas da própria change (com o boilerplate do esqueleto
 subtraído, para que as referências a comandos do próprio template não
 sejam confundidas com intenção do autor), e se as docs andaram é lido do
 git — a árvore de trabalho mais os commits deste branch contra o branch
-padrão. Fora de um repositório git o gate não tem como ver o que mudou e
+padrão.
+
+**O que conta como superfície é você quem declara.** O gate lê os nomes que
+os seus `.doctrina/contracts/` afirmam — as tabelas Ports, Environment,
+Wiring e Selectors e a seção `Interfaces` — então um comando, um endpoint,
+uma variável de ambiente ou uma chave de configuração que o *seu* projeto
+publica é superfície, do mesmo jeito que o ADR 0023 torna o runtime
+declarado em vez de inferido. A superfície que uma change está
+*acrescentando* ainda não está no contrato, então essa é reconhecida por
+forma: uma rota, um método HTTP diante de uma rota, um identificador de
+variável de ambiente, uma `--flag`, um código de saída. Um projeto sem
+contrato recai no catálogo de comandos do próprio Doctrina e se comporta
+exatamente como antes. Fora de um repositório git o gate não tem como ver o que mudou e
 fica em silêncio em vez de acusar. Quando recusa, a dica nomeia os lugares
 de documentação que o *seu* projeto tem — os subdiretórios de `docs/`, os
 READMEs que ele traz, ou simplesmente "um README" quando ele ainda não

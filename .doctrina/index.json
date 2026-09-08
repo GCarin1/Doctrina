@@ -58,7 +58,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.7.0",
+        "version": "1.8.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -450,14 +450,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0063-o-gate-de-docs-le-o-contrato",
-        "title": "o gate de docs le o contrato",
-        "path": ".doctrina/changes/0063-o-gate-de-docs-le-o-contrato",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: change)"
-      },
       {
         "id": "0064-o-next-le-os-mesmos-sinais",
         "title": "o next le os mesmos sinais",
@@ -1421,6 +1413,19 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0063-o-gate-de-docs-le-o-contrato",
+        "title": "o gate de docs le o contrato",
+        "path": ".doctrina/changes/archive/2026-09-08-0063-o-gate-de-docs-le-o-contrato",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

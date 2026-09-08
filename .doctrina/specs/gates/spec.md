@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 1.7.0
+**Version:** 1.8.0
 
 ## Purpose
 
@@ -255,6 +255,8 @@ codes, zero-deps, no-network).
 - When no acceptance criterion is declared, the system shall report coverage as absent rather than as a percentage, and every view shall render that absence identically.
 - When the documentation gate refuses a change, the system shall name the documentation locations the checked project itself has, and shall name no path or procedure that exists only in Doctrina's own repository.
 - When a step declared in a gate sequence has no runner in the driver executing it, the system shall report that step as unimplemented and name the command that answers it, in every driver alike.
+- When deciding whether a change must carry documentation, the system shall recognise as documented surface the names the checked project declares in its own contracts, and shall fall back to its own command catalog only for a project that declares none.
+- When a change names a route, an HTTP method with a route, or an environment-variable identifier in a code span, the system shall treat it as documented surface even when no contract declares it yet.
 
 ### State-driven
 
@@ -285,6 +287,7 @@ codes, zero-deps, no-network).
 - The system shall not describe a contract set as consistent in the summary of `contract check` when no Wiring or Selectors row was declared to check.
 - The system shall not treat a metadata header whose value is still the shipped template's placeholder as a header the author supplied.
 - The system shall not run its own binary as a subprocess to satisfy a step of a sequence it is already executing.
+- The system shall not offer, as a place to write documentation, a directory of the checked project that contains no prose.
 
 ### Optional
 
@@ -348,6 +351,7 @@ The gate surface is spec-compliant when:
 44. [verified] A project with no documentation is pointed at a README rather than at `docs/en` and `docs/pt`, a project with one documentation directory is pointed at that one, and in this repository both languages are still named — verified by `packages/doctrina-cli/test/portable-remediation.test.js`.
 45. [verified] Every step the close declares has a runner, the close starts no subprocess of its own binary, and close and doctor describe a runnerless step the same way — verified by `packages/doctrina-cli/test/export-drift.test.js`.
 46. [verified] No export under `src/lib/` is referenced by nothing at all, a seam reached only by tests is reported apart from dead surface rather than failed, and a newly orphaned export is caught — verified by `packages/doctrina-cli/test/export-drift.test.js`.
+47. [verified] A command, an environment variable and a configuration key an adopting project declares each produce a signal; an endpoint and a variable being added produce one by shape; a purely internal change produces none; and a project with no contract behaves exactly as before — verified by `packages/doctrina-cli/test/docs-gate-reads-the-contract.test.js`.
 
 ## Out of scope for this spec
 

@@ -1455,7 +1455,18 @@ sides: the surface signals are read from the change's own proposal and
 deltas (with the scaffold's boilerplate subtracted, so the template's
 own command references are not mistaken for authored intent), and
 whether docs moved is read from git — the working tree plus this
-branch's commits against the default branch. Outside a git repository
+branch's commits against the default branch.
+
+**What counts as surface is yours to declare.** The gate reads the names
+your `.doctrina/contracts/` state — the Ports, Environment, Wiring and
+Selectors tables and the `Interfaces` section — so a command, an endpoint,
+an environment variable or a config key *your* project publishes is
+surface, the same way ADR 0023 makes the runtime declared rather than
+inferred. Surface a change is *adding* is not in the contract yet, so that
+is matched by shape instead: a route, an HTTP method in front of one, an
+environment-variable identifier, a `--flag`, an exit code. A project with
+no contract falls back to Doctrina's own command catalog and behaves
+exactly as it did. Outside a git repository
 the gate cannot see what moved and stays silent rather than accusing.
 When it refuses, the hint names the documentation locations *your* project
 has — the subdirectories under `docs/`, the READMEs it ships, or simply "a

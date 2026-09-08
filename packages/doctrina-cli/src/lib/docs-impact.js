@@ -5,7 +5,7 @@ import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { COMMAND_NAMES } from "./commands.js";
 import { locateTemplatesDir } from "./templates.js";
 import { changedFiles, isRepo } from "./git.js";
-import { maskComments } from "./doc-model.js";
+import { maskComments, getSection } from "./doc-model.js";
 
 // "Docs ship inside the change, never after it" (audit item D2).
 //
@@ -48,11 +48,65 @@ function scaffoldLines() {
   return lines;
 }
 
+function escapeRe(x) {
+  return x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// The names THIS project declares as its integration surface, read from its
+// own contracts: the variables of the Environment and Wiring tables, the
+// services of the Ports table, and the backticked tokens of Interfaces.
+//
+// A contract is the right home for this. It is where a project already states
+// what an external consumer integrates against, it is versioned beside the
+// code, and `contract check` already holds parts of it to the implementation
+// (ADR 0023 — the runtime surface is declared, never inferred). The same
+// principle, applied to documentation: declared, never guessed.
+//
+// Returns [] for a project with no contracts, which is what keeps the change
+// backward compatible: that project's gate behaves exactly as it did.
+export function declaredSurfaceNames(projectRoot) {
+  const dir = path.join(projectRoot, ".doctrina", "contracts");
+  if (!isDir(dir)) return [];
+  const names = new Set();
+  for (const file of walk(dir)) {
+    if (!file.endsWith(".md")) continue;
+    const text = maskComments(read(file));
+
+    // First column of a table, for the sections whose first column IS the name.
+    for (const section of ["Ports", "Environment", "Wiring", "Selectors", "Budgets"]) {
+      const body = getSection(text, section);
+      if (!body) continue;
+      for (const line of body.split(/\r?\n/)) {
+        const m = /^\s*\|\s*([A-Za-z][\w.-]*)\s*\|/.exec(line);
+        if (!m) continue;
+        const cell = m[1];
+        // Skip the header row and the template's own placeholder rows.
+        if (/^(service|variable|selector|limit|name)$/i.test(cell)) continue;
+        if (/^-+$/.test(cell)) continue;
+        names.add(cell);
+      }
+    }
+
+    // Interfaces is prose with backticked tokens: endpoints, flags, shapes.
+    const interfaces = getSection(text, "Interfaces");
+    if (interfaces) {
+      for (const m of interfaces.matchAll(/`([^`\n]{2,60})`/g)) {
+        const token = m[1].trim();
+        // A command with a subcommand ("ledgerly reconcile") is exactly the
+        // shape worth declaring, so single internal spaces are allowed —
+        // anything with punctuation or prose in it is not a name.
+        if (/^[\w./:@+-]+(?: [\w./:@+-]+)*$/.test(token)) names.add(token);
+      }
+    }
+  }
+  return [...names];
+}
+
 // Does this change alter something the documentation makes promises about?
 // Read from the change's own artifacts — the deltas it will merge into
 // specs, plus the proposal that states its shape. Returns the list of
 // signals found (empty when the change touches no documented surface).
-export function documentedSurfaceSignals(changeDir) {
+export function documentedSurfaceSignals(changeDir, projectRoot = null) {
   const signals = [];
   const known = new Set(COMMAND_NAMES);
 
@@ -97,10 +151,50 @@ export function documentedSurfaceSignals(changeDir) {
     signals.push(`commands: ${[...commands].sort().join(", ")}`);
   }
 
+  // The surface the PROJECT declares, matched by name (change 0075's sibling
+  // problem, found in the second audit). Matching commands against Doctrina's
+  // own catalog made the gate maximally sensitive inside this repository and
+  // inert everywhere else: in an adopting project a new command, a public HTTP
+  // endpoint, a renamed environment variable and a changed config key all
+  // produced ZERO signals, and the change closed with no documentation and no
+  // complaint. The vocabulary was already in the right place — the contract
+  // declares Ports, Environment, Wiring, Selectors and Interfaces — so the gate
+  // reads it instead of carrying a catalog that only fits its author.
+  const declared = projectRoot === null ? [] : declaredSurfaceNames(projectRoot);
+  const hit = declared.filter((name) => new RegExp(`\\b${escapeRe(name)}\\b`).test(code));
+  // Report the most specific declaration only: "ledgerly reconcile" says more
+  // than the bare service name it starts with.
+  const touchedDeclared = hit.filter((a) => !hit.some((b) => b !== a && b.includes(a)));
+  if (touchedDeclared.length > 0) {
+    signals.push(`declared surface: ${touchedDeclared.sort().slice(0, 8).join(", ")}`);
+  }
+
   const flags = new Set();
   for (const m of code.matchAll(/--([a-z][a-z0-9-]{2,})/g)) flags.add(`--${m[1]}`);
   if (flags.size > 0) {
     signals.push(`flags: ${[...flags].sort().slice(0, 8).join(", ")}`);
+  }
+
+  // Surface SHAPES, for the surface a change is ADDING — which by definition
+  // is not in the contract yet, and is the case the declared-name match cannot
+  // reach. Deterministic and language-agnostic (ADR 0005): a route path, an
+  // HTTP method in front of one, an environment-variable identifier. Read from
+  // code spans only, so prose that happens to contain a slash is not a signal.
+  const routes = new Set();
+  for (const m of code.matchAll(/(?:^|[\s`"'(])((?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+)?(\/[a-z][\w.-]*(?:\/[\w.:{}$<>-]+)+)/gi)) {
+    routes.add(((m[1] ?? "").toUpperCase().trim() + " " + m[2]).trim());
+  }
+  if (routes.size > 0) {
+    signals.push(`endpoints: ${[...routes].sort().slice(0, 6).join(", ")}`);
+  }
+
+  const envVars = new Set();
+  for (const m of code.matchAll(/\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)) {
+    // Not twice: a declared variable is already reported by name above.
+    if (!touchedDeclared.includes(m[1])) envVars.add(m[1]);
+  }
+  if (envVars.size > 0) {
+    signals.push(`environment: ${[...envVars].sort().slice(0, 8).join(", ")}`);
   }
 
   if (/\bexit\s+code|\bexits?\s+(?:with\s+)?[0-4]\b/i.test(text)) {
@@ -150,14 +244,20 @@ export function isGitRepo(projectRoot) {
 export function documentationHomes(projectRoot) {
   const homes = [];
   const docsDir = path.join(projectRoot, "docs");
+  // Only a directory that holds prose is somewhere to write prose: naming
+  // `docs/assets/` — an SVG and nothing else — turned change 0058's portable
+  // hint into a five-item list with a wrong item in it.
+  const holdsMarkdown = (dir) => walk(dir).some((f) => f.endsWith(".md"));
   if (isDir(docsDir)) {
     // A per-language or per-audience split is a convention, not a rule: name
     // the subdirectories this project HAS, and fall back to `docs/` itself.
     const subs = readdirSync(docsDir, { withFileTypes: true })
       .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+      .filter((e) => holdsMarkdown(path.join(docsDir, e.name)))
       .map((e) => `docs/${e.name}/`)
       .sort();
-    homes.push(...(subs.length > 0 ? subs : ["docs/"]));
+    if (subs.length > 0) homes.push(...subs);
+    else if (holdsMarkdown(docsDir)) homes.push("docs/");
   }
   for (const readme of ["README.md", "README.pt.md"]) {
     if (isFile(path.join(projectRoot, readme))) homes.push(readme);
@@ -181,7 +281,7 @@ export function docsRemedy(projectRoot) {
 // change touches no documented surface, when documentation moved with it,
 // or when git cannot answer.
 export function checkDocsImpact(projectRoot, changeDir) {
-  const signals = documentedSurfaceSignals(changeDir);
+  const signals = documentedSurfaceSignals(changeDir, projectRoot);
   if (signals.length === 0) {
     return { ok: true, signals, touched: [], reason: "touches no documented surface" };
   }

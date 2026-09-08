@@ -71,7 +71,7 @@ export function draftAgentChangelog(projectRoot, { days = null, max = AGENT_CHAN
 
   for (const entry of landed) {
     const dir = path.join(archiveDir, `${entry.date}-${entry.id}`);
-    const signals = isDir(dir) ? documentedSurfaceSignals(dir) : [];
+    const signals = isDir(dir) ? documentedSurfaceSignals(dir, projectRoot) : [];
     if (signals.length === 0) {
       silent.push({ id: entry.id, date: entry.date, title: entry.title });
       continue;
