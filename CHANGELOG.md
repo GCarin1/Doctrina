@@ -19,6 +19,20 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`doctrina clarify` no longer mistakes a question for vagueness.** The
+  vague rule matched the quantifier inside the interrogative "how many" —
+  and a requirement that says "shall report how many contracts declared no
+  rows" names exactly the number the command must print. Five of this
+  repository's seventeen smells were that phrase, and the noise is what hid
+  the one real finding among them: a requirement that said "name some of
+  them" without saying how many (it now says eight, and `doctor` reads that
+  number from a named constant). A rule also reads the tail of the previous
+  line as context now, reporting only matches that begin on the line being
+  scanned: prose wraps, and the same sentence used to get two verdicts
+  depending on where the paragraph folded. `clarify --all` over this
+  repository: 17 smells before, **0** after — every one of them fixed in the
+  text rather than silenced with an annotation.
+
 - **A `templates check` recommendation now states what it costs.** It
   recommended two AGENTS.md sections whose remedy worked — and on this very
   repository took the file from 147 to 155 lines, past a ceiling `analyze`

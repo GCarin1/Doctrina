@@ -49,7 +49,7 @@ or gate-checked from it. Touch the steps in this order:
 - Shipping a working subcommand that `--help` never mentions. It
   happened: `spec set` and `change abandon` were implemented, spec'd,
   and invisible in help/AGENTS.md/docs for multiple releases — nobody
-  could discover them.
+  discovers them.
 - Documenting a command in a diagram (`docs/en/flow.md`) but giving it
   no cli-reference section: readers see it exists but cannot learn it.
 - Updating the EN docs and leaving PT for "later".

@@ -852,6 +852,17 @@ the heuristic can tip the wrong way. A line carrying
 `<!-- clarify:ok -->` is author-accepted and never flagged — the escape
 hatch for a false positive the lexicon cannot know about.
 
+Two exclusions are structural rather than lexical, so they need no
+annotation. A quantifier followed by a number (`many 8`) quantifies, and a
+quantifier inside the interrogative `how many` is a **question**: a
+requirement that says "shall report how many contracts declared no rows"
+names exactly the number the command must print. And a rule reads the tail
+of the previous line as context, reporting only matches that begin on the
+line being scanned — prose wraps, and the same sentence must not get two
+verdicts depending on where the paragraph happened to fold. The escape
+hatch is for what the lexicon cannot know; a structural false positive is
+a bug in the rule, and annotating it pays the price of the bug instead.
+
 With `--all`, every living document is scanned in one pass:
 `product.md`, capability specs, open changes, and skills. ADRs
 (immutable) and the archive (history) are excluded. One command,

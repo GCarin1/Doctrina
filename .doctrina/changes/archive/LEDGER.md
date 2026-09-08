@@ -84,3 +84,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0076-a-lane-entra-no-indice-com-a-change — a lane entra no indice com a change (specs: authoring MODIFIED)
 - 2026-09-08 — 0077-o-review-enxerga-o-codigo-que-revisa — o review enxerga o codigo que revisa (specs: gates MODIFIED)
 - 2026-09-08 — 0078-a-recomendacao-sabe-o-que-custa — a recomendacao sabe o que custa (specs: templates MODIFIED)
+- 2026-09-08 — 0079-clarify-nao-confunde-pergunta-com-vagueza — clarify nao confunde pergunta com vagueza (specs: gates MODIFIED)

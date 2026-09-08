@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.10.0
+**Version:** 1.11.0
 
 ## Purpose
 
@@ -38,10 +38,11 @@ codes, zero-deps, no-network).
 - The system shall check the runtime surface only as the project declares it in a contract, and shall never parse a specific CI system, test runner, or language.
 - The system shall report a project whose contracts declare no wiring or selector rows as having an UNCHECKED runtime surface, and shall not report it as passing.
 - The system shall stream the output of a check declaring an output expectation as it arrives, while accumulating a copy for the match — reading a check's output shall not withhold it.
-- The system shall derive a capability's implementation state from its acceptance-criteria coverage — every criterion proven yields verified, some proven yields partial, none yields planned — and every surface that reports or applies that state shall read the same derivation.
+- The system shall derive a capability's implementation state from its acceptance-criteria coverage — every criterion proven yields verified, at least one but not all yields partial, none yields planned — and every surface that reports or applies that state shall read the same derivation.
 - The system shall report a sign-off it cannot hold to the code — one carrying no commit, covering no declared path, or made outside a repository — as unverifiable rather than passing, and shall distinguish executed proof from signed proof wherever it reports the build gate.
 - The system shall read and write the archive ledger through one grammar, so that a line the CLI appends is a line the CLI can read back.
 - The system shall determine which capability owns a source file from the `**Source:**` globs the capability spec declares, falling back to path and citation inference only for a project that declares none, and shall never infer ownership over a declaration (ADR 0027).
+- The system shall evaluate a clarity rule against the end of the preceding line as context, reporting only matches that begin on the line being scanned, so a phrase split across a line break gets the same verdict as an unwrapped one.
 
 ### Event-driven
 
@@ -293,6 +294,7 @@ codes, zero-deps, no-network).
 - The system shall not run its own binary as a subprocess to satisfy a step of a sequence it is already executing.
 - The system shall not offer, as a place to write documentation, a directory of the checked project that contains no prose.
 - If a spec declares a `**Source:**` pattern that matches no file on disk, the system shall report it as a finding, because a claim over code that is not there reads as coverage and provides none.
+- If a quantifier appears inside an interrogative phrase such as "how many", the system shall not report it as a vague term, because the phrase names the number the requirement demands rather than leaving one unstated.
 
 ### Optional
 
@@ -360,6 +362,8 @@ The gate surface is spec-compliant when:
 48. [verified] An undeclared surface reports `verdict: unchecked` at exit 0, a declared one that holds reports its row count, a declaration that does not hold carries its findings with code, level, message and remedy, the payload parses as the whole of stdout, and the other contract subcommands keep the captured envelope — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
 49. [verified] A declared glob claims its file and outranks every inference, and every tracked source file in this repository has an owning capability — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
 50. [verified] The orphan note fires per file even when another changed file matched, and `validate` reports a pattern that matches nothing — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
+51. [verified] "how many" passes while a bare quantifier still smells, across a line break included, and a number after the quantifier still exempts it — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
+52. [verified] The preceding line is read as context and never as content: its own smell is reported once, on its own line — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
 
 ## Out of scope for this spec
 

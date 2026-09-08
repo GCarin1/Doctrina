@@ -28,7 +28,16 @@ const RULES_EN = [
   },
   {
     name: "vague",
-    re: /\b(many|few|some|several)\b(?!\s+\d)/gi,
+    // Two exclusions, both structural rather than a vocabulary loosening.
+    // The lookahead was already here: `many 5` quantifies. The lookbehind is
+    // change 0079: `how many` is INTERROGATIVE, and a requirement that says
+    // "shall report how many contracts declared no rows" names exactly the
+    // number the command must print — the opposite of vague. Five of this
+    // repository's seventeen smells were that phrase, and the noise is what
+    // hid the one real finding among them ("name some of them", which said
+    // nothing about how many). A gate that cries wolf teaches people to
+    // ignore it.
+    re: /(?<!\bhow\s+)\b(many|few|some|several)\b(?!\s+\d)/gi,
     hint: "quantify (use a number or a precise scope)",
   },
   {
@@ -37,6 +46,10 @@ const RULES_EN = [
     hint: "resolve before applying",
   },
 ];
+
+// How much of the previous line a rule may look back into. Long enough for
+// a wrapped two-word phrase, short enough that the probe stays cheap.
+const LOOKBEHIND_TAIL = 40;
 
 const RULES_PT = [
   {
@@ -203,11 +216,22 @@ function scanFile(fullPath, projectRoot = process.cwd(), lang = null) {
       cursor = lineEnd + 1;
       continue;
     }
+    // A rule reads the previous line as CONTEXT, never as content: a match
+    // is only reported when it starts inside this line. Prose wraps, and
+    // "report per spec how / many criteria..." split the interrogative
+    // across a line break — which a line-at-a-time scanner cannot see, so
+    // the phrase came back as a smell on one line of the same document and
+    // not on the next (change 0079). The prefix is trimmed to the tail of
+    // the previous line: enough for a lookbehind, cheap on every line.
+    const prev = i > 0 ? lines[i - 1].slice(-LOOKBEHIND_TAIL) : "";
+    const probe = prev === "" ? line : `${prev}\n${line}`;
+    const offset = probe.length - line.length;
     for (const rule of rules) {
       rule.re.lastIndex = 0;
       let m;
-      while ((m = rule.re.exec(line))) {
-        const absoluteStart = lineStart + m.index;
+      while ((m = rule.re.exec(probe))) {
+        if (m.index < offset) continue;   // the match belongs to the previous line
+        const absoluteStart = lineStart + m.index - offset;
         if (isInSkippedRange(absoluteStart, skippedRanges)) continue;
         smells.push({
           line: i + 1,

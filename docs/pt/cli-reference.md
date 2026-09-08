@@ -877,6 +877,17 @@ linha com `<!-- clarify:ok -->` é aceita pelo autor e nunca é
 sinalizada — o escape para um falso positivo que o léxico não tem como
 conhecer.
 
+Duas exclusões são estruturais, não lexicais, e por isso não precisam de
+anotação. Um quantificador seguido de número (`many 8`) quantifica, e um
+quantificador dentro do interrogativo `how many` é uma **pergunta**: um
+requisito que diz «shall report how many contracts declared no rows» nomeia
+exatamente o número que o comando deve imprimir. E uma regra lê o final da
+linha anterior como contexto, reportando só as ocorrências que começam na
+linha escaneada — prosa quebra em linhas, e a mesma frase não pode receber
+dois veredictos conforme onde o parágrafo dobrou. O escape é para o que o
+léxico não tem como saber; um falso positivo estrutural é um defeito da
+regra, e anotá-lo paga o preço do defeito em vez de corrigi-lo.
+
 Com `--all`, todo documento vivo é escaneado em um passe:
 `product.md`, specs de capability, changes abertas e skills. ADRs
 (imutáveis) e o archive (história) ficam de fora. Um comando, um

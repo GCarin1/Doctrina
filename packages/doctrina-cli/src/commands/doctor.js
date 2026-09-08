@@ -17,6 +17,11 @@ import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
 
 import { coverageLabel } from "../lib/views.js";
+
+// How many never-invoked operations the usage row names before pointing at
+// `metrics --commands` for the rest. The spec states this number, so it is
+// named here rather than repeated as a literal in three places.
+const UNUSED_OPS_LISTED = 8;
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
 // validate, index drift, clean-checkout lint, template shape — and reports
@@ -296,11 +301,11 @@ export async function run(_positional, _flags) {
       // command reached for once a quarter and one nobody wants look
       // identical over a week. ADR 0026: retiring one needs demonstrated
       // redundancy, and this list is where you go looking for it.
-      for (const op of unused.slice(0, 8)) {
+      for (const op of unused.slice(0, UNUSED_OPS_LISTED)) {
         console.log(`        ${" ".repeat(16)} ${c.gray("·")} never invoked: ${op}`);
       }
-      if (unused.length > 8) {
-        console.log(`        ${" ".repeat(16)} ${c.gray(`· … ${unused.length - 8} more — doctrina metrics --commands`)}`);
+      if (unused.length > UNUSED_OPS_LISTED) {
+        console.log(`        ${" ".repeat(16)} ${c.gray(`· … ${unused.length - UNUSED_OPS_LISTED} more — doctrina metrics --commands`)}`);
       }
     },
   };

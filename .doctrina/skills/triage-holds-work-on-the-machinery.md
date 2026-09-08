@@ -76,7 +76,7 @@ holds were false:
 
 5. **Record the disagreement if the project tracks it.** The lane the
    change was opened in — and whether a human overrode it — is the only
-   data that could ever calibrate this classifier.
+   data that calibrates this classifier at all.
 
 ## Anti-patterns
 
@@ -86,7 +86,7 @@ holds were false:
 - Reaching for `--chore` to dodge the hold on work that genuinely needs
   a spec delta. `--chore` skips the delta steps entirely; needing one
   later means it was never a chore.
-- Assuming a held prompt is wrong. Roughly speaking the hold is a hint
+- Assuming a held prompt is wrong. The hold is a hint
   with the same status as the capability guess in `work` — arguable,
   not authoritative.
 
@@ -96,5 +96,5 @@ holds were false:
 - ADR 0023 — the runtime surface is declared, never inferred.
 - `packages/doctrina-cli/src/commands/triage.js` — the three signal
   lists and the margin rule.
-- [[stage-a-change-backlog]] — where this trap shows up several times
+- [[stage-a-change-backlog]] — where this trap shows up once per change
   in a row.

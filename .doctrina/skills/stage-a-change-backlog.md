@@ -1,6 +1,6 @@
 ---
 name: stage-a-change-backlog
-description: Open several changes as a planned-but-not-started backlog that still passes analyze, without the context pack overflowing its budget.
+description: Open two or more changes as a planned-but-not-started backlog that still passes analyze, without the context pack overflowing its budget.
 when: The task opens more than one change at a time, or parks a change to be implemented in a later session (a review, an audit, a roadmap turned into work).
 ---
 
@@ -28,7 +28,7 @@ when: The task opens more than one change at a time, or parks a change to be imp
 
    A scaffolded, empty change costs ~380 tokens; an authored one costs
    1200–2000. If the tightest pack is already above ~85%, a backlog of
-   any size will push some pack over and `doctrina context <cap>` will
+   any size will push at least one pack over and `doctrina context <cap>` will
    exit 1 — which fails the `Context budget gate` job in CI. Decide what
    to do about that *before* opening 20 folders, and say so out loud.
 
@@ -55,13 +55,17 @@ when: The task opens more than one change at a time, or parks a change to be imp
    - `--title` keeps the proposal H1 and the slug short while the full
      prompt still lands under `## Why`.
    - Confirm the capability against the spec that actually OWNS the area
-     first — read each spec's `## Purpose`. In this repository: `gates`
-     owns the gate/read-path/insight commands and `context`; `cli` owns
-     the surface, `work`/`change`/`spec`/`triage` and `next`;
-     `scaffolding` owns `init`/`templates`/`hooks`/`index`/`upgrade`/
-     `watch`/`metrics`/`completion`; `templates` owns the shipped
-     templates and the surface block; `validation` owns the document
-     model.
+     first — read each spec's `## Purpose`, or its `**Source:**` header,
+     which names the files it owns (ADR 0027). In this repository:
+     `authoring` owns `intake`/`work`/`spec`/`change`/`decision`/
+     `contract`/`skill`/`intent`/`triage`; `gates` owns the gates and
+     their drivers (`close`, `doctor`, the CI pipeline); `insight` owns
+     the read path (`context`, `search`, `show`, `status`, `prime`,
+     `handoff`, `report`, `why`); `cli` owns the surface itself and
+     `next`; `scaffolding` owns `init`/`adapter`/`templates`/`hooks`/
+     `index`/`upgrade`/`watch`/`metrics`/`completion`; `templates` owns
+     the shipped templates and the surface block; `validation` owns the
+     document model.
 
 4. **Plan every change before leaving it.** `analyze` FAILS on a
    `tasks.md` that still holds scaffold placeholders (`- [ ]` with no
@@ -102,7 +106,7 @@ when: The task opens more than one change at a time, or parks a change to be imp
   change is not parked — it is broken.
 - Letting `work` allocate the ids, then trying to communicate priority
   in the title. The id is what `next`, `prime` and the ledger sort on.
-- Opening a change per finding when several findings are literally the
+- Opening a change per finding when two or more findings are literally the
   same edit. One change per closeable unit; group only where the work
   is genuinely one patch.
 
@@ -112,5 +116,5 @@ when: The task opens more than one change at a time, or parks a change to be imp
 - `.doctrina/specs/gates/spec.md` — `analyze`, `context`, and the
   budget semantics.
 - ADR 0022 — context assembly is retrieval, not a dump.
-- [[triage-holds-work-on-the-machinery]] — why some of these prompts
-  get held at exit 3.
+- [[triage-holds-work-on-the-machinery]] — why a prompt about the machinery
+  gets held at exit 3.

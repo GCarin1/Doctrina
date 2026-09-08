@@ -1,6 +1,7 @@
 # Change 0079-clarify-nao-confunde-pergunta-com-vagueza — clarify nao confunde pergunta com vagueza
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -56,11 +57,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] «how many» deixa de contar como smell, em EN e PT.
-- [ ] «some of them» continua contando.
-- [ ] O achado verdadeiro em `scaffolding/spec.md:183` é corrigido, não anotado.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] «how many» deixa de contar como smell, em EN e PT.
+- [x] «some of them» continua contando.
+- [x] O achado verdadeiro em `scaffolding/spec.md:183` é corrigido, não anotado.
 
 ## Open questions
 
