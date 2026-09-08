@@ -1642,6 +1642,17 @@ sejam confundidas com intenção do autor), e se as docs andaram é lido do
 git — a árvore de trabalho mais os commits deste branch contra o branch
 padrão.
 
+**Citar um comando não é mexer nele.** Duas exclusões mantêm o gate longe
+da forma natural de escrever uma proposta. Uma change na lane **chore** não
+produz sinal de superfície nenhum: a lane é a declaração registrada do
+autor de que nada de comportamento muda e nenhuma spec anda, e o `analyze`
+já a lê assim. E a seção `## Verification` da proposta é pulada, porque ela
+responde «como você vai saber que isso entrou» — os comandos que ela nomeia
+são os que você vai RODAR, que é a razão de a checklist do template já ser
+subtraída. Sem isso, uma change que só reorganizava cabeçalhos foi recusada
+pelos dois comandos que a própria proposta citava para descrever o achado, e
+teve de fechar com `--force`.
+
 **O que conta como superfície é você quem declara.** O gate lê os nomes que
 os seus `.doctrina/contracts/` afirmam — as tabelas Ports, Environment,
 Wiring e Selectors e a seção `Interfaces` — então um comando, um endpoint,

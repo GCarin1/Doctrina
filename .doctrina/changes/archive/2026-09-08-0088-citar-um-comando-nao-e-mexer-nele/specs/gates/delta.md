@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement unwanted: If a change declares the chore lane, the system shall not require documentation of a surface it named, because the lane is the author's recorded statement that no behaviour changes.
+append-requirement ubiquitous: The system shall exclude a proposal's verification section when reading it for documented-surface signals, since that section names the commands the author will RUN to prove the change rather than the ones it alters.
+append-criterion [verified] A chore that cites commands produces no surface signal and closes without `--force`, and the verification section leaks none — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
+append-criterion [verified] A product change naming a command in its What still signals, and the archived product changes keep their signals — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
+bump-version minor
+```

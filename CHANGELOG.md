@@ -19,6 +19,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The docs gate stops counting a citation as a change.** It reads what the
+  author wrote — correctly, and for the same reason change 0058 subtracted
+  the template's boilerplate — but could not tell "this command is the
+  SUBJECT" from "this command CHANGES". A change that only reorganised
+  headings in AGENTS.md was refused for `commands: close, templates`: the two
+  its own proposal cited to describe the finding. It closed with `--force`.
+  Two structural exclusions now: a **chore** produces no surface signal (the
+  lane is the author's recorded statement that nothing behavioural moves, and
+  `analyze` already reads it that way), and the proposal's `## Verification`
+  section is skipped (it names the commands you will RUN). Every archived
+  product change keeps its signals — a test pins that ratio.
+
 - **An empty artifact no longer passes `doctrina validate`.** The existence
   check asks whether an indexed file is there, and a zero-byte file is there.
   Emptied to zero bytes, a spec, a proposal, a contract, a skill and

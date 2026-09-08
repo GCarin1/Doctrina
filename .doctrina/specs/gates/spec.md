@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.12.1
+**Version:** 1.13.0
 
 ## Purpose
 
@@ -45,6 +45,7 @@ codes, zero-deps, no-network).
 - The system shall evaluate a clarity rule against the end of the preceding line as context, reporting only matches that begin on the line being scanned, so a phrase split across a line break gets the same verdict as an unwrapped one.
 - The system shall treat a capability as participating in intent provenance only when its `**Realizes:**` header cites at least one anchor id, so a scaffolded header that names none does not count as opting in.
 - The system shall expand a glob's brace groups against their matching close and split alternatives only at the group's own depth, and shall compile the pattern from that expansion rather than from the unexpanded text.
+- The system shall exclude a proposal's verification section when reading it for documented-surface signals, since that section names the commands the author will RUN to prove the change rather than the ones it alters.
 
 ### Event-driven
 
@@ -299,6 +300,7 @@ codes, zero-deps, no-network).
 - If a quantifier appears inside an interrogative phrase such as "how many", the system shall not report it as a vague term, because the phrase names the number the requirement demands rather than leaving one unstated.
 - If no intent anchor is declared, the system shall not report the trace as satisfied, because a ratio over zero anchors states nothing true about provenance.
 - If a glob carries a brace with no matching close, the system shall not expand it into a partial set of alternatives; the pattern shall match nothing so the malformed declaration is reported rather than silently covering less than it claims.
+- If a change declares the chore lane, the system shall not require documentation of a surface it named, because the lane is the author's recorded statement that no behaviour changes.
 
 ### Optional
 
@@ -372,6 +374,8 @@ The gate surface is spec-compliant when:
 54. [verified] A cited anchor with none declared is a gap that fails `--strict`, a declared and realized anchor is still green, and a project that declared nothing is still not nagged — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
 55. [verified] A one-element group and a nested group each match exactly the files they name, and an unmatched brace matches nothing — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
 56. [verified] A nested `**Source:**` declaration claims every file it names and is not reported as a dead pattern, and the `*`, `**` and `?` patterns behave exactly as before — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
+57. [verified] A chore that cites commands produces no surface signal and closes without `--force`, and the verification section leaks none — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
+58. [verified] A product change naming a command in its What still signals, and the archived product changes keep their signals — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
 
 ## Out of scope for this spec
 

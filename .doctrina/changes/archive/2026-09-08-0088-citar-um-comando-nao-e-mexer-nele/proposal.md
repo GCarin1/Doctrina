@@ -1,6 +1,7 @@
 # Change 0088-citar-um-comando-nao-e-mexer-nele — citar um comando nao e mexer nele
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -53,12 +54,12 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma proposta que apenas cita um comando ao descrever o sintoma não
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma proposta que apenas cita um comando ao descrever o sintoma não
       dispara o gate por causa dele.
-- [ ] Uma change que altera um comando documentado continua sendo pega.
-- [ ] A change 0085, reprocessada, passaria sem `--force`.
+- [x] Uma change que altera um comando documentado continua sendo pega.
+- [x] A change 0085, reprocessada, passaria sem `--force`.
 
 ## Open questions
 

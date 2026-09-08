@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.12.1",
+        "version": "1.13.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -504,16 +504,7 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [
-      {
-        "id": "0088-citar-um-comando-nao-e-mexer-nele",
-        "title": "citar um comando nao e mexer nele",
-        "path": ".doctrina/changes/0088-citar-um-comando-nao-e-mexer-nele",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1694,6 +1685,19 @@
         "specs_affected": [
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0088-citar-um-comando-nao-e-mexer-nele",
+        "title": "citar um comando nao e mexer nele",
+        "path": ".doctrina/changes/archive/2026-09-08-0088-citar-um-comando-nao-e-mexer-nele",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

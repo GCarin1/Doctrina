@@ -1589,6 +1589,17 @@ own command references are not mistaken for authored intent), and
 whether docs moved is read from git — the working tree plus this
 branch's commits against the default branch.
 
+**Citing a command is not changing it.** Two exclusions keep the gate off
+the natural way of writing a proposal. A change on the **chore** lane
+produces no surface signal at all: the lane is the author's recorded
+statement that no behaviour changes and no spec moves, and `analyze`
+already reads it that way. And the proposal's `## Verification` section is
+skipped, because it answers "how will you know this landed" — the commands
+it names are the ones you will RUN, which is why the template's own
+checklist was already subtracted. Without these, a change that only
+reorganised headings was refused for the two commands its proposal cited
+to describe the finding, and had to close with `--force`.
+
 **What counts as surface is yours to declare.** The gate reads the names
 your `.doctrina/contracts/` state — the Ports, Environment, Wiring and
 Selectors tables and the `Interfaces` section — so a command, an endpoint,

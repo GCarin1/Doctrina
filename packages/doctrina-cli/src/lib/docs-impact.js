@@ -6,6 +6,7 @@ import { COMMAND_NAMES } from "./commands.js";
 import { locateTemplatesDir } from "./templates.js";
 import { changedFiles, isRepo } from "./git.js";
 import { maskComments, getSection } from "./doc-model.js";
+import { listHeader } from "./scan.js";
 
 // "Docs ship inside the change, never after it" (audit item D2).
 //
@@ -106,6 +107,22 @@ export function declaredSurfaceNames(projectRoot) {
 // Read from the change's own artifacts — the deltas it will merge into
 // specs, plus the proposal that states its shape. Returns the list of
 // signals found (empty when the change touches no documented surface).
+// Drop the proposal's `## Verification` section before reading it for
+// surface signals. That section answers "how will you know this landed", so
+// the commands it names are the ones the author will RUN — the same reason
+// the template's own checklist lines are subtracted below. Running a gate is
+// not changing it (change 0088).
+function withoutVerification(text) {
+  const lines = text.split(/\r?\n/);
+  const out = [];
+  let skipping = false;
+  for (const line of lines) {
+    if (/^##\s+/.test(line)) skipping = /^##\s+Verification\b/i.test(line);
+    if (!skipping) out.push(line);
+  }
+  return out.join("\n");
+}
+
 export function documentedSurfaceSignals(changeDir, projectRoot = null) {
   const signals = [];
   const known = new Set(COMMAND_NAMES);
@@ -129,7 +146,25 @@ export function documentedSurfaceSignals(changeDir, projectRoot = null) {
 
   const sources = [];
   const proposal = path.join(changeDir, "proposal.md");
-  if (isFile(proposal)) sources.push(authored(read(proposal)));
+  if (isFile(proposal)) {
+    const text = read(proposal);
+
+    // A CHORE declares that no behaviour changes and no spec moves — that is
+    // what the lane means, and `analyze` already reads it that way ("0 spec
+    // deltas, metadata-only change"). Asking such a change to document a
+    // surface it declared it does not touch contradicts its own lane. The
+    // declaration is the author's, recorded in the proposal header and the
+    // index (change 0042), so it is auditable rather than invisible.
+    //
+    // This is the case that mattered: of the archived changes, every chore
+    // names a command in code context and none of them changes one. Change
+    // 0085 reorganised headings in AGENTS.md and was refused for "commands:
+    // close, templates" — the two commands its own proposal cited to describe
+    // the finding — and had to close with --force (change 0088).
+    if (/chore/i.test(listHeader(text, "Lane") ?? "")) return signals;
+
+    sources.push(authored(withoutVerification(text)));
+  }
   for (const p of walk(path.join(changeDir, "specs"))) {
     if (p.endsWith("delta.md")) sources.push(authored(read(p)));
   }
