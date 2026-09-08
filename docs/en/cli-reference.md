@@ -1319,8 +1319,17 @@ Inspects the tree and reports: runtime declarations that no longer hold
 applied-but-unarchived), ADRs still in `proposed` status, accepted ADRs
 with nothing proving them yet (suggesting `decision land`), a one-time
 skill-capture nudge when no skill exists and an archived change is
-fix-shaped, and index drift last (ADR 0011). When nothing is open it
-says so and points at `change new` / `spec new`.
+fix-shaped, and index drift last (ADR 0011).
+
+It also recommends over the **gate** signals `doctrina doctor` reports —
+acceptance criteria that are uncovered or cite evidence missing on disk,
+product intent no spec realizes, an undeclared build gate, an `active` spec
+whose `Implementation:` is still a bare `planned` — from the same collection
+the read-only views render, so a recommendation can never contradict the row
+it came from. Those signals measure capabilities, so they stay quiet until
+one exists: a freshly initialised project is pointed at `intake`, not asked
+to write criteria for capabilities it has not named. When nothing is open
+and every gate is satisfied, it says so and points at `intake` / `work`.
 
 Read-only without `--run`, and always exits 0 then. Intended for agents
 and humans resuming work without re-reading the whole tree.

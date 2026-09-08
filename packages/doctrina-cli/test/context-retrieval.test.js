@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
@@ -61,11 +61,44 @@ test("an unscoped ADR appears in EVERY scoped pack", () => {
   }
   assert.ok(unscoped.length > 0, "this repo must keep some deliberately global ADRs");
 
+  // The guarantee is about SCOPE, so it is measured with the budget out of the
+  // way. Scope must never exclude a global ADR from a pack; the budget may
+  // still drop one when the tree cannot fit, which is ADR 0022 working, not
+  // scoping failing — and a tree with a large open backlog does exactly that.
   for (const cap of ["cli", "gates", "skills"]) {
-    const out = run(repoRoot, ["context", cap]).stdout;
+    const out = run(repoRoot, ["context", cap, "--budget", "60000"]).stdout;
     for (const file of unscoped) {
       assert.match(out, new RegExp(file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
-        `unscoped ADR ${file} missing from the "${cap}" pack`);
+        `unscoped ADR ${file} is excluded from the "${cap}" pack by SCOPE, not by budget`);
+    }
+  }
+});
+
+test("under budget pressure a global ADR gives way only after an inherited one", () => {
+  // The ordering that makes `Scope:` mean something (change 0075): an ADR that
+  // NAMES a capability outranks an unscoped one — declared to belong in every
+  // pack — which outranks one merely reaching it through a dependency.
+  const scopeOf = (file) => {
+    const text = readFileSync(path.join(repoRoot, ".doctrina", "decisions", file), "utf8");
+    const m = /^-\s*\*\*Scope:\*\*\s*(.+)$/m.exec(text);
+    return m ? m[1].split(",").map((x) => x.trim()) : null;
+  };
+  const out = run(repoRoot, ["context", "gates"]).stdout
+    + run(repoRoot, ["context", "gates"]).stderr;
+  const m = /\d+ omitted: ([^\n]*)/.exec(out);
+  if (!m) return; // nothing dropped — nothing to order
+  const dropped = m[1].split(",").map((x) => x.trim());
+  const files = readdirSync(path.join(repoRoot, ".doctrina", "decisions"));
+  let sawNamed = false;
+  for (const num of dropped) {
+    const file = files.find((f) => f.startsWith(`${num}-`));
+    if (!file) continue;
+    const scope = scopeOf(file);
+    const named = scope !== null && scope.includes("gates");
+    if (named) sawNamed = true;
+    else if (sawNamed) {
+      assert.fail(`ADR ${num} does not name "gates" yet survived past one that does — ` +
+        `drop order was: ${dropped.join(", ")}`);
     }
   }
 });

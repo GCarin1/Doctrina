@@ -70,3 +70,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0062-o-texto-alcanca-o-codigo — o texto alcanca o codigo (specs: insight MODIFIED)
 - 2026-09-08 — 0075-os-adrs-seguem-a-capability — os adrs seguem a capability (specs: authoring MODIFIED)
 - 2026-09-08 — 0063-o-gate-de-docs-le-o-contrato — o gate de docs le o contrato (specs: gates MODIFIED)
+- 2026-09-08 — 0064-o-next-le-os-mesmos-sinais — o next le os mesmos sinais (specs: cli MODIFIED)

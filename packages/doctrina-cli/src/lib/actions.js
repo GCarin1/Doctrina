@@ -3,9 +3,11 @@ import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import * as idx from "./index-json.js";
-import { deriveIndex, indexesMatch, listHeader } from "./scan.js";
+import { deriveIndex, indexesMatch, listHeader, specHeader } from "./scan.js";
 import { collectRuntimeFindings } from "./runtime.js";
 import { FIX_SHAPED } from "./lexicon.js";
+import { summarize as coverageSummary } from "./coverage-model.js";
+import { summarize as traceSummary } from "./trace-model.js";
 
 // What comes next, as DATA (change 0032).
 //
@@ -80,9 +82,16 @@ function defaultText(command, args, why) {
  * The priority-ordered action list. Shared by `next`, `prime`, `handoff`
  * and `watch`.
  *
+ * `gates` is the already-collected gate state, passed in by `snapshot.js`
+ * so the whole read costs one collection (change 0037). Omitted — as `next`
+ * omits it — the collectors run here instead; the answer is the same either
+ * way, which is the point.
+ *
+ * @param {string} projectRoot
+ * @param {{ coverage?: any, trace?: any, verify?: any }} [gates]
  * @returns {Action[]}
  */
-export function computeActions(projectRoot) {
+export function computeActions(projectRoot, gates = {}) {
   /** @type {Action[]} */
   const actions = [];
 
@@ -246,6 +255,103 @@ export function computeActions(projectRoot) {
   const skillNudge = suggestSkillCapture(projectRoot);
   if (skillNudge) actions.push(skillNudge);
 
+  // GATE SIGNALS. `next` used to answer "no open work" over a tree where
+  // `doctor` reported five findings with a named remedy each: it knew the
+  // change/ADR/index/intake/runtime/skill lifecycle and nothing about whether
+  // the gates were satisfied. The command whose entire job is to answer "what
+  // now?" was the one that said "nothing" (second audit).
+  //
+  // Change 0037 unified the views so they could not disagree; this is that
+  // unification finally reaching `next`. Same collections, same numbers — the
+  // only difference is that a view REPORTS and an action RECOMMENDS.
+  // The gates measure capabilities, so they say nothing before any exists. A
+  // freshly initialised project must be told to run `intake`, not to write
+  // acceptance criteria for capabilities it has not named yet — three tidy
+  // recommendations ahead of the one that matters is the noise this whole
+  // change exists to remove.
+  const hasSpecs = specCapabilities(projectRoot).length > 0;
+
+  const cov = hasSpecs ? (gates.coverage ?? safely(() => coverageSummary(projectRoot))) : null;
+  if (cov) {
+    if (cov.totalDangling > 0) {
+      actions.push(action({
+        id: "coverage-dangling",
+        command: "coverage",
+        gate: "coverage",
+        why: `${cov.totalDangling} acceptance criterion(s) cite evidence missing on disk`,
+      }));
+    } else if (cov.totalCriteria === 0) {
+      actions.push(action({
+        id: "coverage-none",
+        command: null,
+        gate: "coverage",
+        severity: "advisory",
+        why: "no acceptance criteria declared yet — nothing proves any capability",
+        text: "write acceptance criteria with cited evidence — no capability is proven yet " +
+          "(`doctrina coverage` reports them once they exist)",
+      }));
+    }
+  }
+
+  const tr = hasSpecs ? (gates.trace ?? safely(() => traceSummary(projectRoot))) : null;
+  if (tr) {
+    if (tr.dropped > 0) {
+      actions.push(action({
+        id: "trace-dropped",
+        command: "trace",
+        gate: "trace",
+        why: `${tr.dropped} product intent anchor(s) are realized by no spec`,
+      }));
+    } else if (tr.anchors === 0) {
+      actions.push(action({
+        id: "trace-no-anchors",
+        command: null,
+        gate: "trace",
+        severity: "advisory",
+        why: "no intent anchors declared in product.md, so nothing traces to product intent",
+        text: 'tag product.md success criteria as "- [SC1] ..." and cite them with ' +
+          "**Realizes:** in each spec — nothing traces to product intent yet",
+      }));
+    }
+  }
+
+  // An active spec still `planned` with no note is an inventory claim: the
+  // document says the capability is current and the axis says nothing is built.
+  const inventoryClaims = activeButUnbuilt(projectRoot);
+  if (inventoryClaims.length > 0) {
+    actions.push(action({
+      id: "spec-inventory-claim",
+      command: "spec set",
+      args: [inventoryClaims[0], "--implementation", "auto"],
+      gate: "validate",
+      why: `${inventoryClaims.length} active spec(s) are still "planned" with no note ` +
+        `(${inventoryClaims.slice(0, 3).join(", ")})`,
+    }));
+  }
+
+  // The build gate undeclared is the quietest failure of all: `close` skips
+  // step 7 and every change ships without the project's own tests ever running.
+  const verify = hasSpecs ? (gates.verify ?? readVerifyState(projectRoot)) : { configured: true, invalid: false };
+  if (verify.invalid) {
+    actions.push(action({
+      id: "verify-invalid",
+      command: null,
+      gate: "verify",
+      why: ".doctrina/verify.json is not valid JSON, so the build gate cannot run",
+      text: "fix .doctrina/verify.json — it is not valid JSON, so `doctrina verify` " +
+        "and the close's build gate cannot run",
+    }));
+  } else if (!verify.configured) {
+    actions.push(action({
+      id: "verify-unconfigured",
+      command: "verify",
+      args: ["--init"],
+      gate: "verify",
+      runnable: true,
+      why: "no .doctrina/verify.json — the close skips its build gate entirely",
+    }));
+  }
+
   // Index drift is silent rot; surface it last.
   try {
     const current = idx.load(projectRoot);
@@ -300,4 +406,54 @@ function suggestSkillCapture(projectRoot) {
     }
   }
   return null;
+}
+
+// A collector that throws is a finding for `validate` to make, never a reason
+// for `next` to fall over — the same posture the runtime block above takes.
+function safely(fn) {
+  try {
+    return fn();
+  } catch {
+    return null;
+  }
+}
+
+// Whether the project declares its build gate. Deliberately the same three
+// states `doctor` reports — configured, absent, invalid — read the same way.
+function readVerifyState(projectRoot) {
+  const p = path.join(projectRoot, ".doctrina", "verify.json");
+  if (!isFile(p)) return { configured: false, invalid: false };
+  try {
+    const cfg = JSON.parse(read(p));
+    return { configured: Array.isArray(cfg?.checks) && cfg.checks.length > 0, invalid: false };
+  } catch {
+    return { configured: false, invalid: true };
+  }
+}
+
+// Active capability specs whose Implementation is still a bare "planned".
+// A note after the value ("planned — backend deferred to Q3") is the declared
+// gap and is left alone, exactly as `validate` leaves it alone.
+function specCapabilities(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (!isDir(specsDir)) return [];
+  return readdirSync(specsDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && isFile(path.join(specsDir, e.name, "spec.md")))
+    .map((e) => e.name)
+    .sort();
+}
+
+function activeButUnbuilt(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  const out = [];
+  for (const cap of specCapabilities(projectRoot)) {
+    const entry = { name: cap };
+    const file = path.join(specsDir, entry.name, "spec.md");
+    const text = read(file);
+    const status = (specHeader(text, "Status") ?? "").toLowerCase();
+    const impl = (specHeader(text, "Implementation") ?? "").trim();
+    if (status !== "active") continue;
+    if (impl.toLowerCase() === "planned") out.push(entry.name);
+  }
+  return out.sort();
 }

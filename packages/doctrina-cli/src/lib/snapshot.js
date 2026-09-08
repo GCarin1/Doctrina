@@ -49,21 +49,30 @@ export function collectSnapshot(projectRoot, { actions = true } = {}) {
     indexState = indexesMatch(deriveIndex(projectRoot, index), index) ? "in-sync" : "drifted";
   }
 
+  // Collected once, then shared: the views render it and `computeActions`
+  // recommends from it, so a recommendation can never disagree with the row
+  // it comes from (change 0037, extended to `next` by change 0064).
+  const coverage = coverageSummary(projectRoot);
+  const trace = traceSummary(projectRoot);
+  const verify = readVerifyConfig(projectRoot);
+
   return {
     project: index?.project ?? path.basename(projectRoot),
     stamp: index?.framework_version ?? null,
     cli: cliVersion(),
     indexState,
-    coverage: coverageSummary(projectRoot),
-    trace: traceSummary(projectRoot),
-    verify: readVerifyConfig(projectRoot),
+    coverage,
+    trace,
+    verify,
     specs: countSpecs(projectRoot),
     decisions: countDecisions(projectRoot),
     skills: countSkills(projectRoot),
     openChanges: openChanges(projectRoot),
     adrs: acceptedDecisions(projectRoot),
     nonGoals: productSection(projectRoot, "Non-goals"),
-    actions: actions ? computeActions(projectRoot) : [],
+    // The gate state is already collected above; hand it over so the whole
+    // snapshot stays one read of the tree (change 0037).
+    actions: actions ? computeActions(projectRoot, { coverage, trace, verify }) : [],
     archive: index?.artifacts?.changes_archive ?? [],
     // The lane each open change was born in, for the report's mix. Read from
     // the index rather than re-parsed, so one derivation owns the field.

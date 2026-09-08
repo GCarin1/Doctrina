@@ -1,7 +1,8 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { exists } from "../lib/fs-ops.js";
+import { readdirSync } from "node:fs";
+import { exists, isDir } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
@@ -50,11 +51,19 @@ export async function run(_positional, flags) {
   }
 
   if (actions.length === 0) {
-    console.log(c.green("ok") + " no open work.");
+    // The two doors AGENTS.md tells an agent to use, not the two hand-authoring
+    // commands it tells them to avoid (second audit). `intake` first for a
+    // project with nothing specced yet, `work` for one that has.
+    const specced = isDir(path.join(projectRoot, ".doctrina", "specs"))
+      && readdirSync(path.join(projectRoot, ".doctrina", "specs"), { withFileTypes: true })
+        .some((e) => e.isDirectory());
+    console.log(c.green("ok") + " every gate is satisfied and no change is open.");
     console.log("");
     console.log("Start something:");
-    console.log(`  doctrina change new <id> "<title>"   open a change proposal`);
-    console.log(`  doctrina spec new <capability>       spec a new capability`);
+    if (!specced) {
+      console.log(`  doctrina intake --text "<what this project is>"   turn intent into specs`);
+    }
+    console.log(`  doctrina work "<prompt>"                          open the next change`);
     return 0;
   }
 

@@ -1085,8 +1085,8 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     // Fresh project: nothing open.
     let r = runCli(["next"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
-    assert.match(r.stdout, /no open work/);
-    assert.match(r.stdout, /doctrina change new/);
+    assert.match(r.stdout, /no change is open/);
+    assert.match(r.stdout, /doctrina work/);
 
     // Open change with unchecked tasks.
     runCli(["change", "new", "0001-x", "do x"], { cwd: tmp });
@@ -1113,11 +1113,14 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     r = runCli(["next"], { cwd: tmp });
     assert.match(r.stdout, /doctrina change archive 0001-x/);
 
-    // Archived: clear again.
+    // Archived: the change lifecycle is clear again. The tree itself is not —
+    // applying the delta created a spec with no criteria and no build gate, and
+    // `next` reports those too since change 0064. This test is about the
+    // lifecycle, so it asserts the lifecycle actions are gone.
     completeChange(tmp, "0001-x"); // clear the 3.3 verification gate
     runCli(["change", "archive", "0001-x"], { cwd: tmp });
     r = runCli(["next"], { cwd: tmp });
-    assert.match(r.stdout, /no open work/);
+    assert.doesNotMatch(r.stdout, /open task|change apply|change archive/, r.stdout);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

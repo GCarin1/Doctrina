@@ -328,10 +328,12 @@ export async function run(positional, cmdFlags) {
     pushFile(rel, global ? "accepted ADR" : `accepted ADR (${scope.join(", ")})`, {
       tier: TIER.DECISION,
       // Best-first, deterministic: an ADR that NAMES this capability outranks
-      // one that only inherits through a dependency, which outranks a global
-      // one; then query relevance; then the number, so between equals the
-      // newer decision survives the longer.
-      rank: [named ? 2 : governs ? 1 : 0, ...relevance(text, terms, title), Number.parseInt(id, 10)],
+      // an unscoped one — which is DECLARED to belong in every pack — which in
+      // turn outranks one that merely inherits through a dependency. Putting
+      // global below inherited broke the guarantee that "unscoped means
+      // global", and a test caught it. Then query relevance; then the number,
+      // so between equals the newer decision survives the longer.
+      rank: [named ? 3 : global ? 2 : 1, ...relevance(text, terms, title), Number.parseInt(id, 10)],
       adrId: id,
       title,
       summary: adrSummary(text),

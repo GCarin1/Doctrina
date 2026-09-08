@@ -1365,8 +1365,18 @@ prontos para aplicar, aplicadas-mas-não-arquivadas), ADRs ainda em
 status `proposed`, ADRs aceitos sem nada que os comprove ainda
 (sugerindo `decision land`), um nudge único de captura de skill quando
 nenhuma existe e uma change arquivada tem cara de fix, e o drift do
-index por último (ADR 0011). Quando nada está aberto, diz isso e aponta
-para `change new` / `spec new`.
+index por último (ADR 0011).
+
+Ele também recomenda sobre os sinais de **gate** que o `doctrina doctor`
+reporta — critérios de aceitação sem cobertura ou citando evidência ausente
+em disco, intenção de produto que nenhuma spec realiza, gate de build não
+declarado, uma spec `active` cujo `Implementation:` ainda é um `planned`
+pelado — a partir da mesma coleção que as vistas read-only renderizam, então
+uma recomendação nunca contradiz a linha de onde veio. Esses sinais medem
+capabilities, então ficam calados enquanto não existe nenhuma: um projeto
+recém-inicializado é apontado para o `intake`, não convidado a escrever
+critérios para capabilities que ainda não nomeou. Quando nada está aberto e
+todo gate está satisfeito, diz isso e aponta para `intake` / `work`.
 
 Read-only sem `--run`, e nesse caso sempre sai 0. Pensado para agentes e
 humanos retomarem o trabalho sem reler a árvore inteira.

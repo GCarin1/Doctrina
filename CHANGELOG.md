@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`next` stopped answering "no open work" over a tree with five findings.**
+  Same project, same instant: `doctor` reported five, each with a named remedy,
+  and the command whose entire job is to answer "what now?" said there was
+  nothing to do. It knew the change / ADR / index / intake / runtime / skill
+  lifecycle and nothing about whether the gates were satisfied. Change 0037
+  unified the views so they could not disagree; this is that unification
+  reaching `next` — the same collection, with a view reporting and an action
+  recommending.
+- The practical cost was larger than the tidiness one: an adopting project that
+  never ran `verify --init` closed changes forever with step 7 of the close on
+  `skip`, its real build gate never executing, and nothing said so.
+- The gate signals measure capabilities, so they stay quiet until one exists —
+  a freshly initialised project is pointed at `intake` rather than asked to
+  write acceptance criteria for capabilities it has not named. And the empty
+  state now offers `intake` / `work`, not `change new` / `spec new`: the two
+  hand-authoring commands AGENTS.md tells an agent not to use.
+
 - **The docs gate stopped being inert for adopting projects.** It is blocking
   in `close` and exists for one thing — a change that alters documented surface
   only closes with the documentation for it — but it recognised a command by
