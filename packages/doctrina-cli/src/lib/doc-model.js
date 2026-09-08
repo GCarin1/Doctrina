@@ -365,6 +365,63 @@ export function isUntouchedScaffold(specText, capability) {
 
 
 /**
+ * The byte ranges every HTML comment occupies in `text`, in file order.
+ *
+ * A comment is annotation, not content: the scaffolded spec carries the
+ * five-line EARS legend inside one, and the guessed delta (change 0044)
+ * carries its `RANKED GUESS` note inside another. Every reader of an
+ * on-disk artifact has to agree on that, so the ranges are computed HERE
+ * and nowhere else (ADR 0021 — one owner for the on-disk grammar).
+ *
+ * @param {string} text
+ * @returns {Array<[number, number]>}
+ */
+export function commentRanges(text) {
+  /** @type {Array<[number, number]>} */
+  const ranges = [];
+  for (const m of text.matchAll(/<!--[\s\S]*?-->/g)) {
+    ranges.push([m.index ?? 0, (m.index ?? 0) + m[0].length]);
+  }
+  return ranges;
+}
+
+/**
+ * Is this offset inside one of `ranges`?
+ *
+ * @param {Array<[number, number]>} ranges
+ * @param {number} offset
+ * @returns {boolean}
+ */
+export function isInsideComment(ranges, offset) {
+  return ranges.some(([a, b]) => offset >= a && offset < b);
+}
+
+/**
+ * `text` with every HTML comment blanked out — same length, same line
+ * count, same offset for every character that survives.
+ *
+ * This is the skip-by-position rule of `spec-ops.matchOpsBlock` in a form
+ * a line- or regex-oriented scanner can use directly: a bullet inside a
+ * comment stops looking like a bullet, and a command name inside one stops
+ * looking like a reference, WITHOUT any surviving character moving. Masking
+ * is for SCANNING only. Never write the masked text back to disk, and never
+ * derive an authored value from it — a delta whose `append-criterion` value
+ * legitimately contains `<!-- illustrative -->` must land with the marker
+ * intact, which is why `applyOps` still works on the raw text.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+export function maskComments(text) {
+  let out = text;
+  for (const [a, b] of commentRanges(text)) {
+    const blanked = text.slice(a, b).replace(/[^\r\n]/g, " ");
+    out = out.slice(0, a) + blanked + out.slice(b);
+  }
+  return out;
+}
+
+/**
  * The title a change proposal's H1 states, or null.
  *
  * The H1 the template writes is `# Change <id> — <title>`, and the id itself

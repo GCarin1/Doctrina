@@ -7,6 +7,7 @@ import { parseAcceptanceCriteria } from "../lib/criteria.js";
 import { suggest } from "../lib/suggest.js";
 import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { maskComments } from "../lib/doc-model.js";
 
 // Point reads. An agent that needs ONE requirement re-reads a whole spec —
 // hundreds of lines for a two-line fact. `show` resolves a compact reference
@@ -129,7 +130,13 @@ function showSpecItem(projectRoot, cap, kind, n) {
 // Top-level bullets of the "## Requirements (EARS)" section, in file order,
 // each with its `### <grammar>` sub-section name and continuation lines.
 export function parseRequirements(text) {
-  const lines = text.split(/\r?\n/);
+  // The scaffolded spec writes the five-line EARS legend as bullets inside
+  // an HTML comment under `## Requirements (EARS)`. Counted as content, the
+  // legend became R1..R5 and the capability's first real requirement was R6
+  // — on every spec `doctrina spec new` had ever created. Comments are
+  // blanked by position (same offsets, same line count), so the numbering
+  // below is over authored bullets only.
+  const lines = maskComments(text).split(/\r?\n/);
   const out = [];
   let inSection = false;
   let sub = "";
@@ -175,6 +182,14 @@ Point-read one artifact fragment instead of a whole file:
   doctrina show 0007       ADR 0007 (the whole decision)
   doctrina show cli        the spec's header block + Purpose only
 
-R-refs are positional (they shift when a requirement is inserted above);
-C-refs use the criteria's own numbers. Read-only.
+R-refs are positional across the WHOLE spec, in file order, and they shift
+when a requirement is inserted above. C-refs use the criteria's own numbers.
+Both count authored content only — a bullet inside an HTML comment (the
+scaffold's EARS legend, for one) is annotation and is never numbered.
+
+A spec delta's replace-requirement <section> <n> numbers differently, and
+on purpose: it counts WITHIN one "### <section>", so the number stays put
+when another section grows. doctrina show <cap>-RN prints the section it
+landed in, which is what turns an R-ref into the delta's pair of coordinates.
+Read-only.
 `;

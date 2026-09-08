@@ -1,4 +1,5 @@
 // @ts-check
+import { commentRanges, isInsideComment } from "./doc-model.js";
 // Structured spec operations (ADR 0007 / review F3). A MODIFIED spec delta
 // historically carried prose ("flip criterion 2 to verified", "bump to
 // 0.3.0") that a human merged by hand — the single most error-prone step in
@@ -71,11 +72,8 @@ export function extractOps(deltaText) {
 // contain a comment (an `<!-- illustrative -->` marker inside an
 // append-criterion landed in the spec with the marker silently gutted).
 function matchOpsBlock(text) {
-  const commentRanges = [];
-  for (const m of text.matchAll(/<!--[\s\S]*?-->/g)) {
-    commentRanges.push([m.index, m.index + m[0].length]);
-  }
-  const insideComment = (offset) => commentRanges.some(([a, b]) => offset >= a && offset < b);
+  const ranges = commentRanges(text);
+  const insideComment = (offset) => isInsideComment(ranges, offset);
 
   const fenceRe = /^[ \t]*```[ \t]*ops[ \t]*\r?\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
   let m;

@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-09-07
-**Version:** 0.3.0
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -113,6 +113,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - When a task query is given and no capability is named, the system shall place the spec that query identifies unambiguously in the irreducible core.
 - When a read-only view is requested by name, the system shall render it from the shared collection, refuse an unknown name with the usage exit code and the names that exist rather than defaulting silently, and emit the same machine-readable envelope whichever view was named.
 - When `doctrina prime` runs without `--rules`, the system shall keep the primer a fixed-size read: the accepted ADRs by title and the number of non-goals, never their full text.
+- When resolving an `<cap>-RN` reference, the system shall number requirements over authored bullets only, skipping any bullet that lies inside an HTML comment.
 
 ### State-driven
 
@@ -142,6 +143,7 @@ The read path is spec-compliant when:
 11. [verified] An unknown view name exits with the usage code naming the nearest real one, and the machine-readable envelope keeps its shape whichever view is asked for — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 12. [verified] `constitution` and `prime --rules` produce byte-identical output, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 13. [verified] `prime`, `handoff` and `report` print the title of a change with a multi-word id without the id in front of it, and the index records the same — verified by `packages/doctrina-cli/test/change-title.test.js`.
+14. [verified] On a spec `doctrina spec new` has just created, `show <cap>-R1` returns the first authored requirement rather than the scaffold's EARS legend, and a spec with no authored requirement reports zero — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 
 ## Out of scope for this spec
 

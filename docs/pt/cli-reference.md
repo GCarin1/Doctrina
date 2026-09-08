@@ -1697,7 +1697,16 @@ Um agente que precisa de um requisito não deveria reler uma spec de
 400 linhas. Referências `R` são posicionais (deslocam quando um
 requisito é inserido acima — cite-as para leituras pontuais e
 conversa, não como identificadores imutáveis); referências `C` usam
-os números explícitos dos próprios critérios. Read-only.
+os números explícitos dos próprios critérios. As duas contam apenas
+conteúdo autoral: um bullet dentro de um comentário HTML — a legenda
+EARS que o scaffold da spec traz, por exemplo — é anotação e nunca
+entra na numeração. Read-only.
+
+O `replace-requirement <seção> <n>` de um delta de spec numera de
+outro jeito, e de propósito: conta dentro de uma `### <seção>`, então
+o número dele não se mexe quando outra seção cresce. O `doctrina show
+<cap>-RN` imprime a seção em que o requisito caiu, e é isso que
+transforma uma referência `R` no par de coordenadas do delta.
 
 ## `doctrina handoff`
 

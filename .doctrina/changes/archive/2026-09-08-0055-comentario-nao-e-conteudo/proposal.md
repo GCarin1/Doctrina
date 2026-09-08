@@ -1,10 +1,11 @@
 # Change 0055-comentario-nao-e-conteudo — comentario nao e conteudo
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: change)
-- **Affects specs:** validation
+- **Affects specs:** validation, insight, gates
 
 ## Why
 
@@ -45,11 +46,11 @@ Deltas esperados em `specs/validation` (a regra), `specs/insight` (`show`) e
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma change com delta por palpite fecha sem sinal fantasma no gate de docs.
-- [ ] `show <cap>-R1` numa spec recém-scaffoldada devolve o primeiro requisito real.
-- [ ] Um teste roda contra uma spec criada por `spec new`, não contra as deste repositório.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma change com delta por palpite fecha sem sinal fantasma no gate de docs.
+- [x] `show <cap>-R1` numa spec recém-scaffoldada devolve o primeiro requisito real.
+- [x] Um teste roda contra uma spec criada por `spec new`, não contra as deste repositório.
 
 ## Open questions
 

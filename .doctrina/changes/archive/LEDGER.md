@@ -60,3 +60,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-07 — 0050-metricas-e-uso-realimentam-o-fluxo — metricas e uso realimentam o fluxo (specs: scaffolding MODIFIED)
 - 2026-09-07 — 0051-init-aceita-o-intake — init aceita o intake (specs: scaffolding MODIFIED)
 - 2026-09-07 — 0052-o-titulo-da-change-nao-sai-duplicado — o titulo da change nao sai duplicado (specs: insight MODIFIED, validation MODIFIED)
+- 2026-09-08 — 0055-comentario-nao-e-conteudo — comentario nao e conteudo (specs: gates MODIFIED, insight MODIFIED, validation MODIFIED)

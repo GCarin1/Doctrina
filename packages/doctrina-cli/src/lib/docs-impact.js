@@ -4,6 +4,7 @@ import { isFile, read, walk } from "./fs-ops.js";
 import { COMMAND_NAMES } from "./commands.js";
 import { locateTemplatesDir } from "./templates.js";
 import { changedFiles, isRepo } from "./git.js";
+import { maskComments } from "./doc-model.js";
 
 // "Docs ship inside the change, never after it" (audit item D2).
 //
@@ -59,8 +60,14 @@ export function documentedSurfaceSignals(changeDir) {
   // and `doctrina coverage` — so scanning the raw file made every change look
   // like it touched a documented surface. A gate that fires on everything is
   // a gate that gets ignored, so the template's lines are subtracted first.
+  // An HTML comment is annotation, not authored surface. The guessed delta
+  // change 0044 scaffolds carries a `RANKED GUESS` note that names
+  // `doctrina work` — not template text, so the subtraction below never
+  // reaches it, and every change on the default path arrived at the docs
+  // gate carrying a phantom `commands: work`. Comments are blanked FIRST,
+  // by the document model, which is the one owner of that rule.
   const boilerplate = scaffoldLines();
-  const authored = (text) => text
+  const authored = (text) => maskComments(text)
     .split(/\r?\n/)
     .filter((line) => !boilerplate.has(normaliseScaffoldLine(line)))
     .join("\n");

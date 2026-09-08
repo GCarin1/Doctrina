@@ -1648,7 +1648,15 @@ An agent that needs one requirement should not re-read a 400-line
 spec. `R` references are positional (they shift when a requirement is
 inserted above — cite them for point reads and conversation, not as
 immutable identifiers); `C` references use the criteria's own
-explicit numbers. Read-only.
+explicit numbers. Both count authored content only: a bullet inside an
+HTML comment — the EARS legend the spec scaffold ships, for one — is
+annotation and is never numbered. Read-only.
+
+A spec delta's `replace-requirement <section> <n>` numbers differently
+and on purpose: it counts within one `### <section>`, so its number
+stays put when another section grows. `doctrina show <cap>-RN` prints
+the section the requirement landed in, which is what turns an `R`
+reference into the delta's pair of coordinates.
 
 ## `doctrina handoff`
 

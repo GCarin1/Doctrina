@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 1.3.0
+**Version:** 1.3.1
 
 ## Purpose
 
@@ -277,6 +277,7 @@ codes, zero-deps, no-network).
 - The system shall not let an advisory step decide a driver's exit code; a step declared advisory shall report and the sequence shall continue.
 - The system shall not report a diagnostic row by running its own binary and parsing that output, and shall not repair the tree from a read-only diagnostic; a declared row with no reporter shall be reported unchecked, never silently skipped.
 - The system shall not fail, rewrite, or discard a ledger line a human wrote outside the entry grammar; it shall skip it and keep reading.
+- The system shall not derive a documented-surface signal from text inside an HTML comment when deciding whether a change must carry documentation.
 
 ### Optional
 
@@ -333,6 +334,7 @@ The gate surface is spec-compliant when:
 37. [verified] A whole `doctor` run is one CLI invocation — proved by the usage log, which recorded four before this — and its rows agree with the commands that render the same collections — verified by `packages/doctrina-cli/test/doctor-in-process.test.js`.
 38. [verified] The ledger of this repository parses in full — abandonments and waived-gate lines included — a hand-written line is skipped rather than fatal, and churn counts only the changes that landed — verified by `packages/doctrina-cli/test/ledger.test.js`.
 39. [verified] `report` shows capability churn for the period, `review` reports it as history, and `close` names the dependents of the touched capabilities without gating on them — verified by `packages/doctrina-cli/test/ledger.test.js`.
+40. [verified] A change scaffolded on the default path, whose guessed delta names `doctrina work` inside its guess comment, produces no command signal, while a command the author wrote outside a comment still does — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 
 ## Out of scope for this spec
 

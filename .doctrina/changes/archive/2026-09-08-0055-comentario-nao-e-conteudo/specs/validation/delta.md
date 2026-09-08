@@ -35,3 +35,17 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+The document model owns the rule that an HTML comment is annotation, not
+content. It already owned the header grammar, the section grammar and the
+delta grammar (ADR 0021); the comment rule was the one piece of it three
+readers each decided for themselves, and two of them decided wrong.
+
+```ops
+bump-version minor
+append-requirement ubiquitous: The system shall treat an HTML comment in an artifact as annotation rather than content, and every module that scans an artifact shall obtain the comment ranges from the document model instead of deciding for itself.
+append-requirement unwanted: The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
+append-criterion [verified] A comment is blanked without moving any surviving character or line, and a bullet, a command name and an ops fence inside one all stop being read as content while an op value containing a comment marker still applies verbatim — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
+```

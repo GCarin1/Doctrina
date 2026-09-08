@@ -19,6 +19,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A comment is annotation, not content.** Three readers of the same
+  on-disk grammar disagreed about HTML comments, and two of them were wrong.
+  The docs gate read the `RANKED GUESS` note that a guessed spec delta
+  carries — it names `doctrina work`, it is not template text, so the
+  boilerplate subtraction never reached it — and every change opened on the
+  default path arrived at the close's documentation step carrying a phantom
+  `commands: work` signal and was refused. And `doctrina show <cap>-RN`
+  counted the five-line EARS legend the spec scaffold writes inside a
+  comment, so on any spec `spec new` had created, `R1..R5` returned the
+  syntax legend and the capability's first real requirement was `R6`. Only
+  `extractOps` had it right, and it stayed right because its rule was
+  written down where nobody else could see it.
+- The document model now owns that rule (`commentRanges`, `isInsideComment`,
+  `maskComments`), and the three readers share it. Masking blanks a comment
+  in place — same length, same line count, every surviving character at the
+  same offset — so it is a positional skip, not a rewrite: an op value that
+  legitimately contains `<!-- illustrative -->` still applies verbatim.
+- `doctrina show --help` now states how its positional `R` numbering relates
+  to the per-section numbering a delta's `replace-requirement` uses, since
+  the two count different things on purpose.
+
 - **The change title stopped coming out doubled.** A proposal's H1 is
   `# Change <id> — <title>` and the id itself contains hyphens, so the parser
   that read the id as `[^—-]*` stopped at the id's FIRST hyphen: every

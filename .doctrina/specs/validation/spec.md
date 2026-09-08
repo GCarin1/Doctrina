@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
 **Last updated:** 2026-08-06
-**Version:** 0.7.0
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -49,6 +49,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall treat an artifact marked `(external)` in a Pipeline step as supplied from outside the pipeline, and shall not require a producing step for it.
 - The system shall keep the grammar for reading an artifact off disk in one document model, and every module that parses an artifact shall read that grammar from there rather than define its own.
 - The system shall read a change proposal's title through the document model, treating the separator between the change id and the title as a dash surrounded by whitespace — never a bare hyphen, which an id contains — and returning the whole heading when it carries no `Change <id>` prefix.
+- The system shall treat an HTML comment in an artifact as annotation rather than content, and every module that scans an artifact shall obtain the comment ranges from the document model instead of deciding for itself.
 
 ### Event-driven
 
@@ -88,6 +89,7 @@ treatment cohorts using the same definition in each cohort.
   measurement against pre-declared thresholds, not research-grade
   inference.
 - The system shall not treat bold prose as a metadata header; a header carries a colon and lives before the first section.
+- The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
 
 ### Optional
 
@@ -160,6 +162,7 @@ The validation capability is delivered when:
 12. [verified] A vague skill trigger warns and a concrete one does not — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 13. [verified] The frontmatter and spec-delta parsers live in the document model, no other module defines them, and no library depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 14. [verified] A multi-word change id no longer leaks into the title, an id with no hyphen and a heading with no prefix are unchanged, a heading with no separator is returned whole, and no module outside the document model carries the parse — verified by `packages/doctrina-cli/test/change-title.test.js`.
+15. [verified] A comment is blanked without moving any surviving character or line, and a bullet, a command name and an ops fence inside one all stop being read as content while an op value containing a comment marker still applies verbatim — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 
 ## Out of scope for this spec
 
