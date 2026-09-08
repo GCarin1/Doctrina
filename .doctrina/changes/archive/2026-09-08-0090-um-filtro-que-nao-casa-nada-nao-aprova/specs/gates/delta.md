@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement unwanted: If a scope filter names a capability that has no spec, the system shall not report a verdict; it shall report a usage error naming the value and the capabilities that exist, because a gate that measured nothing must not be indistinguishable from a gate that passed.
+append-requirement ubiquitous: The system shall distinguish a tree that declares no acceptance criteria from a filtered capability that declares none of its own, so neither absence is reported in the other's words.
+append-criterion [verified] A filter naming no capability is refused with the usage class and prints no verdict, a near miss is named, and one bad name in a list is enough to refuse — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
+append-criterion [verified] A filter naming a real capability still reports, and an empty tree and an empty capability say different things — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
+bump-version minor
+```

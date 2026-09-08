@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.14.0
+**Version:** 1.15.0
 
 ## Purpose
 
@@ -47,6 +47,7 @@ codes, zero-deps, no-network).
 - The system shall expand a glob's brace groups against their matching close and split alternatives only at the group's own depth, and shall compile the pattern from that expansion rather than from the unexpanded text.
 - The system shall exclude a proposal's verification section when reading it for documented-surface signals, since that section names the commands the author will RUN to prove the change rather than the ones it alters.
 - The system shall derive a closing sequence's concluding claim from the steps that actually ran, naming the skipped ones, so the sentence can never assert a gate the run did not perform.
+- The system shall distinguish a tree that declares no acceptance criteria from a filtered capability that declares none of its own, so neither absence is reported in the other's words.
 
 ### Event-driven
 
@@ -303,6 +304,7 @@ codes, zero-deps, no-network).
 - If a glob carries a brace with no matching close, the system shall not expand it into a partial set of alternatives; the pattern shall match nothing so the malformed declaration is reported rather than silently covering less than it claims.
 - If a change declares the chore lane, the system shall not require documentation of a surface it named, because the lane is the author's recorded statement that no behaviour changes.
 - If a closing step has nothing to check, the system shall not report conformance; it shall report the absence instead, because a universal statement over an empty set is vacuously true and reads as a check performed.
+- If a scope filter names a capability that has no spec, the system shall not report a verdict; it shall report a usage error naming the value and the capabilities that exist, because a gate that measured nothing must not be indistinguishable from a gate that passed.
 
 ### Optional
 
@@ -380,6 +382,8 @@ The gate surface is spec-compliant when:
 58. [verified] A product change naming a command in its What still signals, and the archived product changes keep their signals — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
 59. [verified] A close whose verify step was skipped does not report the change as verified and names the skip, while a close that runs every gate still claims all three — verified by `packages/doctrina-cli/test/the-close-claims-only-what-it-ran.test.js`.
 60. [verified] A step with nothing to check reports the absence, and a step with something to check reports how much it checked — verified by `packages/doctrina-cli/test/the-close-claims-only-what-it-ran.test.js`.
+61. [verified] A filter naming no capability is refused with the usage class and prints no verdict, a near miss is named, and one bad name in a list is enough to refuse — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
+62. [verified] A filter naming a real capability still reports, and an empty tree and an empty capability say different things — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
 
 ## Out of scope for this spec
 

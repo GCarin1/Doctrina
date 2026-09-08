@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`doctrina coverage --only` refuses a filter that matches nothing.** On
+  this repository, which declares over two hundred criteria, `--only
+  naoexiste --strict` printed "no acceptance criteria found under
+  `.doctrina/specs/`" and exited **0**. The sentence was false and the CI
+  gate approved a measurement that measured nothing, so a job running
+  `coverage --only billing --strict` stayed green forever once that
+  capability was renamed or split. It is now a usage error (exit 2) naming
+  the value and the capabilities that exist — the rule RT05 already applies
+  to a contract selector matching zero targets. A tree with no criteria and a
+  filtered capability with none of its own no longer share one sentence.
+
 - **`doctrina close` claims only the gates it ran.** The closing line was a
   fixed string — "verified, archived, and validated" — printed on a close
   whose own step 7 had just said `skip   no .doctrina/verify.json`. The run

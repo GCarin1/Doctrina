@@ -1,6 +1,7 @@
 # Change 0090-um-filtro-que-nao-casa-nada-nao-aprova — um filtro que nao casa nada nao aprova
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -53,11 +54,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um `--only` que não casa capability nenhuma é reportado como erro de uso.
-- [ ] A mensagem deixa de afirmar que não há critérios quando há.
-- [ ] `--only` de uma capability existente continua funcionando igual.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um `--only` que não casa capability nenhuma é reportado como erro de uso.
+- [x] A mensagem deixa de afirmar que não há critérios quando há.
+- [x] `--only` de uma capability existente continua funcionando igual.
 
 ## Open questions
 

@@ -1171,7 +1171,7 @@ exist is **dangling**.
 | Flag | Purpose |
 |------|---------|
 | `--strict` | Exit 1 when any criterion is bare, dangling, conditional, or unguarded (CI gate). Deferred never fails. Without it, the command always exits 0 (a report). |
-| `--only <cap,cap>` | Scope the report/gate to specific capabilities (`doctrina close` uses this so an unrelated deferred spec cannot block a change's close). |
+| `--only <cap,cap>` | Scope the report/gate to specific capabilities (`doctrina close` uses this so an unrelated deferred spec cannot block a change's close). A name with no spec is a **usage error** (exit 2), naming the capabilities that exist: a filter matching nothing used to report "no acceptance criteria found" and exit 0, `--strict` included, so a CI job kept passing once the capability was renamed. |
 | `--run` | Execute the cited evidence via the project-declared `"evidence_runner"` in `.doctrina/verify.json` (a command template with a `{file}` placeholder, e.g. `"python -m pytest {file}"`). Exits 1 when any run fails — promotes "the file exists" to "the proof passes". |
 | `--json` | Emit per-spec criterion rows + summary as JSON. |
 

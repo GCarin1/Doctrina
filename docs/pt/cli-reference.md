@@ -1209,7 +1209,7 @@ existe é **dangling**.
 | Flag | Função |
 |------|--------|
 | `--strict` | Sai 1 quando algum critério é bare, dangling ou conditional (gate de CI). Deferred nunca falha. Sem ela, o comando sempre sai 0 (um relatório). |
-| `--only <cap,cap>` | Escopa o relatório/gate a capabilities específicas (o `doctrina close` usa isto para uma spec adiada alheia não bloquear o close de uma change). |
+| `--only <cap,cap>` | Escopa o relatório/gate a capabilities específicas (o `doctrina close` usa isto para uma spec adiada alheia não bloquear o close de uma change). Um nome sem spec é **erro de uso** (exit 2), nomeando as capabilities que existem: um filtro que não casava nada reportava «no acceptance criteria found» e saía 0, `--strict` incluído, então um job de CI continuava passando depois de a capability ser renomeada. |
 | `--run` | Executa a evidência citada via o `"evidence_runner"` declarado pelo projeto em `.doctrina/verify.json` (um template de comando com placeholder `{file}`, ex.: `"python -m pytest {file}"`). Sai 1 quando alguma execução falha — promove "o arquivo existe" para "a prova passa". |
 | `--json` | Emite as linhas de critério por spec + resumo como JSON. |
 

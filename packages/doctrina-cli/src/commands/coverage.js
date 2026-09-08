@@ -6,7 +6,10 @@ import { exists, isFile, read, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
+import { suggest } from "../lib/suggest.js";
+import { isDir } from "../lib/fs-ops.js";
+import { readdirSync } from "node:fs";
 import { collect, summarize } from "../lib/coverage-model.js";
 
 // The numbers this command reports come from lib/coverage-model.js, which
@@ -53,6 +56,28 @@ export async function run(_positional, flags) {
   const onlyRaw = flagString(flags, "only");
   const only = onlyRaw ? new Set(onlyRaw.split(",").map((s) => s.trim()).filter(Boolean)) : null;
 
+  // A filter that matches no capability is a USAGE error, not a clean gate.
+  // It used to fall through to "no acceptance criteria found under
+  // .doctrina/specs/" and exit 0 — on THIS repository, which declares over
+  // two hundred of them — `--strict` included. So a CI job running
+  // `coverage --only billing --strict` stayed green forever once the
+  // capability was renamed or split: the failure looked exactly like
+  // success. RT05 already refuses a contract selector that matches zero
+  // targets, for the same reason (change 0090).
+  if (only) {
+    const known = knownCapabilities(projectRoot);
+    const missing = [...only].filter((cap) => !known.includes(cap));
+    if (missing.length > 0) {
+      for (const cap of missing) {
+        console.error(c.red("error:") + ` --only names no capability with a spec: "${cap}"`);
+        const guess = suggest(cap, known);
+        if (guess) console.error(c.gray("hint: ") + `did you mean "${guess}"?`);
+      }
+      if (known.length > 0) console.error(c.gray("known: ") + known.sort().join(", "));
+      return EXIT.USAGE;
+    }
+  }
+
   const reports = collect(projectRoot, { only });
 
   // --run: execute the cited evidence instead of only checking it exists —
@@ -68,7 +93,11 @@ export async function run(_positional, flags) {
       emitJson("coverage", { specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: null } });
       return 0;
     }
-    console.log(c.gray("no acceptance criteria found under .doctrina/specs/"));
+    // The two cases used to share one sentence, and the shared one was the
+    // false one whenever a filter was in play.
+    console.log(c.gray(only
+      ? `no acceptance criteria declared by ${[...only].sort().join(", ")}`
+      : "no acceptance criteria found under .doctrina/specs/"));
     return 0;
   }
 
@@ -258,3 +287,11 @@ Flags:
                      passes". The CLI never guesses a test runner.
   --json             Emit per-spec criterion rows + summary as JSON.
 `;
+
+// The capabilities that actually have a spec on disk — the set `--only` is
+// checked against, and the list its error prints.
+function knownCapabilities(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (!isDir(specsDir)) return [];
+  return readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md")));
+}
