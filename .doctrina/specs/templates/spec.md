@@ -110,7 +110,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
 - A freshly scaffolded contract shall not fail its own `contract check`: placeholder rows are scaffolding, not declarations.
 - The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
-- If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall decline to append them and shall report the shortfall, rather than resolving one gate's recommendation by breaching another gate's refusal.
+- If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall not append them, and shall report the shortfall instead of resolving one gate's recommendation by breaching another gate's refusal.
 
 ### Optional
 
