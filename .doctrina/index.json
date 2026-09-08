@@ -20,6 +20,10 @@
         "implementation": "implemented",
         "depends_on": [
           "cli"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
+          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js"
         ]
       },
       {
@@ -28,7 +32,12 @@
         "status": "active",
         "version": "0.43.0",
         "last_updated": "2026-08-06",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/index.js",
+          "packages/doctrina-cli/src/commands/next.js",
+          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js"
+        ]
       },
       {
         "id": "core",
@@ -40,6 +49,9 @@
         "realizes": [
           "SC3",
           "SC4"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/lib/{dates,fs-ops}.js"
         ]
       },
       {
@@ -52,15 +64,26 @@
         "realizes": [
           "SC3",
           "SC5"
+        ],
+        "source": [
+          "docs/**",
+          "scripts/check-docs.js",
+          "CHANGELOG.md",
+          "README*.md"
         ]
       },
       {
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.9.0",
+        "version": "1.10.0",
         "last_updated": "2026-08-06",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js",
+          "scripts/bench.js"
+        ]
       },
       {
         "id": "insight",
@@ -68,7 +91,11 @@
         "status": "active",
         "version": "0.5.0",
         "last_updated": "2026-09-07",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js",
+          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js"
+        ]
       },
       {
         "id": "scaffolding",
@@ -79,6 +106,10 @@
         "implementation": "implemented",
         "depends_on": [
           "cli"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js",
+          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js"
         ]
       },
       {
@@ -87,7 +118,10 @@
         "status": "active",
         "version": "0.4.0",
         "last_updated": "2026-07-02",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/skill.js"
+        ]
       },
       {
         "id": "templates",
@@ -95,7 +129,11 @@
         "status": "active",
         "version": "0.19.0",
         "last_updated": "2026-08-06",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js",
+          ".doctrina/templates/**"
+        ]
       },
       {
         "id": "validation",
@@ -108,6 +146,9 @@
           "SC1",
           "SC2",
           "SC3"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/lib/{doc-model,validation-model}.js"
         ]
       }
     ],
@@ -447,17 +488,23 @@
           "authoring"
         ],
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
+      },
+      {
+        "id": "0027",
+        "path": ".doctrina/decisions/0027-code-ownership-is-declared-by-the-spec-never-inferred-from-paths.md",
+        "title": "code ownership is declared by the spec never inferred from paths",
+        "status": "accepted",
+        "date": "2026-09-08",
+        "scope": [
+          "gates",
+          "authoring",
+          "insight",
+          "validation"
+        ],
+        "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
     "changes": [
-      {
-        "id": "0077-o-review-enxerga-o-codigo-que-revisa",
-        "title": "o review enxerga o codigo que revisa",
-        "path": ".doctrina/changes/0077-o-review-enxerga-o-codigo-que-revisa",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: spec)"
-      },
       {
         "id": "0078-a-recomendacao-sabe-o-que-custa",
         "title": "a recomendacao sabe o que custa",
@@ -1533,6 +1580,19 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0077-o-review-enxerga-o-codigo-que-revisa",
+        "title": "o review enxerga o codigo que revisa",
+        "path": ".doctrina/changes/archive/2026-09-08-0077-o-review-enxerga-o-codigo-que-revisa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

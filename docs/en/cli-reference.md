@@ -1179,6 +1179,27 @@ is faithful to the spec stays a human/LLM call (the ADR 0005 ceiling).
 Read-only; exits 0 as a report, 1 under `--strict` when any hard break
 exists. The agent self-reviews here before bringing work to the human.
 
+**Which capability a changed file belongs to is DECLARED, never inferred**
+(ADR 0027). A capability spec claims its code in an optional `**Source:**`
+header holding comma-separated globs — `*` inside a segment, `**` across
+directories, `{a,b}` alternating, the same dialect a contract's Selectors
+use:
+
+```
+**Source:** `src/commands/{init,adapter}.js`, `docs/**`
+```
+
+A declared match outranks the fallback heuristics (the capability name as a
+path segment, the spec citing the path or the basename), which stay for a
+project that declares nothing — so a spec with no header behaves exactly as
+before. Two gates keep the claim honest: `validate` warns when a pattern
+matches no file, and `review` names the changed files that belong to no
+capability **one by one**. That second half matters: the note used to fire
+only when the whole diff matched nothing, so a single incidental hit —
+anything under `docs/`, which matches the `docs` capability because the
+directory is named after it — silenced it for every other file in the
+change.
+
 ## `doctrina verify`
 
 Run the project-declared build/verify checks — the real "does the code

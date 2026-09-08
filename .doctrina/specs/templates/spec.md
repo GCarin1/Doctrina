@@ -4,6 +4,7 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `.doctrina/templates/**`
 **Last updated:** 2026-08-06
 **Version:** 0.19.0
 

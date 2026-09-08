@@ -4,8 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.9.0
+**Version:** 1.10.0
 
 ## Purpose
 
@@ -40,6 +41,7 @@ codes, zero-deps, no-network).
 - The system shall derive a capability's implementation state from its acceptance-criteria coverage — every criterion proven yields verified, some proven yields partial, none yields planned — and every surface that reports or applies that state shall read the same derivation.
 - The system shall report a sign-off it cannot hold to the code — one carrying no commit, covering no declared path, or made outside a repository — as unverifiable rather than passing, and shall distinguish executed proof from signed proof wherever it reports the build gate.
 - The system shall read and write the archive ledger through one grammar, so that a line the CLI appends is a line the CLI can read back.
+- The system shall determine which capability owns a source file from the `**Source:**` globs the capability spec declares, falling back to path and citation inference only for a project that declares none, and shall never infer ownership over a declaration (ADR 0027).
 
 ### Event-driven
 
@@ -258,6 +260,7 @@ codes, zero-deps, no-network).
 - When deciding whether a change must carry documentation, the system shall recognise as documented surface the names the checked project declares in its own contracts, and shall fall back to its own command catalog only for a project that declares none.
 - When a change names a route, an HTTP method with a route, or an environment-variable identifier in a code span, the system shall treat it as documented surface even when no contract declares it yet.
 - When `contract check` runs with JSON output requested, the system shall emit a payload distinguishing a runtime surface that was verified from one that was never declared, and shall emit nothing else on standard output.
+- When `doctrina review` runs, the system shall name each changed file that belongs to no capability, one by one, rather than reporting the absence only when the whole diff matches nothing.
 
 ### State-driven
 
@@ -289,6 +292,7 @@ codes, zero-deps, no-network).
 - The system shall not treat a metadata header whose value is still the shipped template's placeholder as a header the author supplied.
 - The system shall not run its own binary as a subprocess to satisfy a step of a sequence it is already executing.
 - The system shall not offer, as a place to write documentation, a directory of the checked project that contains no prose.
+- If a spec declares a `**Source:**` pattern that matches no file on disk, the system shall report it as a finding, because a claim over code that is not there reads as coverage and provides none.
 
 ### Optional
 
@@ -354,6 +358,8 @@ The gate surface is spec-compliant when:
 46. [verified] No export under `src/lib/` is referenced by nothing at all, a seam reached only by tests is reported apart from dead surface rather than failed, and a newly orphaned export is caught — verified by `packages/doctrina-cli/test/export-drift.test.js`.
 47. [verified] A command, an environment variable and a configuration key an adopting project declares each produce a signal; an endpoint and a variable being added produce one by shape; a purely internal change produces none; and a project with no contract behaves exactly as before — verified by `packages/doctrina-cli/test/docs-gate-reads-the-contract.test.js`.
 48. [verified] An undeclared surface reports `verdict: unchecked` at exit 0, a declared one that holds reports its row count, a declaration that does not hold carries its findings with code, level, message and remedy, the payload parses as the whole of stdout, and the other contract subcommands keep the captured envelope — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+49. [verified] A declared glob claims its file and outranks every inference, and every tracked source file in this repository has an owning capability — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
+50. [verified] The orphan note fires per file even when another changed file matched, and `validate` reports a pattern that matches nothing — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
 
 ## Out of scope for this spec
 

@@ -101,7 +101,7 @@ governs how a body of agents acts.
 - Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Ten capability specs and the ADRs 0001–0026 that describe the framework
+- Ten capability specs and the ADRs 0001–0027 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as

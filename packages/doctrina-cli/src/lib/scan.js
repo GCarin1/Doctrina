@@ -28,6 +28,44 @@ export function parseDependsOn(text) {
   return raw.match(/[a-z][a-z0-9][a-z0-9-]*/g) ?? [];
 }
 
+/**
+ * The source globs a spec DECLARES as its own, from the optional
+ * `**Source:**` header — comma-separated, `*` inside a segment and `**`
+ * across directories (the same minimal glob the contract's Selectors use).
+ *
+ * Doctrina infers nothing about which code belongs to which capability
+ * (ADR 0027, and the same principle ADR 0023 applies to the runtime
+ * surface). Before this header the only signals were the capability name
+ * appearing as a path segment and the spec happening to cite a filename,
+ * which left 80 of this repository's 92 source files owned by nobody — so
+ * `review`, the gate that asks whether the spec kept up with the code,
+ * could not see the code it was reviewing.
+ *
+ * Returns [] when the header is absent, "n/a", or "—".
+ */
+export function parseSourceGlobs(text) {
+  const raw = specHeader(text, "Source");
+  if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
+  // Split on commas at brace depth ZERO: a comma inside `{a,b}` separates
+  // alternatives of ONE glob, not two globs, and splitting on it blindly
+  // shreds every grouped declaration into fragments that match nothing.
+  const out = [];
+  let cur = "";
+  let depth = 0;
+  for (const ch of raw) {
+    if (ch === "{") depth += 1;
+    else if (ch === "}") depth = Math.max(0, depth - 1);
+    if (ch === "," && depth === 0) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map((g) => g.trim().replace(/^`|`$/g, "").trim()).filter(Boolean);
+}
+
 function dirEntries(dir) {
   if (!isDir(dir)) return [];
   return readdirSync(dir).filter((e) => !e.startsWith(".")).sort();
@@ -200,6 +238,10 @@ export function deriveIndex(projectRoot, current) {
     // dependents of a touched capability.
     const depends = specHeader(text, "Depends on") !== null ? parseDependsOn(text) : prev?.depends_on;
     if (depends && depends.length) entry.depends_on = depends;
+    // Source: the code this capability owns (change 0077). Declared, never
+    // inferred — the same discipline ADR 0023 applies to the runtime surface.
+    const source = specHeader(text, "Source") !== null ? parseSourceGlobs(text) : prev?.source;
+    if (source && source.length) entry.source = source;
     out.artifacts.specs.push(entry);
   }
 

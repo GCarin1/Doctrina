@@ -35,3 +35,12 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall determine which capability owns a source file from the `**Source:**` globs the capability spec declares, falling back to path and citation inference only for a project that declares none, and shall never infer ownership over a declaration (ADR 0027).
+append-requirement event: When `doctrina review` runs, the system shall name each changed file that belongs to no capability, one by one, rather than reporting the absence only when the whole diff matches nothing.
+append-requirement unwanted: If a spec declares a `**Source:**` pattern that matches no file on disk, the system shall report it as a finding, because a claim over code that is not there reads as coverage and provides none.
+append-criterion [verified] A declared glob claims its file and outranks every inference, and every tracked source file in this repository has an owning capability — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
+append-criterion [verified] The orphan note fires per file even when another changed file matched, and `validate` reports a pattern that matches nothing — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
+bump-version minor
+```

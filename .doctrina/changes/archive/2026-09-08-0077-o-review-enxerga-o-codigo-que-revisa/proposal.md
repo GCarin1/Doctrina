@@ -1,6 +1,7 @@
 # Change 0077-o-review-enxerga-o-codigo-que-revisa — o review enxerga o codigo que revisa
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: spec)
@@ -57,11 +58,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um arquivo do CLI mapeia para a capability cuja spec o descreve.
-- [ ] O aviso de código sem capability dispara mesmo quando outro arquivo casou.
-- [ ] A cobertura do mapeamento é medida, não estimada.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um arquivo do CLI mapeia para a capability cuja spec o descreve.
+- [x] O aviso de código sem capability dispara mesmo quando outro arquivo casou.
+- [x] A cobertura do mapeamento é medida, não estimada.
 
 ## Open questions
 

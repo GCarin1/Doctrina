@@ -1219,6 +1219,28 @@ código é fiel à spec continua sendo julgamento humano/LLM (o teto do ADR
 0005). Read-only; sai 0 como relatório, 1 sob `--strict` quando há quebra
 dura. O agente se autorevisa aqui antes de levar o trabalho ao humano.
 
+**A que capability um arquivo mudado pertence é DECLARADO, nunca inferido**
+(ADR 0027). A spec de uma capability reivindica seu código num header
+opcional `**Source:**` com globs separados por vírgula — `*` dentro de um
+segmento, `**` atravessando diretórios, `{a,b}` alternando, o mesmo dialeto
+que os Selectors de um contrato usam:
+
+```
+**Source:** `src/commands/{init,adapter}.js`, `docs/**`
+```
+
+Uma correspondência declarada supera as heurísticas de fallback (o nome da
+capability como segmento do caminho, a spec citando o caminho ou o
+basename), que ficam para um projeto que não declara nada — então uma spec
+sem o header se comporta exatamente como antes. Dois gates mantêm a
+reivindicação honesta: o `validate` avisa quando um padrão não casa com
+arquivo nenhum, e o `review` nomeia os arquivos mudados que não pertencem a
+capability nenhuma **um a um**. Essa segunda metade importa: o aviso só
+disparava quando o diff inteiro não casava, então uma única correspondência
+acidental — qualquer coisa sob `docs/`, que casa com a capability `docs`
+porque o diretório tem esse nome — o calava para todos os outros arquivos da
+change.
+
 ## `doctrina verify`
 
 Roda as checagens de build/verify declaradas pelo projeto — o gate real

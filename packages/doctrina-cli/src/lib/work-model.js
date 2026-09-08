@@ -10,6 +10,8 @@ import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read } from "./fs-ops.js";
 import { score, terms } from "./lexicon.js";
+import { parseSourceGlobs } from "./scan.js";
+import { globToRegExp } from "./runtime.js";
 // Rank capabilities by the working tree, not the prompt (review F10): a changed
 // file scores its capability when the file sits under a path segment named for
 // it, or when the spec cites the file as evidence. A deterministic overlap
@@ -24,8 +26,12 @@ export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
     const specPath = path.join(specsDir, cap, "spec.md");
     if (!isFile(specPath)) continue;
     const specText = read(specPath);
+    // A DECLARED glob outranks every inference: the spec said this code is
+    // its own, and a declaration is not a guess (change 0077).
+    const declared = parseSourceGlobs(specText).map((g) => globToRegExp(g));
     let score = 0;
     for (const f of norm) {
+      if (declared.some((re) => re.test(f))) score += 10;     // the spec claims it
       if (f.split("/").includes(cap)) score += 3;            // src/<cap>/... etc.
       if (specText.includes(f)) score += 5;                  // file cited in the spec
       else if (specText.includes(path.basename(f))) score += 2; // filename cited

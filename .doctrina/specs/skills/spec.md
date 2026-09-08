@@ -4,6 +4,7 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Source:** `packages/doctrina-cli/src/commands/skill.js`
 **Last updated:** 2026-07-02
 **Version:** 0.4.0
 

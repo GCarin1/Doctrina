@@ -4,6 +4,7 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
+**Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-08-06
 **Version:** 0.10.0
 

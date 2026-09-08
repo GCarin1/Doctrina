@@ -573,10 +573,38 @@ export function checkSelectors(projectRoot, decl) {
   return findings;
 }
 
-// A minimal glob: `**` spans directories, `*` stays inside one segment.
-// Enough for the "where do my selectors live" declarations, with no
-// dependency and no surprises.
+/**
+ * Expand one level of brace alternation: `a/{x,y}.js` -> [`a/x.js`, `a/y.js`],
+ * recursively, so several groups in one pattern all expand.
+ *
+ * Added for the `**Source:**` declarations (change 0077), where a capability
+ * that owns eleven sibling modules would otherwise need eleven globs on one
+ * header line. Braces have no meaning in a path, so this takes nothing away
+ * from the patterns that were already valid.
+ */
+export function expandBraces(glob) {
+  const text = String(glob);
+  const open = text.indexOf("{");
+  if (open < 0) return [text];
+  const close = text.indexOf("}", open);
+  if (close < 0) return [text];
+  const head = text.slice(0, open);
+  const tail = text.slice(close + 1);
+  const out = [];
+  for (const alt of text.slice(open + 1, close).split(",")) {
+    out.push(...expandBraces(head + alt.trim() + tail));
+  }
+  return out;
+}
+
+// A minimal glob: `**` spans directories, `*` stays inside one segment, and
+// `{a,b}` alternates. Enough for the "where do my selectors live" and "which
+// code is mine" declarations, with no dependency and no surprises.
 export function globToRegExp(glob) {
+  const alternatives = expandBraces(glob);
+  if (alternatives.length > 1) {
+    return new RegExp(alternatives.map((g) => globToRegExp(g).source).join("|"));
+  }
   const segments = String(glob).split("/");
   const parts = [];
   for (let i = 0; i < segments.length; i++) {
@@ -599,7 +627,14 @@ export function globToRegExp(glob) {
   return new RegExp(`^${parts.join("")}$`);
 }
 
-function filesMatching(projectRoot, glob) {
+/**
+ * Every file under `projectRoot` matching one glob, project-relative.
+ *
+ * Exported since change 0077: `validate` asks the same question of a spec's
+ * `**Source:**` patterns that the selector check asks of a contract's — does
+ * this declaration point at anything that exists?
+ */
+export function filesMatching(projectRoot, glob) {
   const re = globToRegExp(glob);
   // Walk from the deepest literal directory prefix so a narrow glob never
   // costs a full-tree walk.

@@ -32,6 +32,11 @@ import { summarize as traceSummary } from "../lib/trace-model.js";
 const CHURN_WINDOW_DAYS = 60;
 const CHURN_NOTABLE = 3;
 
+// How many unclaimed files the orphan note names before it summarises the
+// rest. Long enough to act on, short enough that a wide refactor does not
+// bury every other finding under a file listing.
+const ORPHAN_LIST_LIMIT = 5;
+
 export const flags = { boolean: ["json", "strict"], string: ["diff"] };
 
 export async function run(_positional, flags) {
@@ -95,10 +100,20 @@ export async function run(_positional, flags) {
     }
   }
 
-  // 2. New source files that map to no capability at all — code with no home
-  //    in any spec (a likely new, unspecced capability).
-  if (ranked.length === 0 && sourceFiles.length > 0) {
-    notes.push(`changed code maps to no existing capability spec — if this is a new capability, scaffold it: \`doctrina spec new <capability>\` (or \`doctrina work --from-diff\`)`);
+  // 2. Changed source files that map to no capability at all — code with no
+  //    home in any spec. Reported PER FILE (change 0077): the old form fired
+  //    only when the WHOLE diff matched nothing, so one incidental match —
+  //    any file under `docs/`, which matches the `docs` capability because
+  //    the directory is named after it — silenced the finding for every other
+  //    file in the change. A review of an adapter change reported
+  //    "Capabilities touched: docs" and said nothing about the adapter.
+  const orphans = sourceFiles.filter(
+    (f) => rankCapabilitiesByDiff(projectRoot, [f], { limit: 1 }).length === 0,
+  );
+  if (orphans.length > 0) {
+    const shown = orphans.slice(0, ORPHAN_LIST_LIMIT).map((f) => `\`${f}\``).join(", ");
+    const more = orphans.length > ORPHAN_LIST_LIMIT ? `, and ${orphans.length - ORPHAN_LIST_LIMIT} more` : "";
+    notes.push(`${orphans.length} changed file(s) belong to no capability: ${shown}${more} — claim them with a \`**Source:**\` header on the owning spec, or scaffold the capability they are (\`doctrina spec new <capability>\`)`);
   }
 
   // 3. Coverage — acceptance criteria whose cited proof is missing/skipped.

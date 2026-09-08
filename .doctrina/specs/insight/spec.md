@@ -4,6 +4,7 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
 **Version:** 0.5.0
 

@@ -22,11 +22,11 @@ import { cliVersion } from "./version.js";
 import { today } from "./dates.js";
 import { checklistProgress, kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
-import { parseAdrScope, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
+import { parseAdrScope, parseSourceGlobs, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
 import { parseAcceptanceCriteria, isVerified } from "./criteria.js";
 import { parsePipeline, checkPipeline } from "./pipeline.js";
-import { declaredBudget, collectRuntimeFindings } from "./runtime.js";
+import { declaredBudget, collectRuntimeFindings, filesMatching } from "./runtime.js";
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
 import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
@@ -572,6 +572,21 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
               `scaffold's placeholder — write the observable signal and cite proof that exists, ` +
               `or delete the criterion (it resolves nowhere, so \`coverage\` reports it dangling ` +
               `in the close of whatever change touches this capability next)`,
+          );
+        }
+
+        // 8h. A `**Source:**` glob that claims code which is not there
+        //     (change 0077). The header is the tree's only machine-readable
+        //     statement that a capability OWNS a file, and `review` decides
+        //     from it whether the spec kept up with the code. A pattern
+        //     matching nothing is the same failure as a selector matching no
+        //     target (RT05): the declaration reads as coverage and provides
+        //     none, so a file moved out from under it goes unnoticed.
+        for (const glob of parseSourceGlobs(text)) {
+          if (filesMatching(projectRoot, glob).length > 0) continue;
+          warnings.push(
+            `${relPath(projectRoot, specPath)}: **Source:** pattern \`${glob}\` matches no file ` +
+              `— the capability claims code that is not there; correct the pattern or drop it`,
           );
         }
 

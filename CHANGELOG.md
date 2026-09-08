@@ -19,6 +19,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`doctrina review` can see the code it reviews (ADR 0027).** Which
+  capability owns a changed file was inferred from three signals — the
+  capability name as a path segment, the spec citing the path, the spec citing
+  the basename — and measured over this repository, **80 of 92 source files
+  matched none of them**: `commands/adapter.js`, `commands/work.js`,
+  `lib/gates.js` among them. `review` runs inside every `close` and asks
+  whether the spec kept up with the code; it was blind for 87% of it. Worse,
+  the "this code belongs to nobody" note fired only when the WHOLE diff missed,
+  so one incidental match under `docs/` silenced it for everything else — the
+  review of an adapter change reported "Capabilities touched: docs".
+  A capability spec now DECLARES its code in an optional `**Source:**` header
+  of comma-separated globs (`*`, `**`, and `{a,b}` alternation, the dialect
+  the contract's Selectors already used). A declaration outranks every
+  inference; the heuristics stay as the fallback, so a spec without the header
+  behaves exactly as before. `validate` warns when a pattern matches no file,
+  and `review` names unclaimed files one by one. Coverage of this tree's map:
+  12 of 92 before, every tracked file after — and it is a test now, not an
+  impression.
+
 - **`doctrina work` no longer leaves the tree failing `validate`.** It
   assembled the change's index entry by hand while `index rebuild` derived it
   from the proposal, so the `lane` field — added to the deriver and not to the
