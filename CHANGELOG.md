@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The text caught up with the code.** Change 0047 moved the declared home
+  of the context budget to `.doctrina/config.json`, and four places still
+  pointed at `index.json`: the system contract — the artifact whose whole job
+  is to declare the wiring — the `insight` spec's first requirement, and the
+  precedence table in both `context-engineering.md` pages. `contract check`
+  could not see it because it is prose inside a comment, and it is exactly
+  the part that explains *why* that the next reader uses to decide.
+- **AGENTS.md is back under the budget it declares.** 165 lines against its
+  own 150-line OUTPUT limit. The generated blocks were within theirs (surface
+  39 of 40); the hand-written half was the overflow — the half no gate
+  measures. The contract's own words settle which way to resolve it ("exactly
+  one honest response: send less"), so the prose was cut, not the ceiling
+  raised: three template sections left empty in Doctrina's own hub became one
+  filled section that states the stack, the layout and the commands that
+  matter, and the repo description folded into the opening paragraph. 149
+  lines.
+
 - **A deprecation now reaches the machine.** Change 0049 announced a
   superseded command name on the real stderr, before capture — right for a
   piped stdout, which stays exactly what it was, but it meant the `--json`

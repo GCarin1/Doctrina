@@ -1,15 +1,8 @@
 # AGENTS.md — Doctrina
 
 Operational source of truth for AI coding agents working in this
-repository. Follows the open AGENTS.md standard.
-
-## What this repo is
-
-
-
-This repository uses the Doctrina framework for spec-driven, AGENTS.md
-native multi-agent development. The full framework artifacts live under
-`.doctrina/`.
+repository. Follows the open AGENTS.md standard. This repo BUILDS the
+Doctrina framework and uses it on itself; its artifacts live in `.doctrina/`.
 
 ## Working from intent (you drive; the human stays passive)
 
@@ -80,27 +73,18 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - A spec may declare an ordered `### Pipeline`; `validate` refuses a step that requires what a later step produces. `validate --runtime` adds the runtime gate.
 <!-- doctrina:changed:end -->
 
-## Stack and tooling
+## Stack, layout and commands
 
-<!-- Replace with the project's actual stack. Keep this section short. -->
-- Runtime:
-- Package manager:
-- Test runner:
-- Linter / formatter:
+Node.js (ESM, zero runtime dependencies), npm workspaces, `node:test`.
+The CLI is `packages/doctrina-cli/` (`src/commands/` render, `src/lib/`
+decides — ADR 0025); docs are `docs/en/` + `docs/pt/`, kept in parity.
 
-## Commands
-
-<!-- Use exact, copy-pasteable commands. Avoid prose. -->
 ```
-# install
-# build
-# test
-# lint
+npm install
+npm test --workspace=doctrina-cli
+node packages/doctrina-cli/src/index.js verify   # the real build gate
+node scripts/check-docs.js                       # docs shape and accuracy
 ```
-
-## Repository structure
-
-<!-- Outline the top-level directories an agent needs to know about. -->
 
 ## Conventions and boundaries
 

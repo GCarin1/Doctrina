@@ -112,7 +112,7 @@ do pack que precisava dela.
 **2. Orçamento.** Um teto sempre se aplica, resolvido nesta ordem:
 
 ```
---budget <n>  >  index.json "config": { "context_budget": <n> }  >  15000
+--budget <n>  >  config.json  >  index.json "config" (legado)  >  15000
 ```
 
 **3. Degradação, não truncamento.** Acima do orçamento, um ADR cai para

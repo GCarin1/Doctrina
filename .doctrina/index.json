@@ -66,7 +66,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "last_updated": "2026-09-07",
         "implementation": "implemented"
       },
@@ -436,16 +436,7 @@
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
-    "changes": [
-      {
-        "id": "0062-o-texto-alcanca-o-codigo",
-        "title": "o texto alcanca o codigo",
-        "path": ".doctrina/changes/0062-o-texto-alcanca-o-codigo",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain) — opened as chore"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1294,6 +1285,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0062-o-texto-alcanca-o-codigo",
+        "title": "o texto alcanca o codigo",
+        "path": ".doctrina/changes/archive/2026-09-08-0062-o-texto-alcanca-o-codigo",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ]

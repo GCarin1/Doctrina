@@ -1,10 +1,11 @@
 # Change 0062-o-texto-alcanca-o-codigo — o texto alcanca o codigo
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain) — opened as chore
-- **Affects specs:** (none — chore)
+- **Affects specs:** insight
 
 ## Why
 
@@ -19,7 +20,12 @@ chore.
   `.doctrina/config.json`. O contrato do sistema — o artefato cuja função é
   declarar a fiação — continua dizendo `index.json config.context_budget`. O
   `contract check` não vê porque é prosa dentro de um comentário, e é justamente
-  a parte que explica *por quê* que o próximo leitor usa para decidir.
+  a parte que explica *por quê* que o próximo leitor usa para decidir. Ao
+  corrigir, o mesmo apontamento parado apareceu em mais três lugares: o
+  requisito R1 da spec `insight` e a tabela de precedência das duas
+  `context-engineering.md`. A spec entra com delta — deixar um requisito
+  afirmando a precedência errada seria embarcar de propósito o defeito que esta
+  change existe para tirar.
 - **A11.** `AGENTS.md` está em 165 linhas contra o orçamento de 150 que o próprio
   contrato declara como OUTPUT. Os blocos gerados obedecem (superfície 39/40); as
   117 linhas de prosa escrita à mão é que estouram — a metade que nenhum gate
@@ -39,10 +45,10 @@ que a linha do contrato pede que aconteça.
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] O contrato aponta a casa atual do `context_budget`.
-- [ ] `doctrina validate` não avisa mais sobre o tamanho do AGENTS.md, ou o novo teto está registrado com o argumento que o justifica.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] O contrato aponta a casa atual do `context_budget`.
+- [x] `doctrina validate` não avisa mais sobre o tamanho do AGENTS.md, ou o novo teto está registrado com o argumento que o justifica.
 
 ## Open questions
 

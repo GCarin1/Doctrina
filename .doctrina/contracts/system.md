@@ -76,10 +76,12 @@ than a diff nobody notices.
                     is what this row is meant to keep happening.
 
   context-pack      The token ceiling `doctrina context` assembles a pack
-                    to (lib default; a project may override it via
-                    index.json config.context_budget). INPUT: widening it
-                    to fit more sources is a legitimate trade-off, so it is
-                    documented here rather than gated.
+                    to (lib default; a project overrides it in
+                    `.doctrina/config.json`, and the `config` block of
+                    index.json is still read as the legacy home — change
+                    0047). INPUT: widening it to fit more sources is a
+                    legitimate trade-off, so it is documented here rather
+                    than gated.
 -->
 
 | Limit           | Direction | Value |

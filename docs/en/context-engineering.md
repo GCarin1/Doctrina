@@ -105,7 +105,7 @@ decision from the pack that needed it.
 **2. Budget.** A ceiling always applies, resolved in this order:
 
 ```
---budget <n>  >  index.json "config": { "context_budget": <n> }  >  15000
+--budget <n>  >  config.json  >  index.json "config" (legacy)  >  15000
 ```
 
 **3. Degradation, not truncation.** Over budget, an ADR falls

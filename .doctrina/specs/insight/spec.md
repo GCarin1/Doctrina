@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-09-07
-**Version:** 0.4.0
+**Version:** 0.4.1
 
 ## Purpose
 
@@ -29,7 +29,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 
 ### Ubiquitous
 
-- The system shall assemble a context pack within a token budget, resolved as the --budget flag, then the project's index.json config.context_budget, then a built-in default.
+- The system shall assemble a context pack within a token budget, resolved as the `--budget` flag, then the project's `.doctrina/config.json`, then the legacy `config.context_budget` block of `index.json`, then a built-in default.
 - The system shall treat an ADR with no Scope: header as global, including it in every capability pack, and shall include a scoped ADR only in the packs of the capabilities it names.
 - The system shall collect the project's read-only state once per invocation and render every read-only view from that one collection, so no two views can report different numbers for the same tree.
 - The system shall keep a command module free of any binding imported from another command module, and shall keep its libraries free of any dependency on a command module.
