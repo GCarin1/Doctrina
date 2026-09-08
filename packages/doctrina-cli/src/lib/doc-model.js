@@ -331,6 +331,50 @@ export function parseCapabilityFromDelta(text, deltaPath) {
   return null;
 }
 
+/**
+ * The value a shipped template writes for `name`, or null when the template
+ * cannot be located (an unusual install) or does not carry that header.
+ *
+ * @param {string} templateName  e.g. "spec.md.template"
+ * @param {string} name
+ * @returns {string|null}
+ */
+export function templateHeaderValue(templateName, name) {
+  try {
+    return getHeader(read(path.join(locateTemplatesDir(), templateName)), name);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Is this header value still the scaffold's placeholder?
+ *
+ * A check written to catch a MISSING header is dead in the normal flow when
+ * the scaffold writes a value for it: the escape hatch arrives pre-armed
+ * (change 0057). The templates mark a placeholder by wrapping the whole
+ * value in angle brackets, so that is the portable rule; when the templates
+ * can be located, the template's own value settles it exactly.
+ *
+ * @param {string|null|undefined} value
+ * @param {{ template?: string, name?: string }} [opts]
+ * @returns {boolean}
+ */
+export function isPlaceholderHeaderValue(value, opts = {}) {
+  if (value === null || value === undefined) return true;
+  const v = String(value).trim();
+  if (v === "") return true;
+  // `<...>` wrapping the WHOLE value — the templates' placeholder convention.
+  // A real value may still contain angle brackets ("n/a — <why>" does not,
+  // but a prose value could), which is why the whole value must be wrapped.
+  if (/^<[\s\S]*>$/.test(v)) return true;
+  if (opts.template && opts.name) {
+    const tpl = templateHeaderValue(opts.template, opts.name);
+    if (tpl !== null && tpl.trim() === v) return true;
+  }
+  return false;
+}
+
 // Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
 // check: render the shipped capability template for the same capability and
 // compare, ignoring the date-bearing "Last updated" line and whitespace

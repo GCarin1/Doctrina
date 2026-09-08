@@ -261,7 +261,9 @@ anchors de critério de sucesso do `product.md` (`[SC1]`) que esta
 capability entrega, ou registre `n/a — <porquê>` para uma capability
 interna. A proveniência é opt-out — o `validate` avisa quando uma spec
 `active` no eixo de implementação não declara header `Realizes:`, e o
-`doctrina trace` reporta o elo intenção→capability.
+`doctrina trace` reporta o elo intenção→capability. Um header que ainda
+carrega o placeholder do próprio esqueleto conta como header ausente: o
+escape é deliberado, e precisa ser acionado deliberadamente.
 
 | Flag | Função |
 |------|--------|
@@ -1002,8 +1004,10 @@ Checagens:
     precisa existir.
 23. Adoção de proveniência: uma spec de capability `Status: active` no
     eixo de implementação mas sem header `Realizes:` gera warning — não
-    traça a nenhuma intenção de produto (ADR 0011). Qualquer valor
-    silencia, inclusive um deliberado `n/a — <motivo>`.
+    traça a nenhuma intenção de produto (ADR 0011). Qualquer valor que o
+    autor escreveu silencia, inclusive um deliberado `n/a — <motivo>`; o
+    placeholder do próprio esqueleto não silencia, senão o check seria
+    código morto no fluxo normal.
 24. Drift da superfície de comandos do AGENTS.md: uma referência
     `doctrina <cmd>` a um comando que a CLI não tem gera warning
     (typo/removido), e — para um AGENTS.md que documenta um catálogo de
@@ -1093,6 +1097,11 @@ planned — <porquê>`, o mesmo escape que o `validate` respeita — tem seus
 critérios não-provados reportados como **deferred**: visíveis, nunca uma
 falha de `--strict` (dívida declarada não é dívida escondida). Read-only
 sem `--run`.
+
+Um projeto que não declara critério nenhum não tem razão a reportar, então
+o coverage diz isso — *no criteria declared*, `pct: null` no `--json` — em
+vez de marcar 100% sobre nada. O `status`, o `prime`, o `report`, o
+`handoff` e o `doctor` renderizam a mesma ausência.
 
 ### Critérios de orquestração
 

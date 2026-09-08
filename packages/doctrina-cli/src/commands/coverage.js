@@ -65,7 +65,7 @@ export async function run(_positional, flags) {
 
   if (reports.length === 0) {
     if (json) {
-      emitJson("coverage", { specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: 100 } });
+      emitJson("coverage", { specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: null } });
       return 0;
     }
     console.log(c.gray("no acceptance criteria found under .doctrina/specs/"));
@@ -86,7 +86,8 @@ export async function run(_positional, flags) {
     totalUnguarded += rep.rows.filter((r) => r.kind === "unguarded").length;
     totalDeferred += rep.rows.filter((r) => r.kind === "deferred").length;
   }
-  const jsonPct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  // null, not 100: a ratio over nothing is not a perfect score (change 0057).
+  const jsonPct = totalCriteria === 0 ? null : Math.round((totalCovered / totalCriteria) * 100);
   // Deferred criteria are visible but never gate: declared debt ≠ hidden debt.
   const jsonClean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0
     && totalConditional === 0 && totalUnguarded === 0;
@@ -132,9 +133,12 @@ export async function run(_positional, flags) {
     }
   }
 
-  const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  const pct = totalCriteria === 0 ? null : Math.round((totalCovered / totalCriteria) * 100);
   console.log("");
-  const summary = `${totalCovered} of ${totalCriteria} acceptance criteria across ${reports.length} spec${reports.length === 1 ? "" : "s"} have linked evidence (${pct}%)`;
+  const specCount = `${reports.length} spec${reports.length === 1 ? "" : "s"}`;
+  const summary = pct === null
+    ? `no acceptance criteria declared across ${specCount} — nothing to cover yet`
+    : `${totalCovered} of ${totalCriteria} acceptance criteria across ${specCount} have linked evidence (${pct}%)`;
   const clean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0
     && totalConditional === 0 && totalUnguarded === 0;
   const extras = [];

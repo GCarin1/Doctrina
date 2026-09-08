@@ -20,7 +20,7 @@ import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
 import { cliVersion } from "./version.js";
 import { today } from "./dates.js";
-import { kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter } from "./doc-model.js";
+import { kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
 import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
@@ -458,11 +458,21 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         //     no product anchor. Bug specs (off the implementation axis) and
         //     draft/deprecated documents are exempt — only active capability
         //     specs make the promise.
+        //     The escape hatch used to arrive PRE-ARMED: the scaffold writes a
+        //     placeholder value for Realizes, any value silenced the check, so
+        //     in the normal flow this warning was dead code and `trace` was
+        //     left to report the intent as dropped, far from the cause. A value
+        //     that is still the template's placeholder counts as absent
+        //     (change 0057).
         const docStatusForRealizes = (specHeader(text, "Status") ?? "active").toLowerCase();
         const onImplAxis = specHeader(text, "Implementation") !== null;
-        if (docStatusForRealizes === "active" && onImplAxis && specHeader(text, "Realizes") === null) {
+        const realizesValue = specHeader(text, "Realizes");
+        const realizesMissing = isPlaceholderHeaderValue(realizesValue, {
+          template: "spec.md.template", name: "Realizes",
+        });
+        if (docStatusForRealizes === "active" && onImplAxis && realizesMissing) {
           warnings.push(
-            `${relPath(projectRoot, specPath)}: active spec has no Realizes: header — ` +
+            `${relPath(projectRoot, specPath)}: active spec ${realizesValue === null ? "has no" : "still carries the scaffold's"} Realizes: header — ` +
               `it traces to no product intent (\`doctrina trace\`). Tag a product.md ` +
               `success-criteria bullet "- [SC1] ..." and add "**Realizes:** SC1", or ` +
               `record "**Realizes:** n/a — <why>" if it maps to no product anchor`,

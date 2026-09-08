@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Coverage over zero criteria is no longer 100%.** The projection read
+  `totalCriteria === 0 ? 100 : …`, so the first number a fresh project saw
+  about itself — in `prime`, `status`, `report` and `handoff` — was a perfect
+  score over nothing, while `doctor`, reading the very same collection,
+  warned. Change 0037 unified the views so they could not disagree; this was
+  the one number that still did. Absence is now `null`, every view renders it
+  as "no criteria declared" the way `trace` has always said "no anchors
+  declared", and `coverage --json` reports `pct: null`.
+- **The `Realizes:` warning stopped arriving pre-armed.** The check fired
+  only when the header was ABSENT, and the spec scaffold never leaves it
+  absent — it writes a placeholder, and any value silenced the check. So in
+  the normal flow the check was dead code, and the cost landed on `trace`,
+  which reported the intent as dropped far from the cause. A header value
+  that is still the shipped template's placeholder now counts as absent
+  (`isPlaceholderHeaderValue`, in the document model). The deliberate escape
+  hatch is unchanged: `n/a — <why>`, written by a person, still silences it.
+
 - **The `contract check` summary stopped approving what it had just called
   unchecked.** Change 0029 established that a contract declaring no `Wiring`
   and no `Selectors` rows is reported as UNCHECKED, never as passing. The

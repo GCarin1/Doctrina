@@ -1,6 +1,7 @@
 # Change 0057-ausencia-nao-e-aprovacao — ausencia nao e aprovacao
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -39,11 +40,11 @@ conteúdo com o template. Delta em `specs/gates`.
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Projeto sem critérios não mostra 100% em nenhuma vista.
-- [ ] Uma spec ativa com o placeholder do template intacto dispara o aviso de Realizes.
-- [ ] Uma spec com `n/a — <why>` deliberado continua silenciosa.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Projeto sem critérios não mostra 100% em nenhuma vista.
+- [x] Uma spec ativa com o placeholder do template intacto dispara o aviso de Realizes.
+- [x] Uma spec com `n/a — <why>` deliberado continua silenciosa.
 
 ## Open questions
 

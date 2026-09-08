@@ -35,3 +35,20 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+Duas metades do mesmo hábito: silêncio lido como aprovação. Cobertura sem
+critérios deixa de ser 100% e passa a ser ausência, renderizada como o
+`doctor` já renderizava e como o `trace` sempre renderizou a falta de
+anchors. E um header que ainda carrega o placeholder do template conta como
+ausente, então o escape hatch do `Realizes:` para de vir pré-acionado pelo
+scaffold.
+
+```ops
+bump-version minor
+append-requirement event: When no acceptance criterion is declared, the system shall report coverage as absent rather than as a percentage, and every view shall render that absence identically.
+append-requirement unwanted: The system shall not treat a metadata header whose value is still the shipped template's placeholder as a header the author supplied.
+append-criterion [verified] A project whose specs declare no criterion reports "no criteria declared" in `status`, `prime`, `report`, `handoff`, `coverage` and its JSON (`pct: null`), never 100%, while one declared criterion still reports a real ratio — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
+append-criterion [verified] An active spec still carrying the scaffold's `Realizes:` placeholder warns, and a deliberate `n/a — <why>` or a real anchor stays silent — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
+```

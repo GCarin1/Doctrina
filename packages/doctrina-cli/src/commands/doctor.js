@@ -16,6 +16,7 @@ import { configRows } from "../lib/config.js";
 import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
 
+import { coverageLabel } from "../lib/views.js";
 // Aggregate diagnostic: the one command to run when "something looks wrong"
 // and you do not know which gate to ask. It sequences the existing checks —
 // validate, index drift, clean-checkout lint, template shape — and reports
@@ -94,7 +95,7 @@ export async function run(_positional, _flags) {
         row("warn", "coverage", "no acceptance criteria declared yet", "write criteria with evidence — see `doctrina coverage`");
         warningsTotal += 1;
       } else if (s.coverage.pct === 100 && s.coverage.totalDangling === 0 && s.coverage.totalConditional === 0) {
-        row("ok", "coverage", `${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria} criteria)`);
+        row("ok", "coverage", coverageLabel(s.coverage));
       } else {
         row("warn", "coverage", `${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria}${s.coverage.totalDangling ? `, ${s.coverage.totalDangling} dangling` : ""}${s.coverage.totalConditional ? `, ${s.coverage.totalConditional} conditional` : ""})`, "doctrina coverage   (cite the missing evidence)");
         warningsTotal += 1;

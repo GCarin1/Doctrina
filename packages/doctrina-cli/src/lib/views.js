@@ -53,6 +53,16 @@ function laneMix(records) {
 }
 
 /** Render one named view. Unknown names are a caller error, not a fallback. */
+// One rendering of the coverage ratio, shared by every view (change 0037
+// unified the collector; this is the same argument for the label). A pct of
+// null means no criterion was declared — there is nothing to be a ratio OF,
+// so the views say so instead of printing a score. `trace` has always said
+// "no anchors declared" for its own empty case; coverage now matches it.
+export function coverageLabel(cov) {
+  if (cov.pct === null) return `no criteria declared (0/0)`;
+  return `${cov.pct}% (${cov.totalCovered}/${cov.totalCriteria} criteria)`;
+}
+
 export function renderView(name, snapshot, options = {}) {
   switch (name) {
     case "dashboard": return dashboard(snapshot);
@@ -91,8 +101,12 @@ export function dashboard(s) {
   const covExtra = cov.totalDangling + cov.totalConditional > 0
     ? c.yellow(` ${cov.totalDangling} dangling, ${cov.totalConditional} conditional`)
     : "";
-  const covColor = cov.pct === 100 ? c.green : cov.pct >= 50 ? c.yellow : c.red;
-  out.push(`    ${"coverage".padEnd(11)} ${covColor(`${cov.pct}%`)} ${c.gray(`(${cov.totalCovered}/${cov.totalCriteria} criteria)`)}${covExtra}`);
+  if (cov.pct === null) {
+    out.push(`    ${"coverage".padEnd(11)} ${c.yellow("no criteria declared")} ${c.gray("(0/0)")}`);
+  } else {
+    const covColor = cov.pct === 100 ? c.green : cov.pct >= 50 ? c.yellow : c.red;
+    out.push(`    ${"coverage".padEnd(11)} ${covColor(`${cov.pct}%`)} ${c.gray(`(${cov.totalCovered}/${cov.totalCriteria} criteria)`)}${covExtra}`);
+  }
 
   const tr = s.trace;
   const trExtra = tr.untraceable + tr.dropped + tr.dangling > 0
@@ -139,7 +153,9 @@ export function prime(s) {
   out.push(c.bold("Doctrina prime") + c.gray(` — ${s.project}  (framework ${s.stamp ?? "—"} / CLI ${s.cli})`));
   out.push("");
 
-  const cov = `${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria})`;
+  const cov = s.coverage.pct === null
+    ? "no criteria declared"
+    : `${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria})`;
   const tr = s.trace.anchors === 0 ? "no anchors" : `${s.trace.realized}/${s.trace.anchors}`;
   const verify = s.verify.configured
     ? `${s.verify.checks} verify checks${signoffNote(s.verify)}`
@@ -194,9 +210,9 @@ export function handoff(s) {
   out.push("## Where things stand");
   out.push("");
   out.push(`- index: ${s.indexState} · framework stamp: ${s.stamp ?? "—"} (CLI ${s.cli})`);
-  out.push(`- coverage: ${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria} criteria` +
+  out.push(`- coverage: ${coverageLabel(s.coverage)}` +
     (s.coverage.totalDangling ? `, ${s.coverage.totalDangling} dangling` : "") +
-    (s.coverage.totalConditional ? `, ${s.coverage.totalConditional} conditional` : "") + ")");
+    (s.coverage.totalConditional ? `, ${s.coverage.totalConditional} conditional` : ""));
   const tr = s.trace.anchors === 0 ? "no anchors declared" : `${s.trace.realized}/${s.trace.anchors} anchors realized`;
   out.push(`- trace: ${tr}` + (s.trace.untraceable ? ` (${s.trace.untraceable} untraceable)` : ""));
   out.push(`- verify: ${s.verify.configured ? `${s.verify.checks} checks declared${signoffNote(s.verify, { verbose: true })} — run \`doctrina verify\`` : "not configured"}`);
@@ -288,7 +304,7 @@ export function report(s, { days = 7, cutoffIso = "", git = null, metrics = null
   out.push("## Gates");
   out.push("");
   out.push(`- index: ${s.indexState} · framework stamp: ${s.stamp ?? "—"} (CLI ${s.cli})`);
-  out.push(`- coverage: ${s.coverage.pct}% (${s.coverage.totalCovered}/${s.coverage.totalCriteria} criteria)` +
+  out.push(`- coverage: ${coverageLabel(s.coverage)}` +
     (s.coverage.totalDangling ? ` — ${s.coverage.totalDangling} dangling` : "") +
     (s.coverage.totalConditional ? ` — ${s.coverage.totalConditional} conditional` : ""));
   out.push(`- trace: ${s.trace.anchors === 0 ? "no anchors declared" : `${s.trace.realized}/${s.trace.anchors} anchors realized`}`);

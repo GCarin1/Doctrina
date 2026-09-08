@@ -58,7 +58,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.4.0",
+        "version": "1.5.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -437,14 +437,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0057-ausencia-nao-e-aprovacao",
-        "title": "ausencia nao e aprovacao",
-        "path": ".doctrina/changes/0057-ausencia-nao-e-aprovacao",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0058-a-remediacao-sai-do-projeto-checado",
         "title": "a remediacao sai do projeto checado",
@@ -1264,6 +1256,19 @@
         "id": "0056-o-resumo-do-contract-check-nao-mente",
         "title": "o resumo do contract check nao mente",
         "path": ".doctrina/changes/archive/2026-09-08-0056-o-resumo-do-contract-check-nao-mente",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0057-ausencia-nao-e-aprovacao",
+        "title": "ausencia nao e aprovacao",
+        "path": ".doctrina/changes/archive/2026-09-08-0057-ausencia-nao-e-aprovacao",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [

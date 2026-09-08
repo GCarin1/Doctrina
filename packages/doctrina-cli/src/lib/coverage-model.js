@@ -82,7 +82,12 @@ export function summarize(projectRoot) {
     totalDeferred += deferred;
     perCap.push({ cap: rep.cap, total: rep.rows.length, covered, dangling, conditional, unguarded, deferred });
   }
-  const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  // Absence is not approval (change 0057). Zero criteria used to project to
+  // 100%, so the first number a new project read about itself was a perfect
+  // score over nothing — and `doctor`, reading this same collection, warned.
+  // `null` is the honest value: there is no ratio, and every view renders
+  // that as "no criteria declared" the way trace already renders no anchors.
+  const pct = totalCriteria === 0 ? null : Math.round((totalCovered / totalCriteria) * 100);
   return { perCap, totalCriteria, totalCovered, totalDangling, totalConditional, totalDeferred, pct };
 }
 

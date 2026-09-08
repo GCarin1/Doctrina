@@ -250,7 +250,9 @@ The scaffold also carries a `**Realizes:**` header (ADR 0011): name the
 or record `n/a — <why>` for an internal capability. Provenance is opt-out
 — `validate` warns when an `active` spec on the implementation axis
 declares no `Realizes:` header, and `doctrina trace` reports the
-intent→capability link.
+intent→capability link. A header still carrying the scaffold's own
+placeholder counts as no header: the escape hatch is deliberate, and it
+has to be armed deliberately.
 
 | Flag | Purpose |
 |------|---------|
@@ -974,8 +976,9 @@ Checks performed:
     (orphan detection), and every indexed contract path must exist.
 23. Provenance adoption: a capability spec that is `Status: active` and
     on the implementation axis but declares no `Realizes:` header warns —
-    it traces to no product intent (ADR 0011). Any value silences it,
-    including a deliberate `n/a — <why>`.
+    it traces to no product intent (ADR 0011). Any value the author wrote
+    silences it, including a deliberate `n/a — <why>`; the scaffold's own
+    placeholder does not, or the check would be dead in the normal flow.
 24. AGENTS.md command-surface drift: a `doctrina <cmd>` reference to a
     command the CLI does not have warns (typo/removed), and — for an
     AGENTS.md that documents a command catalog and does not defer to
@@ -1058,6 +1061,11 @@ cited. A spec that declares a deliberate deferral — `Implementation:
 planned — <why>`, the same escape hatch `validate` honours — has its
 unproven criteria reported as **deferred**: visible, never a `--strict`
 failure (declared debt is not hidden debt). Read-only without `--run`.
+
+A project that declares no criterion at all has no ratio to report, so
+coverage says so — *no criteria declared*, `pct: null` in `--json` — rather
+than scoring 100% over nothing. `status`, `prime`, `report`, `handoff` and
+`doctor` all render that same absence.
 
 ### Orchestration criteria
 
