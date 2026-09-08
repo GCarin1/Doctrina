@@ -45,9 +45,51 @@ export function setDeprecation(record) {
   deprecation = record;
 }
 
+// A command that builds its own payload calls `emitJson` BEFORE it returns —
+// in `coverage.js` the call sits one line above `return jsonClean ? 0 :
+// strict ? 1 : 0`. So the call site cannot know the exit code, and the
+// optimistic defaults answered for it: `coverage --strict` exited 1 while
+// its payload said `"ok": true, "exit_code": 0`, and `exit_code` was 0 in
+// every native payload the CLI has ever emitted (change 0086).
+//
+// The entrypoint is the one place that knows the code, which is why the
+// CAPTURED path (a command with no payload of its own) was always right: it
+// emits after the run, with the real code. The native path now works the
+// same way — `deferJson()` before the run holds the payload, `flushJson(code)`
+// after it writes the envelope with the verdict the process actually reports.
+/** @type {{ command: string, data: object, opts: object } | null} */
+let held = null;
+let deferring = false;
+
+/** Hold the next payload instead of writing it, until `flushJson`. */
+export function deferJson() {
+  deferring = true;
+  held = null;
+}
+
+/**
+ * Write the held payload with the exit code the command actually returned,
+ * and leave deferred mode. A no-op when the command emitted nothing.
+ */
+export function flushJson(code) {
+  deferring = false;
+  if (!held) return;
+  const { command, data } = held;
+  held = null;
+  writeEnvelope(command, data, { ok: code === EXIT.OK, exitCode: code });
+}
+
 // Print a structured payload. `command` is the invocation, `data` whatever
 // that command has to say.
-export function emitJson(command, data, { ok = true, exitCode = EXIT.OK } = {}) {
+export function emitJson(command, data, opts = {}) {
+  if (deferring) {
+    held = { command, data, opts };
+    return;
+  }
+  writeEnvelope(command, data, opts);
+}
+
+function writeEnvelope(command, data, { ok = true, exitCode = EXIT.OK } = {}) {
   process.stdout.write(JSON.stringify({
     $schema_version: JSON_SCHEMA_VERSION,
     command,

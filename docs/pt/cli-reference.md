@@ -60,7 +60,7 @@ Todo payload carrega o mesmo envelope:
 |-------|-------------|
 | `$schema_version` | A versão do contrato do payload. Hoje `1.0.0`. |
 | `command` | A invocação que este payload descreve. |
-| `ok` | `true` quando o comando teve sucesso. |
+| `ok` | `true` quando o comando teve sucesso. Derivado do código que o comando retorna, então o payload e o processo nunca discordam. |
 | `exit_code` | O status de saída do processo — a classe documentada em [exit-codes.md](exit-codes.md). |
 | `deprecated` | **Presente só** quando o nome invocado foi substituído: `{ use, since, why }` — o comando substituto, a versão a partir da qual o nome antigo é legado, e o porquê. Ramifique pela presença da chave. |
 

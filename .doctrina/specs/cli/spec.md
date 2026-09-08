@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.44.0
+**Version:** 0.45.0
 
 ## Purpose
 
@@ -66,6 +66,7 @@ command shares (git, the lexicon, the usage log).
 
 - The system shall define in one module the vocabulary it reads natural language with — how text is folded, which words carry no signal, and how strongly a document answers a query — and every command that ranks or classifies text shall read it from there.
 - The system shall declare each deprecated operation in one place with the command that replaces it, the reason, and the version from which it is deprecated, and shall keep the deprecated name working until a later release removes it.
+- The system shall emit a JSON envelope whose `ok` and `exit_code` are derived from the code the command actually returns, so a consumer branching on the payload reaches the same verdict as one branching on the process.
 
 ### Event-driven
 
@@ -168,6 +169,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not add a deprecation field to the envelope of a command that is not superseded, and shall not alter the standard output of a superseded command.
 - The system shall not recommend a gate action for a project that declares no capability yet, and shall not offer the hand-authoring commands as the way to start work.
 - The system shall not silently ignore a flag a command has not declared; it shall refuse the invocation, name the flag, and exit with the usage class, so a gate can never report a verdict for a mode it was not asked to run in.
+- The system shall not write a JSON envelope before the command's exit code is known, because a call site that emits ahead of its own return can only guess the verdict.
 
 ### Optional
 
@@ -234,6 +236,8 @@ The CLI is v0 spec-compliant when:
 31. [verified] On a tree where `doctor` warns, `next` recommends over the same signals; the remedy each new action names clears its own finding; a project with no capability is sent to `intake`; and the snapshot still collects the tree once — verified by `packages/doctrina-cli/test/next-reads-the-gates.test.js`.
 32. [verified] On a tree where `coverage --strict` exits 1, `coverage --stricts` exits with the usage class and prints no verdict, naming the flag and suggesting the declared one — verified by `packages/doctrina-cli/test/an-unknown-flag-is-refused.test.js`.
 33. [verified] Every flag every command declares is still accepted, an undeclared one is refused on every command, and a flag's VALUE is never mistaken for a flag — verified by `packages/doctrina-cli/test/an-unknown-flag-is-refused.test.js`.
+34. [verified] A failing gate reports `ok: false` and the process's own code in its payload, and a passing one still reports success — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
+35. [verified] The captured path is unchanged and every payload keeps its own data fields and schema version — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
 
 ## Out of scope for this spec
 

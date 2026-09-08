@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall emit a JSON envelope whose `ok` and `exit_code` are derived from the code the command actually returns, so a consumer branching on the payload reaches the same verdict as one branching on the process.
+append-requirement unwanted: The system shall not write a JSON envelope before the command's exit code is known, because a call site that emits ahead of its own return can only guess the verdict.
+append-criterion [verified] A failing gate reports `ok: false` and the process's own code in its payload, and a passing one still reports success — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
+append-criterion [verified] The captured path is unchanged and every payload keeps its own data fields and schema version — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
+bump-version minor
+```

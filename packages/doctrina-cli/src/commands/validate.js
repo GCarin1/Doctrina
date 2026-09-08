@@ -36,7 +36,7 @@ export async function run(_positional, flags) {
 
   // Output
   if (flagBool(flags, "json", false)) {
-    emitJson("validate", { ok: errors.length === 0, errors, warnings });
+    emitJson("validate", { errors, warnings });
     return errors.length === 0 ? 0 : 1;
   }
   // The repairs print first and in the order they were made: --fix changes

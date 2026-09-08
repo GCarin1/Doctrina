@@ -19,6 +19,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The `--json` envelope tells the truth about the verdict.** `emitJson`
+  defaulted to `ok = true, exitCode = 0`, and nine of its ten call sites
+  passed neither — a command that builds its own payload emits *before* it
+  returns, so the call site could not know the code. `doctrina coverage
+  --strict` exited 1 while its payload said `"ok": true, "exit_code": 0`,
+  and `exit_code` was 0 in **every** native payload the CLI had ever
+  emitted. `ok` was right only in `validate`, and by accident: it passed
+  `ok` inside `data`, where the spread overwrote the envelope's field. The
+  entrypoint — the one place that knows the code, and why the captured path
+  was always correct — now holds the payload and writes the envelope after
+  the run. The docs say "Branch on those"; now you can.
+
 - **Brace expansion in a glob says what it means.** Two defects in the
   dialect added for `**Source:**` declarations, found by auditing that
   change's own code. `globToRegExp` computed the expansion and used it only

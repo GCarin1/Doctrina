@@ -92,3 +92,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0084-a-expansao-de-chaves-esta-certa — a expansao de chaves esta certa (specs: gates MODIFIED)
 - 2026-09-08 — 0085-o-hub-segue-o-proprio-template — o hub segue o proprio template
   - 2026-09-08 — 0085-o-hub-segue-o-proprio-template — docs gap: closed with --force; commands: close, templates documented nowhere
+- 2026-09-08 — 0086-o-envelope-json-nao-mente — o envelope json nao mente (specs: cli MODIFIED)

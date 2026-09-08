@@ -54,7 +54,7 @@ Every payload carries the same envelope:
 |-------|---------|
 | `$schema_version` | The payload contract version. Currently `1.0.0`. |
 | `command` | The invocation this payload describes. |
-| `ok` | `true` when the command succeeded. |
+| `ok` | `true` when the command succeeded. Derived from the code the command returns, so the payload and the process can never disagree. |
 | `exit_code` | The process exit status — the class documented in [exit-codes.md](exit-codes.md). |
 | `deprecated` | **Present only** when the invoked name is superseded: `{ use, since, why }` — the replacement command, the version from which the old name is legacy, and the reason. Branch on the key's presence. |
 

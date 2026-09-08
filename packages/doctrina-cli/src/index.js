@@ -9,7 +9,7 @@ import { surfaceHelp, OPERATIONS, deprecationFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
 import { recordUsage } from "./lib/usage.js";
-import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation } from "./lib/json-out.js";
+import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation, deferJson, flushJson } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -191,6 +191,19 @@ async function main(argv) {
         stdout: stdout.map(stripAnsi),
         stderr: stderr.map(stripAnsi),
       }, { ok: code === EXIT.OK, exitCode: code });
+      return code;
+    }
+    // The native path: hold the payload the command builds, run it, then
+    // write the envelope with the code it returned — so `ok` and `exit_code`
+    // say what the process says (change 0086).
+    if (wantsJson(flags)) {
+      deferJson();
+      let code = EXIT.OK;
+      try {
+        code = (await command.run(positional.slice(1), flags)) ?? EXIT.OK;
+      } finally {
+        flushJson(code);
+      }
       return code;
     }
     return await command.run(positional.slice(1), flags);

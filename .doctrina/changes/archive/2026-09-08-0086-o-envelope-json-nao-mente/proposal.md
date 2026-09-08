@@ -1,6 +1,7 @@
 # Change 0086-o-envelope-json-nao-mente — o envelope json nao mente
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -60,11 +61,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] `payload.exit_code` é igual ao código com que o processo sai.
-- [ ] `payload.ok` é falso exatamente quando esse código não é zero.
-- [ ] Nenhum campo de dados de nenhum payload muda.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] `payload.exit_code` é igual ao código com que o processo sai.
+- [x] `payload.ok` é falso exatamente quando esse código não é zero.
+- [x] Nenhum campo de dados de nenhum payload muda.
 
 ## Open questions
 

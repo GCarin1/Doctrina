@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.44.0",
+        "version": "0.45.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -505,14 +505,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0086-o-envelope-json-nao-mente",
-        "title": "o envelope json nao mente",
-        "path": ".doctrina/changes/0086-o-envelope-json-nao-mente",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0087-um-artefato-vazio-nao-passa",
         "title": "um artefato vazio nao passa",
@@ -1687,6 +1679,19 @@
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": []
+      },
+      {
+        "id": "0086-o-envelope-json-nao-mente",
+        "title": "o envelope json nao mente",
+        "path": ".doctrina/changes/archive/2026-09-08-0086-o-envelope-json-nao-mente",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [
