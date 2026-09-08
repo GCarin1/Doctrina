@@ -35,3 +35,17 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+O catálogo é dono de quantos comandos e operações existem; o diretório de
+decisões é dono de quantos ADRs existem. Toda contagem escrita na prosa é
+cópia, e cópia sem verificação apodrece — quatro delas apodreceram em quatro
+direções diferentes debaixo de um check que olhava dois arquivos e uma só
+forma de afirmação.
+
+```ops
+bump-version minor
+append-requirement ubiquitous: The system shall check every stated count of the command surface and of the decision set against the catalog and the decisions directory that own them, in the root READMEs and in every Markdown file under `docs/`, in both languages.
+append-criterion [verified] A stale operation count, a stale count in a page under `docs/`, and an ADR range that stops short of the highest decision on disk are each reported, and this repository's own counts agree with its catalog — verified by `packages/doctrina-cli/test/check-docs.test.js`.
+```

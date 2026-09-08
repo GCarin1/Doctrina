@@ -83,8 +83,10 @@ ciclo propor → aplicar → arquivar em profundidade.
 
 ## A superfície de comandos
 
-33 comandos, 50 operações, zero dependências — veja a
-**[Referência do CLI](cli-reference.md)** para todos. Os que você vai
+38 comandos, 61 operações, zero dependências — veja a
+**[Referência do CLI](cli-reference.md)** para todos. Esses dois números
+são verificados contra o catálogo do próprio CLI, então esta página não
+consegue ficar para trás em silêncio. Os que você vai
 usar todo dia:
 
 | Comando | O que faz |

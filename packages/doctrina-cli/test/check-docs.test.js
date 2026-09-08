@@ -178,3 +178,65 @@ test("docs gate: catches EN/PT content divergence that filename parity cannot se
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// ------------------------------- change 0059: the surface size has an owner
+
+// The catalog owns how many commands and operations exist; the decisions
+// directory owns how many ADRs there are. Every count written into prose is
+// a copy, and four of them had drifted in four different directions under a
+// check that only looked at two files and one claim form.
+
+test("docs gate: an operation count is checked, not just a command count", async () => {
+  const tmp = makeDocsFixture();
+  try {
+    writeFileSync(path.join(tmp, "README.md"),
+      "# R\n\nSee docs/en/page.md — the CLI ships 3 operations.\n");
+    const r = await runChecks(tmp);
+    const found = failures(r, "count");
+    assert.equal(found.length, 1, r.problems.join("\n"));
+    assert.match(found[0], /claims 3 operations/, found[0]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("docs gate: a count under docs/ is checked, not only the root READMEs", async () => {
+  const tmp = makeDocsFixture({ en: "# Page\n\n3 commands, and English body.\n" });
+  try {
+    const r = await runChecks(tmp);
+    const found = failures(r, "count");
+    assert.equal(found.length, 1, r.problems.join("\n"));
+    assert.match(found[0], /docs[/\\]en[/\\]page\.md claims 3 commands/, found[0]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("docs gate: a documented ADR range must reach the highest decision on disk", async () => {
+  const tmp = makeDocsFixture();
+  try {
+    mkdirSync(path.join(tmp, ".doctrina", "decisions"), { recursive: true });
+    for (const n of ["0001", "0002", "0003"]) {
+      writeFileSync(path.join(tmp, ".doctrina", "decisions", `${n}-x.md`), `# ADR ${n}\n`);
+    }
+    writeFileSync(path.join(tmp, "README.md"),
+      "# R\n\nSee docs/en/page.md — the ADRs 0001–0002 describe the framework.\n");
+    const r = await runChecks(tmp);
+    const found = failures(r, "count");
+    assert.equal(found.length, 1, r.problems.join("\n"));
+    assert.match(found[0], /highest decision on disk is 0003/, found[0]);
+
+    // Adding the missing one clears it — the remedy resolves the finding.
+    writeFileSync(path.join(tmp, "README.md"),
+      "# R\n\nSee docs/en/page.md — the ADRs 0001–0003 describe the framework.\n");
+    assert.deepEqual(failures(await runChecks(tmp), "count"), []);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("docs gate: this repository's own counts agree with its catalog", async () => {
+  const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
+  const r = await runChecks(repoRoot);
+  assert.deepEqual(failures(r, "count"), [], failures(r, "count").join("\n"));
+});

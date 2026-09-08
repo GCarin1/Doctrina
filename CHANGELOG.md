@@ -19,6 +19,24 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The size of the command surface has one owner again.** The catalog is
+  generated and owns how many commands and operations exist; the count was
+  written by hand in four places, and all four disagreed with the catalog and
+  with each other — `README.md` said 59 operations against 61 and dated the
+  ADR set at 0001–0025 with 0026 on disk, `docs/en/README.md` and its
+  Portuguese twin said 33 commands and 50 operations, and two source comments
+  carried a count of their own. `scripts/check-docs.js` already had a check
+  for this, but it looked only at the two root READMEs and only at the claim
+  form "with N commands", so the drift happened underneath it.
+- The check now covers operations as well as commands, both languages, every
+  Markdown file under `docs/` as well as the root READMEs, and the documented
+  ADR range against the highest decision on disk. The counts themselves stay
+  in the prose — "38 commands, 61 operations, zero dependencies" is what a
+  reader wants on the first screen — because what was wrong was not stating
+  the number, it was stating it with nothing checking. Where the number was
+  decoration rather than documentation (the `usage.js` and `metrics.js`
+  comments) it is gone, replaced by a pointer to the catalog.
+
 - **The docs gate's remediation now comes out of the project being checked.**
   The gate is portable — it accepts anything under `docs/` or a README — but
   the instruction it printed on refusal was not: it named `docs/en/` AND

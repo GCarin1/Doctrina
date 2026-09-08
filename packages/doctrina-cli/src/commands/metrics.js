@@ -165,9 +165,9 @@ function pct(x) {
 }
 
 // Which operations were actually invoked, from the opt-in usage log. The
-// surface is 36 commands and 59 operations; the audit's charge is that some
-// exist because they were easy to add rather than because anyone reaches for
-// them. This is the evidence for that argument — or against it. Zero samples
+// audit's charge is that some of the surface exists because it was easy to
+// add rather than because anyone reaches for it (how big that surface is,
+// lib/commands.js owns — a count copied into a comment only rots). This is the evidence for that argument — or against it. Zero samples
 // is a CANDIDATE for cutting, never a verdict: a command used once a quarter
 // and a command nobody wants look identical over one week.
 function commandUsage() {

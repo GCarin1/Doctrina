@@ -62,6 +62,20 @@ const RATIO_MAX = 1.30;
 
 const mdFiles = (dir) => readdirSync(dir).filter((f) => f.endsWith(".md")).sort();
 
+// Every Markdown file under `dir`, one level deep on either side, as paths
+// relative to the repository root. Used by the surface-count check, which
+// has to reach docs/en/README.md and docs/pt/README.md as well as the roots.
+const markdownUnder = (dir) => {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...markdownUnder(full));
+    else if (entry.name.endsWith(".md")) out.push(path.relative(dir, full) === entry.name ? full : full);
+  }
+  return out;
+};
+
 // Run every check against a repository root. Exported so the test suite can
 // point it at a fixture tree and prove each check actually fires — a gate
 // nobody has seen fail is a gate nobody knows works.
@@ -257,25 +271,58 @@ for (const lang of ["en", "pt"]) {
   }
 }
 
-// 12. A README that states a command COUNT states it correctly (D6). The
-//     count is the claim most likely to rot — it changes every time a
-//     command ships and nothing reads it — and both READMEs had drifted
-//     (35 claimed, 36 real) while every other gate stayed green.
+// 12. A document that states the SIZE of the surface states it correctly
+//     (D6, widened by change 0059). The count is the claim most likely to
+//     rot — it changes every time an operation ships and nothing reads it.
+//     The narrow version of this check looked at the two root READMEs and
+//     at the claim form "with N commands" only, which is why four
+//     hand-written counts drifted underneath it in four different
+//     directions: README.md said 59 operations against 61, docs/en and
+//     docs/pt said 33 commands and 50 operations, and README.md dated the
+//     ADR set at 0001-0025 with 0026 on disk. The catalog and the decisions
+//     directory are the owners; every count in the prose is a copy, so
+//     every copy is checked, wherever it lives.
 const counts = { commands: COMMAND_NAMES.length, operations: OPERATION_NAMES.length };
-for (const readme of ["README.md", "README.pt.md"]) {
-  const p = path.join(root, readme);
+const NOUNS = [
+  ["commands", counts.commands],
+  ["comandos", counts.commands],
+  ["operations", counts.operations],
+  ["opera\u00e7\u00f5es", counts.operations],
+];
+// Every ADR on disk, so a documented range can be held to the real one.
+const decisionsDir = path.join(root, ".doctrina", "decisions");
+const adrNumbers = existsSync(decisionsDir)
+  ? readdirSync(decisionsDir)
+    .map((f) => /^(\d{4})-/.exec(f)?.[1])
+    .filter((n) => n !== undefined)
+    .sort()
+  : [];
+const highestAdr = adrNumbers[adrNumbers.length - 1];
+
+const countedDocs = ["README.md", "README.pt.md",
+  ...markdownUnder(path.join(root, "docs")).map((f) => path.relative(root, f))];
+for (const rel of countedDocs) {
+  const p = path.join(root, rel);
   if (!existsSync(p)) continue;
   const text = readFileSync(p, "utf8");
-  for (const [noun, actual] of [["commands", counts.commands], ["operations", counts.operations]]) {
-    // Match "with 36 commands" / "com 36 comandos", the claim form only —
-    // prose that merely contains a number near the word is not a claim.
-    const re = new RegExp(`(?:with|com)\\s+(\\d+)\\s+(?:${noun}|${noun === "commands" ? "comandos" : "opera\\u00e7\\u00f5es"})`, "gi");
-    for (const m of text.matchAll(re)) {
+  for (const [noun, actual] of NOUNS) {
+    // A bare "<n> commands" is the claim form: a number immediately followed
+    // by the noun. Prose that merely mentions a number near the word is not.
+    for (const m of text.matchAll(new RegExp(`(\\d+)\\s+${noun}\\b`, "gi"))) {
       if (Number.parseInt(m[1], 10) !== actual) {
         problems.push(
-          `count: ${readme} claims ${m[1]} ${noun}, but the catalog has ${actual}`,
+          `count: ${rel} claims ${m[1]} ${noun}, but the catalog has ${actual}`,
         );
       }
+    }
+  }
+  // "the ADRs 0001-0025" / "os ADRs 0001-0026" — a range whose upper bound
+  // is not the highest decision on disk is a stale count of the same kind.
+  for (const m of highestAdr === undefined ? [] : text.matchAll(/ADRs?\s+0001\s*[\u2013\u2014-]\s*(\d{4})/gi)) {
+    if (m[1] !== highestAdr) {
+      problems.push(
+        `count: ${rel} dates the ADR set at 0001-${m[1]}, but the highest decision on disk is ${highestAdr}`,
+      );
     }
   }
 }
