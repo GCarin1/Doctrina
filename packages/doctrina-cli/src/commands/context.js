@@ -311,18 +311,27 @@ export async function run(positional, cmdFlags) {
     // An unscoped ADR is global by definition — it belongs in every pack.
     // That is what makes scoping opt-in and backward compatible.
     const global = scope.length === 0;
-    const governs = capability !== null
-      && (scope.includes(capability) || scope.some((s) => dependencies.has(s)));
+    // NAMED beats INHERITED beats global (change 0075). Both used to collapse
+    // to the same 1, so `Scope:` decided candidacy and then said nothing about
+    // order — and with no `--for` query every relevance term is 0, leaving the
+    // ADR NUMBER as the only tie-break. Worst-first then dropped the oldest
+    // decisions, which is how `authoring` lost ADR 0005 (the playbooks for
+    // `intake` and `work`) and ADR 0007 (the `ops` verbs it applies) out of its
+    // own pack while keeping ADRs that merely reached it through `cli`.
+    const named = capability !== null && scope.includes(capability);
+    const inherited = capability !== null && scope.some((s) => dependencies.has(s));
+    const governs = named || inherited;
     if (capability !== null && !global && !governs) continue;
 
     const id = path.basename(f).match(/^(\d{4})-/)?.[1] ?? "0000";
     const title = getTitle(text) ?? path.basename(f, ".md");
     pushFile(rel, global ? "accepted ADR" : `accepted ADR (${scope.join(", ")})`, {
       tier: TIER.DECISION,
-      // Best-first, deterministic: an ADR that explicitly governs this
-      // capability outranks a merely global one; then query relevance;
-      // then the number, so the newer decision survives the longer.
-      rank: [governs ? 1 : 0, ...relevance(text, terms, title), Number.parseInt(id, 10)],
+      // Best-first, deterministic: an ADR that NAMES this capability outranks
+      // one that only inherits through a dependency, which outranks a global
+      // one; then query relevance; then the number, so between equals the
+      // newer decision survives the longer.
+      rank: [named ? 2 : governs ? 1 : 0, ...relevance(text, terms, title), Number.parseInt(id, 10)],
       adrId: id,
       title,
       summary: adrSummary(text),

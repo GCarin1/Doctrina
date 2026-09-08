@@ -1,7 +1,7 @@
 # ADR 0007 — Structured spec deltas — mechanically applicable ops
 
 - **Status:** accepted
-- **Scope:** cli, core
+- **Scope:** cli, core, authoring
 - **Date:** 2026-06-22
 - **Deciders:**
 - **Supersedes:** —

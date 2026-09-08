@@ -1,7 +1,7 @@
 # ADR 0022 — Context assembly is retrieval, not a dump
 
 - **Status:** accepted
-- **Scope:** gates, cli
+- **Scope:** gates, cli, authoring, insight, scaffolding
 - **Date:** 2026-08-06
 - **Deciders:** GCarini + agent session of 2026-08-06 (audit remediation v2)
 - **Supersedes:** —

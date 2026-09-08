@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-09-07
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -39,6 +39,7 @@ keep the checks and the read path.
 - The system shall treat the lane classification as a hint and never a refusal: `--force` opens the change regardless, and `--chore` selects the spec-less lane directly.
 
 - The system shall default an unclassifiable request to the PRODUCT lane, so that a lane is only changed by a signal and never by the absence of one.
+- The system shall rank an accepted decision that names a capability in its `Scope:` header above one that reaches that capability only through a declared dependency, and both above an unscoped decision, when assembling that capability's context pack.
 
 ### Event-driven
 
@@ -266,6 +267,7 @@ keep the checks and the read path.
 - When `doctrina work` opens a change, the system shall record in the proposal the lane the request classified as, how confident that reading was, the signals that decided it, and any lane the operator chose instead.
 
 - When `doctrina work` scaffolds a delta from the ranking rather than from `--capability`, the system shall mark the file as a guess — naming the score it won on, the capability it beat, and the command that removes it — and shall say so in the playbook's spec-delta step, including on `--resume`, where the mark is read back from the file.
+- When a capability spec cites a decision whose `Scope:` header does not name that capability, the system shall report it, naming the header to extend.
 
 ### Unwanted-behavior (must-not)
 
@@ -301,6 +303,7 @@ The authoring commands are v0 spec-compliant when:
 9. [verified] Rewriting a proposal's lane to a nonsense value changes no gate's verdict or output — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 10. [verified] `work` scaffolds the winning capability's delta with `**Operation:** MODIFIED` and a guess mark when the prompt ranking has a real margin, writes nothing when it does not, and never marks a pinned delta a guess — verified by `packages/doctrina-cli/test/scaffolded-delta.test.js`.
 11. [verified] Every line `change diff` prints appears in `change check --verbose`, and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+12. [verified] Every decision this repository's specs cite names the citing capability, the `authoring` pack keeps all of them, a decision that names a capability outranks one it only inherits even when its number is older, and an unscoped decision is never reported as a violation — verified by `packages/doctrina-cli/test/adr-scope-follows-capability.test.js`.
 
 ## Out of scope for this spec
 

@@ -22,7 +22,7 @@ import { cliVersion } from "./version.js";
 import { today } from "./dates.js";
 import { kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
-import { specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
+import { parseAdrScope, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
 import { parseAcceptanceCriteria, isVerified } from "./criteria.js";
 import { parsePipeline, checkPipeline } from "./pipeline.js";
@@ -308,6 +308,56 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           `ADR number ${num} is claimed by ${files.length} files (${files.join(", ")}) — ` +
             `two branches likely allocated it concurrently; renumber all but one ` +
             `(the index keys decisions by number, so duplicates silently shadow each other)`,
+        );
+      }
+    }
+  }
+
+  // 5d. Scope drift: a spec cites an ADR that does not name it (change 0075).
+  //
+  //     `Scope:` decides which context packs an ADR loads into. A spec that
+  //     CITES an ADR has declared it load-bearing for that capability — so if
+  //     the ADR's scope omits the capability, the pack gets it only by
+  //     dependency inheritance, and inheritance is the first tier the budget
+  //     fitter drops. The ADRs a capability most needs are then the ones it
+  //     loses first, silently.
+  //
+  //     Splitting a spec is what produces this: change 0054 created
+  //     `authoring` out of `cli` and left seven cited ADRs pointing at `cli`;
+  //     the same drift reached `insight` and `scaffolding` from earlier
+  //     splits. Nothing reported it, because nothing compared the two.
+  //
+  //     A global (unscoped) ADR loads everywhere and is never a violation.
+  const specsDirForScope = path.join(projectRoot, ".doctrina", "specs");
+  if (isDir(specsDirForScope)) {
+    /** @type {Map<string, string[]|null>} */
+    const adrScopes = new Map();
+    const decisionsDirForScope = path.join(projectRoot, ".doctrina", "decisions");
+    if (isDir(decisionsDirForScope)) {
+      for (const f of walk(decisionsDirForScope)) {
+        const num = /(\d{4})-/.exec(path.basename(f))?.[1];
+        if (!num || !f.endsWith(".md")) continue;
+        const text = read(f);
+        if ((listHeader(text, "Status") ?? "").toLowerCase() !== "accepted") continue;
+        const scope = parseAdrScope(text);
+        adrScopes.set(num, scope.length > 0 ? scope : null);
+      }
+    }
+    for (const capDir of readdirSync(specsDirForScope, { withFileTypes: true })) {
+      if (!capDir.isDirectory()) continue;
+      const cap = capDir.name;
+      const specFile = path.join(specsDirForScope, cap, "spec.md");
+      if (!isFile(specFile)) continue;
+      const cited = new Set((read(specFile).match(/ADR (\d{4})/g) ?? []).map((m) => m.slice(4)));
+      for (const num of [...cited].sort()) {
+        const scope = adrScopes.get(num);
+        if (scope === undefined || scope === null) continue; // unknown or global
+        if (scope.includes(cap)) continue;
+        warnings.push(
+          `.doctrina/specs/${cap}/spec.md cites ADR ${num}, but that ADR's Scope: ` +
+            `(${scope.join(", ")}) does not name "${cap}" — the pack for ${cap} receives it ` +
+            `only by dependency, which is the first thing the context budget drops. ` +
+            `Add ${cap} to the ADR's Scope: header, or stop citing it here`,
         );
       }
     }

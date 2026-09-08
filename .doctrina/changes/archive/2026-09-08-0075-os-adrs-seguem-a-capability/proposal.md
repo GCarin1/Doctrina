@@ -1,6 +1,7 @@
 # Change 0075-os-adrs-seguem-a-capability — os adrs seguem a capability
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: change)
@@ -35,9 +36,23 @@ padrão bom; este é o caso em que ele não serve, e o motivo fica escrito aqui.
 
 - Não cria nem remove ADR nenhum, e não altera o corpo de nenhum: `Scope:` é
   metadado de leitura, não a decisão (os ADRs seguem imutáveis).
-- Não mexe no orçamento de contexto nem no algoritmo do fitter — o problema é o
-  escopo estar errado, não o teto estar baixo.
-- Não reescopa ADR que já esteja certo só para arredondar o resultado.
+- ~~Não mexe no algoritmo do fitter~~ — **este limite estava errado e a
+  implementação o derrubou.** Corrigir só os `Scope:` não mudou nada: o `rank`
+  do pacote tratava «o ADR me nomeia» e «o ADR nomeia algo de que eu dependo»
+  como o mesmo valor 1. Com isso o escopo decidia *candidatura* e não dizia nada
+  sobre *ordem*, e sem uma query `--for` todos os termos de relevância são 0 —
+  restando o número do ADR como único critério de desempate. O worst-first
+  descartava as decisões mais antigas. Foi assim que `authoring` perdeu do
+  próprio pacote o ADR 0005 (os playbooks de `intake` e `work`) e o ADR 0007 (os
+  verbos `ops` que ela aplica), mantendo ADRs que só a alcançavam via `cli`.
+  Sem essa correção o reescopo não teria efeito nenhum, e a change entregaria
+  metadado arrumado e o defeito intacto.
+- Não sobe nem baixa o orçamento de contexto: o teto continua 15000.
+- Não reescopa ADR que já esteja certo só para arredondar o resultado. O ADR
+  0001 chegou a ser escopado durante a implementação e foi **revertido para
+  global**: ele adota o AGENTS.md como substrato do produto inteiro, não é um
+  detalhe de capability, e tirá-lo dos pacotes era exatamente arredondar o
+  resultado. Um teste guarda essa garantia, e reprovou — corretamente.
 
 ## Verification
 
@@ -49,8 +64,8 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
 
 ## Open questions
 

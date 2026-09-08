@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **An ADR now follows the capability it governs.** Splitting a spec leaves the
+  ADRs behind: change 0054 made `authoring` out of `cli` and all seven ADRs the
+  new spec cites kept pointing at `cli`; `insight` and `scaffolding` had the
+  same drift from earlier splits — thirteen citations in all, none reported.
+- The cost was invisible because `Scope:` decided **membership** and then said
+  nothing about **order**. An ADR reaching a capability through a dependency
+  ranked exactly as high as one naming it, so with no `--for` query — every
+  relevance term zero — the ADR *number* was the only tie-break, and worst-first
+  dropped the oldest decisions. `authoring` lost ADR 0005 (the playbooks for
+  `intake` and `work`) and ADR 0007 (the `ops` verbs it applies) out of its own
+  context pack, while keeping ADRs that only reached it through `cli`.
+- Named now outranks inherited, which outranks global; the thirteen scopes are
+  corrected; and `validate` reports a spec citing an ADR whose scope does not
+  name it, so the next spec split says so instead of quietly costing a pack its
+  own decisions. ADR 0001 stays deliberately global — it adopts the AGENTS.md
+  standard for the whole product, not for a capability.
+
 - **The text caught up with the code.** Change 0047 moved the declared home
   of the context budget to `.doctrina/config.json`, and four places still
   pointed at `index.json`: the system contract — the artifact whose whole job

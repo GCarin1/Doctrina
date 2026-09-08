@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -159,7 +159,9 @@
         "scope": [
           "cli",
           "docs",
-          "gates"
+          "gates",
+          "authoring",
+          "insight"
         ],
         "summary": "The CLI does the deterministic half and prints a playbook for the"
       },
@@ -185,7 +187,8 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/lib/spec-ops.js`, `packages/doctrina-cli/src/commands/change.js`",
         "scope": [
           "cli",
-          "core"
+          "core",
+          "authoring"
         ],
         "summary": "Introduce a small, declarative operation set that a MODIFIED delta may carry"
       },
@@ -224,7 +227,9 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/validate.js`",
         "scope": [
           "cli",
-          "docs"
+          "docs",
+          "authoring",
+          "gates"
         ],
         "summary": "Add four targeted ergonomics, all opt-in, all deterministic:"
       },
@@ -264,7 +269,8 @@
         "date": "2026-06-28",
         "landed": "2026-06-28 — `packages/doctrina-cli/src/commands/skill.js`",
         "scope": [
-          "skills"
+          "skills",
+          "authoring"
         ],
         "summary": "Add the git commit history as a second deterministic source for"
       },
@@ -278,7 +284,9 @@
         "scope": [
           "cli",
           "gates",
-          "templates"
+          "templates",
+          "authoring",
+          "scaffolding"
         ],
         "summary": "Close the mechanical-delta gap."
       },
@@ -291,7 +299,8 @@
         "landed": "2026-07-19 — shipped in 0.13.0; regeneration covered by `packages/doctrina-cli/test/integration.test.js` (init/templates/upgrade surface tests) and `packages/doctrina-cli/test/commands.test.js` (catalog↔block parity)",
         "scope": [
           "cli",
-          "templates"
+          "templates",
+          "scaffolding"
         ],
         "summary": "The command-surface section of AGENTS.md is a CLI-owned block,"
       },
@@ -367,7 +376,8 @@
         "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/doc-model.test.js`",
         "scope": [
           "cli",
-          "validation"
+          "validation",
+          "authoring"
         ],
         "summary": "`src/lib/doc-model.js` owns the grammar."
       },
@@ -380,7 +390,10 @@
         "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/context-retrieval.test.js`",
         "scope": [
           "gates",
-          "cli"
+          "cli",
+          "authoring",
+          "insight",
+          "scaffolding"
         ],
         "summary": "Assembly is retrieval."
       },
@@ -532,14 +545,6 @@
         "status": "proposed",
         "opened": "2026-09-08",
         "lane": "product (uncertain; signals: change) — opened as chore"
-      },
-      {
-        "id": "0075-os-adrs-seguem-a-capability",
-        "title": "os adrs seguem a capability",
-        "path": ".doctrina/changes/0075-os-adrs-seguem-a-capability",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: change)"
       }
     ],
     "changes_archive": [
@@ -1403,6 +1408,19 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0075-os-adrs-seguem-a-capability",
+        "title": "os adrs seguem a capability",
+        "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ]

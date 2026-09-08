@@ -77,9 +77,8 @@ tool: on this repository, `doctrina context cli` was 23 files and
 **69% of the pack**, none of it selected for the task.
 
 The cause is structural. **ADRs are immutable and never retire**,
-so every accepted decision joins every pack, forever. The pack
-grows with the project's *age* rather than with the *task*, and
-nothing decays out of it.
+so every accepted decision joins every pack, forever: the pack
+grows with the project's *age*, not with the *task*.
 
 Three mechanisms bound it (ADR 0022):
 
@@ -93,14 +92,19 @@ Three mechanisms bound it (ADR 0022):
 A scoped pack carries the ADRs that govern that capability plus
 every unscoped one. **Unscoped means global**, so a project that
 never adds the header gets exactly the pack it got before —
-adoption is opt-in, not a migration.
+adoption is opt-in, not a migration. Scope also decides *order*:
+an ADR that **names** the capability outranks one reaching it only
+through a declared dependency, so under budget pressure a
+capability keeps its own decisions and gives up inherited ones.
+Splitting a spec is what makes this bite — the new capability's
+ADRs keep pointing at the old one — so `validate` reports a spec
+citing an ADR whose scope does not name it.
 
 Nobody hand-annotates a folder of immutable documents, so
-`doctrina decision scope` proposes a scope for each unscoped ADR
-from the archived change that cites it (that change already
-records which specs it touched). It prints suggestions; `--write`
-applies them. Review them: a scope that is too narrow hides a
-decision from the pack that needed it.
+`doctrina decision scope` proposes one per unscoped ADR from the
+archived change that cites it; `--write` applies them. Review
+them — too narrow a scope hides a decision from the pack that
+needed it.
 
 **2. Budget.** A ceiling always applies, resolved in this order:
 
@@ -111,9 +115,8 @@ decision from the pack that needed it.
 **3. Degradation, not truncation.** Over budget, an ADR falls
 back to its decision in one sentence and a spec to its purpose —
 least relevant first — before anything is dropped. A decision
-reduced to a sentence still carries the decision; an omitted one
-carries nothing. Truncating to the first N lines would keep an
-ADR's Context section, the part that matters least.
+reduced to a sentence still carries it; an omitted one carries
+nothing.
 
 Every degradation and omission is named in the report:
 
@@ -231,18 +234,15 @@ quality directly:
 
 The orthogonal one not in that list: **trusting any context the
 agent generates without curation.** The ETH Zurich AGENTbench
-result is unambiguous on this — LLM-written context files reduced
-task success by 0.5–2% and raised inference cost 20–23%. The
-implication for Doctrina users: any artifact a human did not
-review is liability, not asset.
+result is unambiguous — LLM-written context files reduced task
+success by 0.5–2% and raised inference cost 20–23%. Any artifact
+a human did not review is liability, not asset.
 
 ## Related material
 
 - [Workflow](workflow.md) — the cycle the artifacts move through.
-- [Adapters](adapters.md) — per-agent integration and the nested
-  AGENTS.md section.
-- [Antipatterns](antipatterns.md) — failure modes context errors
-  produce.
+- [Adapters](adapters.md) — per-agent integration and nested AGENTS.md.
+- [Antipatterns](antipatterns.md) — failure modes context errors produce.
 - [Multi-agent model](multi-agent.md) — how orchestration relates
   to context shape.
 - [Validation](validation.md) — measuring whether the context you

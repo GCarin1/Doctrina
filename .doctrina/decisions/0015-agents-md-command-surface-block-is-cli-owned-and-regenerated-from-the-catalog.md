@@ -1,7 +1,7 @@
 # ADR 0015 — AGENTS.md command-surface block is CLI-owned and regenerated from the catalog
 
 - **Status:** accepted
-- **Scope:** cli, templates
+- **Scope:** cli, templates, scaffolding
 - **Date:** 2026-07-19
 - **Deciders:** GCarini + agent session of 2026-07-19
 - **Supersedes:** —
