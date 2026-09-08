@@ -76,7 +76,7 @@ export async function run(_positional, flags) {
 // The command modules `--run` may dispatch to, loaded on demand. Static
 // imports here would make every module that imports `next` (prime, handoff,
 // watch) pay for the whole command tree just to render a list.
-const RUNNERS = {
+export const RUNNERS = {
   triage: () => import("./triage.js"),
   intake: () => import("./intake.js"),
   analyze: () => import("./analyze.js"),

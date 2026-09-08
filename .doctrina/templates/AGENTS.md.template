@@ -16,11 +16,12 @@ native multi-agent development. The full framework artifacts live under
 You — the AI agent — run the Doctrina commands. The human gives a brief
 prompt and approves; do not make them run the CLI or hand-author artifacts.
 
-- **Bootstrap.** If `.doctrina/intake.md` is `Status: pending`, the specs
-  are not written yet: run `doctrina intake` and execute the printed
-  playbook in one pass (fill `product.md`, derive capabilities, one EARS
-  spec each, `doctrina clarify --all` + `doctrina validate`, then flip the
-  intake to `Status: converted`). After conversion the specs are the only
+- **Bootstrap.** No capability in `.doctrina/specs/`, or an intake still
+  `Status: pending`? The specs are not written: run `doctrina intake --text
+  "<description>"` and execute the printed playbook in one pass (fill
+  `product.md`, derive capabilities, one EARS spec each, `clarify --all` +
+  `validate`, then flip the intake to `converted`). Existing codebase:
+  `doctrina work --from-diff`. After conversion the specs are the only
   source of truth — never edit `intake.md` to change requirements.
 - **Day-to-day.** Start every session with `doctrina prime` (gates, rules,
   open work in one read). Turn any request into a change with `doctrina

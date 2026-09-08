@@ -35,3 +35,17 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+O hub que o `init` instala passa a declarar um gatilho que o `init` de fato
+deixa em disco — nenhuma capability em `.doctrina/specs/` — em vez de um
+`intake.md` que ele nunca cria. E o caminho de leitura ganha a ação
+correspondente, simétrica à de intake pendente.
+
+```ops
+bump-version minor
+append-requirement event: When a project declares no capability spec and has no intake awaiting conversion, the system shall recommend the bootstrap command, naming the code-first alternative for a project adopting an existing codebase.
+append-requirement unwanted: The system shall not instruct an agent to check a condition that `init` does not leave on disk.
+append-criterion [verified] Immediately after `init`, `next` and `prime` name the bootstrap command, the hub's stated trigger matches what `init` writes, the action closes as soon as a capability exists, and a pending or converted intake never fires it — verified by `packages/doctrina-cli/test/bootstrap-door.test.js`.
+```

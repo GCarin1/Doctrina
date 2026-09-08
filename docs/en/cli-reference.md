@@ -1335,6 +1335,11 @@ with nothing proving them yet (suggesting `decision land`), a one-time
 skill-capture nudge when no skill exists and an archived change is
 fix-shaped, and index drift last (ADR 0011).
 
+On a project that declares no capability yet it names the bootstrap door —
+`doctrina intake` for a green field, `doctrina work --from-diff` to backfill
+from existing code — because that is the one moment a new agent most needs it
+and the one moment nothing else has anything to say.
+
 It also recommends over the **gate** signals `doctrina doctor` reports —
 acceptance criteria that are uncovered or cite evidence missing on disk,
 product intent no spec realizes, an undeclared build gate, an `active` spec

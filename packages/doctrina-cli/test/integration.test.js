@@ -1102,12 +1102,15 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // Specced first: an unspecced project is sent to the bootstrap door
+    // (change 0066), which is not what this lifecycle test is about.
+    runCli(["spec", "new", "core"], { cwd: tmp });
+    runCli(["index", "rebuild"], { cwd: tmp });
 
-    // Fresh project: nothing open.
+    // Fresh project: no change open.
     let r = runCli(["next"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
-    assert.match(r.stdout, /no change is open/);
-    assert.match(r.stdout, /doctrina work/);
+    assert.doesNotMatch(r.stdout, /open task|change apply|change archive/, r.stdout);
 
     // Open change with unchecked tasks.
     runCli(["change", "new", "0001-x", "do x"], { cwd: tmp });

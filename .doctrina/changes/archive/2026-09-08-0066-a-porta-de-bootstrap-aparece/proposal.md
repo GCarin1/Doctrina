@@ -1,6 +1,7 @@
 # Change 0066-a-porta-de-bootstrap-aparece — a porta de bootstrap aparece
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -28,6 +29,17 @@ exatamente onde o agente novo está.
 
 ## Scope boundaries
 
+**Decisão, tomada na implementação: o caminho de leitura nomeia a porta; o
+`init` continua não escrevendo o `intake.md`.** A outra saída — o `init`
+deixar um intake vazio em `pending` — cria um artefato que é só molde, e a
+change 0065 acabou de tornar isso uma coisa recusável: seria o framework
+embarcando exatamente o que ele passou a proibir. Então a condição que
+significa "as specs não estão escritas" é lida do que ESTÁ em disco: nenhuma
+capability em `.doctrina/specs/`. Vira uma ação (`bootstrap-unspecced`),
+simétrica à `intake-pending` que já existia, e por isso aparece no `next`, no
+`prime` e em qualquer vista que renderize ações. O texto do hub passa a
+declarar esse gatilho, e não um arquivo que o `init` nunca cria.
+
 - Não muda o playbook de bootstrap nem o que o `intake` faz com a descrição.
 - Não obriga um projeto a passar pelo `intake`: quem adota código existente
   (`work --from-diff`, backfill) segue por onde já passa; o que muda é a porta
@@ -44,8 +56,8 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
 
 ## Open questions
 

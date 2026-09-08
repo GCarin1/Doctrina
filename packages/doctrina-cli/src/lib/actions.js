@@ -123,7 +123,8 @@ export function computeActions(projectRoot, gates = {}) {
   // A pending intake is the very first thing to resolve: until it is
   // converted, product.md and the specs are still empty scaffolding.
   const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
-  if (isFile(intakePath)) {
+  const intakeExists = isFile(intakePath);
+  if (intakeExists) {
     const status = (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase();
     if (status !== "converted") {
       actions.push(action({
@@ -133,6 +134,25 @@ export function computeActions(projectRoot, gates = {}) {
         why: "a pending intake awaits conversion into product.md and specs",
       }));
     }
+  } else if (specCapabilities(projectRoot).length === 0) {
+    // And the state BEFORE that one, which had no action at all (second
+    // audit). `init` does not write an intake.md — deliberately: an empty
+    // pending intake would be a mould passing for content, which change 0065
+    // just made a refusable thing. So the condition that means "the specs are
+    // not written yet" is read from what IS on disk: no capability spec.
+    //
+    // Without this the bootstrap door was invisible at exactly the moment it
+    // was needed. The hub tells the agent to check a file `init` never
+    // creates, and `prime`, `next` and `doctor` named `intake` nowhere.
+    actions.push(action({
+      id: "bootstrap-unspecced",
+      command: "intake",
+      args: ["--text", '"<what this project is>"'],
+      severity: "blocking",
+      why: "no capability is specced yet, so nothing states what this project must do",
+      text: 'doctrina intake --text "<what this project is>" — no capability is specced yet; ' +
+        "for an existing codebase, `doctrina work --from-diff` backfills from the code instead",
+    }));
   }
 
   // Open changes drive the loop: finish what is started before opening more.
@@ -347,7 +367,12 @@ export function computeActions(projectRoot, gates = {}) {
       command: "verify",
       args: ["--init"],
       gate: "verify",
-      runnable: true,
+      // NOT runnable, though the command is one call: `verify --init` writes a
+      // fail-closed placeholder that a person still has to replace with the
+      // project's real commands, so running it unattended is not the whole of
+      // what the action asks for. Marking it runnable in change 0064 was a
+      // mistake — `next --run` picked it, found no runner registered, and
+      // errored where it should have said the next step needs a person.
       why: "no .doctrina/verify.json — the close skips its build gate entirely",
     }));
   }

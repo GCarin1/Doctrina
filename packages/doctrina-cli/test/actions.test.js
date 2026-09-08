@@ -6,6 +6,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 
+import { RUNNERS } from "../src/commands/next.js";
 // Change 0032 — `next` answers with records, not prose.
 //
 // The defect these pin: the CLI assembled the exact command, then handed
@@ -152,7 +153,10 @@ test("--run refuses an action that needs a person, and names it", () => {
   try {
     // An open change with unchecked tasks. Nothing here is executable:
     // the only thing that clears it is doing the work, and `change tick`
-    // would tick a box nobody earned.
+    // would tick a box nobody earned. The project is specced first, so the
+    // bootstrap door (change 0066) is not the action under test.
+    run(dir, ["spec", "new", "billing"]);
+    run(dir, ["index", "rebuild"]);
     run(dir, ["change", "new", "0001-x", "do x"]);
     plan(dir, "0001-x");
 
@@ -201,6 +205,51 @@ test("outside a project, next names init and refuses to run it", () => {
     const payload = JSON.parse(run(dir, ["next", "--json"]).stdout);
     assert.equal(payload.actions[0].command, "init");
     assert.equal(payload.actions[0].runnable, false, "scaffolding a project is the user's call");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("every runnable action names a command --run can actually execute", () => {
+  // The drift this pins: change 0064 marked `verify --init` runnable, no
+  // runner was registered for `verify`, and `next --run` errored where it
+  // should have said the next step needs a person. A runnable action whose
+  // command has no runner is a bug in the map, and this is what finds it.
+  const dir = project();
+  try {
+    run(dir, ["spec", "new", "billing"]);
+    run(dir, ["index", "rebuild"]);
+    run(dir, ["change", "new", "0001-x", "do x"]);
+    run(dir, ["decision", "new", "Something"]);
+
+    const missing = [];
+    for (const a of actionsOf(dir)) {
+      if (!a.runnable) continue;
+      if (a.command === null) {
+        missing.push(`${a.id} is runnable with no command`);
+      } else if (!Object.prototype.hasOwnProperty.call(RUNNERS, a.command)) {
+        missing.push(`${a.id} runs "${a.command}", which has no runner`);
+      }
+    }
+    assert.deepEqual(missing, [], missing.join("\n"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("declaring the build gate needs a person, so --run says so instead of scaffolding one", () => {
+  // `verify --init` writes a fail-closed placeholder somebody must replace
+  // with the project's real commands: running it unattended is not the whole
+  // of what the action asks for.
+  const dir = project();
+  try {
+    run(dir, ["spec", "new", "billing"]);
+    run(dir, ["index", "rebuild"]);
+    const verify = actionsOf(dir).find((a) => a.id === "verify-unconfigured");
+    assert.ok(verify, "expected the undeclared-build-gate action");
+    assert.equal(verify.runnable, false);
+    assert.equal(existsSync(path.join(dir, ".doctrina", "verify.json")), false,
+      "and nothing scaffolded it behind the author's back");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

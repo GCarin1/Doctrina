@@ -1381,6 +1381,12 @@ status `proposed`, ADRs aceitos sem nada que os comprove ainda
 nenhuma existe e uma change arquivada tem cara de fix, e o drift do
 index por último (ADR 0011).
 
+Num projeto que ainda não declara capability nenhuma, ele nomeia a porta de
+bootstrap — `doctrina intake` para começar do zero, `doctrina work
+--from-diff` para retroalimentar a partir de código existente — porque é o
+momento em que um agente novo mais precisa dela e o momento em que nada mais
+tem o que dizer.
+
 Ele também recomenda sobre os sinais de **gate** que o `doctrina doctor`
 reporta — critérios de aceitação sem cobertura ou citando evidência ausente
 em disco, intenção de produto que nenhuma spec realiza, gate de build não

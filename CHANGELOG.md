@@ -46,6 +46,26 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The bootstrap door is visible at the moment it is needed.** The AGENTS.md
+  `init` installs told the agent the trigger was "`.doctrina/intake.md` is
+  `Status: pending`" — and `init` never writes that file, so the documented
+  trigger could not fire on a freshly initialised project. `prime`, `next` and
+  `doctor` named `doctrina intake` nowhere, and `next` offered instead the two
+  hand-authoring commands the same hub says not to use.
+- The fix is not for `init` to write an empty pending intake: that would be a
+  mould passing for content, which change 0065 just made refusable. The
+  condition is read from what IS on disk — no capability in
+  `.doctrina/specs/` — as an action symmetric with the pending-intake one, so
+  it renders wherever actions render. The hub now states that trigger, and
+  names `work --from-diff` for a project adopting existing code (ADR 0010).
+- **`verify --init` is no longer marked runnable.** Change 0064 marked it so;
+  `next --run` then picked it, found no runner registered for `verify`, and
+  errored where it should have said the next step needs a person. It writes a
+  fail-closed placeholder somebody must replace with the project's real
+  commands, so running it unattended was never the whole of what the action
+  asks. A test now pins that every runnable action names a command `--run` can
+  actually execute.
+
 - **The scaffold stopped passing for content.** A spec that was entirely the
   mould passed `validate` and `clarify`; the machinery to tell them apart
   (`isUntouchedScaffold`) existed and was used in exactly one narrow place. The
