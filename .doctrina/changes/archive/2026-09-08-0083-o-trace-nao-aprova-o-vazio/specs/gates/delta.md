@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall treat a capability as participating in intent provenance only when its `**Realizes:**` header cites at least one anchor id, so a scaffolded header that names none does not count as opting in.
+append-requirement unwanted: If no intent anchor is declared, the system shall not report the trace as satisfied, because a ratio over zero anchors states nothing true about provenance.
+append-criterion [verified] A scaffolded spec does not turn zero anchors into a green verdict, and `trace` and `doctor` read the empty tree the same way — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
+append-criterion [verified] A cited anchor with none declared is a gap that fails `--strict`, a declared and realized anchor is still green, and a project that declared nothing is still not nagged — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
+bump-version minor
+```

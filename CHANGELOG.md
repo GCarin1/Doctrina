@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`doctrina trace` no longer approves an empty tree.** `spec new` scaffolds
+  the `Realizes:` header with a placeholder that cites no anchor, and the
+  never-opted-in guard tested for the HEADER rather than for a cited anchor —
+  so one scaffolded spec was enough to land in the normal report, where zero
+  anchors rendered as `ok 0 of 0 intent anchors realized` and exited 0,
+  `--strict` included. A green verdict over nothing, on the first read a new
+  project gets about itself, while `doctor` read the same collection and
+  warned. Participation now means citing an anchor id, and a report reached
+  with no anchors is never clean. The bootstrap is still not nagged: a
+  project that declared no provenance at all keeps its quiet exit.
+
 - **An unknown flag is refused, never ignored.** Declaring each command's
   flags stopped the parser swallowing a positional; nothing ever CHECKED the
   declaration, so an unrecognised flag was simply dropped. On one tree,

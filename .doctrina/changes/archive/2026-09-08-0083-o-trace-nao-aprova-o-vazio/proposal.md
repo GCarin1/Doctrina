@@ -1,6 +1,7 @@
 # Change 0083-o-trace-nao-aprova-o-vazio — o trace nao aprova o vazio
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -49,11 +50,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Zero âncoras deixa de ser reportado como sucesso.
-- [ ] O `trace` e o `doctor` dizem a mesma coisa sobre a mesma árvore vazia.
-- [ ] Uma árvore com âncoras realizadas continua verde e saindo 0.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Zero âncoras deixa de ser reportado como sucesso.
+- [x] O `trace` e o `doctor` dizem a mesma coisa sobre a mesma árvore vazia.
+- [x] Uma árvore com âncoras realizadas continua verde e saindo 0.
 
 ## Open questions
 

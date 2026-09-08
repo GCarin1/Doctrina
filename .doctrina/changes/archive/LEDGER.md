@@ -88,3 +88,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0080-o-report-nomeia-a-causa-certa — o report nomeia a causa certa (specs: insight MODIFIED)
 - 2026-09-08 — 0081-o-work-nao-deixa-specs-vazio — o work nao deixa specs vazio (specs: authoring MODIFIED)
 - 2026-09-08 — 0082-uma-flag-desconhecida-nao-passa — uma flag desconhecida nao passa (specs: cli MODIFIED)
+- 2026-09-08 — 0083-o-trace-nao-aprova-o-vazio — o trace nao aprova o vazio (specs: gates MODIFIED)

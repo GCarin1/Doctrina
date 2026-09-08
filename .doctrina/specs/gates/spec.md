@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.11.0
+**Version:** 1.12.0
 
 ## Purpose
 
@@ -43,6 +43,7 @@ codes, zero-deps, no-network).
 - The system shall read and write the archive ledger through one grammar, so that a line the CLI appends is a line the CLI can read back.
 - The system shall determine which capability owns a source file from the `**Source:**` globs the capability spec declares, falling back to path and citation inference only for a project that declares none, and shall never infer ownership over a declaration (ADR 0027).
 - The system shall evaluate a clarity rule against the end of the preceding line as context, reporting only matches that begin on the line being scanned, so a phrase split across a line break gets the same verdict as an unwrapped one.
+- The system shall treat a capability as participating in intent provenance only when its `**Realizes:**` header cites at least one anchor id, so a scaffolded header that names none does not count as opting in.
 
 ### Event-driven
 
@@ -295,6 +296,7 @@ codes, zero-deps, no-network).
 - The system shall not offer, as a place to write documentation, a directory of the checked project that contains no prose.
 - If a spec declares a `**Source:**` pattern that matches no file on disk, the system shall report it as a finding, because a claim over code that is not there reads as coverage and provides none.
 - If a quantifier appears inside an interrogative phrase such as "how many", the system shall not report it as a vague term, because the phrase names the number the requirement demands rather than leaving one unstated.
+- If no intent anchor is declared, the system shall not report the trace as satisfied, because a ratio over zero anchors states nothing true about provenance.
 
 ### Optional
 
@@ -364,6 +366,8 @@ The gate surface is spec-compliant when:
 50. [verified] The orphan note fires per file even when another changed file matched, and `validate` reports a pattern that matches nothing — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
 51. [verified] "how many" passes while a bare quantifier still smells, across a line break included, and a number after the quantifier still exempts it — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
 52. [verified] The preceding line is read as context and never as content: its own smell is reported once, on its own line — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
+53. [verified] A scaffolded spec does not turn zero anchors into a green verdict, and `trace` and `doctor` read the empty tree the same way — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
+54. [verified] A cited anchor with none declared is a gap that fails `--strict`, a declared and realized anchor is still green, and a project that declared nothing is still not nagged — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
 
 ## Out of scope for this spec
 

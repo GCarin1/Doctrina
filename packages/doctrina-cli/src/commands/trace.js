@@ -55,7 +55,16 @@ export async function run(_positional, flags) {
   const specs = collectSpecs(projectRoot); // [{ cap, status, realizes: [id] }]
 
   const anchorIds = new Set(anchors.map((a) => a.id));
-  const anyRealizes = specs.some((s) => s.realizes !== null);
+  // A spec OPTED IN when it cites at least one anchor id. The header alone
+  // is not opting in: `spec new` scaffolds `**Realizes:** n/a — <reason>`,
+  // which parses to an empty id list and used to count as participation.
+  // One scaffolded spec was therefore enough to take a project out of the
+  // never-opted-in branch and into the normal report, where zero anchors
+  // rendered as `ok 0 of 0 intent anchors realized` — a green verdict over
+  // nothing, on the very first read a new project gets about itself, while
+  // `doctor` read the same collection and warned (change 0083). Absence is
+  // not approval — the half change 0057 fixed in `coverage` and not here.
+  const anyRealizes = specs.some((s) => s.realizes !== null && s.realizes.length > 0);
 
   // The feature is unused: do not nag a project that never opted in.
   if (anchors.length === 0 && !anyRealizes) {
@@ -122,10 +131,15 @@ export async function run(_positional, flags) {
 
   const dropped = anchors.length - realized;
   console.log("");
-  const summary =
-    `${realized} of ${anchors.length} intent anchor${anchors.length === 1 ? "" : "s"} realized` +
-    `; ${dropped} dropped, ${dangling.length} dangling, ${untraceable.length} untraceable`;
-  const clean = dropped === 0 && dangling.length === 0 && untraceable.length === 0;
+  const summary = anchors.length === 0
+    ? `no intent anchors declared in product.md` +
+      `; ${dangling.length} dangling, ${untraceable.length} untraceable`
+    : `${realized} of ${anchors.length} intent anchor${anchors.length === 1 ? "" : "s"} realized` +
+      `; ${dropped} dropped, ${dangling.length} dangling, ${untraceable.length} untraceable`;
+  // Reaching the report with no anchors at all is never clean: there is
+  // nothing to have realized, and a ratio over zero says nothing true.
+  const clean = anchors.length > 0
+    && dropped === 0 && dangling.length === 0 && untraceable.length === 0;
   if (clean) {
     console.log(c.green("ok") + " " + summary);
     return 0;

@@ -1226,6 +1226,18 @@ citando âncora que não existe) e specs ativas **untraceable** (sem
 header `Realizes:` — um `n/a — <porquê>` deliberado é aceito).
 Read-only.
 
+Uma capability conta como **participante** só quando o header `Realizes:`
+dela cita um id de âncora. O header sozinho não é participação: o `spec
+new` esqueletiza um com valor placeholder, e uma única spec esqueletizada
+bastava para sair do ramo «ninguém optou por isso» e cair no relatório
+normal, onde zero âncoras viravam `ok 0 of 0 intent anchors realized` — um
+veredicto verde sobre nada, na primeira leitura que um projeto novo faz de
+si mesmo, enquanto o `doctor` avisava sobre a mesma árvore. Sem âncora
+nenhuma, o trace nunca reporta satisfeito: uma razão sobre zero não afirma
+nada verdadeiro. Um projeto que não declarou proveniência alguma continua
+não sendo importunado — o bootstrap não é bloqueado por um recurso que
+ninguém pediu.
+
 | Flag | Função |
 |------|--------|
 | `--strict` | Sai 1 quando existe alguma quebra de proveniência (gate de CI). Sem ela, o comando sempre sai 0 (um relatório). |

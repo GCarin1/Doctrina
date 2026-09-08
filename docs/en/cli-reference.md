@@ -1186,6 +1186,17 @@ no spec realizes), **dangling realizes** (a spec citing an anchor that
 does not exist), and **untraceable** active specs (no `Realizes:`
 header at all — a deliberate `n/a — <why>` is fine). Read-only.
 
+A capability counts as **opted in** only when its `Realizes:` header cites
+an anchor id. The header alone is not participation: `spec new` scaffolds
+one with a placeholder value, and a single scaffolded spec used to be
+enough to leave the never-opted-in branch and land in the normal report,
+where zero anchors rendered as `ok 0 of 0 intent anchors realized` — a
+green verdict over nothing, on the first read a new project gets about
+itself, while `doctor` warned about the same tree. With no anchors at all,
+trace never reports satisfied: a ratio over zero states nothing true. A
+project that has declared no provenance whatsoever is still not nagged —
+the bootstrap is not blocked by a feature nobody opted into.
+
 | Flag | Purpose |
 |------|---------|
 | `--strict` | Exit 1 when any provenance break exists (CI gate). Without it, the command always exits 0 (a report). |
