@@ -504,7 +504,32 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0086-o-envelope-json-nao-mente",
+        "title": "o envelope json nao mente",
+        "path": ".doctrina/changes/0086-o-envelope-json-nao-mente",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0087-um-artefato-vazio-nao-passa",
+        "title": "um artefato vazio nao passa",
+        "path": ".doctrina/changes/0087-um-artefato-vazio-nao-passa",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0088-citar-um-comando-nao-e-mexer-nele",
+        "title": "citar um comando nao e mexer nele",
+        "path": ".doctrina/changes/0088-citar-um-comando-nao-e-mexer-nele",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
