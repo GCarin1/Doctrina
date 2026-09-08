@@ -504,7 +504,32 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0082-uma-flag-desconhecida-nao-passa",
+        "title": "uma flag desconhecida nao passa",
+        "path": ".doctrina/changes/0082-uma-flag-desconhecida-nao-passa",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0083-o-trace-nao-aprova-o-vazio",
+        "title": "o trace nao aprova o vazio",
+        "path": ".doctrina/changes/0083-o-trace-nao-aprova-o-vazio",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0084-a-expansao-de-chaves-esta-certa",
+        "title": "a expansao de chaves esta certa",
+        "path": ".doctrina/changes/0084-a-expansao-de-chaves-esta-certa",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
