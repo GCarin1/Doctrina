@@ -1615,6 +1615,16 @@ não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
 driver sobre os comandos existentes — adiciona uma checagem própria, o
 gate de docs — então o agente faz uma chamada em vez de nove.
 
+**A linha final afirma só o que rodou.** Cada palavra mapeia para um passo
+— `verify` → verified, `archive` → archived, `validate` → validated — e um
+passo pulado perde sua palavra e é nomeado no lugar. A linha era uma string
+fixa, então um close cujo passo 7 acabara de imprimir `skip   no
+`.doctrina/verify.json`` ainda reportava a change como *verified*: a única
+frase que um humano lê antes de aprovar, afirmando um gate que não rodou.
+Pela mesma razão, um passo sem o que checar diz isso em vez de reportar
+conformidade — «every touched spec's Implementation header matches» sobre
+zero specs é vacuamente verdadeiro — e um passo que checou diz quanto.
+
 **O gate de runtime.** Os checks RT01-RT05 que o `doctrina contract
 check` renderiza, rodando aqui como um passo: uma variável que o contrato
 declara sob `vars`/`secrets` e que o workflow nomeado não exporta, um

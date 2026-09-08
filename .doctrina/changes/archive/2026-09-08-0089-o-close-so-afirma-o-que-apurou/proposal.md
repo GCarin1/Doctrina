@@ -1,6 +1,7 @@
 # Change 0089-o-close-so-afirma-o-que-apurou — o close so afirma o que apurou
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -59,11 +60,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] A linha final não afirma um passo que foi pulado.
-- [ ] Um passo sem o que checar não é reportado como aprovação.
-- [ ] Um close completo, com todos os passos executados, continua dizendo o
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] A linha final não afirma um passo que foi pulado.
+- [x] Um passo sem o que checar não é reportado como aprovação.
+- [x] Um close completo, com todos os passos executados, continua dizendo o
       que sempre disse.
 
 ## Open questions

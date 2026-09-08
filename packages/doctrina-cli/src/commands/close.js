@@ -6,7 +6,7 @@ import { exists, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "../lib/doc-model.js";
-import { printAdrCheckpoint } from "../lib/adr-guard.js";
+import { printAdrCheckpoint, acceptedDecisionCount } from "../lib/adr-guard.js";
 import { docsRemedy, checkDocsImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
@@ -110,7 +110,16 @@ async function closeOne(projectRoot, id, flags) {
     "adr-checkpoint": {
       run: async () => {
         if (printAdrCheckpoint(projectRoot, touched, { c }) === 0) {
-          console.log(c.green("ok") + " no accepted ADR cites the touched capabilities");
+          // "No ADR cites these capabilities" is conformance only when there
+          // ARE accepted ADRs to cite them. With none on disk the sentence is
+          // vacuously true, and printing it as `ok` reads as a decision
+          // checked rather than a checkbox with nothing behind it (0089).
+          const accepted = acceptedDecisionCount(projectRoot);
+          if (accepted === 0) {
+            console.log(c.gray("·      no accepted ADR in the tree — nothing to check the change against"));
+          } else {
+            console.log(c.green("ok") + ` no accepted ADR cites the touched capabilities (${accepted} checked)`);
+          }
         }
         return 0;
       },
@@ -192,8 +201,15 @@ async function closeOne(projectRoot, id, flags) {
           const mismatch = implementationMismatch(specHeader(read(specPath), "Implementation"), row.derived);
           if (mismatch) proposals.push({ cap, row, mismatch });
         }
+        if (derived.size === 0) {
+          // "Every touched spec matches" over ZERO specs is vacuously true.
+          // A chore in a project with no capability spec reached this and was
+          // told its implementation headers were in order (change 0089).
+          console.log(c.gray("·      no spec to check — the change touches no capability"));
+          return 0;
+        }
         if (proposals.length === 0) {
-          console.log(c.green("ok") + " every touched spec's Implementation header matches its coverage");
+          console.log(c.green("ok") + ` every touched spec's Implementation header matches its coverage (${derived.size} checked)`);
           return 0;
         }
         for (const { cap, row, mismatch } of proposals) {
@@ -283,12 +299,22 @@ async function closeOne(projectRoot, id, flags) {
   console.log(c.bold(`Closing change ${id}`) +
     c.gray(` — ${sequence("close").map((s) => s.label.replace(" (advisory)", "")).join(" → ")}`));
 
+  // What the closing line is allowed to claim. A step that was SKIPPED was
+  // not performed, and the conclusion used to say "verified, archived, and
+  // validated" as a fixed string — including on a close whose own step 7 had
+  // just printed `skip   no .doctrina/verify.json`. The final line is the one
+  // sentence a human reads before approving; a word it did not earn is the
+  // most expensive claim in the tree (change 0089).
+  const ran = new Set();
+  const skippedSteps = [];
+
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
     console.log("");
     console.log(c.gray(`──── ${i + 1}/${steps.length} ${step.label}`));
     if (step.skip) {
       console.log(c.yellow("skip   ") + step.skip);
+      skippedSteps.push(step);
       continue;
     }
     let code;
@@ -320,6 +346,7 @@ async function closeOne(projectRoot, id, flags) {
       console.log(`    ${c.cyan(`doctrina close ${id}`)}`);
       return 1;
     }
+    ran.add(step.id);
   }
 
   // Record a forced docs gap in the ledger, so history shows the change
@@ -345,7 +372,7 @@ async function closeOne(projectRoot, id, flags) {
   } catch { /* advisory only */ }
 
   console.log("");
-  console.log(c.green(`✓ change ${id} closed`) + c.gray(" — verified, archived, and validated."));
+  console.log(c.green(`✓ change ${id} closed`) + c.gray(closingClaim(ran, skippedSteps)));
   console.log(c.gray("Next: ") + c.cyan("doctrina next"));
   return 0;
 }
@@ -355,6 +382,29 @@ async function closeOne(projectRoot, id, flags) {
 // with no runner here is a defect in this file — not a reason to start a
 // second process and not a reason to pass silently. `doctor` reaches the same
 // conclusion for its own reporters; the two drivers now give one answer.
+// The closing sentence, built from the steps that actually ran.
+//
+// Each word names one step: `verify` -> verified, `archive` -> archived,
+// `validate` -> validated. A step that was skipped loses its word and is
+// named instead, so the line can never claim more than the run performed.
+function closingClaim(ran, skippedSteps) {
+  const words = [
+    ["verify", "verified"],
+    ["archive", "archived"],
+    ["validate", "validated"],
+  ].filter(([stepId]) => ran.has(stepId)).map(([, word]) => word);
+
+  const claimed = words.length === 0
+    ? ""
+    : words.length === 1
+      ? ` — ${words[0]}.`
+      : ` — ${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}.`;
+
+  const skipped = skippedSteps.map((s) => s.label.replace(" (advisory)", ""));
+  if (skipped.length === 0) return claimed || " — no gate ran.";
+  return `${claimed || " —"} ${skipped.length === 1 ? "Skipped" : "Skipped"}: ${skipped.join(", ")}.`;
+}
+
 function missingRunner(step) {
   console.error(c.red("error:") +
     ` "${step.label}" is declared in the close sequence but has no runner here`);

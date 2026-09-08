@@ -12,6 +12,25 @@ import { listHeader } from "./scan.js";
 // (`decision supersede` / `decision new`) instead of drifting past it.
 // A word match on capability names — a hint, never a decision (ADR 0005),
 // and never a blocker (an ADR merely MENTIONING a capability is normal).
+/**
+ * How many ADRs on disk are accepted.
+ *
+ * The checkpoint prints "no accepted ADR cites the touched capabilities",
+ * which is conformance only when there ARE accepted ADRs to cite them. With
+ * none, the sentence is vacuously true and reads as a decision checked
+ * (change 0089), so the caller needs the count to tell the two apart.
+ */
+export function acceptedDecisionCount(projectRoot) {
+  const adrDir = path.join(projectRoot, ".doctrina", "decisions");
+  if (!isDir(adrDir)) return 0;
+  let n = 0;
+  for (const f of walk(adrDir)) {
+    if (!/^\d{4}-.*\.md$/.test(path.basename(f))) continue;
+    if ((listHeader(read(f), "Status") ?? "").toLowerCase() === "accepted") n += 1;
+  }
+  return n;
+}
+
 export function adrAdvisories(projectRoot, capabilities) {
   const adrDir = path.join(projectRoot, ".doctrina", "decisions");
   if (!isDir(adrDir) || capabilities.length === 0) return [];

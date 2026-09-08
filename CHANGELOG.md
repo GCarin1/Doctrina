@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`doctrina close` claims only the gates it ran.** The closing line was a
+  fixed string — "verified, archived, and validated" — printed on a close
+  whose own step 7 had just said `skip   no .doctrina/verify.json`. The run
+  announced that the build gate had not executed and then reported the change
+  as verified, in the one sentence a human reads before approving. Each word
+  now maps to a step and a skipped step loses its word and is named instead.
+  Two steps made the same shape of claim over nothing — "every touched spec's
+  Implementation header matches its coverage" with zero specs, and "no
+  accepted ADR cites the touched capabilities" with no ADR on disk — and now
+  report the absence, or say how much they checked.
+
 - **The docs gate stops counting a citation as a change.** It reads what the
   author wrote — correctly, and for the same reason change 0058 subtracted
   the template's boilerplate — but could not tell "this command is the

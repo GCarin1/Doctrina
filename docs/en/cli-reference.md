@@ -1564,6 +1564,17 @@ is declared; trace and both advisories never block. A driver over the
 existing commands — it adds one check of its own, the docs gate — so
 the agent makes one call instead of nine.
 
+**The closing line claims only what ran.** Each word maps to a step —
+`verify` → verified, `archive` → archived, `validate` → validated — and a
+skipped step loses its word and is named instead. The line used to be a
+fixed string, so a close whose step 7 had just printed `skip   no
+`.doctrina/verify.json`` still reported the change as *verified*: the one
+sentence a human reads before approving, claiming a gate that had not run.
+For the same reason a step with nothing to check says so rather than
+reporting conformance — "every touched spec's Implementation header
+matches" over zero specs is vacuously true — and a step that did check
+says how much.
+
 **The runtime gate.** The RT01-RT05 checks `doctrina contract check`
 renders, run here as a step: a variable a contract declares under
 `vars`/`secrets` that the named workflow does not export, a consumer

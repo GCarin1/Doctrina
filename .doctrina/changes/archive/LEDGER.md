@@ -95,3 +95,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0086-o-envelope-json-nao-mente — o envelope json nao mente (specs: cli MODIFIED)
 - 2026-09-08 — 0087-um-artefato-vazio-nao-passa — um artefato vazio nao passa (specs: validation MODIFIED)
 - 2026-09-08 — 0088-citar-um-comando-nao-e-mexer-nele — citar um comando nao e mexer nele (specs: gates MODIFIED)
+- 2026-09-08 — 0089-o-close-so-afirma-o-que-apurou — o close so afirma o que apurou (specs: gates MODIFIED)
