@@ -8,7 +8,7 @@ import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { warnIfThinIntake, writeIntakeFile, printBootstrapPlaybook } from "../lib/intake-model.js";
+import { looksLikePath, warnIfThinIntake, writeIntakeFile, printBootstrapPlaybook } from "../lib/intake-model.js";
 
 // `init --intake` performs the same operations; they live in
 // lib/intake-model.js so neither command imports out of the other (F7).
@@ -63,12 +63,24 @@ export async function run(positional, flags) {
     source = "inline (--text)";
   } else {
     const abs = path.resolve(projectRoot, sourceFile);
-    if (!isFile(abs)) {
+    if (isFile(abs)) {
+      body = read(abs);
+      source = relPath(projectRoot, abs);
+    } else if (looksLikePath(sourceFile)) {
       console.error(c.red("error:") + ` description file not found: ${sourceFile}`);
+      console.error(c.gray("hint: ") +
+        'to pass the description itself, use `doctrina intake --text "<description>"`');
       return 1;
+    } else {
+      // Prose, not a path (change 0071). The surface block says "store the
+      // intent", so passing the intent is what its wording invites; answering
+      // "description file not found:" and echoing the author's whole sentence
+      // back as a filename was the CLI blaming the reader for reading it.
+      body = sourceFile;
+      source = "inline";
+      console.error(c.gray("note:  ") +
+        'read as the description itself, not as a file — `--text "<description>"` says so explicitly');
     }
-    body = read(abs);
-    source = relPath(projectRoot, abs);
   }
   if (body.trim().length === 0) {
     console.error(c.red("error:") + " the description is empty");

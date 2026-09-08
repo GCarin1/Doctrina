@@ -122,6 +122,14 @@ doctrina intake                       # reprint the playbook for a pending intak
 | `--text "<description>"` | Inline description instead of a file. |
 | `--force` | Overwrite an existing `.doctrina/intake.md`. |
 
+The positional takes either. A value that cannot be a path — a sentence,
+with spaces and no separator or document extension — is read as the
+description itself, and the CLI says so once on stderr; `--text` is the
+explicit form. Anything that could be a path is treated as one, so a real
+file is never mistaken for prose, and a path that does not exist is still an
+error. `doctrina init --intake` follows the same rule, with `--intake-text`
+as its explicit form.
+
 The playbook steps: read the intake, fill every `product.md` section,
 derive the capability list and run `spec new` + author EARS per
 capability, record any forced ADRs, run `clarify --all` and `validate`,

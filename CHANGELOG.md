@@ -46,6 +46,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`doctrina intake "<description>"` works.** The surface block describes the
+  command as "store the intent", and passing the intent produced `error:
+  description file not found:` followed by the author's whole sentence echoed
+  back as a filename, with no mention of `--text` — the CLI blaming the reader
+  for reading it. A value that cannot be a path is now read as the description,
+  with one note on stderr naming the explicit form. The rule is deliberately
+  conservative: anything that could be a path is treated as one, so a real file
+  is never mistaken for prose, and a path that does not exist is still an error
+  — one that now names the form that would have worked.
+- `doctrina init --intake` follows the same rule, so the two commands answer
+  the same input shape the same way: an agent that learned one is no longer
+  surprised by the other.
+
 - **A change no longer starts out with its title doubled.** Change 0052 fixed
   the PARSE; the generation still duplicated. Without `--title` the id's slug
   and the H1's title half were both the whole prompt, so a change opened on the

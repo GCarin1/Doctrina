@@ -128,6 +128,14 @@ doctrina intake                       # reimprime o playbook de um intake penden
 | `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
 | `--force` | Sobrescreve um `.doctrina/intake.md` existente. |
 
+O positional aceita os dois. Um valor que não pode ser um caminho — uma
+frase, com espaços e sem separador nem extensão de documento — é lido como a
+descrição em si, e o CLI diz isso uma vez no stderr; o `--text` é a forma
+explícita. Qualquer coisa que possa ser um caminho é tratada como caminho,
+então um arquivo real nunca é confundido com prosa, e um caminho inexistente
+continua sendo erro. O `doctrina init --intake` segue a mesma regra, com o
+`--intake-text` como forma explícita dele.
+
 Os passos do playbook: ler o intake, preencher cada seção de
 `product.md`, derivar a lista de capabilities e rodar `spec new` +
 escrever EARS por capability, registrar quaisquer ADRs forçados, rodar

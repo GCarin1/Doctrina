@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-09-07
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -40,6 +40,7 @@ keep the checks and the read path.
 
 - The system shall default an unclassifiable request to the PRODUCT lane, so that a lane is only changed by a signal and never by the absence of one.
 - The system shall rank an accepted decision that names a capability in its `Scope:` header above one that reaches that capability only through a declared dependency, and both above an unscoped decision, when assembling that capability's context pack.
+- The system shall apply one rule for telling a path from prose, and the commands that ingest a project description shall answer the same input shape the same way.
 
 ### Event-driven
 
@@ -270,6 +271,7 @@ keep the checks and the read path.
 - When a capability spec cites a decision whose `Scope:` header does not name that capability, the system shall report it, naming the header to extend.
 - When a decision record is accepted, the system shall re-derive its whole index entry from the file, so the summary and scope the author wrote before accepting are the ones recorded.
 - When a change is opened without an explicit title, the system shall derive the identifier from the prompt's content words rather than from the whole prompt, and shall keep the whole prompt as the proposal's title.
+- When a description is given where a file path is expected, the system shall accept it as the description when it cannot be a path, and shall otherwise report the missing file naming the form that passes text directly.
 
 ### Unwanted-behavior (must-not)
 
@@ -309,6 +311,7 @@ The authoring commands are v0 spec-compliant when:
 12. [verified] Every decision this repository's specs cite names the citing capability, the `authoring` pack keeps all of them, a decision that names a capability outranks one it only inherits even when its number is older, and an unscoped decision is never reported as a violation — verified by `packages/doctrina-cli/test/adr-scope-follows-capability.test.js`.
 13. [verified] An untouched decision record is refused with its unwritten sections named and its Status left alone, one with a one-line decision is accepted, and accepting leaves the index in sync — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 14. [verified] A change opened on the default path has an identifier under fifty characters while its H1 still carries the whole prompt and the parse returns it whole, `--title` decides both halves as before, and the derivation is deterministic — verified by `packages/doctrina-cli/test/change-title.test.js`.
+15. [verified] The description passed directly is stored verbatim with a note naming the explicit form, a missing path is still an error that names that form, a real file is never read as prose, and `init` answers all three the same way — verified by `packages/doctrina-cli/test/intake-accepts-prose.test.js`.
 
 ## Out of scope for this spec
 

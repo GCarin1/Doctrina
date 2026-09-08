@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -450,14 +450,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0071-o-intake-aceita-a-prosa-convidada",
-        "title": "o intake aceita a prosa convidada",
-        "path": ".doctrina/changes/0071-o-intake-aceita-a-prosa-convidada",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0072-o-acoplamento-dos-orcamentos-e-visivel",
         "title": "o acoplamento dos orcamentos e visivel",
@@ -1444,6 +1436,19 @@
         ]
       },
       {
+        "id": "0070-o-titulo-nao-nasce-duplicado",
+        "title": "o titulo nao nasce duplicado",
+        "path": ".doctrina/changes/archive/2026-09-08-0070-o-titulo-nao-nasce-duplicado",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
         "id": "0075-os-adrs-seguem-a-capability",
         "title": "os adrs seguem a capability",
         "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
@@ -1457,9 +1462,9 @@
         ]
       },
       {
-        "id": "0070-o-titulo-nao-nasce-duplicado",
-        "title": "o titulo nao nasce duplicado",
-        "path": ".doctrina/changes/archive/2026-09-08-0070-o-titulo-nao-nasce-duplicado",
+        "id": "0071-o-intake-aceita-a-prosa-convidada",
+        "title": "o intake aceita a prosa convidada",
+        "path": ".doctrina/changes/archive/2026-09-08-0071-o-intake-aceita-a-prosa-convidada",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [

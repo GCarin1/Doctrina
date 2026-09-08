@@ -14,7 +14,7 @@ import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ask, isInteractive } from "../lib/prompt.js";
-import { writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "../lib/intake-model.js";
+import { looksLikePath, writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "../lib/intake-model.js";
 
 const SUPPORTED_AGENTS = [
   "claude",
@@ -76,15 +76,26 @@ export async function run(_positional, flags) {
   }
   if (intakeFile) {
     const intakeAbs = path.resolve(projectRoot, intakeFile);
-    if (!isFile(intakeAbs)) {
+    if (isFile(intakeAbs)) {
+      intakeBody = read(intakeAbs);
+      intakeSource = relPath(projectRoot, intakeAbs);
+      if (intakeBody.trim().length === 0) {
+        console.error(c.red("error:") + ` --intake file is empty: ${intakeFile}`);
+        return 1;
+      }
+    } else if (looksLikePath(intakeFile)) {
       console.error(c.red("error:") + ` --intake file not found: ${intakeFile}`);
+      console.error(c.gray("hint: ") +
+        'to pass the description itself, use `--intake-text "<description>"`');
       return 1;
-    }
-    intakeBody = read(intakeAbs);
-    intakeSource = relPath(projectRoot, intakeAbs);
-    if (intakeBody.trim().length === 0) {
-      console.error(c.red("error:") + ` --intake file is empty: ${intakeFile}`);
-      return 1;
+    } else {
+      // The same rule `intake` applies to its positional (change 0071): the
+      // two commands answer the same input shape the same way, so an agent
+      // that learned one is not surprised by the other.
+      intakeBody = intakeFile;
+      intakeSource = "inline";
+      console.error(c.gray("note:  ") +
+        'read as the description itself, not as a file — `--intake-text "<description>"` says so explicitly');
     }
   }
 
