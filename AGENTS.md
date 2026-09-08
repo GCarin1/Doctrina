@@ -72,11 +72,11 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - A spec may declare an ordered `### Pipeline`; `validate` refuses a step that requires what a later step produces. `validate --runtime` adds the runtime gate.
 <!-- doctrina:changed:end -->
 
-## Stack, layout and commands
+## Stack
 
 Node.js (ESM, zero runtime dependencies), npm workspaces, `node:test`.
-The CLI is `packages/doctrina-cli/` (`src/commands/` render, `src/lib/`
-decides — ADR 0025); docs are `docs/en/` + `docs/pt/`, kept in parity.
+
+## Commands
 
 ```
 npm install
@@ -84,6 +84,11 @@ npm test --workspace=doctrina-cli
 node packages/doctrina-cli/src/index.js verify   # the real build gate
 node scripts/check-docs.js                       # docs shape and accuracy
 ```
+
+## Repository structure
+
+The CLI is `packages/doctrina-cli/` (`src/commands/` render, `src/lib/`
+decides — ADR 0025); docs are `docs/en/` + `docs/pt/`, kept in parity.
 
 ## Conventions and boundaries
 
@@ -95,9 +100,7 @@ node scripts/check-docs.js                       # docs shape and accuracy
 
 ## Artifact invariants (verbatim — `doctrina validate` enforces these)
 
-Scaffold artifacts with the CLI (`doctrina decision new`, `doctrina work`),
-which writes from the canonical templates. Do NOT hand-author these files
-from memory. If you must write one by hand, match these exactly:
+Scaffold with the CLI; do not hand-author from memory. If you must:
 
 - **Metadata headers come in two forms — do not mix them up:**
   - ADRs, change proposals, and the intake use **list items**:
@@ -135,12 +138,9 @@ and the generated block above grows with the CLI. Use exact commands.
 
 ## Definition of done
 
-A change is done when:
-- All tasks in the change's `tasks.md` are checked.
-- Deltas have been merged into affected spec files.
-- The change folder has been moved to `.doctrina/changes/archive/`.
-- Any architectural decisions are recorded as ADRs with `Status: accepted`.
-- `.doctrina/index.json` has been updated.
+`doctrina close <id>` is the definition: tasks checked, deltas merged into
+specs, gates green, ADRs recorded and accepted, change archived, index
+updated. If close refuses, the change is not done.
 
 ## What never goes in this file
 

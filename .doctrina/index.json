@@ -1654,6 +1654,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0085-o-hub-segue-o-proprio-template",
+        "title": "o hub segue o proprio template",
+        "path": ".doctrina/changes/archive/2026-09-08-0085-o-hub-segue-o-proprio-template",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": []
       }
     ],
     "skills": [
