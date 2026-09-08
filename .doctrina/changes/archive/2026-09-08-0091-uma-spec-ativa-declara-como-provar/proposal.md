@@ -1,6 +1,7 @@
 # Change 0091-uma-spec-ativa-declara-como-provar — uma spec ativa declara como provar
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: spec)
@@ -50,11 +51,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma spec ativa sem critérios deixa de passar no gate estrutural.
-- [ ] Uma spec em draft sem critérios continua passando.
-- [ ] As superfícies param de discordar sobre a mesma árvore.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma spec ativa sem critérios deixa de passar no gate estrutural.
+- [x] Uma spec em draft sem critérios continua passando.
+- [x] As superfícies param de discordar sobre a mesma árvore.
 
 ## Open questions
 

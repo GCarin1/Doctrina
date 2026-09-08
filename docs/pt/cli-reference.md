@@ -1033,6 +1033,11 @@ Checagens:
 2. `.doctrina/product.md` existe.
 3. `.doctrina/index.json` parseia e segue o formato v0.1.
 4. Todo artefato referenciado no index existe no caminho declarado.
+4c. Uma spec de capability **ativa** declara ao menos um critério de
+    aceite. Uma spec que diz o que o sistema deve fazer e nada sobre como
+    alguém saberia que ele faz não pode ser provada; `Status: draft` — o
+    estado em que o `spec new` esqueletiza — é o de uma spec ainda sendo
+    desenhada.
 4b. Todo artefato que o framework possui — `product.md`, cada spec, ADR,
     proposta aberta, contrato e skill — carrega conteúdo e abre com um
     título. Existir não é ter conteúdo: um arquivo de zero byte existe, e a

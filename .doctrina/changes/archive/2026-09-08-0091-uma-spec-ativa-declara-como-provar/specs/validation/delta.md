@@ -35,3 +35,10 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement unwanted: If a capability spec is active and declares no acceptance criterion, the system shall not report the tree as structurally sound, because a capability that states what the system must do and nothing about how anyone would know it does cannot be proven.
+append-criterion [verified] An active spec with no criteria fails the structural gate, whether the section is empty or absent, while a draft spec with none still passes — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
+append-criterion [verified] An active spec that declares criteria passes, and `clarify`, `doctor` and `validate` reach the same verdict on the same tree — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
+bump-version minor
+```

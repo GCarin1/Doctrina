@@ -421,7 +421,11 @@ test("validate warns on orphan spec (file present, not in index)", () => {
     // Hand-create a spec directory bypassing the CLI so the index does not know
     const dir = path.join(tmp, ".doctrina", "specs", "ghost");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(path.join(dir, "spec.md"), "# Spec — ghost\nbody\n");
+    // Draft, so this stub fails only for the orphan reason the test is about
+    // and not for the missing acceptance criteria change 0091 requires of an
+    // ACTIVE spec.
+    writeFileSync(path.join(dir, "spec.md"),
+      "# Spec — ghost\n\n**Status:** draft\n\nbody\n");
     const r = runCli(["validate"], { cwd: tmp });
     assert.equal(r.status, 0);
     assert.match(r.stdout, /orphan spec/);
@@ -2699,7 +2703,10 @@ test("validate warns on an active spec with no Realizes header (provenance nudge
     // Realizes header — the untraced-promise case the nudge targets.
     writeFileSync(
       specPath,
-      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Version:** 0.1.0\n\n## Purpose\n\nBill customers.\n",
+      // Active is the point of this case, so it carries a criterion: the spec
+      // must fail for the missing Realizes header alone, not for the empty
+      // acceptance section change 0091 now catches.
+      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Version:** 0.1.0\n\n## Purpose\n\nBill customers.\n\n## Acceptance criteria\n\n1. [unverified] A customer is billed once per cycle — verified by `src/billing.js`.\n",
     );
     runCli(["index", "rebuild"], { cwd: tmp }); // sync index so drift does not mask the warning
     const r = runCli(["validate"], { cwd: tmp });

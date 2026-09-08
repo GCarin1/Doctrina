@@ -1007,6 +1007,11 @@ Checks performed:
 2. `.doctrina/product.md` exists.
 3. `.doctrina/index.json` parses and matches the v0.1 shape.
 4. Every artifact referenced in the index exists at its declared path.
+4c. An **active** capability spec declares at least one acceptance
+    criterion. A spec that states what the system must do and nothing
+    about how anyone would know it does cannot be proven; `Status: draft`
+    — what `spec new` scaffolds into — is the state for one still being
+    drawn.
 4b. Every artifact the framework owns — `product.md`, each spec, ADR,
     open proposal, contract and skill — carries content and opens with a
     title. Existence is not content: a zero-byte file exists, and the

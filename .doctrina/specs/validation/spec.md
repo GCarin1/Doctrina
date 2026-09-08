@@ -6,7 +6,7 @@
 **Realizes:** SC1, SC2, SC3
 **Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.11.0
+**Version:** 0.12.0
 
 ## Purpose
 
@@ -95,6 +95,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall not treat bold prose as a metadata header; a header carries a colon and lives before the first section.
 - The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
 - If an artifact the framework owns holds no content, or holds content with no title heading, the system shall report it as an error rather than as a well-formed artifact, because a header comparison finds nothing to disagree with in a file that has no headers.
+- If a capability spec is active and declares no acceptance criterion, the system shall not report the tree as structurally sound, because a capability that states what the system must do and nothing about how anyone would know it does cannot be proven.
 
 ### Optional
 
@@ -172,6 +173,8 @@ The validation capability is delivered when:
 17. [verified] `prime`, `report`, `handoff` and `next` report the same number of boxes for one change, `change tick` lists exactly the unchecked boxes of the tasks file plus the proposal's Verification section and names which file each came from, and no module outside the document model carries a box regex of its own — verified by `packages/doctrina-cli/test/one-box-count.test.js`.
 18. [verified] Every artifact kind — product, spec, ADR, proposal, contract and skill — is caught when emptied, and whitespace alone is not content — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
 19. [verified] Content with no title, and a title that exists only inside a comment, are both reported, while a well-formed tree stays clean — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
+20. [verified] An active spec with no criteria fails the structural gate, whether the section is empty or absent, while a draft spec with none still passes — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
+21. [verified] An active spec that declares criteria passes, and `clarify`, `doctor` and `validate` reach the same verdict on the same tree — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
 
 ## Out of scope for this spec
 

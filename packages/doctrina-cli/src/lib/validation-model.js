@@ -480,6 +480,33 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           errors.push(`${relPath(projectRoot, specPath)}:${f.line} ${f.message} [${f.code}] — ${f.remedy}`);
         }
 
+        // 8i. An ACTIVE spec that declares no acceptance criterion. It says
+        //     what the system must do and never says how anyone would know
+        //     it does — and the section being present and empty is the
+        //     common shape, since `spec new` scaffolds the heading.
+        //
+        //     Measured before this check: on such a spec, `clarify` failed,
+        //     `doctor` warned and `status` showed 0/0, while `validate` said
+        //     "ok all validation checks passed" and `coverage --strict`
+        //     exited 0. Three surfaces knew; the two a pipeline runs
+        //     approved. The information was in the tree — the gate that
+        //     decides was the one not using it (change 0091).
+        //
+        //     Scoped to ACTIVE, symmetrically with 8c: a spec still being
+        //     drawn may not know how to prove anything yet, and `Status:
+        //     draft` is the escape hatch the scaffold already starts in.
+        {
+          const docStatus = (specHeader(text, "Status") ?? "active").toLowerCase();
+          if (docStatus === "active" && parseAcceptanceCriteria(text).length === 0) {
+            errors.push(
+              `${relPath(projectRoot, specPath)}: Status is "active" but the spec declares no ` +
+                `acceptance criterion — an active capability states what the system must do ` +
+                `and nothing about how anyone would know it does (write one, or set ` +
+                `Status: draft while it is still being drawn)`,
+            );
+          }
+        }
+
         // 8c. Capability-state honesty (two-axis status). An "active"
         //     document that records no built capability is an inventory
         //     claim — the gap the framework is meant to make visible.

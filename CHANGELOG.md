@@ -19,6 +19,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **An active spec with no acceptance criteria no longer passes `validate`.**
+  On one such tree `clarify` failed, `doctor` warned and `status` showed
+  `0/0`, while `validate` said "ok all validation checks passed" and
+  `coverage --strict` exited 0 — three surfaces knew, and the two a pipeline
+  runs approved. The information was already in the tree; the gate that
+  decides was the one not using it. Scoped to **active**, symmetrically with
+  the two-axis status check: `Status: draft`, what `spec new` scaffolds into,
+  stays the state for a capability still being drawn.
+
 - **`doctrina coverage --only` refuses a filter that matches nothing.** On
   this repository, which declares over two hundred criteria, `--only
   naoexiste --strict` printed "no acceptance criteria found under
