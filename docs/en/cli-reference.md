@@ -1007,6 +1007,11 @@ Checks performed:
 2. `.doctrina/product.md` exists.
 3. `.doctrina/index.json` parses and matches the v0.1 shape.
 4. Every artifact referenced in the index exists at its declared path.
+4b. Every artifact the framework owns — `product.md`, each spec, ADR,
+    open proposal, contract and skill — carries content and opens with a
+    title. Existence is not content: a zero-byte file exists, and the
+    header-vs-index comparison runs on the headers it finds, so a file
+    with none agrees with everything.
 5. Every ADR has a parseable `Status:` header.
 6. Every adapter template under `.doctrina/templates/adapters/` is
    ≤ 30 lines.

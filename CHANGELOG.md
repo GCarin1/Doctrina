@@ -19,6 +19,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **An empty artifact no longer passes `doctrina validate`.** The existence
+  check asks whether an indexed file is there, and a zero-byte file is there.
+  Emptied to zero bytes, a spec, a proposal, a contract, a skill and
+  `product.md` each reported `ok, 0 errors` — only an ADR was caught, because
+  the header-vs-index comparison runs on the headers it FINDS, so a file with
+  none is compared against nothing and agrees. Every artifact the framework
+  owns must now carry content and open with a title. Third appearance of one
+  pattern — absence is not approval — after `coverage` and `trace`.
+
 - **The `--json` envelope tells the truth about the verdict.** `emitJson`
   defaulted to `ok = true, exitCode = 0`, and nine of its ten call sites
   passed neither — a command that builds its own payload emits *before* it

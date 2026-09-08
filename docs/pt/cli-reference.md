@@ -1033,6 +1033,11 @@ Checagens:
 2. `.doctrina/product.md` existe.
 3. `.doctrina/index.json` parseia e segue o formato v0.1.
 4. Todo artefato referenciado no index existe no caminho declarado.
+4b. Todo artefato que o framework possui — `product.md`, cada spec, ADR,
+    proposta aberta, contrato e skill — carrega conteúdo e abre com um
+    título. Existir não é ter conteúdo: um arquivo de zero byte existe, e a
+    comparação header-contra-índice roda sobre os headers que ela ACHA,
+    então um arquivo sem nenhum concorda com tudo.
 5. Todo ADR tem header `Status:` parseável.
 6. Todo template de adapter em `.doctrina/templates/adapters/`
    tem ≤ 30 linhas.

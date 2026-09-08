@@ -1,6 +1,7 @@
 # Change 0087-um-artefato-vazio-nao-passa — um artefato vazio nao passa
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: spec)
@@ -53,11 +54,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um artefato vazio é reportado como erro, nomeando o arquivo.
-- [ ] Um artefato bem formado continua passando, sem novo aviso.
-- [ ] O `product.md` vazio deixa de passar.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um artefato vazio é reportado como erro, nomeando o arquivo.
+- [x] Um artefato bem formado continua passando, sem novo aviso.
+- [x] O `product.md` vazio deixa de passar.
 
 ## Open questions
 

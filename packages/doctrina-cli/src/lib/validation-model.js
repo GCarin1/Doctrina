@@ -20,7 +20,7 @@ import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
 import { cliVersion } from "./version.js";
 import { today } from "./dates.js";
-import { checklistProgress, kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
+import { checklistProgress, kindFromPath, maskComments, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
 import { parseAdrScope, parseSourceGlobs, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
@@ -695,6 +695,31 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
     }
   }
 
+  // 10b. An artifact that carries nothing. Check 4 asks whether the file
+  //      EXISTS; a zero-byte file exists. Measured before this check: a
+  //      spec, a proposal, a contract, a skill and `product.md` emptied to
+  //      zero bytes each reported `ok, 0 errors`, and only an ADR was
+  //      caught. The header-vs-index comparison runs on the headers it
+  //      FINDS, so a file with none is compared against nothing and agrees.
+  //      Third appearance of one pattern — absence is not approval, fixed in
+  //      `coverage` by change 0057 and in `trace` by 0083, and it was in the
+  //      structural gate the whole time (change 0087).
+  //
+  //      Two levels, both cheap and both indisputable: nothing at all, and
+  //      something that is not an artifact — every template the CLI ships
+  //      writes an H1, so a Markdown artifact without one was not scaffolded
+  //      and was not written by hand either.
+  for (const rel of artifactFiles(projectRoot)) {
+    const full = path.join(projectRoot, rel);
+    if (!isFile(full)) continue;   // check 4 owns the missing-file case
+    const text = read(full);
+    if (text.trim() === "") {
+      errors.push(`${rel} is empty — an artifact with no content is registered as if it said something`);
+    } else if (!/^#\s+\S/m.test(maskComments(text))) {
+      errors.push(`${rel} carries no title — every scaffolded artifact opens with an \`# \` heading, so a file without one is neither scaffolded nor authored`);
+    }
+  }
+
   // 11. Archive ledger ↔ index cross-check. The history of archived
   //     changes is recorded twice — once human-facing in
   //     changes/archive/LEDGER.md, once machine-facing in
@@ -1042,4 +1067,42 @@ function isLikelyPath(s) {
   if (!hasSlash && !hasExt) return false;
   if (head.startsWith("-")) return false;
   return true;
+}
+
+/**
+ * Every Markdown artifact the framework owns, as project-relative paths.
+ *
+ * The index records a change by its DIRECTORY, so a proposal cannot be
+ * reached by walking `index.json` alone; and skills are indexed but were
+ * outside the existence check. This is the one list of "files that are
+ * supposed to say something", used by the emptiness check (change 0087).
+ *
+ * The archive is excluded, like everywhere else: it is history, out of the
+ * default read path.
+ */
+export function artifactFiles(projectRoot) {
+  const dot = path.join(projectRoot, ".doctrina");
+  const out = [];
+  const add = (full) => {
+    if (isFile(full)) out.push(relPath(projectRoot, full).replaceAll("\\\\", "/"));
+  };
+  add(path.join(dot, "product.md"));
+  add(path.join(dot, "intake.md"));
+  const specsDir = path.join(dot, "specs");
+  if (isDir(specsDir)) {
+    for (const cap of readdirSync(specsDir)) add(path.join(specsDir, cap, "spec.md"));
+  }
+  const changesDir = path.join(dot, "changes");
+  if (isDir(changesDir)) {
+    for (const id of readdirSync(changesDir)) {
+      if (id === "archive" || id.startsWith(".")) continue;
+      add(path.join(changesDir, id, "proposal.md"));
+    }
+  }
+  for (const dir of ["decisions", "contracts", "skills"]) {
+    const full = path.join(dot, dir);
+    if (!isDir(full)) continue;
+    for (const f of walk(full)) if (f.endsWith(".md")) add(f);
+  }
+  return out;
 }

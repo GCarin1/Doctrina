@@ -727,9 +727,12 @@ test("validate flags a skill missing the description frontmatter", () => {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const dir = path.join(tmp, ".doctrina", "skills");
     mkdirSync(dir, { recursive: true });
+    // Well-formed except for the missing `description`: the H1 is there so
+    // this fixture fails for the ONE reason the test is about, and not for
+    // the empty/untitled-artifact error change 0087 added.
     writeFileSync(
       path.join(dir, "broken.md"),
-      "---\nname: broken\nwhen: never\n---\n\nBody without description frontmatter.\n",
+      "---\nname: broken\nwhen: never\n---\n\n# Skill — broken\n\nBody without description frontmatter.\n",
     );
     const r = runCli(["validate"], { cwd: tmp });
     assert.equal(r.status, 0); // warnings, not errors

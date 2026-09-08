@@ -6,7 +6,7 @@
 **Realizes:** SC1, SC2, SC3
 **Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.10.0
+**Version:** 0.11.0
 
 ## Purpose
 
@@ -94,6 +94,7 @@ treatment cohorts using the same definition in each cohort.
   inference.
 - The system shall not treat bold prose as a metadata header; a header carries a colon and lives before the first section.
 - The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
+- If an artifact the framework owns holds no content, or holds content with no title heading, the system shall report it as an error rather than as a well-formed artifact, because a header comparison finds nothing to disagree with in a file that has no headers.
 
 ### Optional
 
@@ -169,6 +170,8 @@ The validation capability is delivered when:
 15. [verified] A comment is blanked without moving any surviving character or line, and a bullet, a command name and an ops fence inside one all stop being read as content while an op value containing a comment marker still applies verbatim — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 16. [verified] A section that is only the template's annotation is unwritten and one with a line of prose is not, every accepted decision in this repository is written, and a scaffolded criterion is reported while a written one citing real proof is silent — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 17. [verified] `prime`, `report`, `handoff` and `next` report the same number of boxes for one change, `change tick` lists exactly the unchecked boxes of the tasks file plus the proposal's Verification section and names which file each came from, and no module outside the document model carries a box regex of its own — verified by `packages/doctrina-cli/test/one-box-count.test.js`.
+18. [verified] Every artifact kind — product, spec, ADR, proposal, contract and skill — is caught when emptied, and whitespace alone is not content — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
+19. [verified] Content with no title, and a title that exists only inside a comment, are both reported, while a well-formed tree stays clean — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
 
 ## Out of scope for this spec
 

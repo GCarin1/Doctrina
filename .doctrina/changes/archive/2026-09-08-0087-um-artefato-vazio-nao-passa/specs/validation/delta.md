@@ -35,3 +35,10 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement unwanted: If an artifact the framework owns holds no content, or holds content with no title heading, the system shall report it as an error rather than as a well-formed artifact, because a header comparison finds nothing to disagree with in a file that has no headers.
+append-criterion [verified] Every artifact kind — product, spec, ADR, proposal, contract and skill — is caught when emptied, and whitespace alone is not content — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
+append-criterion [verified] Content with no title, and a title that exists only inside a comment, are both reported, while a well-formed tree stays clean — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
+bump-version minor
+```

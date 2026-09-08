@@ -139,7 +139,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.10.0",
+        "version": "0.11.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -505,14 +505,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0087-um-artefato-vazio-nao-passa",
-        "title": "um artefato vazio nao passa",
-        "path": ".doctrina/changes/0087-um-artefato-vazio-nao-passa",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: spec)"
-      },
       {
         "id": "0088-citar-um-comando-nao-e-mexer-nele",
         "title": "citar um comando nao e mexer nele",
@@ -1689,6 +1681,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0087-um-artefato-vazio-nao-passa",
+        "title": "um artefato vazio nao passa",
+        "path": ".doctrina/changes/archive/2026-09-08-0087-um-artefato-vazio-nao-passa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]
