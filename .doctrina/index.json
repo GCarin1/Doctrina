@@ -74,7 +74,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "depends_on": [
@@ -450,14 +450,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0073-o-adapter-remove-nao-deixa-rastro",
-        "title": "o adapter remove nao deixa rastro",
-        "path": ".doctrina/changes/0073-o-adapter-remove-nao-deixa-rastro",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0074-o-ternario-morto-sai",
         "title": "o ternario morto sai",
@@ -1462,6 +1454,19 @@
         "specs_affected": [
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0073-o-adapter-remove-nao-deixa-rastro",
+        "title": "o adapter remove nao deixa rastro",
+        "path": ".doctrina/changes/archive/2026-09-08-0073-o-adapter-remove-nao-deixa-rastro",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
             "operation": "MODIFIED"
           }
         ]

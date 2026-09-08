@@ -776,7 +776,13 @@ O `adapter list` reporta três estados, porque "nenhum adapter instalado" e
 
 O `adapter remove` deleta apenas os arquivos que aquele adapter criou. Um
 arquivo que você editou depois da instalação é seu — ele é mantido, e
-nomeado, a menos que venha `--force`.
+nomeado, a menos que venha `--force`. Ele também desfaz os diretórios que o
+`add` criou: quando o último arquivo sai, um `.claude/commands/` e um
+`.claude/` **vazios** também são removidos, subindo e parando no primeiro
+diretório que ainda guarda alguma coisa. Um `.claude/` vazio não é uma
+ausência — é uma raiz de configuração que o próximo agente encontra e trata
+como existente. Um diretório com um arquivo mantido, ou com qualquer coisa
+sua, fica intocado.
 
 **Adapters customizados.** Um diretório em
 `.doctrina/templates/adapters/<nome>/` é instalável por nome e tem

@@ -53,6 +53,45 @@ export function remove(p) {
   }
 }
 
+/**
+ * Remove `dir` and each ancestor of it, walking up, for as long as each one
+ * is EMPTY — stopping at the first directory that still holds something, and
+ * never touching `stopAt` itself or anything outside it.
+ *
+ * The asymmetry this closes: a command that creates a directory with
+ * `mkdirp` on the way in has to unmake it on the way out, or "remove" leaves
+ * a configuration root behind. An EMPTY directory is the safe case to
+ * delete — there is nothing of anyone else's in it — which is why this
+ * stops at the first non-empty one rather than recursing.
+ *
+ * @param {string} dir     The innermost directory to consider.
+ * @param {string} stopAt  Boundary, never removed and never escaped.
+ * @returns {string[]} The directories removed, innermost first.
+ */
+export function pruneEmptyDirs(dir, stopAt) {
+  const removed = [];
+  const boundary = path.resolve(stopAt);
+  let cur = path.resolve(dir);
+  while (cur !== boundary && cur.startsWith(boundary + path.sep)) {
+    if (!isDir(cur)) break;
+    let entries;
+    try {
+      entries = readdirSync(cur);
+    } catch {
+      break;
+    }
+    if (entries.length > 0) break;
+    try {
+      rmdirSync(cur);
+    } catch {
+      break;
+    }
+    removed.push(cur);
+    cur = path.dirname(cur);
+  }
+  return removed;
+}
+
 // Recursive file walk. Returns absolute paths of every regular file.
 export function walk(root) {
   const out = [];

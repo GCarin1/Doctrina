@@ -754,6 +754,12 @@ or writes `AGENTS.md`, `.doctrina/product.md`, or any other artifact.
 
 `adapter remove` deletes only the files that adapter created. A file you
 edited after install is yours — it is kept, and named, unless `--force`.
+It also unmakes the directories `add` made: once its last file is gone, an
+**empty** `.claude/commands/` and `.claude/` are pruned too, walking up and
+stopping at the first directory that still holds anything. An empty
+`.claude/` is not an absence — it is a configuration root the next agent
+finds and treats as present. A directory holding a kept file, or anything
+of yours, survives untouched.
 
 **Custom adapters.** A directory at `.doctrina/templates/adapters/<name>/`
 is installable by name and takes precedence over a bundled adapter of the

@@ -35,3 +35,10 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+replace-requirement event 26: When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, shall keep any file edited since install unless `--force` is given, and shall then remove every directory it emptied, walking up and stopping at the first directory that still holds anything.
+set-criterion 1: [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — directories included, for an adapter that creates them — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.
+append-criterion [verified] A directory holding a kept file or a file the adapter never wrote survives the removal, and the pruning never escapes or removes the project root — verified by `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.
+bump-version minor
+```

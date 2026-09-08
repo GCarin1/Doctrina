@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-08-06
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -171,7 +171,7 @@ authoring commands, and the conventions every command shares.
 
 - When `doctrina adapter list` runs, the system shall report each adapter as installed, available, or native, where native means the agent reads `AGENTS.md` directly and the adapter installs no file.
 
-- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, and shall keep any file edited since install unless `--force` is given.
+- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, shall keep any file edited since install unless `--force` is given, and shall then remove every directory it emptied, walking up and stopping at the first directory that still holds anything.
 
 - When `doctrina init --force` would overwrite an `AGENTS.md` or `.doctrina/product.md` that carries authored content, the system shall refuse, name the files it declined to touch, point at `doctrina adapter add`, and write nothing; `--overwrite-content` shall be required to discard that content.
 
@@ -204,7 +204,7 @@ authoring commands, and the conventions every command shares.
 
 Project scaffolding is spec-compliant when:
 
-1. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
+1. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — directories included, for an adapter that creates them — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
 2. [verified] `init --agent <name> --force` on a project with authored content exits non-zero, names the files, and writes nothing; `--overwrite-content` still allows the discard — verified by `packages/doctrina-cli/test/integration.test.js`.
 3. [verified] `adapter list` distinguishes installed, available, and native, and a native adapter installs nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
 4. [verified] A project's context_budget survives `index rebuild`, and --budget overrides it — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
@@ -214,6 +214,7 @@ Project scaffolding is spec-compliant when:
 8. [verified] `report` and `metrics` state the same rates for the same window, and `doctor` reports usage only when the log exists, creating nothing — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
 9. [verified] Scaffolding with an intake lands in the same tree and the same intake file as scaffolding then supplying one, differing only in the description `init` can derive when it holds the intake at scaffold time; the inline and file forms differ only in the recorded source — verified by `packages/doctrina-cli/test/init-intake.test.js`.
 10. [verified] Immediately after `init`, `next` and `prime` name the bootstrap command, the hub's stated trigger matches what `init` writes, the action closes as soon as a capability exists, and a pending or converted intake never fires it — verified by `packages/doctrina-cli/test/bootstrap-door.test.js`.
+11. [verified] A directory holding a kept file or a file the adapter never wrote survives the removal, and the pruning never escapes or removes the project root — verified by `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.
 
 ## Out of scope for this spec
 

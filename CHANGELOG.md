@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`doctrina adapter remove` no longer leaves a configuration root behind.**
+  It deleted the six files the `claude` adapter installs and left `.claude/`
+  and `.claude/commands/` standing — zero files, two directories. `add` calls
+  mkdirp on the way in, so `remove` now unmakes what it made on the way out:
+  a directory it emptied is pruned, walking up and stopping at the first one
+  that still holds anything, so a kept (edited) file or anything of yours
+  keeps its whole chain alive. The spec's round-trip criterion had claimed
+  this since before the fix, proven against `gemini` — a one-file adapter
+  with no directory at all; the claim was wider than its evidence, and the
+  only adapter that creates directories had never been through it.
+
 - **`doctrina doctor` reports the two size budgets that are coupled.** The
   generated command-surface block is written INTO AGENTS.md, so one command
   added to the catalog spends a line of `agents-md-lines` AND a line of the

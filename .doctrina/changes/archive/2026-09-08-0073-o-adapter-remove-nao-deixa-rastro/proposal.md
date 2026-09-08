@@ -1,6 +1,7 @@
 # Change 0073-o-adapter-remove-nao-deixa-rastro — o adapter remove nao deixa rastro
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -29,6 +30,15 @@ O comando promete «additive only» e simetria com o `add`. Um `.claude/` vazio 
 é neutro: é uma raiz de configuração que o agente vai encontrar e tratar como
 existente.
 
+## O critério que já dizia isto e não provava
+
+O critério 1 da spec `scaffolding` afirmava, desde antes desta change, que
+«an add/remove round trip returns the tree to its prior state». A evidência
+citada exercitava o `gemini` — um adapter de UM arquivo, sem diretório
+nenhum. A afirmação era mais larga que a prova, e o único adapter que cria
+diretórios (`claude`) nunca passou por ela. O critério continua o mesmo, com
+a evidência corrigida e um teste que percorre o caso que faltava.
+
 ## Scope boundaries
 
 - Só remove diretório que o próprio adapter criou e que ficou vazio: um
@@ -45,12 +55,12 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Depois de `add` seguido de `remove`, a árvore volta ao que era.
+- [x] Um diretório com conteúdo do usuário sobrevive ao `remove`.
+- [x] Um teste percorre `add` e `remove` para um adapter com subdiretórios.
 
 ## Open questions
 
 - Nenhuma.
-- [ ] Depois de `add` seguido de `remove`, a árvore volta ao que era.
-- [ ] Um diretório com conteúdo do usuário sobrevive ao `remove`.
-- [ ] Um teste percorre `add` e `remove` para um adapter com subdiretórios.
