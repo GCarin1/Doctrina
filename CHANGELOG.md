@@ -29,7 +29,32 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`doctrina decision accept` now requires the ADR to say something.** It
+  accepted a record whose `Context`, `Decision` and `Consequences` were 100%
+  template comment — and an accepted ADR is immutable, becomes a standing rule
+  in `prime --rules`, and loads into every context pack it governs. `validate`
+  warned afterwards, but only about missing `Evidence`, never about a body
+  nobody had written. `analyze` has had exactly this guard over a change
+  proposal from the start; the more consequential document was the one without
+  it. A single line of real prose per section clears it — the check is for the
+  mould, not for length.
+- Accepting now re-derives the whole index entry from the file rather than only
+  the status: the author writes the body between `new` and `accept`, and the
+  indexed summary and scope come from that body.
+
 ### Fixed
+
+- **The scaffold stopped passing for content.** A spec that was entirely the
+  mould passed `validate` and `clarify`; the machinery to tell them apart
+  (`isUntouchedScaffold`) existed and was used in exactly one narrow place. The
+  placeholder criterion `spec new` ships — `[unverified] <observable signal> —
+  verified by \`path/to/test\`` — survived into an ACTIVE spec and surfaced
+  days later as a coverage failure in the close of an unrelated change, because
+  it resolves nowhere. `validate` now reports it, and says why it matters. The
+  ruler change 0057 applied to headers is now a document-model function
+  (`isUnwrittenSection`) that every reader of the mould shares.
 
 - **`next` stopped answering "no open work" over a tree with five findings.**
   Same project, same instant: `doctor` reported five, each with a named remedy,

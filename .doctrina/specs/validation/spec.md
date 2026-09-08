@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
 **Last updated:** 2026-08-06
-**Version:** 0.8.0
+**Version:** 0.9.0
 
 ## Purpose
 
@@ -50,6 +50,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall keep the grammar for reading an artifact off disk in one document model, and every module that parses an artifact shall read that grammar from there rather than define its own.
 - The system shall read a change proposal's title through the document model, treating the separator between the change id and the title as a dash surrounded by whitespace — never a bare hyphen, which an id contains — and returning the whole heading when it carries no `Change <id>` prefix.
 - The system shall treat an HTML comment in an artifact as annotation rather than content, and every module that scans an artifact shall obtain the comment ranges from the document model instead of deciding for itself.
+- The system shall recognise, in one place, a section body that is still the shipped template — empty, only its instructional comment, or only a placeholder — and every module that must tell the mould from authored content shall use it.
 
 ### Event-driven
 
@@ -67,6 +68,7 @@ treatment cohorts using the same definition in each cohort.
 - When `doctrina validate --fix` runs, the system shall repair headers that are recognised but not canonical, preserving each line's existing ending and never altering content.
 - When a spec declares a `### Pipeline` block, the system shall report as an error any step that requires an artifact which no earlier step produces, and any step numbering that does not read in execution order.
 - When a skill's `when:` frontmatter names no concrete keyword, path, command or error string, the system shall warn that nothing can match the trigger.
+- When a capability spec carries an acceptance criterion still in the scaffold's placeholder form, the system shall report it, saying that its cited proof resolves nowhere.
 
 ### State-driven
 
@@ -163,6 +165,7 @@ The validation capability is delivered when:
 13. [verified] The frontmatter and spec-delta parsers live in the document model, no other module defines them, and no library depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 14. [verified] A multi-word change id no longer leaks into the title, an id with no hyphen and a heading with no prefix are unchanged, a heading with no separator is returned whole, and no module outside the document model carries the parse — verified by `packages/doctrina-cli/test/change-title.test.js`.
 15. [verified] A comment is blanked without moving any surviving character or line, and a bullet, a command name and an ops fence inside one all stop being read as content while an op value containing a comment marker still applies verbatim — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
+16. [verified] A section that is only the template's annotation is unwritten and one with a line of prose is not, every accepted decision in this repository is written, and a scaffolded criterion is reported while a written one citing real proof is silent — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 
 ## Out of scope for this spec
 

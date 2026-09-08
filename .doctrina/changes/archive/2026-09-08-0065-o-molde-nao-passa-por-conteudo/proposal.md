@@ -1,10 +1,11 @@
 # Change 0065-o-molde-nao-passa-por-conteudo — o molde nao passa por conteudo
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: spec)
-- **Affects specs:** validation
+- **Affects specs:** validation, authoring
 
 ## Why
 
@@ -50,8 +51,8 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
 
 ## Open questions
 

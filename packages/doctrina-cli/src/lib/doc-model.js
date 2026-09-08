@@ -375,6 +375,56 @@ export function isPlaceholderHeaderValue(value, opts = {}) {
   return false;
 }
 
+/**
+ * Is this section still the shipped template's — empty, or nothing but the
+ * template's own instructional comment and placeholder?
+ *
+ * The framework writes artifacts from templates and then trusts that someone
+ * filled them in. Exactly one gate checked that (`analyze`, over a change
+ * proposal); everything else took the mould for a decision (change 0065).
+ * This is the same ruler `isPlaceholderHeaderValue` applies to a header,
+ * applied to a section body: an HTML comment is annotation (change 0055), so
+ * a section that is only annotation is a section nobody wrote.
+ *
+ * @param {string} text          the whole artifact
+ * @param {string} name          the `## ` section name
+ * @param {{ template?: string }} [opts]  template file to compare against
+ * @returns {boolean}
+ */
+export function isUnwrittenSection(text, name, opts = {}) {
+  const body = getSection(text, name);
+  if (body === null) return true;
+  const prose = maskComments(body).trim();
+  if (prose === "") return true;
+  // A body that is nothing but the template's placeholder bullets or an
+  // angle-bracket placeholder is unwritten too.
+  const stripped = prose.replace(/^[-*]\s*$/gm, "").trim();
+  if (stripped === "") return true;
+  if (/^<[\s\S]*>$/.test(stripped)) return true;
+  if (opts.template) {
+    try {
+      const tpl = read(path.join(locateTemplatesDir(), opts.template));
+      const tplBody = getSection(tpl, name);
+      if (tplBody !== null && maskComments(tplBody).trim() === prose) return true;
+    } catch {
+      // No templates dir — the checks above already carry the common cases.
+    }
+  }
+  return false;
+}
+
+/**
+ * The named sections of `text` that nobody has written yet, in order.
+ *
+ * @param {string} text
+ * @param {string[]} names
+ * @param {{ template?: string }} [opts]
+ * @returns {string[]}
+ */
+export function unwrittenSections(text, names, opts = {}) {
+  return names.filter((name) => isUnwrittenSection(text, name, opts));
+}
+
 // Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
 // check: render the shipped capability template for the same capability and
 // compare, ignoring the date-bearing "Last updated" line and whitespace

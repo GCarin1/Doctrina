@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-09-07
-**Version:** 0.3.0
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -268,6 +268,7 @@ keep the checks and the read path.
 
 - When `doctrina work` scaffolds a delta from the ranking rather than from `--capability`, the system shall mark the file as a guess — naming the score it won on, the capability it beat, and the command that removes it — and shall say so in the playbook's spec-delta step, including on `--resume`, where the mark is read back from the file.
 - When a capability spec cites a decision whose `Scope:` header does not name that capability, the system shall report it, naming the header to extend.
+- When a decision record is accepted, the system shall re-derive its whole index entry from the file, so the summary and scope the author wrote before accepting are the ones recorded.
 
 ### Unwanted-behavior (must-not)
 
@@ -287,6 +288,7 @@ keep the checks and the read path.
 - The system shall not let a recorded lane change what any gate decides; it is a historical record, and a change carrying an unrecognised lane shall be treated exactly as one carrying none.
 
 - The system shall not scaffold a delta from a ranked capability whose lead over the runner-up is within the ranking's length tie-breaker, nor from the `--from-diff` or `--chore` paths.
+- The system shall not accept a decision record whose Context, Decision or Consequences section is still the shipped template, and shall name the sections that remain unwritten.
 
 ## Acceptance criteria
 
@@ -304,6 +306,7 @@ The authoring commands are v0 spec-compliant when:
 10. [verified] `work` scaffolds the winning capability's delta with `**Operation:** MODIFIED` and a guess mark when the prompt ranking has a real margin, writes nothing when it does not, and never marks a pinned delta a guess — verified by `packages/doctrina-cli/test/scaffolded-delta.test.js`.
 11. [verified] Every line `change diff` prints appears in `change check --verbose`, and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 12. [verified] Every decision this repository's specs cite names the citing capability, the `authoring` pack keeps all of them, a decision that names a capability outranks one it only inherits even when its number is older, and an unscoped decision is never reported as a violation — verified by `packages/doctrina-cli/test/adr-scope-follows-capability.test.js`.
+13. [verified] An untouched decision record is refused with its unwritten sections named and its Status left alone, one with a one-line decision is accepted, and accepting leaves the index in sync — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 
 ## Out of scope for this spec
 

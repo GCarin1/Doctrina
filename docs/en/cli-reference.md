@@ -246,6 +246,12 @@ reflects intent, and advance `Implementation` as code lands. `validate`
 warns when an `active` spec is still `planned` with no note — an
 inventory claim with nothing built behind it.
 
+An acceptance criterion still in the scaffold's placeholder form — the
+`<observable signal>` citing `path/to/test` that `spec new` writes — is
+reported by `validate`, because its proof resolves nowhere and would
+otherwise surface as a coverage failure in the close of whatever change
+touches the capability next.
+
 The scaffold also carries a `**Realizes:**` header (ADR 0011): name the
 `product.md` success-criteria anchors (`[SC1]`) this capability delivers,
 or record `n/a — <why>` for an internal capability. Provenance is opt-out
@@ -533,11 +539,19 @@ Flip a `proposed` ADR to `accepted`.
 doctrina decision accept 0007
 ```
 
+**The ADR must say something first.** An accepted ADR is immutable,
+becomes a standing rule in `prime --rules`, and loads into every pack it
+governs — so accepting one whose `Context`, `Decision` or `Consequences`
+is still the shipped template is refused, with the unwritten sections
+named and nothing written to disk. A single line of real prose per section
+is enough; the check is for the mould, not for length.
+
 Rewrites only the `Status:` header — the body stays immutable — and
-updates the index entry. Any other current status (already accepted,
-superseded, withdrawn) is a clear error with no writes. Closes the
-lifecycle that `decision new` opens; `doctrina next` points here
-when an ADR is stuck in `proposed`.
+re-derives the whole index entry from the file, so the summary and scope
+you wrote between `new` and `accept` are the ones recorded. Any other
+current status (already accepted, superseded, withdrawn) is a clear error
+with no writes. Closes the lifecycle that `decision new` opens; `doctrina
+next` points here when an ADR is stuck in `proposed`.
 
 ## `doctrina decision land <number> [path ...]`
 

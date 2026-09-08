@@ -67,6 +67,27 @@ function completeChange(tmp, id) {
   }
 }
 
+
+// An ADR must say something before it can be accepted (change 0065): the
+// framework refuses to turn an untouched template into an immutable standing
+// rule. Tests that only need an ACCEPTED ADR write a one-line body first,
+// exactly as a person would.
+function writeAdrBody(tmp, num = "0001") {
+  const dir = path.join(tmp, ".doctrina", "decisions");
+  const file = readdirSync(dir).find((f) => f.startsWith(`${num}-`));
+  if (!file) return;
+  const p = path.join(dir, file);
+  let text = readFileSync(p, "utf8");
+  for (const [name, body] of [
+    ["Context", "The forces that made this decision necessary."],
+    ["Decision", "The decision, stated in one line."],
+    ["Consequences", "What this costs and what it buys."],
+  ]) {
+    text = text.replace(new RegExp(`(## ${name}\\r?\\n\\r?\\n)`), `$1${body}\n\n`);
+  }
+  writeFileSync(p, text);
+}
+
 test("init with --non-interactive creates AGENTS.md and .doctrina/", () => {
   const tmp = makeTempProject();
   try {
@@ -1374,6 +1395,7 @@ test("context prints the read-order pack and lists skills on demand", () => {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["spec", "new", "billing"], { cwd: tmp });
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     runCli(["skill", "new", "db-migration"], { cwd: tmp });
 
@@ -1460,12 +1482,16 @@ test("decision accept flips proposed to accepted and refuses anything else", () 
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
 
+    writeAdrBody(tmp);
+
     const r = runCli(["decision", "accept", "0001"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const adr = readFileSync(path.join(tmp, ".doctrina", "decisions", "0001-use-postgres.md"), "utf8");
     assert.match(adr, /\*\*Status:\*\*\s+accepted/);
     const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
     assert.equal(index.artifacts.decisions.find((d) => d.id === "0001").status, "accepted");
+
+    writeAdrBody(tmp);
 
     const again = runCli(["decision", "accept", "0001"], { cwd: tmp });
     assert.equal(again.status, 1);
@@ -1700,6 +1726,7 @@ test("validate flags an accepted ADR whose cited evidence is missing (decision d
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Use gRPC for service calls"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const adrPath = path.join(tmp, ".doctrina", "decisions", "0001-use-grpc-for-service-calls.md");
     // Cite a proof artifact that does not exist — the decision drifted from
@@ -1722,6 +1749,7 @@ test("validate nudges an accepted ADR with no evidence, and an explicit n/a note
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt event sourcing"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const adrPath = path.join(tmp, ".doctrina", "decisions", "0001-adopt-event-sourcing.md");
 
@@ -2411,6 +2439,7 @@ test("decision land stamps a non-mutating Landed header and indexes it", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp }); // 0001
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     // AGENTS.md exists at the project root — cite it as the proof.
     const r = runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
@@ -2435,6 +2464,7 @@ test("index rebuild stays clean after decision land (no landed drift)", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
     const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
@@ -2462,6 +2492,7 @@ test("validate stops flagging bare evidence once an accepted ADR has landed", ()
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     // Accepted ADR with bare Evidence and bare Landed → validate warns.
     let r = runCli(["validate"], { cwd: tmp });
@@ -2687,6 +2718,7 @@ test("next suggests decision land for an accepted ADR with nothing proving it", 
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const r = runCli(["next"], { cwd: tmp });
     assert.equal(r.status, 0);
@@ -2991,6 +3023,7 @@ test("prime prints gates, standing rules, open work, and next steps in one read"
   const tmp = initedProject();
   try {
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const r = runCli(["prime"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr);
@@ -3689,6 +3722,7 @@ test("close accepts multiple ids and runs the ADR checkpoint and skill-suggest a
     const adrName = readdirSync(path.join(tmp, ".doctrina", "decisions")).find((f) => f.startsWith("0001"));
     const adrFull = path.join(tmp, ".doctrina", "decisions", adrName);
     writeFileSync(adrFull, readFileSync(adrFull, "utf8") + "\nAll billing writes go through the ledger.\n");
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
 
     const mkChange = (id, cap) => {

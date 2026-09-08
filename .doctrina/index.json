@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -101,7 +101,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.8.0",
+        "version": "0.9.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -450,14 +450,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0065-o-molde-nao-passa-por-conteudo",
-        "title": "o molde nao passa por conteudo",
-        "path": ".doctrina/changes/0065-o-molde-nao-passa-por-conteudo",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: spec)"
-      },
       {
         "id": "0066-a-porta-de-bootstrap-aparece",
         "title": "a porta de bootstrap aparece",
@@ -1431,6 +1423,23 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0065-o-molde-nao-passa-por-conteudo",
+        "title": "o molde nao passa por conteudo",
+        "path": ".doctrina/changes/archive/2026-09-08-0065-o-molde-nao-passa-por-conteudo",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]

@@ -257,6 +257,12 @@ conforme o código entra. O `validate` avisa quando uma spec `active`
 continua `planned` sem nada construído por trás — uma afirmação de
 inventário sem lastro.
 
+Um critério de aceitação ainda no formato placeholder do esqueleto — o
+`<observable signal>` citando `path/to/test` que o `spec new` escreve — é
+reportado pelo `validate`, porque a prova dele não resolve em lugar nenhum e
+apareceria depois como falha de cobertura no close da próxima change que
+tocar a capability.
+
 O esqueleto também traz um header `**Realizes:**` (ADR 0011): nomeie os
 anchors de critério de sucesso do `product.md` (`[SC1]`) que esta
 capability entrega, ou registre `n/a — <porquê>` para uma capability
@@ -552,10 +558,18 @@ Vira um ADR `proposed` para `accepted`.
 doctrina decision accept 0007
 ```
 
-Reescreve só o header `Status:` — o corpo segue imutável — e
-atualiza a entrada no index. Qualquer outro status atual (já
-aceito, superseded, withdrawn) é erro claro sem escrita nenhuma.
-Fecha o ciclo de vida que o `decision new` abre; o `doctrina next`
+**O ADR precisa dizer alguma coisa antes.** Um ADR aceito é imutável,
+vira regra vigente no `prime --rules` e entra em todo pacote que ele
+governa — então aceitar um cujo `Context`, `Decision` ou `Consequences`
+ainda é o template embarcado é recusado, com as seções não escritas
+nomeadas e nada escrito em disco. Uma linha de prosa real por seção basta;
+o check é contra o molde, não contra o tamanho.
+
+Reescreve só o header `Status:` — o corpo segue imutável — e re-deriva a
+entrada inteira do index a partir do arquivo, então o resumo e o escopo que
+você escreveu entre o `new` e o `accept` são os registrados. Qualquer outro
+status atual (já aceito, superseded, withdrawn) é erro claro sem escrita
+nenhuma. Fecha o ciclo de vida que o `decision new` abre; o `doctrina next`
 aponta para cá quando um ADR está parado em `proposed`.
 
 ## `doctrina decision land <number> [path ...]`

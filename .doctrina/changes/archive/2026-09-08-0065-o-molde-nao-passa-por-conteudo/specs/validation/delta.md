@@ -35,3 +35,17 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+A régua que a change 0057 aplicou a um header — um valor ainda entre `<…>` é
+um valor que ninguém escreveu — passa a existir para o corpo de uma seção
+(`isUnwrittenSection`, no document model) e é aplicada ao critério de
+aceitação que o `spec new` traz.
+
+```ops
+bump-version minor
+append-requirement ubiquitous: The system shall recognise, in one place, a section body that is still the shipped template — empty, only its instructional comment, or only a placeholder — and every module that must tell the mould from authored content shall use it.
+append-requirement event: When a capability spec carries an acceptance criterion still in the scaffold's placeholder form, the system shall report it, saying that its cited proof resolves nowhere.
+append-criterion [verified] A section that is only the template's annotation is unwritten and one with a line of prose is not, every accepted decision in this repository is written, and a scaffolded criterion is reported while a written one citing real proof is silent — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
+```

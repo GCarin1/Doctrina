@@ -529,6 +529,26 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           );
         }
 
+        // 8g. An acceptance criterion still in the template's placeholder form
+        //     (change 0065). `spec new` ships one — "[unverified] <observable
+        //     signal> — verified by `path/to/test`" — and nothing reported it.
+        //     It survived into an ACTIVE spec and only surfaced days later as
+        //     a coverage failure in the close of an unrelated change, because
+        //     `path/to/test` resolves nowhere. The same ruler change 0057
+        //     applied to headers: a value still wrapped in <...> is a value
+        //     nobody wrote.
+        for (const crit of parseAcceptanceCriteria(text)) {
+          const placeholder = /^\s*\[[^\]]*\]\s*<[^>]*>/.test(crit.body)
+            || crit.proofPaths.includes("path/to/test");
+          if (!placeholder) continue;
+          warnings.push(
+            `${relPath(projectRoot, specPath)}: acceptance criterion #${crit.n} is still the ` +
+              `scaffold's placeholder — write the observable signal and cite proof that exists, ` +
+              `or delete the criterion (it resolves nowhere, so \`coverage\` reports it dangling ` +
+              `in the close of whatever change touches this capability next)`,
+          );
+        }
+
         // 8d. Metadata-header shape (review G11). In the header block (before
         //     the first `## ` section or `<!--` comment), a known key written
         //     without the canonical `**Key:** value` form silently fails to
