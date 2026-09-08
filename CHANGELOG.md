@@ -46,6 +46,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **One box count, everywhere.** The same boxes, the same tree, the same
+  instant, counted three ways: `prime` said "tasks 0/3", `next` said "6 open
+  tasks", `change tick` listed eight. The cause was not "some count the closing
+  steps" — `snapshot.js` required TEXT after the box, so the three empty
+  placeholders `work` scaffolds were invisible to it, and the three it counted
+  were the CLOSING STEPS rather than the work. An agent reading `prime` saw
+  "0/3" and believed there were three written tasks.
+- Six regexes for one grammar lived in six files. The box grammar now has one
+  owner in the document model (ADR 0021 again), every surface reads it, and a
+  placeholder counts as what it is: a task nobody wrote is a task nobody
+  finished. A test refuses any new box regex outside that module.
+
 - **The bootstrap door is visible at the moment it is needed.** The AGENTS.md
   `init` installs told the agent the trigger was "`.doctrina/intake.md` is
   `Status: pending`" — and `init` never writes that file, so the documented

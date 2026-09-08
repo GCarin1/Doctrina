@@ -459,6 +459,13 @@ but never planned): the listing marks it, and ticking it is refused —
 write the real task (or delete the line) first. `analyze` and `close`
 hard-fail on leftover placeholders, so a hollow change cannot close.
 
+Every surface counts the same boxes. `prime`, `report`, `handoff` and
+`next` report one progress number per change, placeholders included: an
+unwritten task is a task nobody finished, and hiding it is what let
+"tasks 0/3" mean six open boxes. `tick` adds the proposal's Verification
+boxes to that, because they share its ordinal space, and names the file
+each ordinal came from.
+
 ## `doctrina change diff <id>` — deprecated
 
 > **Deprecated.** Use `doctrina change check <id> --verbose`, which runs

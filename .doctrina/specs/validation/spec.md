@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
 **Last updated:** 2026-08-06
-**Version:** 0.9.0
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -51,6 +51,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall read a change proposal's title through the document model, treating the separator between the change id and the title as a dash surrounded by whitespace — never a bare hyphen, which an id contains — and returning the whole heading when it carries no `Change <id>` prefix.
 - The system shall treat an HTML comment in an artifact as annotation rather than content, and every module that scans an artifact shall obtain the comment ranges from the document model instead of deciding for itself.
 - The system shall recognise, in one place, a section body that is still the shipped template — empty, only its instructional comment, or only a placeholder — and every module that must tell the mould from authored content shall use it.
+- The system shall parse task checkboxes in one module, treating a box with nothing written after it as an unwritten task rather than as no task at all, and every surface that counts or lists boxes shall read that parse.
 
 ### Event-driven
 
@@ -166,6 +167,7 @@ The validation capability is delivered when:
 14. [verified] A multi-word change id no longer leaks into the title, an id with no hyphen and a heading with no prefix are unchanged, a heading with no separator is returned whole, and no module outside the document model carries the parse — verified by `packages/doctrina-cli/test/change-title.test.js`.
 15. [verified] A comment is blanked without moving any surviving character or line, and a bullet, a command name and an ops fence inside one all stop being read as content while an op value containing a comment marker still applies verbatim — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 16. [verified] A section that is only the template's annotation is unwritten and one with a line of prose is not, every accepted decision in this repository is written, and a scaffolded criterion is reported while a written one citing real proof is silent — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
+17. [verified] `prime`, `report`, `handoff` and `next` report the same number of boxes for one change, `change tick` lists exactly the unchecked boxes of the tasks file plus the proposal's Verification section and names which file each came from, and no module outside the document model carries a box regex of its own — verified by `packages/doctrina-cli/test/one-box-count.test.js`.
 
 ## Out of scope for this spec
 

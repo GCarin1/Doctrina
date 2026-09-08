@@ -376,6 +376,67 @@ export function isPlaceholderHeaderValue(value, opts = {}) {
 }
 
 /**
+ * Every GitHub-style checkbox in `text`, in reading order.
+ *
+ * One owner for the box grammar (ADR 0021). It had six, and they disagreed:
+ * `snapshot.js` required TEXT after the box (`\[[ xX]\]\s+(.*)`), so the three
+ * empty placeholders `work` scaffolds were invisible to it and `prime` printed
+ * "tasks 0/3" for a change with six open boxes — the three it counted being
+ * the closing steps, not the work. `gates.js` required no text and counted
+ * six; `change tick` counted eight, adding the proposal's Verification boxes.
+ * Three numbers for the same file, side by side in the same session.
+ *
+ * Each entry carries whether the box is a scaffold PLACEHOLDER — a box with
+ * nothing written after it — because that is a real distinction (`analyze`
+ * refuses a change that still has them) and it is the one the counters must
+ * agree to make explicitly rather than by accident.
+ *
+ * @param {string} text
+ * @param {{ section?: string|null }} [opts] limit to one `## ` section
+ * @returns {Array<{ line: number, checked: boolean, text: string, placeholder: boolean }>}
+ */
+export function parseChecklist(text, opts = {}) {
+  const section = opts.section ?? null;
+  const lines = String(text).split(/\r?\n/);
+  const out = [];
+  let inSection = section === null;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      if (section !== null) {
+        inSection = new RegExp(`^##\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
+          .test(lines[i]);
+      }
+      continue;
+    }
+    if (!inSection) continue;
+    const m = /^\s*-\s*\[([ xX])\]\s*(.*)$/.exec(lines[i]);
+    if (!m) continue;
+    const body = m[2].trim();
+    out.push({ line: i, checked: m[1] !== " ", text: body, placeholder: body === "" });
+  }
+  return out;
+}
+
+/**
+ * How many boxes a checklist holds and how many are done — the pair every
+ * progress line prints. Placeholders count: a box nobody wrote is a box
+ * nobody finished, and hiding it is what made "0/3" mean six.
+ *
+ * @param {string} text
+ * @param {{ section?: string|null }} [opts]
+ * @returns {{ total: number, done: number, open: string[], placeholders: number }}
+ */
+export function checklistProgress(text, opts = {}) {
+  const boxes = parseChecklist(text, opts);
+  return {
+    total: boxes.length,
+    done: boxes.filter((b) => b.checked).length,
+    open: boxes.filter((b) => !b.checked).map((b) => b.text),
+    placeholders: boxes.filter((b) => b.placeholder).length,
+  };
+}
+
+/**
  * Is this section still the shipped template's — empty, or nothing but the
  * template's own instructional comment and placeholder?
  *

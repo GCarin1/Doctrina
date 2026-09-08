@@ -4,7 +4,7 @@ import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { listHeader, parseDependsOn, parseAdrScope, adrSummary } from "../lib/scan.js";
-import { getTitle, getSectionParagraph } from "../lib/doc-model.js";
+import { checklistProgress, getTitle, getSectionParagraph } from "../lib/doc-model.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -477,12 +477,10 @@ function parkedSummary(projectRoot, ch) {
       status = listHeader(text, "Status") ?? status;
       why = sectionSummary(text, "Why", 130);
     } else if (base === "tasks.md") {
-      for (const line of read(f).split(/\r?\n/)) {
-        const m = line.match(/^\s*-\s+\[([ xX])\]\s/);
-        if (!m) continue;
-        total += 1;
-        if (m[1] !== " ") done += 1;
-      }
+      // One counter, shared with every other surface (change 0067).
+      const progress = checklistProgress(read(f));
+      total += progress.total;
+      done += progress.done;
     } else if (base === "delta.md") {
       const cap = relPath(projectRoot, f).replaceAll("\\", "/").match(/\/specs\/([^/]+)\/delta\.md$/);
       if (cap) caps.add(cap[1]);
@@ -510,17 +508,9 @@ export function changeSummary(rel, text) {
   }
 
   if (base === "tasks.md") {
-    let done = 0;
-    let total = 0;
-    const open = [];
-    for (const line of text.split(/\r?\n/)) {
-      const m = line.match(/^\s*-\s+\[([ xX])\]\s*(.*)$/);
-      if (!m) continue;
-      total += 1;
-      if (m[1] === " ") {
-        if (m[2].trim()) open.push(m[2].trim());
-      } else done += 1;
-    }
+    const progress = checklistProgress(text);
+    const { total, done } = progress;
+    const open = progress.open.filter((t) => t !== "");
     if (total === 0) return "no checklist.";
     const head = `${done}/${total} tasks checked.`;
     return open.length === 0 ? head : `${head} Next: ${open.slice(0, 2).join("; ")}`;

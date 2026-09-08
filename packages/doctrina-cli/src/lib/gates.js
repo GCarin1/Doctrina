@@ -1,5 +1,5 @@
 // @ts-check
-import { getSection } from "./doc-model.js";
+import { checklistProgress, getSection } from "./doc-model.js";
 import path from "node:path";
 import { appendFileSync, writeFileSync } from "node:fs";
 import { exists, isFile, mkdirp, read } from "./fs-ops.js";
@@ -65,7 +65,9 @@ export const GATES = {
     rerun: (id) => `doctrina change tick ${id}`,
     blockers(projectRoot, changeDir) {
       const out = [];
-      const countUnchecked = (s) => (s.match(/^\s*-\s*\[ \]/gm) ?? []).length;
+      // Same counter as every other surface (change 0067).
+      const countUnchecked = (text, section = null) =>
+        checklistProgress(text, { section }).total - checklistProgress(text, { section }).done;
 
       const tasksPath = path.join(changeDir, "tasks.md");
       if (isFile(tasksPath)) {
@@ -74,7 +76,7 @@ export const GATES = {
       }
       const proposalPath = path.join(changeDir, "proposal.md");
       if (isFile(proposalPath)) {
-        const n = countUnchecked(getSection(read(proposalPath), "Verification"));
+        const n = countUnchecked(read(proposalPath), "Verification");
         if (n > 0) out.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
       }
       return out;

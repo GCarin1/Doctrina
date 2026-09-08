@@ -10,7 +10,7 @@ import { summarize as traceSummary } from "./trace-model.js";
 import { acceptedDecisions, productSection } from "./constitution-model.js";
 import { computeActions } from "./actions.js";
 import { readLedger } from "./ledger.js";
-import { parseChangeTitle } from "./doc-model.js";
+import { parseChangeTitle, checklistProgress } from "./doc-model.js";
 import { summarizeSignoffs } from "./signoff.js";
 
 // ONE collector, several views (audit finding F7).
@@ -136,17 +136,15 @@ export function openChanges(projectRoot) {
     const title = proposal ? parseChangeTitle(proposal) : null;
     const status = proposal ? (listHeader(proposal, "Status") ?? "proposed") : "no proposal.md";
     const tasksPath = path.join(changesDir, id, "tasks.md");
-    let tasksDone = 0, tasksTotal = 0;
-    const unchecked = [];
-    if (isFile(tasksPath)) {
-      for (const line of read(tasksPath).split(/\r?\n/)) {
-        const m = line.match(/^-\s+\[([ xX])\]\s+(.*)$/);
-        if (!m) continue;
-        tasksTotal += 1;
-        if (m[1] === " ") unchecked.push(m[2].trim());
-        else tasksDone += 1;
-      }
-    }
+    // One counter for every surface (change 0067). This one used to require
+    // TEXT after the box, so the scaffold's empty placeholders were invisible
+    // and `prime` reported "tasks 0/3" for a change with six open boxes.
+    const progress = isFile(tasksPath)
+      ? checklistProgress(read(tasksPath))
+      : { total: 0, done: 0, open: [], placeholders: 0 };
+    const tasksTotal = progress.total;
+    const tasksDone = progress.done;
+    const unchecked = progress.open.map((t) => t || "(unwritten task — the scaffold's placeholder)");
     out.push({ id, title, status, tasksDone, tasksTotal, unchecked });
   }
   return out;

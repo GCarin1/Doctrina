@@ -1,5 +1,5 @@
 // @ts-check
-import { getSection, getHeader, parseChangeTitle } from "../lib/doc-model.js";
+import { parseChecklist, getSection, getHeader, parseChangeTitle } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
@@ -397,22 +397,10 @@ function changeTick(args, flags) {
   const boxes = [];
   for (const f of files) {
     if (!isFile(f.path)) continue;
-    const lines = read(f.path).split(/\r?\n/);
-    const inScope = f.section === null
-      ? () => true
-      : (() => {
-          const scoped = new Set();
-          let inSection = false;
-          for (let i = 0; i < lines.length; i++) {
-            if (/^##\s+/.test(lines[i])) inSection = new RegExp(`^##\\s+${f.section}\\b`, "i").test(lines[i]);
-            else if (inSection) scoped.add(i);
-          }
-          return (i) => scoped.has(i);
-        })();
-    for (let i = 0; i < lines.length; i++) {
-      if (/^\s*-\s*\[ \]/.test(lines[i]) && inScope(i)) {
-        boxes.push({ file: f, lineIndex: i, text: lines[i].replace(/^\s*-\s*\[ \]\s*/, "") });
-      }
+    // One box grammar, from the document model (change 0067).
+    for (const box of parseChecklist(read(f.path), { section: f.section })) {
+      if (box.checked) continue;
+      boxes.push({ file: f, lineIndex: box.line, text: box.text, placeholder: box.placeholder });
     }
   }
 
@@ -423,7 +411,7 @@ function changeTick(args, flags) {
 
   const all = flagBool(flags, "all", false);
   const ordinals = args.slice(1).map(Number);
-  const isPlaceholder = (box) => box.text.trim() === "";
+  const isPlaceholder = (box) => box.placeholder;
   if (!all && ordinals.length === 0) {
     console.log(c.bold(`Unchecked boxes in ${id}:`));
     console.log("");

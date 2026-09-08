@@ -2,7 +2,7 @@
 import path from "node:path";
 import { exists, isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import { c } from "./colors.js";
-import { isUntouchedScaffold } from "./doc-model.js";
+import { checklistProgress, isUntouchedScaffold } from "./doc-model.js";
 import { collectBudgets } from "./runtime.js";
 
 // The structural ANALYSIS of a change folder, as data.
@@ -76,7 +76,7 @@ export function collectAnalysis(projectRoot, changeDir) {
     // (operator report 2026-07-19). A hard failure here blocks `change
     // check` and `close` until the plan is real; ticking an empty box does
     // not help, `change tick` refuses those too.
-    const placeholders = (text.match(/^\s*-\s*\[[ xX]\]\s*$/gm) ?? []).length;
+    const placeholders = checklistProgress(text).placeholders;
     if (placeholders > 0) {
       results.push(fail(`tasks.md still carries ${placeholders} scaffold placeholder task${placeholders === 1 ? "" : "s"} ("- [ ]" with no text) — plan the change before implementing: replace them with real tasks (or delete the lines)`));
     }

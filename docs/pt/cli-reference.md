@@ -475,6 +475,14 @@ recusado — escreva a task real (ou delete a linha) primeiro. `analyze`
 e `close` falham duro com placeholders restantes, então um change oco
 não fecha.
 
+Toda superfície conta as mesmas caixas. O `prime`, o `report`, o
+`handoff` e o `next` reportam um número de progresso por change, com os
+placeholders incluídos: uma task não escrita é uma task que ninguém
+terminou, e escondê-la foi o que deixou "tasks 0/3" significar seis
+caixas abertas. O `tick` soma a isso as caixas de Verification do
+proposal, porque elas dividem o espaço de ordinais dele, e nomeia de qual
+arquivo veio cada ordinal.
+
 ## `doctrina change diff <id>` — depreciado
 
 > **Depreciado.** Use `doctrina change check <id> --verbose`, que executa

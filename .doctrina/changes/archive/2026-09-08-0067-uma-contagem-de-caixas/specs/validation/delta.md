@@ -35,3 +35,18 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+A gramática de caixa passa a ter um dono no document model
+(`parseChecklist` / `checklistProgress`), e os seis leitores que tinham a
+própria regex — `snapshot`, `gates`, `analysis`, `validation-model`, o
+`context` em dois lugares e o `change tick` — passam a lê-la de lá. Um
+placeholder do scaffold é uma caixa, marcada como tal: escondê-lo foi o que
+fez "0/3" significar seis.
+
+```ops
+bump-version minor
+append-requirement ubiquitous: The system shall parse task checkboxes in one module, treating a box with nothing written after it as an unwritten task rather than as no task at all, and every surface that counts or lists boxes shall read that parse.
+append-criterion [verified] `prime`, `report`, `handoff` and `next` report the same number of boxes for one change, `change tick` lists exactly the unchecked boxes of the tasks file plus the proposal's Verification section and names which file each came from, and no module outside the document model carries a box regex of its own — verified by `packages/doctrina-cli/test/one-box-count.test.js`.
+```

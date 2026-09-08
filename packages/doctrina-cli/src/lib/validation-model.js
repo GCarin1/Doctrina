@@ -20,7 +20,7 @@ import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
 import { cliVersion } from "./version.js";
 import { today } from "./dates.js";
-import { kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
+import { checklistProgress, kindFromPath, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
 import { parseAdrScope, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
@@ -395,7 +395,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
       // recorded plan. Early, every-run signal; analyze/close hard-fail it.
       const tasksPath = path.join(changesDir, entry, "tasks.md");
       if (isFile(tasksPath)) {
-        const ph = (read(tasksPath).match(/^\s*-\s*\[[ xX]\]\s*$/gm) ?? []).length;
+        const ph = checklistProgress(read(tasksPath)).placeholders;
         if (ph > 0) {
           warnings.push(
             `open change "${entry}" tasks.md still carries ${ph} scaffold placeholder task${ph === 1 ? "" : "s"} — ` +
