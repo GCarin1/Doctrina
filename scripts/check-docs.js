@@ -71,7 +71,7 @@ const markdownUnder = (dir) => {
   for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) out.push(...markdownUnder(full));
-    else if (entry.name.endsWith(".md")) out.push(path.relative(dir, full) === entry.name ? full : full);
+    else if (entry.name.endsWith(".md")) out.push(full);
   }
   return out;
 };

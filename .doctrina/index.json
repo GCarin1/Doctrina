@@ -449,16 +449,7 @@
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
-    "changes": [
-      {
-        "id": "0074-o-ternario-morto-sai",
-        "title": "o ternario morto sai",
-        "path": ".doctrina/changes/0074-o-ternario-morto-sai",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: change) — opened as chore"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1470,6 +1461,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0074-o-ternario-morto-sai",
+        "title": "o ternario morto sai",
+        "path": ".doctrina/changes/archive/2026-09-08-0074-o-ternario-morto-sai",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": []
       },
       {
         "id": "0075-os-adrs-seguem-a-capability",

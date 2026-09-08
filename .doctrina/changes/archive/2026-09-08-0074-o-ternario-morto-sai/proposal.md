@@ -1,6 +1,7 @@
 # Change 0074-o-ternario-morto-sai — o ternario morto sai
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: change) — opened as chore
@@ -23,6 +24,14 @@ Os dois ramos do ternário são idênticos. Não muda comportamento nenhum, mas 
 como se algo diferisse entre os casos — que é o custo real: o próximo leitor
 gasta atenção procurando a diferença que não existe.
 
+## Como a igualdade foi provada, e não suposta
+
+As duas implementações — a antiga com o ternário e a nova — foram rodadas lado
+a lado sobre `docs/`, `docs/en/`, `docs/pt/` e a raiz do repositório: 56, 27, 27
+e 404 arquivos, listas idênticas na ordem. Um ternário cujos ramos são iguais
+*parece* trivial de remover, e é exatamente por parecer que vale medir em vez
+de argumentar.
+
 ## Scope boundaries
 
 - Chore: nenhuma spec muda, nenhum comportamento muda.
@@ -38,11 +47,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] O `check-docs` continua encontrando exatamente os mesmos arquivos.
+- [x] A suíte inteira passa.
 
 ## Open questions
 
 - Nenhuma.
-- [ ] O `check-docs` continua encontrando exatamente os mesmos arquivos.
-- [ ] A suíte inteira passa.

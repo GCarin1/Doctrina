@@ -80,3 +80,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0071-o-intake-aceita-a-prosa-convidada — o intake aceita a prosa convidada (specs: authoring MODIFIED)
 - 2026-09-08 — 0072-o-acoplamento-dos-orcamentos-e-visivel — o acoplamento dos orcamentos e visivel (specs: templates MODIFIED)
 - 2026-09-08 — 0073-o-adapter-remove-nao-deixa-rastro — o adapter remove nao deixa rastro (specs: scaffolding MODIFIED)
+- 2026-09-08 — 0074-o-ternario-morto-sai — o ternario morto sai

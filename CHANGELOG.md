@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A no-op ternary in `scripts/check-docs.js` is gone.** Both branches of
+  `path.relative(dir, full) === entry.name ? full : full` were the same
+  expression, left behind by change 0059. It changed nothing and read as if
+  something differed between the cases, which is the actual cost: the next
+  reader spends attention looking for a distinction that was never there.
+  Both implementations were run side by side over `docs/`, `docs/en/`,
+  `docs/pt/` and the repository root — identical lists, in order.
+
 - **`doctrina adapter remove` no longer leaves a configuration root behind.**
   It deleted the six files the `claude` adapter installs and left `.claude/`
   and `.claude/commands/` standing — zero files, two directories. `add` calls
