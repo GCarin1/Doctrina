@@ -276,7 +276,11 @@ export function rules(s) {
   out.push("");
   out.push(c.bold("  Non-goals") + c.gray("  (.doctrina/product.md)"));
   if (s.nonGoals.length === 0) {
-    out.push(`    ${c.gray("none declared — add a `## Non-goals` section to product.md")}`);
+    // Name the act that is actually missing (rule C2): telling an author to
+    // add a section they already wrote is a remedy that resolves nothing.
+    out.push(`    ${c.gray(s.hasNonGoalsSection
+      ? "none declared — the `## Non-goals` section of product.md is empty"
+      : "none declared — add a `## Non-goals` section to product.md")}`);
   } else {
     for (const g of s.nonGoals) out.push(`    ${c.gray("•")} ${g}`);
   }

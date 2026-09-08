@@ -35,3 +35,18 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+O leitor de seções do `product.md` passa a aceitar prosa além de bullets — o
+comentário do próprio template convida prosa — e a ignorar o comentário do
+template, que nunca foi um item declarado. E a mensagem do caso vazio deixa de
+mandar criar uma seção que existe: "a seção está vazia" e "a seção não existe"
+são pedidos diferentes.
+
+```ops
+bump-version minor
+append-requirement event: When reading a declared section of `product.md`, the system shall count a paragraph as one item alongside a bullet, and shall never read the template's own instructional comment as a declared item.
+append-requirement unwanted: The system shall not tell an author to create a section that already exists.
+append-criterion [verified] Prose, two paragraphs and bullets are each read as declared, the template comment is not, an empty section is told to be filled while a missing one is told to be created, and this repository's four non-goals are unchanged — verified by `packages/doctrina-cli/test/non-goals-in-prose.test.js`.
+```

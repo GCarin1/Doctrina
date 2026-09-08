@@ -7,7 +7,7 @@ import { deriveIndex, indexesMatch, specHeader, listHeader } from "./scan.js";
 import { cliVersion } from "./version.js";
 import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
-import { acceptedDecisions, productSection } from "./constitution-model.js";
+import { acceptedDecisions, productSection, hasProductSection } from "./constitution-model.js";
 import { computeActions } from "./actions.js";
 import { readLedger } from "./ledger.js";
 import { parseChangeTitle, checklistProgress } from "./doc-model.js";
@@ -70,6 +70,7 @@ export function collectSnapshot(projectRoot, { actions = true } = {}) {
     openChanges: openChanges(projectRoot),
     adrs: acceptedDecisions(projectRoot),
     nonGoals: productSection(projectRoot, "Non-goals"),
+    hasNonGoalsSection: hasProductSection(projectRoot, "Non-goals"),
     // The gate state is already collected above; hand it over so the whole
     // snapshot stays one read of the tree (change 0037).
     actions: actions ? computeActions(projectRoot, { coverage, trace, verify }) : [],

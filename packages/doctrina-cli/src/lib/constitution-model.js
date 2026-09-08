@@ -30,11 +30,28 @@ export function acceptedDecisions(projectRoot) {
 // Bullets under a named `## <section>` of product.md, each accumulated across
 // its continuation lines so a wrapped bullet reads as one rule. Exported for
 // `prime`.
+/**
+ * Does `product.md` carry this `## ` section at all? Separate from whether it
+ * holds anything, so a finding can name the remedy that actually resolves it
+ * (rule C2): "add the section" and "fill the section" are different asks.
+ *
+ * @param {string} projectRoot
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function hasProductSection(projectRoot, name) {
+  const p = path.join(projectRoot, ".doctrina", "product.md");
+  if (!isFile(p)) return false;
+  return new RegExp(`^##\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "im")
+    .test(read(p));
+}
+
 export function productSection(projectRoot, name) {
   const p = path.join(projectRoot, ".doctrina", "product.md");
   if (!isFile(p)) return [];
   const lines = read(p).split(/\r?\n/);
   let inSection = false;
+  let inComment = false;
   const out = [];
   let cur = null;
   const flush = () => {
@@ -51,6 +68,16 @@ export function productSection(projectRoot, name) {
       continue;
     }
     if (!inSection) continue;
+    // An HTML comment is annotation, not content (change 0055): the template's
+    // own instruction for this section must never read as a declared item.
+    if (inComment) {
+      if (line.includes("-->")) inComment = false;
+      continue;
+    }
+    if (line.trim().startsWith("<!--")) {
+      if (!line.includes("-->")) inComment = true;
+      continue;
+    }
     const m = line.match(/^\s*[-*]\s+(.+)$/);
     if (m) {
       flush();
@@ -59,6 +86,15 @@ export function productSection(projectRoot, name) {
       cur += " " + line.trim();
     } else if (line.trim() === "") {
       flush();
+    } else {
+      // PROSE (change 0069). The section's own template comment invites it —
+      // "Explicit things this project will NOT try to be" asks for no bullets
+      // — and reading only bullets made `prime --rules` report a filled
+      // section as "none declared" and tell the author to add a section that
+      // was already there. Rule C2: a finding may only name a remedy that
+      // resolves it, and this one named an act already done. A paragraph is
+      // one item; a blank line ends it, exactly as it ends a bullet.
+      cur = line.trim();
     }
   }
   flush();

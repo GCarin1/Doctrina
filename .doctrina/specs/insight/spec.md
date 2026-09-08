@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-09-07
-**Version:** 0.4.1
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -114,6 +114,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - When a read-only view is requested by name, the system shall render it from the shared collection, refuse an unknown name with the usage exit code and the names that exist rather than defaulting silently, and emit the same machine-readable envelope whichever view was named.
 - When `doctrina prime` runs without `--rules`, the system shall keep the primer a fixed-size read: the accepted ADRs by title and the number of non-goals, never their full text.
 - When resolving an `<cap>-RN` reference, the system shall number requirements over authored bullets only, skipping any bullet that lies inside an HTML comment.
+- When reading a declared section of `product.md`, the system shall count a paragraph as one item alongside a bullet, and shall never read the template's own instructional comment as a declared item.
 
 ### State-driven
 
@@ -125,6 +126,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall not silently omit an artifact from a pack; every degradation and omission shall be named in the report.
 - The system shall not let the number of open changes decide whether a context pack can be assembled within its budget.
 - The system shall not render a change's identifier as part of its title in any read-only view; the id and the title are separate fields and are printed as such.
+- The system shall not tell an author to create a section that already exists.
 
 ## Acceptance criteria
 
@@ -144,6 +146,7 @@ The read path is spec-compliant when:
 12. [verified] `constitution` and `prime --rules` produce byte-identical output, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 13. [verified] `prime`, `handoff` and `report` print the title of a change with a multi-word id without the id in front of it, and the index records the same — verified by `packages/doctrina-cli/test/change-title.test.js`.
 14. [verified] On a spec `doctrina spec new` has just created, `show <cap>-R1` returns the first authored requirement rather than the scaffold's EARS legend, and a spec with no authored requirement reports zero — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
+15. [verified] Prose, two paragraphs and bullets are each read as declared, the template comment is not, an empty section is told to be filled while a missing one is told to be created, and this repository's four non-goals are unchanged — verified by `packages/doctrina-cli/test/non-goals-in-prose.test.js`.
 
 ## Out of scope for this spec
 

@@ -46,6 +46,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A non-goal written as prose is now read as one.** `product.md` carried a
+  filled `## Non-goals` section, and `prime --rules` reported "none declared —
+  add a `## Non-goals` section to product.md": it counted only bullets, while
+  the section's own template comment — "Explicit things this project will NOT
+  try to be." — asks for no bullets and invites prose. Rule C2, which this
+  repository has a whole suite for: a finding may only name a remedy that
+  resolves it, and this one named an act the author had already done. A
+  paragraph is now one item, a blank line separates them, the template's own
+  comment is never counted, and an empty section is told to be filled rather
+  than created.
+
 - **`contract check --json` stopped approving what its own payload called
   unchecked.** Change 0056 took the word *consistent* out of the human summary
   for an undeclared runtime surface; the envelope kept saying `ok: true`,

@@ -1566,6 +1566,10 @@ how the codebase evolves, oldest first) and the `## Non-goals` of
 to see the non-negotiables — but it owns no facts of its own: to change a
 principle, supersede the ADR; to change a non-goal, edit `product.md`.
 
+A non-goal may be a bullet or a paragraph — the section's own template
+comment invites prose — and a blank line separates one from the next. The
+template's instructional comment is never read as a declared non-goal.
+
 ## `doctrina watch`
 
 Keep the project in sync and the agent oriented continuously (ADR 0012).

@@ -1618,6 +1618,11 @@ o análogo do `constitution.md` do Spec Kit — um único lugar para ver os
 inegociáveis — mas não possui fatos próprios: para mudar um princípio,
 substitua (supersede) o ADR; para mudar um non-goal, edite o `product.md`.
 
+Um non-goal pode ser um bullet ou um parágrafo — o comentário do próprio
+template daquela seção convida prosa — e uma linha em branco separa um do
+próximo. O comentário instrucional do template nunca é lido como um non-goal
+declarado.
+
 ## `doctrina watch`
 
 Mantém o projeto sincronizado e o agente orientado continuamente (ADR 0012).
