@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Last updated:** 2026-09-07
-**Version:** 0.6.0
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -41,6 +41,7 @@ keep the checks and the read path.
 - The system shall default an unclassifiable request to the PRODUCT lane, so that a lane is only changed by a signal and never by the absence of one.
 - The system shall rank an accepted decision that names a capability in its `Scope:` header above one that reaches that capability only through a declared dependency, and both above an unscoped decision, when assembling that capability's context pack.
 - The system shall apply one rule for telling a path from prose, and the commands that ingest a project description shall answer the same input shape the same way.
+- The system shall build every index entry for an artifact through one constructor per record shape, so a command that registers an artifact and the command that rebuilds the index can never disagree about its fields.
 
 ### Event-driven
 
@@ -272,6 +273,7 @@ keep the checks and the read path.
 - When a decision record is accepted, the system shall re-derive its whole index entry from the file, so the summary and scope the author wrote before accepting are the ones recorded.
 - When a change is opened without an explicit title, the system shall derive the identifier from the prompt's content words rather than from the whole prompt, and shall keep the whole prompt as the proposal's title.
 - When a description is given where a file path is expected, the system shall accept it as the description when it cannot be a path, and shall otherwise report the missing file naming the form that passes text directly.
+- When `doctrina work` opens a change, the system shall register its index entry only after the proposal is fully written — lane and affected specs stamped — so the tree it leaves passes `doctrina validate` without a rebuild.
 
 ### Unwanted-behavior (must-not)
 
@@ -312,6 +314,8 @@ The authoring commands are v0 spec-compliant when:
 13. [verified] An untouched decision record is refused with its unwritten sections named and its Status left alone, one with a one-line decision is accepted, and accepting leaves the index in sync — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 14. [verified] A change opened on the default path has an identifier under fifty characters while its H1 still carries the whole prompt and the parse returns it whole, `--title` decides both halves as before, and the derivation is deterministic — verified by `packages/doctrina-cli/test/change-title.test.js`.
 15. [verified] The description passed directly is stored verbatim with a note naming the explicit form, a missing path is still an error that names that form, a real file is never read as prose, and `init` answers all three the same way — verified by `packages/doctrina-cli/test/intake-accepts-prose.test.js`.
+16. [verified] `doctrina work` followed by `doctrina validate` exits 0 on a freshly initialised project, with the classified lane present in the index entry — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
+17. [verified] The entry the writer stores equals the one the deriver builds, and re-deriving it replaces rather than duplicates — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
 
 ## Out of scope for this spec
 

@@ -98,6 +98,37 @@ export function decisionEntry(text, basename, prev, date) {
   return entry;
 }
 
+/**
+ * The index entry for ONE open change, derived from its proposal. Same
+ * discipline as `decisionEntry` above and for the same reason: `deriveIndex`
+ * builds the whole list from it, and `doctrina work` / `change new` register
+ * a new change THROUGH it instead of assembling a look-alike by hand.
+ *
+ * Two constructors for one record shape is how the `lane` field (change 0042)
+ * — added to the deriver and not to the writer — turned every freshly opened
+ * change into index drift the moment it was written: `doctrina work` followed
+ * by `doctrina validate` errored on a tree nobody had touched.
+ *
+ * @param {string} proposal Text of the change's proposal.md ("" when absent).
+ * @param {string} id       The change id (its directory name).
+ * @param {object|null} prev The entry already in the index, when there is one.
+ * @param {string} date     Fallback for a proposal carrying no Date header.
+ */
+export function changeEntry(proposal, id, prev, date) {
+  const title = parseChangeTitle(proposal);
+  return {
+    id,
+    title: title ?? prev?.title ?? id,
+    path: `.doctrina/changes/${id}`,
+    status: listHeader(proposal, "Status") ?? prev?.status ?? "proposed",
+    opened: listHeader(proposal, "Date") ?? prev?.opened ?? date,
+    // The lane the change was born in (change 0042). Optional: a change
+    // opened before the field existed simply has none, and every consumer
+    // treats its absence as "unknown" rather than as a lane.
+    ...laneOf(proposal, prev),
+  };
+}
+
 
 // Regenerate the index object from the artifacts on disk. The files are
 // the source of truth; fields with no on-disk source (project name,
@@ -190,18 +221,7 @@ export function deriveIndex(projectRoot, current) {
     const prev = (cur.changes ?? []).find((c) => c.id === id);
     const proposalPath = path.join(changesDir, id, "proposal.md");
     const proposal = isFile(proposalPath) ? read(proposalPath) : "";
-    const title = parseChangeTitle(proposal);
-    out.artifacts.changes.push({
-      id,
-      title: title ?? prev?.title ?? id,
-      path: `.doctrina/changes/${id}`,
-      status: listHeader(proposal, "Status") ?? prev?.status ?? "proposed",
-      opened: listHeader(proposal, "Date") ?? prev?.opened ?? date,
-      // The lane the change was born in (change 0042). Optional: a change
-      // opened before the field existed simply has none, and every consumer
-      // treats its absence as "unknown" rather than as a lane.
-      ...laneOf(proposal, prev),
-    });
+    out.artifacts.changes.push(changeEntry(proposal, id, prev, date));
   }
 
   // Archived changes — folder name carries the applied date and id.

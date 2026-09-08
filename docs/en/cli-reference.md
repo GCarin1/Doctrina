@@ -324,7 +324,13 @@ Writes `.doctrina/changes/<id>/` populated with `proposal.md` and
 `tasks.md`, plus an empty `specs/` directory ready for delta files
 (`design.md` scaffolds only under `--design` — in practice it stayed
 blank on every change that did not ask for one). Adds an entry to
-`.doctrina/index.json` under `changes`.
+`.doctrina/index.json` under `changes`, **derived from the proposal on
+disk** by the same constructor `index rebuild` uses — a field the deriver
+knows about and a hand-assembled entry does not is index drift the moment
+the change is opened, which is exactly what the `lane` field did. For the
+same reason `work` registers the change only after it has finished writing
+the proposal (lane and affected specs stamped), so the tree it leaves
+passes `doctrina validate` without a rebuild.
 
 The `<id>` is the directory name. Convention: `NNNN-slug`.
 

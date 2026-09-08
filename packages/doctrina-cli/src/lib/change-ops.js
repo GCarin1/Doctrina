@@ -14,6 +14,7 @@ import { today } from "./dates.js";
 import { flagBool, flagString } from "./args.js";
 import { c } from "./colors.js";
 import { ensureDoctrinaProject } from "./project.js";
+import { changeEntry } from "./scan.js";
 export function changeNew(args, flags) {
   const id = args[0];
   const title = args.slice(1).join(" ").trim();
@@ -69,10 +70,11 @@ export function changeNew(args, flags) {
     }
   }
 
-  const index = idx.load(projectRoot);
-  idx.addChange(index, { id, title, path: `.doctrina/changes/${id}`, status: "proposed", opened: date });
-  idx.touch(index, date);
-  idx.save(projectRoot, index);
+  // Derive the entry from the proposal on disk rather than assembling one
+  // here: a field the deriver knows about and this writer does not is index
+  // drift the moment the change is opened (change 0076 — that is exactly what
+  // `lane` did). One constructor, in `scan.js`, for one record shape.
+  reindexChange(projectRoot, id, date);
 
   console.log("");
   if (chore) {
@@ -83,4 +85,29 @@ export function changeNew(args, flags) {
       c.cyan(`.doctrina/changes/${id}/specs/<capability>/delta.md`));
   }
   return 0;
+}
+
+/**
+ * Register — or re-derive — one open change's index entry from its proposal.
+ *
+ * `work` writes the proposal in two passes: `changeNew` scaffolds it, then the
+ * command stamps the lane it classified and the specs it pinned. Indexing at
+ * the end of the FIRST pass reads a proposal that is not finished yet, which
+ * is why every `doctrina work` used to be followed by a `validate` error and
+ * an `index rebuild` nobody asked for. Calling this again after the stamping
+ * costs one file write and makes the tree honest on the next command.
+ *
+ * @param {string} projectRoot
+ * @param {string} id    The change id (its directory name).
+ * @param {string} [date] Fallback for a proposal carrying no Date header.
+ */
+export function reindexChange(projectRoot, id, date = today()) {
+  const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
+  const proposal = isFile(proposalPath) ? read(proposalPath) : "";
+  const index = idx.load(projectRoot);
+  const prev = index.artifacts.changes.find((ch) => ch.id === id) ?? null;
+  index.artifacts.changes = index.artifacts.changes.filter((ch) => ch.id !== id);
+  index.artifacts.changes.push(changeEntry(proposal, id, prev, date));
+  idx.touch(index, date);
+  idx.save(projectRoot, index);
 }

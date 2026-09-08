@@ -19,6 +19,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`doctrina work` no longer leaves the tree failing `validate`.** It
+  assembled the change's index entry by hand while `index rebuild` derived it
+  from the proposal, so the `lane` field — added to the deriver and not to the
+  writer — made every freshly opened change drift on the very next command.
+  The ordering made it unfixable in place: `work` indexed the change *before*
+  stamping the lane it had just classified, so at write time there was no lane
+  to read. Now one constructor (`changeEntry`, in `scan.js`) builds the record
+  for both, and `work` registers the change after the proposal is finished.
+  `addChange` — the second constructor — is gone.
+
 - **A no-op ternary in `scripts/check-docs.js` is gone.** Both branches of
   `path.relative(dir, full) === entry.name ? full : full` were the same
   expression, left behind by change 0059. It changed nothing and read as if

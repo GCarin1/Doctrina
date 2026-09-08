@@ -336,7 +336,13 @@ Escreve `.doctrina/changes/<id>/` com `proposal.md` e `tasks.md`, além
 de um diretório `specs/` vazio para arquivos de delta (`design.md` só é
 esqueletizado sob `--design` — na prática ele ficava em branco em toda
 change que não pediu um). Adiciona entrada em `.doctrina/index.json`
-sob `changes`.
+sob `changes`, **derivada da proposta em disco** pelo mesmo construtor que
+o `index rebuild` usa — um campo que o derivador conhece e uma entrada
+montada à mão não tem é drift de índice no instante em que a change abre, e
+foi exatamente o que o campo `lane` fez. Pela mesma razão o `work` registra
+a change só depois de terminar de escrever a proposta (lane e specs
+afetadas carimbados), então a árvore que ele deixa passa no `doctrina
+validate` sem rebuild.
 
 O `<id>` é o nome do diretório. Convenção: `NNNN-slug`.
 

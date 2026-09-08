@@ -106,12 +106,6 @@ export function updateDecision(index, id, mutator) {
   return index;
 }
 
-export function addChange(index, entry) {
-  if (!index.artifacts.changes.some((c) => c.id === entry.id)) {
-    index.artifacts.changes.push(entry);
-  }
-  return index;
-}
 
 export function moveChangeToArchive(index, id, archiveEntry) {
   index.artifacts.changes = index.artifacts.changes.filter((c) => c.id !== id);

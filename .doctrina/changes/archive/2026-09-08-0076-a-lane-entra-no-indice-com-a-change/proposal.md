@@ -1,6 +1,7 @@
 # Change 0076-a-lane-entra-no-indice-com-a-change — a lane entra no indice com a change
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: change)
@@ -54,11 +55,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um `doctrina work` seguido de `doctrina validate` num projeto limpo sai 0.
-- [ ] O `change new` sem lane continua sem drift.
-- [ ] O escritor da entrada e o `rebuild` derivam do mesmo lugar.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um `doctrina work` seguido de `doctrina validate` num projeto limpo sai 0.
+- [x] O `change new` sem lane continua sem drift.
+- [x] O escritor da entrada e o `rebuild` derivam do mesmo lugar.
 
 ## Open questions
 

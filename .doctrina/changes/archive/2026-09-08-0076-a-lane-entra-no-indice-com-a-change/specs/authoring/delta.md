@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall build every index entry for an artifact through one constructor per record shape, so a command that registers an artifact and the command that rebuilds the index can never disagree about its fields.
+append-requirement event: When `doctrina work` opens a change, the system shall register its index entry only after the proposal is fully written — lane and affected specs stamped — so the tree it leaves passes `doctrina validate` without a rebuild.
+append-criterion [verified] `doctrina work` followed by `doctrina validate` exits 0 on a freshly initialised project, with the classified lane present in the index entry — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
+append-criterion [verified] The entry the writer stores equals the one the deriver builds, and re-deriving it replaces rather than duplicates — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
+bump-version minor
+```

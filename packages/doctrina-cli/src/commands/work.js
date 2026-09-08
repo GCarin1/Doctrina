@@ -9,7 +9,7 @@ import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
-import { changeNew } from "../lib/change-ops.js";
+import { changeNew, reindexChange } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
 import { changedFiles } from "../lib/git.js";
@@ -203,6 +203,13 @@ export async function run(positional, flags) {
   const scaffolded = chore || !capability || (!pinned && !guess)
     ? null
     : scaffoldDelta(projectRoot, { id, capability, guess, runnerUp: promptMatches[1] ?? null });
+
+  // The proposal is written in two passes — `changeNew` scaffolds it, the
+  // lines above stamp the lane and the pinned specs — so its index entry is
+  // re-derived HERE, from the finished file. Indexing at the end of the first
+  // pass is what made every `doctrina work` leave the tree failing `validate`
+  // on the very next command (change 0076).
+  reindexChange(projectRoot, id);
 
   // --quiet: registering backlog, not starting now (operator review §3.7 — 19
   // works printed 19 identical 50-line playbooks). One line per change; the
