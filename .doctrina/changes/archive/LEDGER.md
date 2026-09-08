@@ -74,3 +74,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0065-o-molde-nao-passa-por-conteudo — o molde nao passa por conteudo (specs: authoring MODIFIED, validation MODIFIED)
 - 2026-09-08 — 0066-a-porta-de-bootstrap-aparece — a porta de bootstrap aparece (specs: scaffolding MODIFIED)
 - 2026-09-08 — 0067-uma-contagem-de-caixas — uma contagem de caixas (specs: validation MODIFIED)
+- 2026-09-08 — 0068-o-contract-check-responde-a-maquina — o contract check responde a maquina (specs: gates MODIFIED)

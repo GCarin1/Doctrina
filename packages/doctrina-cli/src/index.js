@@ -145,7 +145,14 @@ async function main(argv) {
     // --json on a command that builds no payload of its own still answers in
     // JSON: its output is captured into a versioned envelope beside `ok` and
     // `exit_code`. Branch on those; the lines are for completeness (M7).
-    if (wantsJson(flags) && !command.jsonNative) {
+    // A module with several subcommands is native for some and not others —
+    // `contract check` builds a real payload, `contract new` has nothing but
+    // its prose — so `jsonNative` may be a predicate over the subcommand's
+    // own arguments (change 0068).
+    const jsonNative = typeof command.jsonNative === "function"
+      ? command.jsonNative(positional.slice(1))
+      : command.jsonNative === true;
+    if (wantsJson(flags) && !jsonNative) {
       const { code, stdout, stderr } = await captureOutput(
         () => command.run(positional.slice(1), flags),
       );

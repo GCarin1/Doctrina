@@ -1305,6 +1305,12 @@ appears only when there was something to check. It is the summary that
 survives in a CI log, so it is held to the same standard as the per-contract
 line.
 
+`--json` answers with a payload rather than captured prose: `contracts`,
+`checked`, `unchecked`, `declared_rows`, `findings` and a `verdict` of
+`consistent` / `unchecked` / `failed`. Branch on `verdict` — `ok` and
+`exit_code` are 0 for an undeclared surface by design, so they cannot tell
+"verified" from "never declared" on their own.
+
 Exits 1 on errors, 0 on warnings only.
 
 ## `doctrina index rebuild`

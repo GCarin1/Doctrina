@@ -58,7 +58,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.8.0",
+        "version": "1.9.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -450,14 +450,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0068-o-contract-check-responde-a-maquina",
-        "title": "o contract check responde a maquina",
-        "path": ".doctrina/changes/0068-o-contract-check-responde-a-maquina",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: declare)"
-      },
       {
         "id": "0069-non-goals-em-prosa-contam",
         "title": "non-goals em prosa contam",
@@ -1429,6 +1421,19 @@
         ]
       },
       {
+        "id": "0067-uma-contagem-de-caixas",
+        "title": "uma contagem de caixas",
+        "path": ".doctrina/changes/archive/2026-09-08-0067-uma-contagem-de-caixas",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
         "id": "0075-os-adrs-seguem-a-capability",
         "title": "os adrs seguem a capability",
         "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
@@ -1442,14 +1447,14 @@
         ]
       },
       {
-        "id": "0067-uma-contagem-de-caixas",
-        "title": "uma contagem de caixas",
-        "path": ".doctrina/changes/archive/2026-09-08-0067-uma-contagem-de-caixas",
+        "id": "0068-o-contract-check-responde-a-maquina",
+        "title": "o contract check responde a maquina",
+        "path": ".doctrina/changes/archive/2026-09-08-0068-o-contract-check-responde-a-maquina",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [
           {
-            "capability": "validation",
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

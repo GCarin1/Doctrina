@@ -46,6 +46,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`contract check --json` stopped approving what its own payload called
+  unchecked.** Change 0056 took the word *consistent* out of the human summary
+  for an undeclared runtime surface; the envelope kept saying `ok: true`,
+  because the only machine signal was the exit code — and that code is 0 by the
+  deliberate decision of change 0029, an undeclared surface being reported
+  rather than failed. Right for the status, wrong as the only signal: a
+  consumer reading the envelope alone stood exactly where the human reader
+  stood before 0056. The command now builds a payload — `contracts`, `checked`,
+  `unchecked`, `declared_rows`, `findings`, and a `verdict` of `consistent` /
+  `unchecked` / `failed` — the same shape change 0061 gave deprecation. Exit
+  codes are unchanged, and the prose no longer prints ahead of the payload it
+  describes.
+- `jsonNative` may now be a predicate over a subcommand's arguments, so a
+  module can be native for `check` and keep the captured envelope for `new`.
+- The human summary agrees in number: "1 contract **declares** no
+  Wiring/Selectors rows".
+
 - **One box count, everywhere.** The same boxes, the same tree, the same
   instant, counted three ways: `prime` said "tasks 0/3", `next` said "6 open
   tasks", `change tick` listed eight. The cause was not "some count the closing

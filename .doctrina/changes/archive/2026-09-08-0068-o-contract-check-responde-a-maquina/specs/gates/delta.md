@@ -35,3 +35,22 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+O `contract check` passa a construir o próprio payload — `contracts`,
+`checked`, `unchecked`, `declared_rows`, `findings` e um `verdict` — em vez
+de devolver a prosa capturada num envelope cujo único sinal era o `ok`. O
+consumidor ramifica pelo `verdict`, do mesmo jeito que a change 0061 deu à
+depreciação um campo próprio. O código de saída não muda em caso nenhum: a
+change 0029 decidiu, e continua valendo.
+
+Como um módulo com vários subcomandos é nativo para uns e não para outros, o
+`jsonNative` passa a poder ser um predicado sobre os argumentos — o
+`contract new` e o `contract list` seguem com o envelope capturado.
+
+```ops
+bump-version minor
+append-requirement event: When `contract check` runs with JSON output requested, the system shall emit a payload distinguishing a runtime surface that was verified from one that was never declared, and shall emit nothing else on standard output.
+append-criterion [verified] An undeclared surface reports `verdict: unchecked` at exit 0, a declared one that holds reports its row count, a declaration that does not hold carries its findings with code, level, message and remedy, the payload parses as the whole of stdout, and the other contract subcommands keep the captured envelope — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+```

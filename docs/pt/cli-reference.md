@@ -1350,6 +1350,12 @@ mesmo — ela conta quantos contratos ficaram sem checar, e a palavra
 sobrevive no log de CI, então ele responde pelo mesmo padrão da linha por
 contrato.
 
+O `--json` responde com um payload em vez de prosa capturada: `contracts`,
+`checked`, `unchecked`, `declared_rows`, `findings` e um `verdict` de
+`consistent` / `unchecked` / `failed`. Ramifique pelo `verdict` — o `ok` e o
+`exit_code` são 0 para superfície não declarada por decisão de projeto, então
+sozinhos não distinguem "verificado" de "nunca declarado".
+
 Sai 1 em erros, 0 só com warnings.
 
 ## `doctrina index rebuild`

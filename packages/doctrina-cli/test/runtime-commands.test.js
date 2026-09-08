@@ -562,3 +562,122 @@ test("contract check, doctor and triage describe an undeclared surface the same 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ------------------------- change 0068: the machine gets the same answer
+
+// Change 0056 took the word "consistent" out of the HUMAN summary for an
+// undeclared surface. The envelope kept saying `ok: true`, because the only
+// machine signal was the exit code — and that code is 0 by the deliberate
+// decision of change 0029: an undeclared surface is REPORTED, not failed.
+// Right for the status, wrong as the only signal. A consumer reading the
+// envelope alone stood exactly where the human reader stood before 0056.
+
+function payload(dir, args) {
+  const res = run(dir, args);
+  return { res, json: JSON.parse(res.stdout) };
+}
+
+test("contract check --json distinguishes unchecked from verified, without reading prose", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    const { res, json } = payload(dir, ["contract", "check", "--json"]);
+    assert.equal(res.status, 0, "change 0029: an undeclared surface is reported, not failed");
+    assert.equal(json.exit_code, 0);
+    assert.equal(json.verdict, "unchecked");
+    assert.deepEqual(json.unchecked, ["system"]);
+    assert.equal(json.checked, 0);
+    assert.equal(json.declared_rows, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a declared surface that holds reports the rows, not just a verdict", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    writeFileSync(path.join(dir, ".env.example"), "API_TOKEN=x\n");
+    writeFileSync(
+      path.join(dir, ".doctrina", "contracts", "system.md"),
+      "# Contract — system\n\n**Status:** active\n\n## Wiring\n\n" +
+      "| Variable | Origin | Consumer | Exported by |\n|---|---|---|---|\n" +
+      "| API_TOKEN | env | src/app.js | .env.example |\n",
+    );
+    const { res, json } = payload(dir, ["contract", "check", "--json"]);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(json.verdict, "consistent");
+    assert.deepEqual(json.unchecked, []);
+    assert.equal(json.declared_rows, 1);
+    assert.deepEqual(json.findings, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a declaration that does not hold carries its findings in the payload", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    mkdirSync(path.join(dir, "features"), { recursive: true });
+    writeFileSync(path.join(dir, "features", "a.feature"), "@smoke_test\nFeature: x\n");
+    writeFileSync(
+      path.join(dir, ".doctrina", "contracts", "system.md"),
+      "# Contract — system\n\n**Status:** active\n\n## Selectors\n\n" +
+      "| Selector | Source | Pattern | Used by |\n|---|---|---|---|\n" +
+      "| tags | features/**/*.feature | @([a-z0-9_-]+) | smoke-test |\n",
+    );
+    const { res, json } = payload(dir, ["contract", "check", "--json"]);
+    assert.equal(res.status, 1);
+    assert.equal(json.ok, false);
+    assert.equal(json.verdict, "failed");
+    assert.ok(json.findings.length > 0, JSON.stringify(json));
+    const f = json.findings[0];
+    for (const key of ["contract", "code", "level", "message", "remedy"]) {
+      assert.ok(key in f, `a finding must carry ${key}: ${JSON.stringify(f)}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("--json emits the payload and nothing else on stdout", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    const res = run(dir, ["contract", "check", "--json"]);
+    assert.doesNotThrow(() => JSON.parse(res.stdout),
+      `prose ahead of the payload corrupts the output it describes:\n${res.stdout}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the other contract subcommands keep the captured envelope", () => {
+  const dir = project();
+  try {
+    const res = run(dir, ["contract", "new", "system", "--json"]);
+    const json = JSON.parse(res.stdout);
+    assert.ok(Array.isArray(json.stdout),
+      "`contract new` has no payload of its own, so it keeps the envelope");
+    assert.equal(json.command, "contract new system");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the human summary agrees in number", () => {
+  const dir = project();
+  try {
+    run(dir, ["contract", "new", "system"]);
+    const one = run(dir, ["contract", "check"]).stdout;
+    assert.match(one, /1 contract declares no/, one);
+    assert.doesNotMatch(one, /1 contract declare\b/, one);
+
+    run(dir, ["contract", "new", "delivery"]);
+    const two = run(dir, ["contract", "check"]).stdout;
+    assert.match(two, /2 contracts declare no/, two);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
