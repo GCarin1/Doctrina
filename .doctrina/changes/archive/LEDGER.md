@@ -63,3 +63,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0055-comentario-nao-e-conteudo — comentario nao e conteudo (specs: gates MODIFIED, insight MODIFIED, validation MODIFIED)
 - 2026-09-08 — 0056-o-resumo-do-contract-check-nao-mente — o resumo do contract check nao mente (specs: gates MODIFIED)
 - 2026-09-08 — 0057-ausencia-nao-e-aprovacao — ausencia nao e aprovacao (specs: gates MODIFIED)
+- 2026-09-08 — 0058-a-remediacao-sai-do-projeto-checado — a remediacao sai do projeto checado (specs: gates MODIFIED)

@@ -45,8 +45,10 @@ test("the change id reaches the steps that need it, and only those", () => {
   const close = sequence("close");
   assert.equal(stepRerun(close.find((s) => s.id === "analyze"), "0007-x"), "doctrina analyze 0007-x");
   assert.equal(stepRerun(close.find((s) => s.id === "validate"), "0007-x"), "doctrina validate");
-  // The docs gate is not one command, so it keeps its own literal line.
-  assert.equal(stepRerun(close.find((s) => s.id === "docs"), "0007-x"), "edit docs/ (EN + PT), then rerun");
+  // The docs gate is not one command, so it keeps its own literal line — and
+  // that line names no directory, because the checked project's own
+  // documentation homes are what the gate's hint names (change 0058).
+  assert.equal(stepRerun(close.find((s) => s.id === "docs"), "0007-x"), "document the change, then rerun");
 });
 
 test("close derives its steps from the declaration, not from its own array", () => {

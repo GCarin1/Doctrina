@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The docs gate's remediation now comes out of the project being checked.**
+  The gate is portable — it accepts anything under `docs/` or a README — but
+  the instruction it printed on refusal was not: it named `docs/en/` AND
+  `docs/pt/` and the `keep-docs-en-pt-parity` skill, which exists only in
+  Doctrina's own repository. An adopting project with no `docs/` and no
+  Portuguese read that it had to translate its documentation. The hint now
+  names the documentation homes the checked project actually has, and says "a
+  README" for a project that documents nowhere yet; the close's rerun line no
+  longer says "EN + PT" either. In this repository it still names both
+  languages, because here they exist.
+
 - **Coverage over zero criteria is no longer 100%.** The projection read
   `totalCriteria === 0 ? 100 : …`, so the first number a fresh project saw
   about itself — in `prime`, `status`, `report` and `handoff` — was a perfect

@@ -35,3 +35,17 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+O gate não muda — ele sempre aceitou qualquer coisa sob `docs/` ou um
+README. O que muda é a instrução: ela passa a ser derivada dos diretórios de
+documentação que o projeto checado tem, e diz "um README" para quem ainda não
+documenta em lugar nenhum. Neste repositório continua nomeando `docs/en/` e
+`docs/pt/`, porque aqui os dois existem.
+
+```ops
+bump-version minor
+append-requirement event: When the documentation gate refuses a change, the system shall name the documentation locations the checked project itself has, and shall name no path or procedure that exists only in Doctrina's own repository.
+append-criterion [verified] A project with no documentation is pointed at a README rather than at `docs/en` and `docs/pt`, a project with one documentation directory is pointed at that one, and in this repository both languages are still named — verified by `packages/doctrina-cli/test/portable-remediation.test.js`.
+```

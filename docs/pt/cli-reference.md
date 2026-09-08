@@ -1502,7 +1502,11 @@ subtraído, para que as referências a comandos do próprio template não
 sejam confundidas com intenção do autor), e se as docs andaram é lido do
 git — a árvore de trabalho mais os commits deste branch contra o branch
 padrão. Fora de um repositório git o gate não tem como ver o que mudou e
-fica em silêncio em vez de acusar. O `--force` fecha mesmo assim e
+fica em silêncio em vez de acusar. Quando recusa, a dica nomeia os lugares
+de documentação que o *seu* projeto tem — os subdiretórios de `docs/`, os
+READMEs que ele traz, ou simplesmente "um README" quando ele ainda não
+documenta em lugar nenhum — nunca um caminho ou um procedimento que só
+existe no repositório do próprio Doctrina. O `--force` fecha mesmo assim e
 registra o gap no ledger, exatamente como o `change archive --force`.
 
 Vários ids fecham em sequência, cada um independente; o código de saída

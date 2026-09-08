@@ -9,7 +9,7 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
-import { checkDocsImpact } from "../lib/docs-impact.js";
+import { docsRemedy, checkDocsImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
 import { specHeader, dependentsOf } from "../lib/scan.js";
@@ -244,9 +244,12 @@ async function closeOne(projectRoot, id, flags) {
         }
         console.error(c.red("error:") + ` this change ${r.reason}:`);
         for (const s of r.signals) console.error(`  - ${s}`);
-        console.error(c.gray("hint: ") +
-          "document it in docs/en/ AND docs/pt/ (the `keep-docs-en-pt-parity` skill), " +
-          "or pass --force to close anyway (records the gap)");
+        // The remedy comes out of the project being checked, never out of
+        // Doctrina's own repository (change 0058): an adopting project with
+        // no `docs/` was being told to write English AND Portuguese and to
+        // read a skill it does not have.
+        console.error(c.gray("hint: ") + docsRemedy(projectRoot) +
+          ", or pass --force to close anyway (records the gap)");
         docsGap = r;
         return 1;
       },

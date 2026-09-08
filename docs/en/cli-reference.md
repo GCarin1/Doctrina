@@ -1456,8 +1456,11 @@ own command references are not mistaken for authored intent), and
 whether docs moved is read from git — the working tree plus this
 branch's commits against the default branch. Outside a git repository
 the gate cannot see what moved and stays silent rather than accusing.
-`--force` closes anyway and records the gap in the ledger, exactly as
-`change archive --force` does.
+When it refuses, the hint names the documentation locations *your* project
+has — the subdirectories under `docs/`, the READMEs it ships, or simply "a
+README" when it documents nowhere yet — never a path or a procedure that
+exists only in Doctrina's own repository. `--force` closes anyway and
+records the gap in the ledger, exactly as `change archive --force` does.
 
 Multiple ids close in sequence, each independently; the exit code is
 the worst per-id result. Preview what close would refuse with

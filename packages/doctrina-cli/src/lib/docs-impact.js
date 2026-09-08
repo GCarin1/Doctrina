@@ -1,6 +1,7 @@
 // @ts-check
 import path from "node:path";
-import { isFile, read, walk } from "./fs-ops.js";
+import { readdirSync } from "node:fs";
+import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { COMMAND_NAMES } from "./commands.js";
 import { locateTemplatesDir } from "./templates.js";
 import { changedFiles, isRepo } from "./git.js";
@@ -133,6 +134,47 @@ export function docsTouched(projectRoot) {
 
 export function isGitRepo(projectRoot) {
   return isRepo(projectRoot);
+}
+
+// Where THIS project keeps its documentation, read off its own tree.
+//
+// The gate is portable; the instruction it printed was not. It named
+// `docs/en/` AND `docs/pt/` and a skill that exists only in Doctrina's own
+// repository, so an adopting project with neither read that it had to
+// translate (change 0058). The gate itself never asked for any of that — it
+// accepts anything under `docs/` or a README — so the remedy is derived from
+// what the checked project actually has.
+//
+// Returns the documentation homes in reading order, or [] for a project that
+// has none yet.
+export function documentationHomes(projectRoot) {
+  const homes = [];
+  const docsDir = path.join(projectRoot, "docs");
+  if (isDir(docsDir)) {
+    // A per-language or per-audience split is a convention, not a rule: name
+    // the subdirectories this project HAS, and fall back to `docs/` itself.
+    const subs = readdirSync(docsDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+      .map((e) => `docs/${e.name}/`)
+      .sort();
+    homes.push(...(subs.length > 0 ? subs : ["docs/"]));
+  }
+  for (const readme of ["README.md", "README.pt.md"]) {
+    if (isFile(path.join(projectRoot, readme))) homes.push(readme);
+  }
+  return homes;
+}
+
+// The hint the docs gate prints when it refuses. Names the places this
+// project documents in, and says "a README" when it documents nowhere yet —
+// never a path the checked project does not have.
+export function docsRemedy(projectRoot) {
+  const homes = documentationHomes(projectRoot);
+  if (homes.length === 0) return "document it in a README, or under docs/";
+  if (homes.length === 1) return `document it in ${homes[0]}`;
+  const last = homes[homes.length - 1];
+  return `document it in ${homes.slice(0, -1).join(", ")} or ${last}` +
+    (homes.length > 2 ? " — whichever this change belongs in" : "");
 }
 
 // The gate itself: { ok, signals, touched, reason }. `ok` is true when the

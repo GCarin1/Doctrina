@@ -175,7 +175,7 @@ export const SEQUENCES = {
     { id: "verify", label: "verify", level: "blocking", argv: ["verify"] },
     { id: "coverage", label: "coverage", level: "blocking", argv: ["coverage", "--strict"] },
     { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
-    { id: "docs", label: "docs", level: "forceable", argv: null, rerun: "edit docs/ (EN + PT), then rerun" },
+    { id: "docs", label: "docs", level: "forceable", argv: null, rerun: "document the change, then rerun" },
     { id: "archive", label: "archive", level: "blocking", argv: ["change", "archive", "<id>"] },
     { id: "validate", label: "validate", level: "blocking", argv: ["validate"] },
   ],

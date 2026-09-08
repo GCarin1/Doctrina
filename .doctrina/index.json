@@ -58,7 +58,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.5.0",
+        "version": "1.6.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -437,14 +437,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0058-a-remediacao-sai-do-projeto-checado",
-        "title": "a remediacao sai do projeto checado",
-        "path": ".doctrina/changes/0058-a-remediacao-sai-do-projeto-checado",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0059-o-tamanho-da-superficie-tem-um-dono",
         "title": "o tamanho da superficie tem um dono",
@@ -1269,6 +1261,19 @@
         "id": "0057-ausencia-nao-e-aprovacao",
         "title": "ausencia nao e aprovacao",
         "path": ".doctrina/changes/archive/2026-09-08-0057-ausencia-nao-e-aprovacao",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0058-a-remediacao-sai-do-projeto-checado",
+        "title": "a remediacao sai do projeto checado",
+        "path": ".doctrina/changes/archive/2026-09-08-0058-a-remediacao-sai-do-projeto-checado",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [

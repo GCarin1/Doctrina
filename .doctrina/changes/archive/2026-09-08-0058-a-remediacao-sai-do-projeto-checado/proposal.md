@@ -1,6 +1,7 @@
 # Change 0058-a-remediacao-sai-do-projeto-checado — a remediacao sai do projeto checado
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -34,11 +35,11 @@ correto para quem escreveu, ilegível para quem adota.
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Num projeto sem `docs/`, a dica não menciona `docs/en`, `docs/pt` nem a skill.
-- [ ] Num projeto com `docs/`, a dica nomeia os diretórios que ele tem.
-- [ ] Neste repositório a mensagem continua útil para quem mantém os dois idiomas.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Num projeto sem `docs/`, a dica não menciona `docs/en`, `docs/pt` nem a skill.
+- [x] Num projeto com `docs/`, a dica nomeia os diretórios que ele tem.
+- [x] Neste repositório a mensagem continua útil para quem mantém os dois idiomas.
 
 ## Open questions
 
