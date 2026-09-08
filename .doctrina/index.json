@@ -504,7 +504,32 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0089-o-close-so-afirma-o-que-apurou",
+        "title": "o close so afirma o que apurou",
+        "path": ".doctrina/changes/0089-o-close-so-afirma-o-que-apurou",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0090-um-filtro-que-nao-casa-nada-nao-aprova",
+        "title": "um filtro que nao casa nada nao aprova",
+        "path": ".doctrina/changes/0090-um-filtro-que-nao-casa-nada-nao-aprova",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0091-uma-spec-ativa-declara-como-provar",
+        "title": "uma spec ativa declara como provar",
+        "path": ".doctrina/changes/0091-uma-spec-ativa-declara-como-provar",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: spec)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
