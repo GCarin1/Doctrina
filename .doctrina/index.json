@@ -449,7 +449,56 @@
         "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0076-a-lane-entra-no-indice-com-a-change",
+        "title": "a lane entra no indice com a change",
+        "path": ".doctrina/changes/0076-a-lane-entra-no-indice-com-a-change",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0077-o-review-enxerga-o-codigo-que-revisa",
+        "title": "o review enxerga o codigo que revisa",
+        "path": ".doctrina/changes/0077-o-review-enxerga-o-codigo-que-revisa",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0078-a-recomendacao-sabe-o-que-custa",
+        "title": "a recomendacao sabe o que custa",
+        "path": ".doctrina/changes/0078-a-recomendacao-sabe-o-que-custa",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0079-clarify-nao-confunde-pergunta-com-vagueza",
+        "title": "clarify nao confunde pergunta com vagueza",
+        "path": ".doctrina/changes/0079-clarify-nao-confunde-pergunta-com-vagueza",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0080-o-report-nomeia-a-causa-certa",
+        "title": "o report nomeia a causa certa",
+        "path": ".doctrina/changes/0080-o-report-nomeia-a-causa-certa",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0081-o-work-nao-deixa-specs-vazio",
+        "title": "o work nao deixa specs vazio",
+        "path": ".doctrina/changes/0081-o-work-nao-deixa-specs-vazio",
+        "status": "proposed",
+        "opened": "2026-09-08",
+        "lane": "product (uncertain; signals: change)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
