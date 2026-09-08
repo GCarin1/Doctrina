@@ -35,3 +35,19 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+## What changes
+
+Um passo declarado sem runner passa a ter uma resposta só, e é a que o
+`doctor` já dava: reportar a lacuna e nomear o comando, em vez de o `close`
+subir um segundo processo do próprio binário por um caminho que passo nenhum
+alcança. E um export de `lib/` sem consumidor nenhum vira drift detectável,
+no mesmo formato que o projeto já usa para flags e comandos.
+
+```ops
+bump-version minor
+append-requirement event: When a step declared in a gate sequence has no runner in the driver executing it, the system shall report that step as unimplemented and name the command that answers it, in every driver alike.
+append-requirement unwanted: The system shall not run its own binary as a subprocess to satisfy a step of a sequence it is already executing.
+append-criterion [verified] Every step the close declares has a runner, the close starts no subprocess of its own binary, and close and doctor describe a runnerless step the same way — verified by `packages/doctrina-cli/test/export-drift.test.js`.
+append-criterion [verified] No export under `src/lib/` is referenced by nothing at all, a seam reached only by tests is reported apart from dead surface rather than failed, and a newly orphaned export is caught — verified by `packages/doctrina-cli/test/export-drift.test.js`.
+```

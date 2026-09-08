@@ -26,7 +26,7 @@ const HEADER =
   "`doctrina change archive`; edit freely, the CLI only appends.\n\n";
 
 export function ledgerPath(projectRoot) {
-  return path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
+  return path.join(projectRoot, ...LEDGER_REL.split("/"));
 }
 
 // One entry per recognised line. `kind` separates the three things the CLI

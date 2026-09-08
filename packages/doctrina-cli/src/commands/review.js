@@ -1,7 +1,6 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";

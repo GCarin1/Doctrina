@@ -116,15 +116,6 @@ export function score(text, queryTerms, emphasis = "") {
   return inTitle * 100 + inBody * 10 + Math.min(density, 9);
 }
 
-/** Compare two relevance tuples, best first. */
-export function byRelevance(a, b) {
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    const d = (b[i] ?? 0) - (a[i] ?? 0);
-    if (d !== 0) return d;
-  }
-  return 0;
-}
-
 /**
  * A slug or identifier that reads as a FIX rather than a feature — the
  * signal `skill suggest` and `next` both look for when deciding whether an

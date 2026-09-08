@@ -1706,6 +1706,10 @@ and the verify-config presence — and reports each area as ok/warn/FAIL
 collections the gates render (like `close`): it adds no checks of its
 own, so it can never disagree with the gates it fronts, and the whole
 run is one process — it does not start the CLI again to answer a row.
+`close` works the same way: a step its sequence declares but the driver
+does not implement is reported as unimplemented, naming the command that
+answers it, rather than shelled out to a second process. One question,
+one answer, in both drivers.
 Read-only, which here also means it never repairs: `validate --fix`
 heals a drifted index, `doctor` only reports one. Exits 1 when any area
 fails.

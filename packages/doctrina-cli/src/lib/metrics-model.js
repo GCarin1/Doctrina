@@ -110,7 +110,7 @@ export function collectMetrics(projectRoot, since) {
  * makes the saving worth doing.
  */
 export function readSeries(projectRoot) {
-  const dir = path.join(projectRoot, ".doctrina", "metrics");
+  const dir = path.join(projectRoot, ...METRICS_REL.split("/"));
   if (!isDir(dir)) return [];
   const out = [];
   for (const f of readdirSync(dir).sort()) {

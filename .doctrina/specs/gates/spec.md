@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 1.6.0
+**Version:** 1.7.0
 
 ## Purpose
 
@@ -254,6 +254,7 @@ codes, zero-deps, no-network).
 - When `contract check` finishes with no error, the system shall report in its summary line how many contracts declared no Wiring or Selectors rows, and shall exit 0.
 - When no acceptance criterion is declared, the system shall report coverage as absent rather than as a percentage, and every view shall render that absence identically.
 - When the documentation gate refuses a change, the system shall name the documentation locations the checked project itself has, and shall name no path or procedure that exists only in Doctrina's own repository.
+- When a step declared in a gate sequence has no runner in the driver executing it, the system shall report that step as unimplemented and name the command that answers it, in every driver alike.
 
 ### State-driven
 
@@ -283,6 +284,7 @@ codes, zero-deps, no-network).
 - The system shall not derive a documented-surface signal from text inside an HTML comment when deciding whether a change must carry documentation.
 - The system shall not describe a contract set as consistent in the summary of `contract check` when no Wiring or Selectors row was declared to check.
 - The system shall not treat a metadata header whose value is still the shipped template's placeholder as a header the author supplied.
+- The system shall not run its own binary as a subprocess to satisfy a step of a sequence it is already executing.
 
 ### Optional
 
@@ -344,6 +346,8 @@ The gate surface is spec-compliant when:
 42. [verified] A project whose specs declare no criterion reports "no criteria declared" in `status`, `prime`, `report`, `handoff`, `coverage` and its JSON (`pct: null`), never 100%, while one declared criterion still reports a real ratio — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
 43. [verified] An active spec still carrying the scaffold's `Realizes:` placeholder warns, and a deliberate `n/a — <why>` or a real anchor stays silent — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
 44. [verified] A project with no documentation is pointed at a README rather than at `docs/en` and `docs/pt`, a project with one documentation directory is pointed at that one, and in this repository both languages are still named — verified by `packages/doctrina-cli/test/portable-remediation.test.js`.
+45. [verified] Every step the close declares has a runner, the close starts no subprocess of its own binary, and close and doctor describe a runnerless step the same way — verified by `packages/doctrina-cli/test/export-drift.test.js`.
+46. [verified] No export under `src/lib/` is referenced by nothing at all, a seam reached only by tests is reported apart from dead surface rather than failed, and a newly orphaned export is caught — verified by `packages/doctrina-cli/test/export-drift.test.js`.
 
 ## Out of scope for this spec
 

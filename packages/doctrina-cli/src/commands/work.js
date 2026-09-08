@@ -2,7 +2,6 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, mkdirp, read, relPath, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";

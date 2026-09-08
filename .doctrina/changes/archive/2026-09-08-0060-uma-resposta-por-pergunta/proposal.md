@@ -1,6 +1,7 @@
 # Change 0060-uma-resposta-por-pergunta — uma resposta por pergunta
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** runtime (confident; signals: runner) — opened anyway (--force)
@@ -38,10 +39,10 @@ consequência. Delta em `specs/gates`.
 ## Verification
 
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um passo declarado sem runner tem o mesmo comportamento no `close` e no `doctor`.
-- [ ] Nenhum export de `lib/` fica sem consumidor, e um novo é pego pelo teste.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um passo declarado sem runner tem o mesmo comportamento no `close` e no `doctor`.
+- [x] Nenhum export de `lib/` fica sem consumidor, e um novo é pego pelo teste.
 
 ## Open questions
 

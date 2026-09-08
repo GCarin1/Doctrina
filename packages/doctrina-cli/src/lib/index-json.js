@@ -80,12 +80,6 @@ export function addContract(index, entry) {
   return index;
 }
 
-export function removeSkill(index, id) {
-  if (!index.artifacts.skills) return index;
-  index.artifacts.skills = index.artifacts.skills.filter((s) => s.id !== id);
-  return index;
-}
-
 export function touch(index, date) {
   index.last_updated = date;
   return index;
@@ -95,11 +89,6 @@ export function addSpec(index, entry) {
   if (!index.artifacts.specs.some((s) => s.id === entry.id)) {
     index.artifacts.specs.push(entry);
   }
-  return index;
-}
-
-export function removeSpec(index, id) {
-  index.artifacts.specs = index.artifacts.specs.filter((s) => s.id !== id);
   return index;
 }
 

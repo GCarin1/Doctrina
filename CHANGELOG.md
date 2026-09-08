@@ -19,6 +19,23 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **One answer per question, in both drivers.** A step declared in a gate
+  sequence with no runner in the driver had two: `doctor` reported it
+  UNCHECKED and named the command that answers it, while `close` started a
+  second process running this same binary — the integration style change 0045
+  had removed from `doctor` — down a path no declared step could reach, since
+  every step has a runner and a test keeps it that way. `close` now reports
+  the gap the way `doctor` does; `spawnStep` and the self-referential entry
+  point are gone.
+- **An export with no consumer is now drift, and drift is caught.** Eight
+  exports under `src/lib/` were referenced by nothing at all — not by their
+  own module, not by another, not by a test — and two of them were born in
+  changes 0046 and 0050. Each extraction leaves a little public surface with
+  no consumer and nothing noticed. Six were deleted, two path constants got
+  the consumer they should always have had (the module that owns the path),
+  and a drift test now holds the invariant, distinguishing a seam a test
+  reaches for from surface nobody reaches at all.
+
 - **The size of the command surface has one owner again.** The catalog is
   generated and owns how many commands and operations exist; the count was
   written by hand in four places, and all four disagreed with the catalog and

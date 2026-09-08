@@ -2,8 +2,6 @@
 import path from "node:path";
 import process from "node:process";
 import { appendFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { exists, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -37,8 +35,6 @@ import * as skill from "./skill.js";
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
 export const flags = { boolean: ["json", "force"], string: [] };
-
-const cliEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
 export async function run(positional, flags) {
   if (positional.length === 0) {
@@ -272,10 +268,13 @@ async function closeOne(projectRoot, id, flags) {
       forceable: step.level === "forceable",
       advisory: step.level === "advisory",
       skip: runner.skip,
-      // A step declared with no in-process runner still runs: the declaration
-      // carries the argv, so the sequence is honoured rather than silently
-      // shortened by a missing entry in the table above.
-      run: runner.run ?? (() => spawnStep(step, id, projectRoot)),
+      // A step declared with no in-process runner is a gap in THIS file, and
+      // it is reported as one — the same answer `doctor` gives (change 0060).
+      // The close used to shell out to its own binary here instead, which was
+      // the second integration style change 0045 removed from `doctor`; every
+      // declared step has a runner and a test holds it that way, so the
+      // fallback was a second answer to a question nobody could reach.
+      run: runner.run ?? (() => missingRunner(step)),
     };
   });
 
@@ -351,25 +350,18 @@ async function closeOne(projectRoot, id, flags) {
   return 0;
 }
 
-// Run a declared step that has no in-process runner, by invoking the CLI with
-// the argv the declaration carries. This is what makes "add a gate to the
-// sequence and it appears in every surface" true rather than aspirational:
-// a step declared without a hand-written runner still executes here, and the
-// drift test only has to hold the ids together, not each implementation.
-function spawnStep(step, id, projectRoot) {
-  if (!step.argv) {
-    console.log(c.yellow("skip   ") + `"${step.label}" declares no command to run`);
-    return 0;
+// A step the sequence declares and this file does not implement. The gate map
+// is the single source of truth for what a close runs (ADR 0017), so a step
+// with no runner here is a defect in this file — not a reason to start a
+// second process and not a reason to pass silently. `doctor` reaches the same
+// conclusion for its own reporters; the two drivers now give one answer.
+function missingRunner(step) {
+  console.error(c.red("error:") +
+    ` "${step.label}" is declared in the close sequence but has no runner here`);
+  if (step.argv) {
+    console.error(c.gray("hint: ") + `run it directly: doctrina ${step.argv.join(" ")}`);
   }
-  const argv = step.argv.map((a) => (a === "<id>" ? id : a));
-  const r = spawnSync(process.execPath, [cliEntry, ...argv], {
-    cwd: projectRoot,
-    encoding: "utf8",
-    env: { ...process.env, NO_COLOR: "1" },
-  });
-  if (r.stdout) process.stdout.write(r.stdout);
-  if (r.stderr) process.stderr.write(r.stderr);
-  return r.status ?? 1;
+  return 1;
 }
 
 // The capabilities this change's deltas target — the honest scope for its

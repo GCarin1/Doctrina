@@ -58,7 +58,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.6.0",
+        "version": "1.7.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -437,14 +437,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0060-uma-resposta-por-pergunta",
-        "title": "uma resposta por pergunta",
-        "path": ".doctrina/changes/0060-uma-resposta-por-pergunta",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "runtime (confident; signals: runner) — opened anyway (--force)"
-      },
       {
         "id": "0061-a-depreciacao-chega-a-maquina",
         "title": "a depreciacao chega a maquina",
@@ -1284,6 +1276,19 @@
         "specs_affected": [
           {
             "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0060-uma-resposta-por-pergunta",
+        "title": "uma resposta por pergunta",
+        "path": ".doctrina/changes/archive/2026-09-08-0060-uma-resposta-por-pergunta",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

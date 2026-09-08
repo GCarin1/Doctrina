@@ -1759,7 +1759,11 @@ cada área como ok/warn/FAIL **com o comando exato de correção**. Um
 driver sobre as mesmas coleções que os gates renderizam (como o
 `close`): não adiciona checks próprios, então nunca discorda dos gates
 que apresenta, e a execução inteira é um processo só — ele não inicia a
-CLI de novo para responder a uma linha. Read-only, o que aqui também
+CLI de novo para responder a uma linha. O `close` funciona igual: um passo
+que a sequência dele declara mas o driver não implementa é reportado como
+não implementado, nomeando o comando que responde, em vez de virar um
+segundo processo. Uma pergunta, uma resposta, nos dois drivers.
+Read-only, o que aqui também
 quer dizer que ele nunca repara: `validate --fix` cura um índice em
 drift, o `doctor` apenas reporta. Sai 1 quando alguma área falha.
 
