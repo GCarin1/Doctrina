@@ -1,6 +1,7 @@
 # Change 0081-o-work-nao-deixa-specs-vazio — o work nao deixa specs vazio
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain; signals: change)
@@ -45,10 +46,10 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma change sem capability resolvida não deixa diretório vazio.
-- [ ] Uma change com capability resolvida continua com o delta no lugar.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma change sem capability resolvida não deixa diretório vazio.
+- [x] Uma change com capability resolvida continua com o delta no lugar.
 
 ## Open questions
 

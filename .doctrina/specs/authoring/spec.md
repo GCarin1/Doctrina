@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.7.0
+**Version:** 0.7.1
 
 ## Purpose
 
@@ -295,6 +295,7 @@ keep the checks and the read path.
 
 - The system shall not scaffold a delta from a ranked capability whose lead over the runner-up is within the ranking's length tie-breaker, nor from the `--from-diff` or `--chore` paths.
 - The system shall not accept a decision record whose Context, Decision or Consequences section is still the shipped template, and shall name the sections that remain unwritten.
+- If a change is opened without a capability the CLI can name, the system shall not create the change's `specs/` directory, because a directory nothing was written into asserts that spec deltas live there.
 
 ## Acceptance criteria
 
@@ -317,6 +318,7 @@ The authoring commands are v0 spec-compliant when:
 15. [verified] The description passed directly is stored verbatim with a note naming the explicit form, a missing path is still an error that names that form, a real file is never read as prose, and `init` answers all three the same way — verified by `packages/doctrina-cli/test/intake-accepts-prose.test.js`.
 16. [verified] `doctrina work` followed by `doctrina validate` exits 0 on a freshly initialised project, with the classified lane present in the index entry — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
 17. [verified] The entry the writer stores equals the one the deriver builds, and re-deriving it replaces rather than duplicates — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
+18. [verified] A change with no resolved capability holds only its proposal and tasks, while a pinned capability still gets its delta in its own directory — verified by `packages/doctrina-cli/test/no-empty-specs-dir.test.js`.
 
 ## Out of scope for this spec
 

@@ -332,10 +332,12 @@ Abre uma proposta de change.
 doctrina change new 0042-add-saml "Adicionar login SAML"
 ```
 
-Escreve `.doctrina/changes/<id>/` com `proposal.md` e `tasks.md`, além
-de um diretório `specs/` vazio para arquivos de delta (`design.md` só é
-esqueletizado sob `--design` — na prática ele ficava em branco em toda
-change que não pediu um). Adiciona entrada em `.doctrina/index.json`
+Escreve `.doctrina/changes/<id>/` com `proposal.md` e `tasks.md`; o
+`design.md` só é esqueletizado sob `--design` — na prática ele ficava em
+branco em toda change que não pediu um — e o diretório
+`specs/<capability>/` aparece quando há um delta para pôr dentro, nunca
+antes: um vazio afirma que deltas moram ali quando ninguém escreveu
+nenhum. Adiciona entrada em `.doctrina/index.json`
 sob `changes`, **derivada da proposta em disco** pelo mesmo construtor que
 o `index rebuild` usa — um campo que o derivador conhece e uma entrada
 montada à mão não tem é drift de índice no instante em que a change abre, e

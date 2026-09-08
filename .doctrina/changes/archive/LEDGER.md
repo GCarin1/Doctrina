@@ -86,3 +86,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0078-a-recomendacao-sabe-o-que-custa — a recomendacao sabe o que custa (specs: templates MODIFIED)
 - 2026-09-08 — 0079-clarify-nao-confunde-pergunta-com-vagueza — clarify nao confunde pergunta com vagueza (specs: gates MODIFIED)
 - 2026-09-08 — 0080-o-report-nomeia-a-causa-certa — o report nomeia a causa certa (specs: insight MODIFIED)
+- 2026-09-08 — 0081-o-work-nao-deixa-specs-vazio — o work nao deixa specs vazio (specs: authoring MODIFIED)

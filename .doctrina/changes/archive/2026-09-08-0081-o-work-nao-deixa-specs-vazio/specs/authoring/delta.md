@@ -35,3 +35,9 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement unwanted: If a change is opened without a capability the CLI can name, the system shall not create the change's `specs/` directory, because a directory nothing was written into asserts that spec deltas live there.
+append-criterion [verified] A change with no resolved capability holds only its proposal and tasks, while a pinned capability still gets its delta in its own directory — verified by `packages/doctrina-cli/test/no-empty-specs-dir.test.js`.
+bump-version patch
+```

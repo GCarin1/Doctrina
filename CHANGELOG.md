@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A change no longer carries an empty `specs/` directory.** It was created
+  unconditionally as somewhere "ready" for deltas, and when the CLI could not
+  name a capability nothing was ever written into it. `analyze` read that
+  correctly as a metadata-only change, so nothing broke — the directory simply
+  asserted that spec deltas lived there. Same principle as the adapter fix:
+  an empty directory is not an absence. The delta writer creates its own path
+  when there is a delta to put in it.
+
 - **`doctrina report` names the cause that actually holds.** In a freshly
   `git init`ed repository it said "no git history available (not a
   repository, or git not installed)" — both causes false, sending the reader

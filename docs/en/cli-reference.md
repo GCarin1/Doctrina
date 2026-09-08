@@ -321,9 +321,11 @@ doctrina change new 0042-add-saml "Add SAML login"
 ```
 
 Writes `.doctrina/changes/<id>/` populated with `proposal.md` and
-`tasks.md`, plus an empty `specs/` directory ready for delta files
-(`design.md` scaffolds only under `--design` — in practice it stayed
-blank on every change that did not ask for one). Adds an entry to
+`tasks.md`. `design.md` scaffolds only under `--design` — in practice it
+stayed blank on every change that did not ask for one — and the
+`specs/<capability>/` directory appears when there is a delta to put in
+it, never before: an empty one asserts that deltas live there when nothing
+had written any. Adds an entry to
 `.doctrina/index.json` under `changes`, **derived from the proposal on
 disk** by the same constructor `index rebuild` uses — a field the deriver
 knows about and a hand-assembled entry does not is index drift the moment

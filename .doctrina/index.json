@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -504,16 +504,7 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [
-      {
-        "id": "0081-o-work-nao-deixa-specs-vazio",
-        "title": "o work nao deixa specs vazio",
-        "path": ".doctrina/changes/0081-o-work-nao-deixa-specs-vazio",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain; signals: change)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1608,6 +1599,19 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0081-o-work-nao-deixa-specs-vazio",
+        "title": "o work nao deixa specs vazio",
+        "path": ".doctrina/changes/archive/2026-09-08-0081-o-work-nao-deixa-specs-vazio",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ]

@@ -58,7 +58,13 @@ export function changeNew(args, flags) {
     const written = materialiseEntry(entry, changeDir, tokens, { force });
     console.log(c.green("created") + ` ${relPath(projectRoot, written)}`);
   }
-  mkdirp(path.join(changeDir, "specs"));
+  // No empty `specs/` here (change 0081). The directory used to be created
+  // unconditionally as somewhere "ready" for deltas, and when the CLI could
+  // not name a capability — a new prompt, a project whose specs do not match
+  // — nothing was ever written into it. An empty directory is not an absence:
+  // it says deltas live here, or lived here, and the next reader spends
+  // attention checking. The delta writer creates its own path when there is
+  // a delta to put in it.
 
   // Stamp the proposal so a chore is honest in the artifact, not just the CLI.
   if (chore) {
