@@ -1873,6 +1873,11 @@ task progress, artifact counts, and a local-git summary (commits, fix
 share, top-churn files). Read-only; no network. `doctrina metrics` has
 the deeper git-derived numbers.
 
+With no history to read, the git section names the one condition that
+actually holds — git absent, not a repository, or a repository with no
+commits yet — from the same `lib/git.js` door `metrics` and `context` ask,
+so the three never disagree about one repository.
+
 ### Drafting the agent changelog
 
 `--agent-changelog` answers a different question for a different

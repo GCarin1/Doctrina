@@ -17,6 +17,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`doctrina report` names the cause that actually holds.** In a freshly
+  `git init`ed repository it said "no git history available (not a
+  repository, or git not installed)" — both causes false, sending the reader
+  after an installation problem that was not there. It simply had no commits
+  yet, which is what `metrics` said, reading the same state through the same
+  `lib/git.js` door. `report` and `status --view report` now take the reason
+  from that door too, so the three cannot disagree about one repository.
+
 ### Changed
 
 - **`doctrina clarify` no longer mistakes a question for vagueness.** The

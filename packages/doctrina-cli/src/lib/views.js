@@ -298,9 +298,9 @@ function asPct(x) {
 
 /**
  * @param {object} s the snapshot
- * @param {{ days?: number, cutoffIso?: string, git?: any, metrics?: any }} [options]
+ * @param {{ days?: number, cutoffIso?: string, git?: any, gitState?: any, metrics?: any }} [options]
  */
-export function report(s, { days = 7, cutoffIso = "", git = null, metrics = null } = {}) {
+export function report(s, { days = 7, cutoffIso = "", git = null, gitState = null, metrics = null } = {}) {
   const out = [];
   out.push(`# Doctrina report — ${s.project} (${cutoffIso} → ${today()})`);
   out.push("");
@@ -379,7 +379,14 @@ export function report(s, { days = 7, cutoffIso = "", git = null, metrics = null
   out.push("## Git (local, last " + days + " days)");
   out.push("");
   if (!git) {
-    out.push("- no git history available (not a repository, or git not installed)");
+    // Name the ACTUAL condition, from the one git door (change 0040), not a
+    // list of causes that might apply. In a freshly `git init`ed repository
+    // this said "not a repository, or git not installed" — two causes, both
+    // false, sending the reader to look for an installation problem that was
+    // not there, while `metrics` read the same state and got it right
+    // (change 0080).
+    const why = gitState?.reason;
+    out.push(`- no git history available${why ? ` — ${why}` : ""}`);
   } else {
     out.push(`- commits: ${git.commits} (${git.fixes} fix-shaped, ${git.commits ? Math.round((git.fixes / git.commits) * 100) : 0}%)`);
     if (git.churn.length > 0) {

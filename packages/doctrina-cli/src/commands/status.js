@@ -8,7 +8,7 @@ import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectSnapshot, collectStatus } from "../lib/snapshot.js";
 import { renderView, VIEWS } from "../lib/views.js";
-import { gitWindow, windowCutoff } from "../lib/git.js";
+import { gitWindow, historyState, windowCutoff } from "../lib/git.js";
 import { suggest } from "../lib/suggest.js";
 
 // One-glance project health (review 2026-06-27 passive-user feature #1): a
@@ -64,6 +64,7 @@ export async function run(_positional, flags) {
     options.days = days;
     options.cutoffIso = windowCutoff(days);
     options.git = gitWindow(projectRoot, days);
+    options.gitState = historyState(projectRoot);
   }
 
   const snapshot = collectSnapshot(projectRoot);

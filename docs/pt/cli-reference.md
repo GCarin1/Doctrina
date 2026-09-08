@@ -1934,6 +1934,11 @@ com progresso de tasks, contagens de artefatos e um resumo do git
 local (commits, share de fix, arquivos de maior churn). Read-only; sem
 rede. `doctrina metrics` tem os números git mais profundos.
 
+Sem histórico para ler, a seção de git nomeia a única condição que de fato
+vale — git ausente, não é um repositório, ou um repositório sem commits
+ainda — vinda da mesma porta `lib/git.js` que o `metrics` e o `context`
+consultam, então os três nunca discordam sobre um mesmo repositório.
+
 ### Rascunhando o changelog do agente
 
 `--agent-changelog` responde outra pergunta, para outro público: o que

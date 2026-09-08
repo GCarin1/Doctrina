@@ -7,7 +7,7 @@ import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectSnapshot } from "../lib/snapshot.js";
 import { renderView } from "../lib/views.js";
-import { gitWindow, windowCutoff } from "../lib/git.js";
+import { gitWindow, historyState, windowCutoff } from "../lib/git.js";
 import { draftAgentChangelog, renderDraft } from "../lib/agent-changelog.js";
 import { collectMetrics } from "../lib/metrics-model.js";
 import { cliVersion } from "../lib/version.js";
@@ -55,6 +55,10 @@ export async function run(_positional, flags) {
     days,
     cutoffIso: windowCutoff(days),
     git: gitWindow(projectRoot, days),
+    // Why there is no window, when there is none — the same door `metrics`
+    // and `context` already ask, so the three cannot disagree about the
+    // state of one repository (change 0080).
+    gitState: historyState(projectRoot),
     // The same snapshot `metrics` renders, for the same window (change
     // 0050). One definition of "revert rate", so the digest and the metrics
     // command cannot report two different numbers for one period.

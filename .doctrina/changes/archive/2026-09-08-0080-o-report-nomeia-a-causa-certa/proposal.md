@@ -1,6 +1,7 @@
 # Change 0080-o-report-nomeia-a-causa-certa — o report nomeia a causa certa
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-08
 - **Date:** 2026-09-08
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -54,11 +55,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Num repositório sem commits, o `report` nomeia a causa real.
-- [ ] Fora de um repositório, ele continua dizendo que não é um repositório.
-- [ ] `report` e `metrics` não discordam sobre o mesmo estado.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Num repositório sem commits, o `report` nomeia a causa real.
+- [x] Fora de um repositório, ele continua dizendo que não é um repositório.
+- [x] `report` e `metrics` não discordam sobre o mesmo estado.
 
 ## Open questions
 
