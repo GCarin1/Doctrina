@@ -3,13 +3,13 @@ import path from "node:path";
 import process from "node:process";
 import { exists, isFile, read, relPath } from "../lib/fs-ops.js";
 import { collectStatus } from "../lib/snapshot.js";
-import { collectFindings } from "../lib/templates-model.js";
+import { collectFindings, surfaceBudget } from "../lib/templates-model.js";
 import { c } from "../lib/colors.js";
 import { flagBool } from "../lib/args.js";
 import { collectRuntimeFindings, checkLocalEnv } from "../lib/runtime.js";
 import { sequence, stepRerun } from "../lib/gates.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { collectValidation } from "../lib/validation-model.js";
+import { agentsMdBudget, collectValidation } from "../lib/validation-model.js";
 import { collectIndexDrift } from "../lib/scan.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
 import { configRows } from "../lib/config.js";
@@ -87,6 +87,41 @@ export async function run(_positional, _flags) {
       const drift = collectIndexDrift(projectRoot);
       if (drift.ok) row("ok", "index", "index.json matches the tree");
       else row("fail", "index", "index.json has drifted from the tree", "doctrina validate --fix   (or `doctrina index rebuild`)");
+    },
+
+    // The two budgets that are COUPLED, reported before either is breached
+    // (change 0072). The generated surface block lives inside AGENTS.md, so
+    // one command added to the catalog spends a line of both — and the
+    // AGENTS.md ceiling is declared OUTPUT, which means `analyze` refuses the
+    // raise-the-ceiling fix by design. The only remedy is to send less, and
+    // knowing that a week before the warning fires is the difference between
+    // choosing what to cut and cutting whatever is nearest.
+    budgets: () => {
+      // Both numbers come from their OWNER — `agentsMdBudget` and
+      // `surfaceBudget` — never from a second count here, so this row can
+      // never disagree with `validate` or `templates check` about a size
+      // they all report.
+      const agents = agentsMdBudget(projectRoot);
+      const surface = surfaceBudget(projectRoot);
+      // The coupling: the block is written INTO AGENTS.md, so the next
+      // command added to the catalog spends a line of each. What is left is
+      // therefore the smaller of the two slacks, not either one alone.
+      const headroom = Math.min(agents.slack, surface.slack);
+      const detail = `AGENTS.md ${agents.used}/${agents.soft} lines, ` +
+        `surface block ${surface.used}/${surface.budget}`;
+      const cost = `${headroom} line${headroom === 1 ? "" : "s"} of headroom — ` +
+        "one command added to the catalog spends a line of each";
+      if (agents.used > agents.soft || surface.used > surface.budget) {
+        row("warn", "budgets", `${detail} — over a declared ceiling`,
+          "cut prose from AGENTS.md or commands from the surface — both are OUTPUT budgets, so raising them is refused");
+        warningsTotal += 1;
+      } else if (headroom <= 1) {
+        row("warn", "budgets", `${detail} — ${cost}`,
+          "cut prose from AGENTS.md now, while there is still a choice about what goes");
+        warningsTotal += 1;
+      } else {
+        row("ok", "budgets", `${detail} · ${cost}`);
+      }
     },
 
     // 3. Evidence and provenance ratios (cheap summaries; strict gates confirm).

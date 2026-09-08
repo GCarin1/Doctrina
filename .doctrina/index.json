@@ -93,7 +93,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.18.0",
+        "version": "0.19.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented"
       },
@@ -450,14 +450,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0072-o-acoplamento-dos-orcamentos-e-visivel",
-        "title": "o acoplamento dos orcamentos e visivel",
-        "path": ".doctrina/changes/0072-o-acoplamento-dos-orcamentos-e-visivel",
-        "status": "proposed",
-        "opened": "2026-09-08",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0073-o-adapter-remove-nao-deixa-rastro",
         "title": "o adapter remove nao deixa rastro",
@@ -1449,9 +1441,9 @@
         ]
       },
       {
-        "id": "0075-os-adrs-seguem-a-capability",
-        "title": "os adrs seguem a capability",
-        "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
+        "id": "0071-o-intake-aceita-a-prosa-convidada",
+        "title": "o intake aceita a prosa convidada",
+        "path": ".doctrina/changes/archive/2026-09-08-0071-o-intake-aceita-a-prosa-convidada",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [
@@ -1462,9 +1454,22 @@
         ]
       },
       {
-        "id": "0071-o-intake-aceita-a-prosa-convidada",
-        "title": "o intake aceita a prosa convidada",
-        "path": ".doctrina/changes/archive/2026-09-08-0071-o-intake-aceita-a-prosa-convidada",
+        "id": "0072-o-acoplamento-dos-orcamentos-e-visivel",
+        "title": "o acoplamento dos orcamentos e visivel",
+        "path": ".doctrina/changes/archive/2026-09-08-0072-o-acoplamento-dos-orcamentos-e-visivel",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0075-os-adrs-seguem-a-capability",
+        "title": "os adrs seguem a capability",
+        "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
         "status": "applied",
         "applied": "2026-09-08",
         "specs_affected": [

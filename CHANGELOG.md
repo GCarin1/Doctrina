@@ -15,7 +15,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Patch (`x.y.Z`) bumps are reserved for backward-compatible bug
   fixes and documentation updates.
 
+## [Unreleased]
+
 ### Changed
+
+- **`doctrina doctor` reports the two size budgets that are coupled.** The
+  generated command-surface block is written INTO AGENTS.md, so one command
+  added to the catalog spends a line of `agents-md-lines` AND a line of the
+  block's own ceiling. Both are OUTPUT budgets, so `analyze` refuses — by
+  design — the raise-the-ceiling fix, which leaves exactly one remedy: send
+  less. That is a choice while there is slack and a scramble once there is
+  none, and nothing added the two numbers up to say how much was left. The new
+  `budgets` row prints the smaller of the two slacks, names what the next
+  command will cost, and keeps the overflow warning for whoever goes past it.
+  `surface-block-lines` is now declared in the system contract alongside
+  `agents-md-lines`, and both are read through one resolver, so a ceiling is
+  never a literal in one place and a row in another. The AGENTS.md template
+  was cut from 149 rendered lines to 142: a freshly scaffolded project had one
+  line of slack before its owner wrote anything, so the very sections the
+  template tells them to fill did not fit.
 
 - **This repository's context ceiling is 50000 tokens**, declared in
   `.doctrina/config.json` and in the system contract's Budgets table. The tree
@@ -26,10 +44,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and deliberately does not refuse this one. The shipped default for a project
   that declares nothing is unchanged at 15000, and a test now binds the two
   homes together so the number cannot drift between them.
-
-## [Unreleased]
-
-### Changed
 
 - **`doctrina decision accept` now requires the ADR to say something.** It
   accepted a record whose `Context`, `Decision` and `Consequences` were 100%

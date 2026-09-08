@@ -63,8 +63,8 @@ this repository, so there is no source to lint for empty-vs-unset (RT03).
 ## Budgets
 
 <!--
-Both of these are ceilings that get hit while adding a feature, and both
-have exactly one honest response: send less. They are recorded here so
+Each of these is a ceiling that gets hit while adding a feature, and each
+has exactly one honest response: send less. They are recorded here so
 that "just raise the cap" becomes an argument someone has to win rather
 than a diff nobody notices.
 
@@ -74,6 +74,15 @@ than a diff nobody notices.
                     that resolves an overflow by raising it. Cutting the
                     generated surface block twice in one release (0.15.0)
                     is what this row is meant to keep happening.
+
+  surface-block-lines
+                    The generated `doctrina:surface` block is written
+                    INTO AGENTS.md, so the two ceilings above are
+                    COUPLED: one command added to the catalog spends a
+                    line of each. `doctor` reports the smaller of the
+                    two slacks for that reason. OUTPUT, for the same
+                    reason as `agents-md-lines`: the honest response to
+                    a block that no longer fits is to cut commands.
 
   context-pack      The token ceiling `doctrina context` assembles a pack
                     to. The value here is THIS project's, declared in
@@ -90,10 +99,11 @@ than a diff nobody notices.
                     is paying for the ceiling with the content.
 -->
 
-| Limit           | Direction | Value |
-|-----------------|-----------|-------|
-| agents-md-lines | output    | 150   |
-| context-pack    | input     | 50000 |
+| Limit               | Direction | Value |
+|---------------------|-----------|-------|
+| agents-md-lines     | output    | 150   |
+| surface-block-lines | output    | 40    |
+| context-pack        | input     | 50000 |
 
 ## Interfaces
 

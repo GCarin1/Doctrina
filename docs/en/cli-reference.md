@@ -1784,6 +1784,17 @@ The runtime row reports a project with contracts but no Wiring or
 Selectors rows as **unchecked**, never as ok: an undeclared surface is
 not a verified one.
 
+The **budgets** row reports the two size ceilings that are *coupled*:
+`agents-md-lines` and `surface-block-lines`. The generated command-surface
+block is written into AGENTS.md, so one command added to the catalog spends
+a line of each — the headroom the row prints is the smaller of the two
+slacks, not either one alone. Both are declared **output** budgets, so
+`analyze` refuses a change that resolves an overflow by raising them; the
+row therefore reports the slack *before* it runs out, while there is still
+a choice about what to cut. Both numbers come from their owner
+(`agentsMdBudget`, `surfaceBudget`), so this row can never quote a size
+`validate` or `templates check` disagrees with.
+
 | Flag | Purpose |
 |------|---------|
 | `--env` | Also check the local `.env` against the declared names and enums. Reports membership only — a rejected value is **never printed**, so the output is safe to paste into an issue or a CI log. |

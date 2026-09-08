@@ -26,7 +26,7 @@ import { parseAdrScope, specHeader, listHeader, deriveIndex, indexesMatch, stabl
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
 import { parseAcceptanceCriteria, isVerified } from "./criteria.js";
 import { parsePipeline, checkPipeline } from "./pipeline.js";
-import { collectRuntimeFindings } from "./runtime.js";
+import { declaredBudget, collectRuntimeFindings } from "./runtime.js";
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
 import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
@@ -35,6 +35,31 @@ import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
 // documents at least this many real commands; below it, the file defers to
 // `doctrina --help` and is never nagged about omissions.
 const CATALOG_THRESHOLD = 8;
+
+// The shipped ceiling for a project that declares no `agents-md-lines` budget.
+// AGENTS.md is loaded into EVERY session, so its size is a tax on all work.
+export const AGENTS_MD_SOFT_LIMIT = 150;
+export const AGENTS_MD_HARD_MARGIN = 50;
+
+/**
+ * The AGENTS.md size budget: what the project declares, what the file spends,
+ * and what is left.
+ *
+ * The ceiling had two homes — a literal here and the `agents-md-lines` row of
+ * the contract's Budgets table — which is how every count in this repository
+ * has ever drifted (change 0059). The contract is the declaration, so it wins;
+ * the literal below is the fallback for a project that declares nothing.
+ *
+ * @param {string} projectRoot
+ * @returns {{ used: number, soft: number, hard: number, slack: number, declared: boolean }}
+ */
+export function agentsMdBudget(projectRoot) {
+  const file = path.join(projectRoot, "AGENTS.md");
+  const used = isFile(file) ? lineCount(file) : 0;
+  const { value: soft, declared } = declaredBudget(projectRoot, "agents-md-lines", AGENTS_MD_SOFT_LIMIT);
+  return { used, soft, hard: soft + AGENTS_MD_HARD_MARGIN, slack: soft - used, declared };
+}
+
 
 /**
  * Run every structural check over the tree.
@@ -55,9 +80,10 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   if (!isFile(agentsMd)) {
     errors.push("AGENTS.md missing at project root");
   } else {
-    const lines = lineCount(agentsMd);
-    if (lines > 200) errors.push(`AGENTS.md is ${lines} lines (>200, hard limit)`);
-    else if (lines > 150) warnings.push(`AGENTS.md is ${lines} lines (>150 soft limit)`);
+    const budget = agentsMdBudget(projectRoot);
+    const lines = budget.used;
+    if (lines > budget.hard) errors.push(`AGENTS.md is ${lines} lines (>${budget.hard}, hard limit)`);
+    else if (lines > budget.soft) warnings.push(`AGENTS.md is ${lines} lines (>${budget.soft} soft limit)`);
 
     // 1c. AGENTS.md command-surface drift. AGENTS.md is the hub the agent reads
     //     first, so the doctrina commands it documents must match the real CLI.

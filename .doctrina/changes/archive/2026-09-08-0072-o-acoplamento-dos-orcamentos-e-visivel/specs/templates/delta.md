@@ -35,3 +35,11 @@ deleted and the capability is recorded in the change archive only.
 ---
 
 <!-- delta body below -->
+
+```ops
+append-requirement ubiquitous: The system shall resolve every declared size budget from the project's contract, falling back to the shipped default only when the project declares none, so one ceiling is never read from two places.
+append-requirement state: While the generated surface block is written into AGENTS.md, the system shall treat the two size budgets as coupled and report the smaller of their two slacks as the remaining headroom.
+append-criterion [verified] The headroom left in the two coupled budgets is reported before either is breached, and the overflow warning still fires once one is past — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
+append-criterion [verified] `doctor` and `templates check` quote one size for the surface block, and a ceiling declared in the contract beats the shipped literal for both budgets — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
+bump-version minor
+```

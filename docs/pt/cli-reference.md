@@ -1843,6 +1843,17 @@ A linha de runtime reporta um projeto com contratos mas sem linhas de
 Wiring ou Selectors como **não checado**, nunca como ok: uma superfície
 não declarada não é uma superfície verificada.
 
+A linha **budgets** reporta os dois tetos de tamanho que são *acoplados*:
+`agents-md-lines` e `surface-block-lines`. O bloco gerado da superfície de
+comandos é escrito dentro do AGENTS.md, então um comando novo no catálogo
+gasta uma linha de cada um — a folga que a linha imprime é a menor das
+duas, não uma delas isolada. Ambos são declarados como budgets de
+**output**, então o `analyze` recusa uma change que resolva um estouro
+subindo o teto; a linha reporta a folga *antes* de ela acabar, enquanto
+ainda há escolha sobre o que cortar. Os dois números vêm do seu dono
+(`agentsMdBudget`, `surfaceBudget`), então esta linha nunca cita um
+tamanho de que o `validate` ou o `templates check` discordem.
+
 | Flag | Função |
 |------|--------|
 | `--env` | Também checa o `.env` local contra os nomes e enums declarados. Reporta apenas pertinência — um valor rejeitado **nunca é impresso**, então a saída é segura de colar numa issue ou num log de CI. |

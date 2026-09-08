@@ -10,6 +10,30 @@ import { adapterFiles, isHubPointer, listAdapterNames } from "./adapters.js";
 import { readTemplate } from "./templates.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
+import { declaredBudget } from "./runtime.js";
+/**
+ * The surface-block budget: how many lines the generated block spends, the
+ * ceiling it spends them against, and what is left.
+ *
+ * This number is COUPLED to `agents-md-lines`: the block is written into
+ * AGENTS.md, so one command added to the catalog spends a line of both.
+ * Every caller that reports on it reads it HERE, so `templates check` and
+ * `doctor` can never quote two different sizes for one block — the second
+ * count is how the two AGENTS.md numbers drifted before change 0059, and
+ * this budget had no owner at all until 0072.
+ *
+ * @param {string|null} [projectRoot] The project whose contract may declare
+ *   the ceiling; omit to measure against the shipped default alone.
+ * @returns {{ used: number, budget: number, slack: number, declared: boolean }}
+ */
+export function surfaceBudget(projectRoot = null) {
+  const used = surfaceMarkdown().split("\n").length;
+  const { value: budget, declared } = projectRoot
+    ? declaredBudget(projectRoot, "surface-block-lines", SURFACE_LINE_BUDGET)
+    : { value: SURFACE_LINE_BUDGET, declared: false };
+  return { used, budget, slack: budget - used, declared };
+}
+
 // Recommended sections per file kind. Adopters whose files lack these
 // headings get a warning from `templates check`; they are recommendations,
 // not hard requirements (validate handles the hard requirements).
@@ -109,14 +133,14 @@ export function collectFindings(projectRoot) {
       });
     }
   }
-  const surfaceLines = surfaceMarkdown().split("\n").length;
-  if (surfaceLines > SURFACE_LINE_BUDGET) {
+  const surface = surfaceBudget(projectRoot);
+  if (surface.used > surface.budget) {
     findings.push({
-      message: `the generated surface block is ${surfaceLines} lines (budget ${SURFACE_LINE_BUDGET}) — cut commands rather than raising the budget`,
+      message: `the generated surface block is ${surface.used} lines (budget ${surface.budget}) — cut commands rather than raising the budget`,
       remedy: null,
     });
   } else {
-    ok.push(`surface block within budget (${surfaceLines}/${SURFACE_LINE_BUDGET} lines)`);
+    ok.push(`surface block within budget (${surface.used}/${surface.budget} lines)`);
   }
 
   // index.json schema fields

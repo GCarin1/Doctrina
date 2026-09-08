@@ -1,15 +1,12 @@
 # AGENTS.md — {{PROJECT_NAME}}
 
 Operational source of truth for AI coding agents working in this
-repository. Follows the open AGENTS.md standard.
+repository. Follows the open AGENTS.md standard; the Doctrina framework
+artifacts live under `.doctrina/`.
 
 ## What this repo is
 
 {{PROJECT_DESCRIPTION}}
-
-This repository uses the Doctrina framework for spec-driven, AGENTS.md
-native multi-agent development. The full framework artifacts live under
-`.doctrina/`.
 
 ## Working from intent (you drive; the human stays passive)
 
@@ -18,18 +15,14 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
 
 - **Bootstrap.** No capability in `.doctrina/specs/`, or an intake still
   `Status: pending`? The specs are not written: run `doctrina intake --text
-  "<description>"` and execute the printed playbook in one pass (fill
-  `product.md`, derive capabilities, one EARS spec each, `clarify --all` +
-  `validate`, then flip the intake to `converted`). Existing codebase:
-  `doctrina work --from-diff`. After conversion the specs are the only
-  source of truth — never edit `intake.md` to change requirements.
+  "<description>"` and execute the printed playbook in one pass (existing
+  codebase: `doctrina work --from-diff`). After conversion the specs are the
+  only source of truth — never edit `intake.md` to change requirements.
 - **Day-to-day.** Start every session with `doctrina prime` (gates, rules,
-  open work in one read). Turn any request into a change with `doctrina
-  work "<prompt>"` and follow the printed playbook (its steps live in
-  `.doctrina/templates/playbooks/`). Preview a close with `doctrina change check <id>`;
-  close with `doctrina close <id>`. Unsure what's next? `doctrina next`.
-  Before compaction or handover: `doctrina handoff`. Ask the human only on
-  genuine ambiguity.
+  open work in one read). Turn any request into a change with `doctrina work
+  "<prompt>"` and follow the printed playbook. Preview a close with `doctrina
+  change check <id>`; close with `doctrina close <id>`. Unsure what's next?
+  `doctrina next`. Before compaction or handover: `doctrina handoff`.
 
 <!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->
 ## Doctrina command surface (generated — reach for these, don't hand-author)
@@ -121,12 +114,13 @@ Finish by running `doctrina validate` and resolving every `error:`.
 
 `doctrina context [<capability>] --concat` assembles the read pack in one
 call: this `AGENTS.md` → `product.md` → the capability spec → open changes →
-accepted ADRs. Run it for ANY task. It skips `changes/archive/` (history).
+accepted ADRs. Run it for ANY task; it skips `changes/archive/`. Skills are
+on demand: read the `description:` / `when:` frontmatter in
+`.doctrina/skills/` and load a body only when its trigger fires.
 
-Skills are on demand: read the `description:` / `when:` frontmatter in
-`.doctrina/skills/`; load a body only when its trigger fires.
-
-Keep this file under 150 lines. Density beats prose.
+Keep this file under 150 lines. The scaffold already spends most of them
+and the generated block above grows with the CLI — `doctrina doctor`
+reports what is left. Density beats prose.
 
 ## Definition of done
 

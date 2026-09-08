@@ -78,3 +78,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0069-non-goals-em-prosa-contam — non-goals em prosa contam (specs: insight MODIFIED)
 - 2026-09-08 — 0070-o-titulo-nao-nasce-duplicado — o titulo nao nasce duplicado (specs: authoring MODIFIED)
 - 2026-09-08 — 0071-o-intake-aceita-a-prosa-convidada — o intake aceita a prosa convidada (specs: authoring MODIFIED)
+- 2026-09-08 — 0072-o-acoplamento-dos-orcamentos-e-visivel — o acoplamento dos orcamentos e visivel (specs: templates MODIFIED)

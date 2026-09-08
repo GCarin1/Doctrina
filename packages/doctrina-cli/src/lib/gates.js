@@ -195,6 +195,11 @@ export const SEQUENCES = {
     { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
     { id: "local-env", label: "local .env", level: "blocking", argv: null, rerun: "doctrina doctor --env", flag: "env" },
     { id: "verify-config", label: "verify config", level: "blocking", argv: ["verify", "--init"] },
+    // The declared size budgets, and the headroom left. Reported BEFORE either
+    // is breached: `agents-md-lines` is OUTPUT, so `analyze` refuses the
+    // raise-the-ceiling fix, and the generated surface block lives inside
+    // AGENTS.md — one command added spends a line of both (change 0072).
+    { id: "budgets", label: "budgets", level: "advisory", argv: null, rerun: "doctrina validate" },
     // Not a check — a READOUT. Every other row can fail; this one exists
     // because a project could not see what it had configured without reading
     // the CLI's source, which is how a pt-BR project sat red under `clarify`

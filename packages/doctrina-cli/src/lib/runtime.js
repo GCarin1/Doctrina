@@ -629,6 +629,34 @@ export function parseBudgets(decl) {
   return out;
 }
 
+/**
+ * The value this project declares for ONE budget, or `fallback` when it
+ * declares none.
+ *
+ * Every budget in this codebase has had two homes — a literal beside the
+ * check and a row in the contract's Budgets table — and every one of them
+ * drifted (change 0059, then 0072). The contract is the declaration, so it
+ * wins; the literal a caller passes is the shipped default for a project
+ * that declares nothing. A malformed contract is its own finding, never a
+ * reason for the caller to lose its check.
+ *
+ * @param {string} projectRoot
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {{ value: number, declared: boolean }}
+ */
+export function declaredBudget(projectRoot, name, fallback) {
+  try {
+    const row = collectBudgets(projectRoot).get(name);
+    if (row && Number.isFinite(row.value) && row.value > 0) {
+      return { value: row.value, declared: true };
+    }
+  } catch {
+    // fall through to the shipped default
+  }
+  return { value: fallback, declared: false };
+}
+
 /** Every declared budget across every contract, keyed by limit name. */
 export function collectBudgets(projectRoot) {
   const out = new Map();

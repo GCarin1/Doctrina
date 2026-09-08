@@ -17,12 +17,10 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
   `doctrina work --from-diff`. After conversion the specs are the only
   source of truth — never edit `intake.md` to change requirements.
 - **Day-to-day.** Start every session with `doctrina prime` (gates, rules,
-  open work in one read). Turn any request into a change with `doctrina
-  work "<prompt>"` and follow the printed playbook (its steps live in
-  `.doctrina/templates/playbooks/`). Preview a close with `doctrina change check <id>`;
-  close with `doctrina close <id>`. Unsure what's next? `doctrina next`.
-  Before compaction or handover: `doctrina handoff`. Ask the human only on
-  genuine ambiguity.
+  open work in one read). Turn any request into a change with `doctrina work
+  "<prompt>"` and follow the printed playbook. Preview a close with `doctrina
+  change check <id>`; close with `doctrina close <id>`. Unsure what's next?
+  `doctrina next`. Before compaction or handover: `doctrina handoff`.
 
 <!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->
 ## Doctrina command surface (generated — reach for these, don't hand-author)
@@ -129,12 +127,11 @@ before considering work done.
 call, in order: this `AGENTS.md` → `.doctrina/product.md` → the capability
 spec → open `.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
 `Status: accepted`. Run it for ANY task, not only `doctrina work`; it skips
-`changes/archive/` (history — read only when debugging it).
+`changes/archive/` (history). Skills are on demand: read the `description:`
+/ `when:` frontmatter in `.doctrina/skills/` and load a body when it fires.
 
-On demand only: if the task matches a skill in `.doctrina/skills/`, read its
-`description:` / `when:` frontmatter; load the full body when the trigger fires.
-
-Keep this file under 150 lines. Density beats prose. Use exact commands.
+Keep this file under 150 lines; `doctrina doctor` reports what is left,
+and the generated block above grows with the CLI. Use exact commands.
 
 ## Definition of done
 

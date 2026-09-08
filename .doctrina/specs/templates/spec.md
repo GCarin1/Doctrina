@@ -5,7 +5,7 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Last updated:** 2026-08-06
-**Version:** 0.18.0
+**Version:** 0.19.0
 
 ## Purpose
 
@@ -54,6 +54,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The spec template shall carry an optional `### Pipeline` block documenting that a step may only require what an earlier step produced.
 - The system shall treat the playbooks it prints as templates resolved project-over-bundled per file, so an adopting team can replace the procedure its agent executes.
 - The system shall pre-render every variable part of a playbook into a plain token value, and shall not evaluate conditionals or loops declared inside a template.
+- The system shall resolve every declared size budget from the project's contract, falling back to the shipped default only when the project declares none, so one ceiling is never read from two places.
 
 ### Event-driven
 
@@ -92,6 +93,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - While a required token has neither a command-line value nor a defined
   default, the system shall prompt the user and refuse to scaffold
   silently with an empty value.
+- While the generated surface block is written into AGENTS.md, the system shall treat the two size budgets as coupled and report the smaller of their two slacks as the remaining headroom.
 
 ### Unwanted-behavior (must-not)
 
@@ -163,6 +165,8 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 21. [verified] A token's value carrying colour markup is printed literally rather than expanded — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 22. [verified] A missing or malformed playbook is reported by `templates check` with the remedy that clears it — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 23. [verified] A change touching a command, flag or exit code proposes exactly one bullet and one touching none proposes nothing; the draft is newest-first, capped at the block's limit, and states its window and what it truncated — verified by `packages/doctrina-cli/test/agent-changelog.test.js`.
+24. [verified] The headroom left in the two coupled budgets is reported before either is breached, and the overflow warning still fires once one is past — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
+25. [verified] `doctor` and `templates check` quote one size for the surface block, and a ceiling declared in the contract beats the shipped literal for both budgets — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
 
 ## Out of scope for this spec
 
