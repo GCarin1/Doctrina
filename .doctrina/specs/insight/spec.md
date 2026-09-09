@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.5.1
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -34,6 +34,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall treat an ADR with no Scope: header as global, including it in every capability pack, and shall include a scoped ADR only in the packs of the capabilities it names.
 - The system shall collect the project's read-only state once per invocation and render every read-only view from that one collection, so no two views can report different numbers for the same tree.
 - The system shall keep a command module free of any binding imported from another command module, and shall keep its libraries free of any dependency on a command module.
+- The system shall compare search terms against artifact text with combining marks folded away, so that a query typed without accents finds the accented text and the reverse.
 
 ### Event-driven
 
@@ -150,6 +151,7 @@ The read path is spec-compliant when:
 14. [verified] On a spec `doctrina spec new` has just created, `show <cap>-R1` returns the first authored requirement rather than the scaffold's EARS legend, and a spec with no authored requirement reports zero — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 15. [verified] Prose, two paragraphs and bullets are each read as declared, the template comment is not, an empty section is told to be filled while a missing one is told to be created, and this repository's four non-goals are unchanged — verified by `packages/doctrina-cli/test/non-goals-in-prose.test.js`.
 16. [verified] A repository with no commits, a directory that is not a repository, and a repository with history each produce their own sentence, and `report` and `metrics` agree about the same tree — verified by `packages/doctrina-cli/test/one-state-one-sentence.test.js`.
+17. [verified] A query with and without accents finds the same accented text, and folding does not make an absent term match — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
 
 ## Out of scope for this spec
 

@@ -2,8 +2,26 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, renameSync, unlinkSync, rmdirSync } from "node:fs";
 import path from "node:path";
 
+// Every module reads a file through here, so the byte-order mark is removed
+// here — once, at the door (third audit, finding 5).
+//
+// A spec saved by a Windows editor opens `﻿# Spec — …`, and `validate`
+// reported "carries no title" while `show`, `spec list` and `coverage` read
+// the same file without complaint: the surfaces disagreed about a file none
+// of them had a problem with. The mark is an encoding artifact of how the
+// bytes were stored, not something the Doctrina grammar has an opinion
+// about, so no parser downstream should have to know it exists.
+//
+// It matters beyond Markdown: `JSON.parse` throws on a leading BOM, so an
+// `index.json` written by the wrong editor was unreadable with an error
+// that named neither the cause nor the file.
+//
+// A file that had one loses it when a command rewrites it. That is a
+// normalisation, and the right one — nothing in this tree is served by
+// keeping it.
 export function read(p) {
-  return readFileSync(p, "utf8");
+  const text = readFileSync(p, "utf8");
+  return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
 }
 
 export function write(p, content, { force = false } = {}) {

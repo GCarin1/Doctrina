@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.15.1",
+  "framework_version": "0.16.0",
   "last_updated": "2026-09-09",
   "artifacts": {
     "product": {
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.14.1",
+        "version": "0.15.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.47.0",
+        "version": "0.48.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.27.0",
+        "version": "1.27.1",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -89,7 +89,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.5.1",
+        "version": "0.6.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -139,7 +139,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.13.0",
+        "version": "0.14.1",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -504,56 +504,7 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [
-      {
-        "id": "0096-o-ledger-registra-o-que-aconteceu",
-        "title": "o ledger registra o que aconteceu",
-        "path": ".doctrina/changes/0096-o-ledger-registra-o-que-aconteceu",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain)"
-      },
-      {
-        "id": "0097-um-exemplo-em-fence-nao-e-criterio",
-        "title": "um exemplo em fence nao e criterio",
-        "path": ".doctrina/changes/0097-um-exemplo-em-fence-nao-e-criterio",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain; signals: spec)"
-      },
-      {
-        "id": "0098-o-bom-nao-apaga-o-titulo-da-spec",
-        "title": "o BOM nao apaga o titulo da spec",
-        "path": ".doctrina/changes/0098-o-bom-nao-apaga-o-titulo-da-spec",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain; signals: spec)"
-      },
-      {
-        "id": "0099-o-envelope-json-diz-a-verdade",
-        "title": "o envelope JSON diz a verdade",
-        "path": ".doctrina/changes/0099-o-envelope-json-diz-a-verdade",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain)"
-      },
-      {
-        "id": "0100-search-dobra-acentos",
-        "title": "search dobra acentos",
-        "path": ".doctrina/changes/0100-search-dobra-acentos",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain)"
-      },
-      {
-        "id": "0101-clarify-inexistente-e-erro-de-uso",
-        "title": "clarify inexistente e erro de uso",
-        "path": ".doctrina/changes/0101-clarify-inexistente-e-erro-de-uso",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1843,6 +1794,84 @@
         ]
       },
       {
+        "id": "0096-o-ledger-registra-o-que-aconteceu",
+        "title": "o ledger registra o que aconteceu",
+        "path": ".doctrina/changes/archive/2026-09-09-0096-o-ledger-registra-o-que-aconteceu",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0097-um-exemplo-em-fence-nao-e-criterio",
+        "title": "um exemplo em fence nao e criterio",
+        "path": ".doctrina/changes/archive/2026-09-09-0097-um-exemplo-em-fence-nao-e-criterio",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0098-o-bom-nao-apaga-o-titulo-da-spec",
+        "title": "o BOM nao apaga o titulo da spec",
+        "path": ".doctrina/changes/archive/2026-09-09-0098-o-bom-nao-apaga-o-titulo-da-spec",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0099-o-envelope-json-diz-a-verdade",
+        "title": "o envelope JSON diz a verdade",
+        "path": ".doctrina/changes/archive/2026-09-09-0099-o-envelope-json-diz-a-verdade",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0100-search-dobra-acentos",
+        "title": "search dobra acentos",
+        "path": ".doctrina/changes/archive/2026-09-09-0100-search-dobra-acentos",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0101-clarify-inexistente-e-erro-de-uso",
+        "title": "clarify inexistente e erro de uso",
+        "path": ".doctrina/changes/archive/2026-09-09-0101-clarify-inexistente-e-erro-de-uso",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
         "id": "0102-os-cabecalhos-tem-um-enum",
         "title": "os cabecalhos tem um enum",
         "path": ".doctrina/changes/archive/2026-09-09-0102-os-cabecalhos-tem-um-enum",
@@ -2082,6 +2111,22 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0119-a-politica-de-fim-de-linha-fica-registada",
+        "title": "a politica de fim de linha fica registada",
+        "path": ".doctrina/changes/archive/2026-09-09-0119-a-politica-de-fim-de-linha-fica-registada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": []
+      },
+      {
+        "id": "0120-cortar-a-0-16-0",
+        "title": "cortar a 0.16.0",
+        "path": ".doctrina/changes/archive/2026-09-09-0120-cortar-a-0-16-0",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": []
       }
     ],
     "skills": [

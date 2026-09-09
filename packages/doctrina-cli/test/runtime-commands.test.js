@@ -660,7 +660,11 @@ test("the other contract subcommands keep the captured envelope", () => {
     const json = JSON.parse(res.stdout);
     assert.ok(Array.isArray(json.stdout),
       "`contract new` has no payload of its own, so it keeps the envelope");
-    assert.equal(json.command, "contract new system");
+    // Since change 0099 the envelope names the OPERATION and carries the
+    // arguments beside it, so a consumer branches on one stable value
+    // instead of a different string for every argument.
+    assert.equal(json.command, "contract new");
+    assert.deepEqual(json.args, ["system"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

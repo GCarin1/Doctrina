@@ -127,11 +127,20 @@ for (const row of TABLE) {
         assert.match(r.stdout, new RegExp(`\\[${violation.gate}\\]`),
           "the waived blocker must still be named");
 
+        // And the ledger records the gap only if the transition ACTUALLY
+        // happened (change 0096). This case used to assert the line
+        // unconditionally, which is how `apply --force` came to log
+        // "forced apply past 3 blockers" for an apply that wrote nothing
+        // and left the proposal `proposed`. The ledger is the readable
+        // source of what happened to the tree, so the claim follows the
+        // outcome rather than the override.
         const ledger = path.join(tmp, ".doctrina", "changes", "archive", "LEDGER.md");
-        assert.ok(existsSync(ledger), "forcing must create the ledger if absent");
-        assert.match(readFileSync(ledger, "utf8"),
-          new RegExp(`forced ${row.transition} past`),
-          "the gap must be recorded in the ledger, as archive --force does");
+        const recorded = existsSync(ledger)
+          && new RegExp(`forced ${row.transition} past`).test(readFileSync(ledger, "utf8"));
+        assert.equal(recorded, r.status === 0,
+          r.status === 0
+            ? "a forced transition that succeeded must record the gap"
+            : "a forced transition that failed must claim nothing");
       } finally {
         rmSync(tmp, { recursive: true, force: true });
       }

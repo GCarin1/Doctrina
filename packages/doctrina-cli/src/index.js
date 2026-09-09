@@ -8,7 +8,7 @@ import { cliVersion } from "./lib/version.js";
 import { surfaceHelp, OPERATIONS, deprecationFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
-import { recordUsage } from "./lib/usage.js";
+import { recordUsage, operationOf } from "./lib/usage.js";
 import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation, deferJson, flushJson } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
@@ -149,12 +149,28 @@ async function main(argv) {
     ]);
     const undeclared = [...flags.keys()].filter((f) => !declared.has(f));
     if (undeclared.length > 0) {
+      const lines = [];
       for (const f of undeclared) {
+        lines.push(`error: unknown flag "--${f}" for \`doctrina ${commandName}\``);
         console.error(c.red("error:") + ` unknown flag "--${f}" for \`doctrina ${commandName}\``);
         const guess = suggest(f, [...declared]);
-        if (guess) console.error(c.gray("hint: ") + `did you mean \`--${guess}\`?`);
+        if (guess) {
+          lines.push(`hint: did you mean \`--${guess}\`?`);
+          console.error(c.gray("hint: ") + `did you mean \`--${guess}\`?`);
+        }
       }
+      lines.push(`hint: \`doctrina ${commandName} --help\` lists the flags it accepts`);
       console.error(c.gray("hint: ") + `\`doctrina ${commandName} --help\` lists the flags it accepts`);
+      // A consumer that asked for JSON gets JSON, including when the answer
+      // is "I refused" (third audit, finding 7). Change 0086 made the
+      // envelope tell the truth about the exit code; the flag check runs
+      // BEFORE the envelope exists, so a rejected invocation returned exit 2
+      // with an empty stdout and the consumer got a parse error instead of
+      // `{ok: false, exit_code: 2}`.
+      if (wantsJson(flags)) {
+        emitJson(operationName(positional), { stderr: lines },
+          { ok: false, exitCode: EXIT.USAGE, args: positional.slice(1) });
+      }
       return EXIT.USAGE;
     }
   }
@@ -187,10 +203,10 @@ async function main(argv) {
       const { code, stdout, stderr } = await captureOutput(
         () => command.run(positional.slice(1), flags),
       );
-      emitJson([commandName, ...positional.slice(1)].join(" "), {
+      emitJson(operationName(positional), {
         stdout: stdout.map(stripAnsi),
         stderr: stderr.map(stripAnsi),
-      }, { ok: code === EXIT.OK, exitCode: code });
+      }, { ok: code === EXIT.OK, exitCode: code, args: operationArgs(positional) });
       return code;
     }
     // The native path: hold the payload the command builds, run it, then
@@ -220,6 +236,24 @@ async function main(argv) {
     // is the GATE class: something is wrong here, fix it and retry (C7).
     return err.exitCode ?? EXIT.GATE;
   }
+}
+
+// The OPERATION an invocation names, and the arguments it carries — the two
+// halves the envelope's `command` field used to run together (third audit,
+// finding 6). `doctrina why carteira --json` answered `"command": "why
+// carteira"`, so a consumer reading that field got a different shape for
+// every capability, while `next --json` documents `command`/`args` as the
+// contract to branch on. The catalog is what tells a sub-operation
+// (`spec list`) from an argument (`why carteira`) — shape alone cannot,
+// which is the same reason `lib/usage.js` consults it.
+const KNOWN_OPERATIONS = new Set(OPERATIONS.map((o) => o[0]));
+
+function operationName(positional) {
+  return operationOf(positional, KNOWN_OPERATIONS) ?? positional[0] ?? "";
+}
+
+function operationArgs(positional) {
+  return positional.slice(operationName(positional).split(" ").length);
 }
 
 main(process.argv.slice(2)).then((code) => {

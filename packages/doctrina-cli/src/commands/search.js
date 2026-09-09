@@ -4,6 +4,7 @@ import process from "node:process";
 import { exists, isDir, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { fold } from "../lib/lexicon.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Category-aware full-text search across the artifact tree. Answers
@@ -25,7 +26,13 @@ const MAX_MATCHES_PER_FILE = 5;
 export const flags = { boolean: ["json", "archive"], string: [] };
 
 export async function run(positional, flags) {
-  const terms = positional.map((t) => t.toLowerCase()).filter(Boolean);
+  // Folded, not merely lowercased (third audit, finding 8). `search` matched
+  // raw substrings, so an accent decided the answer: `search patrimonio`
+  // found nothing in a spec that says "patrimônio" — and typing without the
+  // accent is the common case, not the rare one. The shared lexicon (ADR
+  // 0040) already folds for `work` and `context --for`; `search` was the
+  // one retrieval surface still deciding on its own.
+  const terms = positional.map((t) => fold(t)).filter(Boolean);
   if (terms.length === 0) {
     console.error(c.red("error:") + " search requires at least one term");
     return 2;
@@ -64,7 +71,7 @@ export async function run(positional, flags) {
       const hits = [];
       for (let i = 0; i < lines.length; i++) {
         const raw = lines[i];
-        const low = raw.toLowerCase();
+        const low = fold(raw);
         if (terms.every((t) => low.includes(t))) {
           hits.push({ line: i + 1, text: raw.trim(), score: lineScore(raw, low, phrase) });
         }
@@ -123,7 +130,7 @@ function lineScore(raw, low, phrase) {
 // A file whose name carries the query is almost always the right one;
 // reward a full filename match more than a partial one.
 function filenameBonus(rel, terms) {
-  const base = rel.toLowerCase();
+  const base = fold(rel);
   if (terms.every((t) => base.includes(t))) return 3;
   return terms.some((t) => base.includes(t)) ? 1 : 0;
 }

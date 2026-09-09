@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.14.1
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -282,6 +282,7 @@ keep the checks and the read path.
 - When `doctrina work` opens a change, the system shall register its index entry only after the proposal is fully written — lane and affected specs stamped — so the tree it leaves passes `doctrina validate` without a rebuild.
 - When `doctrina change new <id>` runs with an id that is not lowercase letters, digits and hyphens opening on a letter or a digit, the system shall report a usage error and create nothing.
 - When `change tick` names a box that is already ticked, the system shall leave it as is and say so; when it names something that is not a box number, the system shall refuse with the usage class and name the argument.
+- When a lifecycle transition is forced past its gates, the system shall record the waived blockers in the change ledger only after that transition has actually taken effect.
 
 ### Unwanted-behavior (must-not)
 
@@ -309,6 +310,7 @@ keep the checks and the read path.
 - The system shall not supersede an ADR whose Status is not `accepted`; `decision supersede` refuses a proposed or already-superseded target naming its current state and the remedy for a proposal that fell (set its Status to rejected, or delete it).
 - The system shall not create an ADR whose title is only digits; `decision supersede` refuses it and names the grammar `supersede <number> "<title>"`.
 - The system shall not overwrite an intake whose Status is `converted`, even under `--force`; `intake` refuses with the precondition class and points at `intent add` for new intent and `work` for a change of behaviour, while an intake still `pending` may be replaced.
+- The system shall not record a forced transition that wrote nothing, so the ledger never claims an event that did not occur.
 
 ## Acceptance criteria
 
@@ -341,6 +343,9 @@ The authoring commands are v0 spec-compliant when:
 25. [verified] `supersede` of a proposed ADR is refused naming the state, `supersede` of an accepted ADR still creates the successor and rewrites the target, and a digits-only title is refused with the grammar in the hint — verified by `packages/doctrina-cli/test/only-an-accepted-adr-is-superseded.test.js`.
 26. [verified] `spec new`, `contract new` and `skill new` refuse `nul`, `com1`, `trail-`, `a--b` and a 65-character name with exit 2 and nothing created, and every name in this repository passes — verified by `packages/doctrina-cli/test/a-name-is-portable.test.js`.
 27. [verified] `intake --force` over a converted intake exits 3, leaves the file untouched and names `intent add` and `work`; over a pending intake it replaces the file — verified by `packages/doctrina-cli/test/a-converted-intake-does-not-go-back.test.js`.
+28. [verified] A forced apply that fails claims nothing in the ledger, and the target spec and proposal prove nothing happened — verified by `packages/doctrina-cli/test/the-ledger-records-what-happened.test.js`.
+29. [verified] A forced apply that succeeds is still recorded, naming the gate it waived, and a forced archive is recorded only once the folder has moved — verified by `packages/doctrina-cli/test/the-ledger-records-what-happened.test.js`.
+30. [verified] Recording follows the outcome across every gated transition, not the override — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
 
 ## Out of scope for this spec
 

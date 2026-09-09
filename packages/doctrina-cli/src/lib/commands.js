@@ -450,6 +450,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.16.0": [
+    "A reference or path that does not resolve now answers exit 2 (USAGE) everywhere — `clarify`, `show`, `why`, `analyze`, `context`, `change check`, `spec set`, `decision accept|scope`. Correct the invocation; retrying it unchanged never succeeds.",
+    "The `--json` envelope names the OPERATION in `command` and carries arguments in `args` — branch on those two, not on a joined string. An undeclared flag now answers with `{ok: false, exit_code: 2}` instead of an empty stdout.",
+    "`analyze` executes a MODIFIED delta's `ops` block, so `analyze`, `change apply` and `close` all refuse the same unappliable block. Fix the ops before closing; a delta with no ops block is still a legitimate manual merge.",
+    "`validate` refuses more: an active spec declaring no acceptance criteria, an empty artifact, a scaffold section left unwritten, a reference that resolves to nothing. Write the criteria before flipping a spec to `active`.",
+    "`change new <id>` requires the `NNNN-slug` shape (lowercase letters, digits, hyphens) and writes nothing otherwise — `doctrina work \"<prompt>\"` derives one for you.",
+  ],
   "0.15.1": [
     "Exporting a variable under a name that is not its source's is routine — declare it in the Wiring row's Origin cell as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`) and RT02 stays silent until either side moves.",
   ],

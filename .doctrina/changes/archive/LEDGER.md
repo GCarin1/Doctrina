@@ -119,3 +119,11 @@ One line per archived change, newest last. Appended by
 - 2026-09-09 — 0116-o-carimbo-nao-regride — o carimbo nao regride (specs: gates MODIFIED, scaffolding MODIFIED)
 - 2026-09-09 — 0095-analyze-roda-o-dry-run-de-ops — analyze roda o dry-run de ops (specs: gates MODIFIED)
 - 2026-09-09 — 0118-a-gramatica-de-nome-tem-dono — a gramatica de nome tem dono (specs: authoring MODIFIED)
+- 2026-09-09 — 0096-o-ledger-registra-o-que-aconteceu — o ledger registra o que aconteceu (specs: authoring MODIFIED)
+- 2026-09-09 — 0097-um-exemplo-em-fence-nao-e-criterio — um exemplo em fence nao e criterio (specs: validation MODIFIED)
+- 2026-09-09 — 0098-o-bom-nao-apaga-o-titulo-da-spec — o BOM nao apaga o titulo da spec (specs: validation MODIFIED)
+- 2026-09-09 — 0099-o-envelope-json-diz-a-verdade — o envelope JSON diz a verdade (specs: cli MODIFIED)
+- 2026-09-09 — 0100-search-dobra-acentos — search dobra acentos (specs: insight MODIFIED)
+- 2026-09-09 — 0101-clarify-inexistente-e-erro-de-uso — clarify inexistente e erro de uso (specs: gates MODIFIED)
+- 2026-09-09 — 0119-a-politica-de-fim-de-linha-fica-registada — a politica de fim de linha fica registada
+- 2026-09-09 — 0120-cortar-a-0-16-0 — cortar a 0.16.0

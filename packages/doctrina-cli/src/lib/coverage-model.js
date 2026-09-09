@@ -3,6 +3,7 @@ import path from "node:path";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "./fs-ops.js";
 import { specHeader } from "./scan.js";
+import { parseAcceptanceCriteria } from "./criteria.js";
 
 // The coverage MODEL: how a spec's acceptance criteria are classified, what
 // the tree's coverage adds up to, and the implementation state that
@@ -35,7 +36,7 @@ export function collect(projectRoot, { only = null } = {}) {
       const specPath = path.join(specsDir, cap, "spec.md");
       if (!isFile(specPath)) continue;
       const text = read(specPath);
-      const criteria = extractAcceptanceCriteria(text);
+      const criteria = parseAcceptanceCriteria(text).map((row) => row.body);
       if (criteria.length === 0) continue;
       const deferred = isDeclaredDeferral(text);
       const rows = criteria.map((crit, i) => {
@@ -195,42 +196,11 @@ export function implementationMismatch(written, derived) {
   return { written: word, derived, op: `set-header Implementation: ${derived}` };
 }
 
-// Pull the numbered items out of the "## Acceptance criteria" section.
-// Each item may span multiple lines (continuation prose); accumulate until
-// the next number or the next "## " heading. Returns an array of strings.
-function extractAcceptanceCriteria(text) {
-  const lines = text.split(/\r?\n/);
-  const out = [];
-  let inSection = false;
-  let buf = null;
-  const flush = () => {
-    if (buf !== null) out.push(buf.trim());
-    buf = null;
-  };
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      // Entering or leaving a section.
-      if (inSection) {
-        flush();
-        inSection = false;
-      }
-      if (/^##\s+Acceptance criteria\b/i.test(line)) inSection = true;
-      continue;
-    }
-    if (!inSection) continue;
-    if (/^\s*\d+\.\s+/.test(line)) {
-      flush();
-      buf = line.replace(/^\s*\d+\.\s+/, "");
-    } else if (buf !== null) {
-      // Continuation line of the current criterion.
-      if (line.trim() === "") buf += " ";
-      else buf += " " + line.trim();
-    }
-  }
-  flush();
-  // Drop empty placeholder items (a lone "1." with no text).
-  return out.filter((s) => s.length > 0);
-}
+// The criteria parser lives in ONE place (`lib/criteria.js`), whose own
+// header has always claimed exactly that. It did not: this module carried a
+// second implementation, so `coverage` and `show`/`why`/`validate` could
+// disagree about what a criterion is — and did, the moment fences started
+// being skipped in one of them (third audit, finding 4).
 
 // ORCHESTRATION criteria (change 0029). Coverage measures CITATION: a
 // criterion is covered when it cites a file that exists (and, since G3, a

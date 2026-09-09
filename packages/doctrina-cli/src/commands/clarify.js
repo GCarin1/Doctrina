@@ -7,7 +7,7 @@ import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { detectLanguage } from "../lib/lexicon.js";
 import { loadConfig } from "../lib/config.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
 // clarify is permanently red on a PT-BR project — "some" is the verb *sumir*,
@@ -136,8 +136,15 @@ export async function run(positional, flags) {
   }
   const fullPath = path.resolve(projectRoot, target);
   if (!isFile(fullPath)) {
+    // USAGE, not GATE (third audit, finding 9). A path that does not exist
+    // is a wrong invocation: retrying it unchanged never succeeds, and an
+    // agent branching on the exit code reads 1 as "the work is not ready"
+    // and iterates forever (ADR 0018). Every sibling that takes a path —
+    // `intake --file`, `init --intake-file`, `templates check --path` —
+    // already exits 2 here; `clarify` was the straggler.
     console.error(c.red("error:") + ` file not found: ${target}`);
-    return 1;
+    console.error(c.gray("hint: ") + "pass a path to an existing Markdown file, or `--all` for the tree");
+    return EXIT.USAGE;
   }
 
   console.log(`clarify ${relPath(projectRoot, fullPath)}`);

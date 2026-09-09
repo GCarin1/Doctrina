@@ -57,13 +57,23 @@ export async function run(positional, flags) {
 }
 
 // Enforce a lifecycle transition's preconditions from the shared gate map.
-// Returns true when the transition may proceed. One implementation, so
-// every driver of a transition refuses — and explains, and forces —
-// identically (C6).
+// One implementation, so every driver of a transition refuses — and
+// explains, and forces — identically (C6).
+//
+// Returns `{ ok, forced }`. `forced` carries the blockers that were waved
+// through, for the caller to record ONCE THE TRANSITION HAS ACTUALLY
+// HAPPENED — see `recordForcedGap` below. This used to record here, at the
+// moment the gate was overridden, which wrote history for an event that had
+// not occurred yet and often never would: `change apply --force` on a
+// change with an unappliable ops block logged "forced apply past 3
+// blockers" while the apply wrote nothing, the spec stayed byte-identical
+// and the proposal stayed `proposed` (third audit, finding 3). The ledger
+// is the readable source of what happened to the tree; an attempt that
+// changed nothing did not happen to it.
 function enforceTransition(projectRoot, id, changeDir, transition, flags) {
   const force = flagBool(flags, "force", false);
   const { ok, blockers } = checkTransition(projectRoot, changeDir, transition);
-  if (ok) return true;
+  if (ok) return { ok: true, forced: null };
 
   const label = TRANSITIONS[transition].label;
   if (!force) {
@@ -71,12 +81,11 @@ function enforceTransition(projectRoot, id, changeDir, transition, flags) {
     for (const b of blockers) console.error(`  - [${b.gate}] ${b.message}`);
     const reruns = [...new Set(blockers.map((b) => GATES[b.gate].rerun(id)))];
     console.error(c.gray("hint: ") + `fix them (${reruns.join(" · ")}), or pass --force to ${transition} anyway (records the gap)`);
-    return false;
+    return { ok: false, forced: null };
   }
   console.log(c.yellow("warn:") + ` ${label} "${id}" with ${blockers.length} blocker${blockers.length === 1 ? "" : "s"} (--force):`);
   for (const b of blockers) console.log(c.yellow("  - ") + `[${b.gate}] ${b.message}`);
-  recordForcedGap(projectRoot, id, transition, blockers);
-  return true;
+  return { ok: true, forced: blockers };
 }
 
 // Batch driver (operator review 2026-07-19 §3.5/§4.5): apply/archive/check
@@ -134,7 +143,8 @@ function changeApply(args, flags) {
   // and exit 0 — through the very analyze → apply path the docs prescribe.
   // The preconditions now come from the shared map, so what guards a
   // transition does not depend on which command drove it.
-  if (!enforceTransition(projectRoot, id, changeDir, "apply", flags)) return 1;
+  const applyGate = enforceTransition(projectRoot, id, changeDir, "apply", flags);
+  if (!applyGate.ok) return 1;
 
   // Applying twice is silent corruption. The ops verbs are ADDITIVE —
   // `append-requirement` appends, `bump-version` bumps — so a second pass
@@ -268,6 +278,12 @@ function changeApply(args, flags) {
   }
 
   console.log("");
+  // The gap is history only once the transition happened. An apply that
+  // errored wrote nothing and left the proposal `proposed`, so there is
+  // nothing for the ledger to record (change 0096).
+  if (applyGate.forced && errors === 0) {
+    recordForcedGap(projectRoot, id, "apply", applyGate.forced);
+  }
   console.log(c.bold("Apply summary:") + ` ${writes} written, ${manual} manual, ${errors} errors.`);
   if (manual > 0) {
     console.log(`Resolve manual merges, then run ${c.cyan(`doctrina change archive ${id}`)}.`);
@@ -514,7 +530,8 @@ function changeArchive(args, flags) {
   // `close` path always ran first, so the same state was guarded
   // differently depending on the route taken. --force is the escape hatch
   // for both, and records the gap.
-  if (!enforceTransition(projectRoot, id, changeDir, "archive", flags)) return 1;
+  const archiveGate = enforceTransition(projectRoot, id, changeDir, "archive", flags);
+  if (!archiveGate.ok) return 1;
 
   const date = today();
   const archiveName = `${date}-${id}`;
@@ -544,6 +561,13 @@ function changeArchive(args, flags) {
 
   move(changeDir, archiveDir);
   console.log(c.green("archived") + ` ${relPath(projectRoot, archiveDir)}`);
+  // The move happened, so a waved-through blocker is now part of the
+  // history and the ledger says so (change 0096). Recorded here rather than
+  // at the gate, so a forced transition that then failed leaves no claim
+  // behind it.
+  if (archiveGate.forced) {
+    recordForcedGap(projectRoot, id, "archive", archiveGate.forced);
+  }
 
   // Collect affected specs from delta files for the index entry
   const deltaFiles = walk(path.join(archiveDir, "specs")).filter((p) => p.endsWith("delta.md"));

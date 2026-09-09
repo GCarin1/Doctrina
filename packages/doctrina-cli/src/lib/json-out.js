@@ -81,6 +81,11 @@ export function flushJson(code) {
 
 // Print a structured payload. `command` is the invocation, `data` whatever
 // that command has to say.
+/**
+ * @param {string} command The OPERATION, never the operation plus arguments.
+ * @param {Record<string, unknown>} data
+ * @param {{ ok?: boolean, exitCode?: number, args?: string[] }} [opts]
+ */
 export function emitJson(command, data, opts = {}) {
   if (deferring) {
     held = { command, data, opts };
@@ -89,12 +94,29 @@ export function emitJson(command, data, opts = {}) {
   writeEnvelope(command, data, opts);
 }
 
-function writeEnvelope(command, data, { ok = true, exitCode = EXIT.OK } = {}) {
+/**
+ * `EXIT` is frozen, so its members infer as literal types — without this the
+ * default `exitCode = EXIT.OK` narrows the parameter to `0`.
+ *
+ * @param {string} command
+ * @param {Record<string, unknown>} data
+ * @param {{ ok?: boolean, exitCode?: number, args?: string[] }} [opts]
+ */
+function writeEnvelope(command, data, { ok = true, exitCode = EXIT.OK, args } = {}) {
   process.stdout.write(JSON.stringify({
     $schema_version: JSON_SCHEMA_VERSION,
+    // The OPERATION, never the operation plus its arguments. `command` used
+    // to carry `"why carteira"`, so the field a consumer branches on took a
+    // different value for every capability — while `next --json` documents
+    // `command`/`args` as the contract (third audit, finding 6). A
+    // sub-operation like `spec list` IS the operation and stays whole; the
+    // catalog is what tells the two apart.
     command,
     ok,
     exit_code: exitCode,
+    // Present when the invocation carried arguments, so it stays
+    // reconstructible without parsing the name.
+    ...(args && args.length > 0 ? { args } : {}),
     // Present only when the invoked name is superseded, so a consumer can
     // branch on its presence rather than on a string.
     ...(deprecation ? { deprecated: deprecation } : {}),

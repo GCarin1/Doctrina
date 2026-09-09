@@ -17,7 +17,108 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-09-09
+
 ### Fixed
+
+- **`doctrina change new` validates its id, and nothing is written outside
+  the project.** It was the only authoring command with no grammar for its
+  argument: it joined whatever string it was given onto a path, so
+  `change new ../../../elsewhere/evil` scaffolded the change folder outside
+  the project — against the `authoring` spec's own "shall not write outside
+  the project working directory" — and `0003-with space` was accepted here
+  and then carried by `validate`, `index rebuild` and `next` as a legitimate
+  id, producing a remediation line nobody could run. The id now obeys the
+  shape `work` derives (lowercase letters, digits, hyphens, opening on a
+  letter or a digit), refused with the usage class and no writes; and the
+  change directory is resolved through a containment check that refuses any
+  path leaving the project, so a future caller that forgets to ask is still
+  held. Deliberately NOT unified with the capability grammar, which requires
+  a leading letter: two rules that look alike are not one rule.
+
+- **The pre-flight runs the ops it is a pre-flight for.** `doctrina analyze`
+  reported "ready to apply" for a delta whose `ops` block `change apply`
+  then refused — it inspected the delta's header, its target and its shape,
+  and never the one part that does the work. `change check` already ran the
+  dry-run, so the answer existed; the gate `apply` and `close` consult was
+  simply not the one asking. The dry-run moved into `collectAnalysis`, which
+  is what the gate map reads, so all three now refuse identically. Scoped
+  pre-apply: after a successful apply the target holds what those ops wrote,
+  so re-running them is a question with no meaning, and `archive` still goes
+  through.
+
+- **The ledger records what happened, not what was attempted.** A forced
+  gap was written the moment `--force` overrode a gate — before the
+  transition ran, and often for one that never occurred. `change apply
+  --force` on a change whose ops block cannot apply logged "forced apply
+  past 3 blockers" while it wrote nothing, left the target spec
+  byte-identical and left the proposal `proposed`. The gap is now recorded
+  once the transition has taken effect. `--force` still waives the
+  precondition and not the operation: a forced apply still fails on the same
+  malformed delta.
+
+- **A fenced example is not an acceptance criterion — and there is now one
+  parser saying so.** A spec that documents the criterion format writes a
+  sample inside a code fence; the parser walked lines and never tracked
+  fences, so a `[verified]` example citing `pkg/x.js` inflated the coverage
+  denominator and answered `show <cap>-C2`. Underneath it: `lib/criteria.js`
+  opens by claiming to be the single parser every surface reads criteria
+  through, and `coverage-model.js` carried a second implementation. Fixing
+  the fence in one of them proved the claim false — `show` counted one
+  criterion and `coverage` counted three. The duplicate is gone.
+
+- **A byte-order mark no longer erases a spec's title.** A file saved by a
+  Windows editor opens `﻿# Spec — …`, and `validate` refused it for
+  "carrying no title" while `show`, `spec list` and `coverage` read the same
+  file without complaint — the surfaces disagreed about a file none of them
+  had a real problem with, and the one that refused named a cause that was
+  not the cause. The mark is now removed once, at the single door every
+  module reads through. It matters beyond Markdown: `JSON.parse` throws on a
+  leading mark, so an `index.json` written by the wrong editor failed with an
+  error naming neither the cause nor the file.
+
+- **The `--json` envelope names the operation, and answers when it refuses.**
+  `command` ran the operation and its arguments together, so
+  `doctrina why carteira --json` reported `"command": "why carteira"` and the
+  field a consumer branches on took a different value for every capability —
+  while `next --json` documents `command`/`args` as the contract. Arguments
+  now land in `args`; a sub-operation like `spec list` stays whole, because
+  the catalog is what tells a sub-operation from an argument. And an
+  undeclared flag with `--json` now emits the envelope reporting the refusal
+  instead of exiting 2 with an empty stdout and handing the consumer a parse
+  error.
+
+- **`doctrina search` folds accents, like the rest of the retrieval path.**
+  It compared raw substrings, so an accent decided the answer: `search
+  patrimonio` found nothing in a spec that says "patrimônio". Typing without
+  the accent is the common case, and it was the one that failed. `search` was
+  the last retrieval surface still deciding equality on its own terms
+  (ADR 0040).
+
+- **`doctrina clarify` answers a missing path with the usage class.** It
+  returned the gate class for a path that does not exist, so an agent
+  branching on the exit code read "the work is not ready" and had every
+  reason to retry an invocation that cannot succeed unchanged (ADR 0018).
+  It was the last straggler: `intake --file`, `init --intake-file` and
+  `templates check --path` already answered `2`.
+
+- **The test suite runs on a CRLF checkout.** This repository declares no
+  line-ending policy, so a Windows checkout stores 519 of its 730 versioned
+  files as CRLF — harmless to the CLI, which splits on `/\r?\n/` throughout,
+  and fatal to nine test files that assumed LF. The local gate therefore did
+  not run on the machine the work was being done on. No product code
+  changed. The sharper half: three of those files performed a fixture edit
+  with a `\n`-anchored pattern that matched nothing and then asserted
+  against the result — green about a setup that had silently not happened.
+  A fixture that transforms something is now held to having transformed it.
+  The root cause is registered in `docs/*/deferred.md` with the narrower
+  approach preferred over renormalising 519 files.
+
+- **The shared name grammar has an owning capability.** `lib/names.js`
+  arrived with no spec naming it, so `code-has-an-owner` refused the tree.
+  The requirement that describes the rule now names the module, as the `cli`
+  spec already does for `lib/commands.js`. The criterion still cites its
+  test: ownership and proof are different questions.
 
 - **One exit class for a reference that does not resolve, everywhere.**
   ADR 0018 declares five classes, and two of them tell a consumer different
