@@ -69,6 +69,23 @@ export function hasCommits(cwd) {
   return git(cwd, ["rev-parse", "--verify", "HEAD"]).state === GIT_STATE.OK;
 }
 
+/**
+ * Does this ref resolve to a commit in this repository?
+ *
+ * Asked directly, because the message heuristic above cannot answer it: git
+ * says "unknown revision or path not in the working tree" both for a
+ * repository with no commits and for a ref that does not exist, so a diff
+ * against a missing ref came back as GIT_STATE.EMPTY and every caller read
+ * it as "nothing changed". `doctrina review --diff main --strict` therefore
+ * passed on a shallow clone with no local `main` (change 0092).
+ *
+ * False when git is absent, this is not a repository, or the ref is unknown —
+ * callers that need to tell those apart ask `historyState` as well.
+ */
+export function refExists(cwd, ref) {
+  return git(cwd, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).state === GIT_STATE.OK;
+}
+
 // The state a command should report before trying to read history:
 // { usable, state, reason } where `reason` is a sentence fit to print.
 export function historyState(cwd) {

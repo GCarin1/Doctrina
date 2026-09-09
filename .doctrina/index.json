@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.15.0",
+        "version": "1.16.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -505,14 +505,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0092-o-review-nao-aprova-contra-o-que-nao-existe",
-        "title": "o review nao aprova contra o que nao existe",
-        "path": ".doctrina/changes/0092-o-review-nao-aprova-contra-o-que-nao-existe",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0093-o-contrato-de-saida-vale-para-todos",
         "title": "o contrato de saida vale para todos",
@@ -1754,6 +1746,19 @@
         "specs_affected": [
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0092-o-review-nao-aprova-contra-o-que-nao-existe",
+        "title": "o review nao aprova contra o que nao existe",
+        "path": ".doctrina/changes/archive/2026-09-09-0092-o-review-nao-aprova-contra-o-que-nao-existe",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

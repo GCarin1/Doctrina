@@ -1265,6 +1265,15 @@ doctrina review --diff main
 doctrina review --strict
 ```
 
+**Um ref de `--diff` precisa resolver.** Um que não resolve é erro de uso
+(exit 2), não um diff vazio: ele reportava «no changes» e saía 0 —
+`--strict` incluído — numa árvore em que um ref válido reportava quebras,
+então um job de CI com `doctrina review --diff main --strict` passava para
+sempre num clone raso sem `main` local. (O git usa a mesma frase para um ref
+ausente e para um repositório sem commits, e foi assim que o diff que
+falhou passou por vazio.) Fora de um repositório git o gate continua
+silencioso em vez de acusar.
+
 Reporta quebras estruturais: código mudado sob uma capability cuja spec não
 foi atualizada, código mudado que não mapeia para nenhuma capability,
 critérios de aceite citando prova ausente, intenção de produto realizada por

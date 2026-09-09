@@ -7,9 +7,9 @@ import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
 import { readLedger, churnByCapability } from "../lib/ledger.js";
-import { changedFiles, windowCutoff } from "../lib/git.js";
+import { changedFiles, windowCutoff, historyState, refExists } from "../lib/git.js";
 import { dependentsOf } from "../lib/scan.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { summarize as coverageSummary } from "../lib/coverage-model.js";
 import { summarize as traceSummary } from "../lib/trace-model.js";
 
@@ -46,6 +46,19 @@ export async function run(_positional, flags) {
   }
   const strict = flagBool(flags, "strict", false);
   const against = flagString(flags, "diff"); // optional git ref to diff against
+
+  // A ref the git cannot resolve is a filter that matches nothing, and the
+  // review used to read it as "nothing changed" — exit 0, `--strict`
+  // included, on a tree where a valid ref reported breaks. A CI job running
+  // `doctrina review --diff main --strict` stayed green forever on a shallow
+  // clone with no local `main` (change 0092). Only asked inside a usable
+  // repository: outside one the command still stays silent rather than
+  // accusing.
+  if (against && historyState(projectRoot).usable && !refExists(projectRoot, against)) {
+    console.error(c.red("error:") + ` --diff names a ref this repository cannot resolve: "${against}"`);
+    console.error(c.gray("hint: ") + "check the branch or commit name — a ref that resolves to nothing is not an empty diff");
+    return EXIT.USAGE;
+  }
 
   const { all, sourceFiles } = reviewScope(projectRoot, against);
   console.log(c.bold("Review") + c.gray(against ? ` — vs ${against}` : " — working-tree changes"));

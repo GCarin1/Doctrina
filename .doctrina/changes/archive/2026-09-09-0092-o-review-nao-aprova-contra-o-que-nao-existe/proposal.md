@@ -1,6 +1,7 @@
 # Change 0092-o-review-nao-aprova-contra-o-que-nao-existe — o review nao aprova contra o que nao existe
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-09
 - **Date:** 2026-09-09
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -56,11 +57,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Um `--diff` cujo ref o git não resolve deixa de reportar «nenhuma mudança».
-- [ ] Um `--diff` válido continua reportando exatamente o que reportava.
-- [ ] Fora de um repositório git o comando continua silencioso, sem acusar.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Um `--diff` cujo ref o git não resolve deixa de reportar «nenhuma mudança».
+- [x] Um `--diff` válido continua reportando exatamente o que reportava.
+- [x] Fora de um repositório git o comando continua silencioso, sem acusar.
 
 ## Open questions
 

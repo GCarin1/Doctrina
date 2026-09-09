@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`doctrina review --diff` refuses a ref that resolves to nothing.** On a
+  tree where `--diff HEAD` reported two breaks, `--diff nao-existe --strict`
+  reported "no changes" and exited 0. The root cause is one message doing two
+  jobs: git says "unknown revision or path not in the working tree" both for a
+  repository with no commits and for a missing ref, so the failed diff was
+  classified as an empty one. A CI job running `doctrina review --diff main
+  --strict` therefore passed forever on a shallow clone with no local `main` —
+  and review is the conformance gate that runs inside every close. A new
+  `refExists` asks the question directly; outside a repository the gate still
+  stays silent rather than accusing.
+
 - **An active spec with no acceptance criteria no longer passes `validate`.**
   On one such tree `clarify` failed, `doctor` warned and `status` showed
   `0/0`, while `validate` said "ok all validation checks passed" and

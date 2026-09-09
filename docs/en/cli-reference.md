@@ -1224,6 +1224,15 @@ doctrina review --diff main
 doctrina review --strict
 ```
 
+**A `--diff` ref must resolve.** One that does not is a usage error (exit
+2), not an empty diff: it used to report "no changes" and exit 0 —
+`--strict` included — on a tree where a valid ref reported breaks, so a CI
+job running `doctrina review --diff main --strict` passed forever on a
+shallow clone with no local `main`. (Git words a missing ref and a
+repository with no commits identically, which is how the failed diff read as
+an empty one.) Outside a git repository the gate still stays silent rather
+than accusing.
+
 Reports structural breaks: code changed under a capability whose spec was
 not updated, changed code mapping to no capability, acceptance criteria
 citing missing proof, product intent realized by no spec, and contract
