@@ -203,6 +203,13 @@ estão bem formados, as specs traçam, os critérios citam prova, e o
 pipeline fica verde enquanto o processo nunca vê a variável. Por isso o
 check fica na sequência, e não no seu julgamento.
 
+O passo é o `doctrina contract check` inteiro — a metade estrutural
+também (CT01 uma porta reclamada duas vezes, CT02 uma variável ausente do
+`.env.example`, CT03 uma referência a uma spec que não existe). As duas
+metades são uma só coleção na CLI, então o que o `contract check` reprova
+o close reprova, e o `doctor` reporta os mesmos achados com os mesmos
+códigos.
+
 O custo é limitado pelo que você declarou:
 
 - **Sem contratos** — uma linha, saída 0. Nada muda.

@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.14.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.46.0",
+        "version": "0.47.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.16.0",
+        "version": "1.26.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -101,7 +101,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "depends_on": [
@@ -116,7 +116,7 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
@@ -139,7 +139,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.12.0",
+        "version": "0.13.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
@@ -505,14 +505,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0094-change-new-tem-gramatica-de-id",
-        "title": "change new tem gramatica de id",
-        "path": ".doctrina/changes/0094-change-new-tem-gramatica-de-id",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain; signals: change)"
-      },
       {
         "id": "0095-analyze-roda-o-dry-run-de-ops",
         "title": "analyze roda o dry-run de ops",
@@ -1828,6 +1820,247 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0094-change-new-tem-gramatica-de-id",
+        "title": "change new tem gramatica de id",
+        "path": ".doctrina/changes/archive/2026-09-09-0094-change-new-tem-gramatica-de-id",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0102-os-cabecalhos-tem-um-enum",
+        "title": "os cabecalhos tem um enum",
+        "path": ".doctrina/changes/archive/2026-09-09-0102-os-cabecalhos-tem-um-enum",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0103-o-close-roda-o-contract-check-inteiro",
+        "title": "o close roda o contract check inteiro",
+        "path": ".doctrina/changes/archive/2026-09-09-0103-o-close-roda-o-contract-check-inteiro",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0104-os-ordinais-do-tick-sao-estaveis",
+        "title": "os ordinais do tick sao estaveis",
+        "path": ".doctrina/changes/archive/2026-09-09-0104-os-ordinais-do-tick-sao-estaveis",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0105-a-marca-unverified-vale",
+        "title": "a marca unverified vale",
+        "path": ".doctrina/changes/archive/2026-09-09-0105-a-marca-unverified-vale",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0106-a-prova-mora-no-projeto",
+        "title": "a prova mora no projeto",
+        "path": ".doctrina/changes/archive/2026-09-09-0106-a-prova-mora-no-projeto",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0107-o-triage-fala-portugues",
+        "title": "o triage fala portugues",
+        "path": ".doctrina/changes/archive/2026-09-09-0107-o-triage-fala-portugues",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0108-uma-referencia-fantasma-e-apontada",
+        "title": "uma referencia fantasma e apontada",
+        "path": ".doctrina/changes/archive/2026-09-09-0108-uma-referencia-fantasma-e-apontada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0109-so-uma-adr-aceita-e-superada",
+        "title": "so uma ADR aceita e superada",
+        "path": ".doctrina/changes/archive/2026-09-09-0109-so-uma-adr-aceita-e-superada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0110-um-nome-de-capability-e-portavel",
+        "title": "um nome de capability e portavel",
+        "path": ".doctrina/changes/archive/2026-09-09-0110-um-nome-de-capability-e-portavel",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0111-um-scaffold-nao-e-um-artefato",
+        "title": "um scaffold nao e um artefato",
+        "path": ".doctrina/changes/archive/2026-09-09-0111-um-scaffold-nao-e-um-artefato",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0112-o-intake-convertido-nao-volta",
+        "title": "o intake convertido nao volta",
+        "path": ".doctrina/changes/archive/2026-09-09-0112-o-intake-convertido-nao-volta",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0113-uma-spec-fora-do-caminho-e-apontada",
+        "title": "uma spec fora do caminho e apontada",
+        "path": ".doctrina/changes/archive/2026-09-09-0113-uma-spec-fora-do-caminho-e-apontada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0114-os-retardatarios-do-contrato-de-saida",
+        "title": "os retardatarios do contrato de saida",
+        "path": ".doctrina/changes/archive/2026-09-09-0114-os-retardatarios-do-contrato-de-saida",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0115-o-doctor-le-o-config-que-existe",
+        "title": "o doctor le o config que existe",
+        "path": ".doctrina/changes/archive/2026-09-09-0115-o-doctor-le-o-config-que-existe",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0116-o-carimbo-nao-regride",
+        "title": "o carimbo nao regride",
+        "path": ".doctrina/changes/archive/2026-09-09-0116-o-carimbo-nao-regride",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0117-a-suite-roda-em-windows",
+        "title": "a suite roda em Windows",
+        "path": ".doctrina/changes/archive/2026-09-09-0117-a-suite-roda-em-windows",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]

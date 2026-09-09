@@ -113,11 +113,26 @@ function decisionSupersede(args) {
     console.error(c.red("error:") + ` ADR ${padded} is already superseded`);
     return 1;
   }
+  // Only a decision that HELD can be superseded (change 0109). A proposed
+  // ADR was never a rule; superseding it builds a chain of decisions that
+  // never applied. A proposal that fell is edited to `rejected`, or deleted.
+  if (oldStatus.trim().toLowerCase() !== "accepted") {
+    console.error(c.red("error:") + ` ADR ${padded} is "${oldStatus.trim()}", not "accepted" — only an accepted decision is superseded`);
+    console.error(c.gray("hint: ") + "a proposal that fell is not superseded: set its Status: to rejected, or delete the file");
+    return 1;
+  }
 
   // Title for new ADR is read from argv after the target number, or prompted.
   const title = args.slice(1).join(" ").trim();
   if (!title) {
     console.error(c.red("error:") + " supply the new ADR title as the second argument");
+    return 2;
+  }
+  // A title that is only digits is the argument order swapped, not a
+  // decision (change 0109): `supersede 0001 0002` made an ADR titled "0002".
+  if (/^\d+$/.test(title)) {
+    console.error(c.red("error:") + ` "${title}" is a number, not a title`);
+    console.error(c.gray("hint: ") + "the grammar is `doctrina decision supersede <number> \"<title>\"` — the target first, then the new ADR's title");
     return 2;
   }
 

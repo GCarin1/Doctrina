@@ -11,8 +11,8 @@ string it was given onto a path, so `change new ../../../elsewhere/evil`
 wrote the change folder outside the project — against this spec's own
 "shall not write outside the project working directory" — and
 `0003-with space` was accepted here and then carried by `validate`,
-`index rebuild` and `next` as a legitimate id whose remediation line could
-not be run.
+`index rebuild` and `next` as a legitimate id whose remediation line
+no one can run.
 
 Two mechanisms, deliberately separate. The grammar is what tells the author
 their id is wrong, with the usage class and no writes. The containment

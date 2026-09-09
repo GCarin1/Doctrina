@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.7.1
+**Version:** 0.14.0
 
 ## Purpose
 
@@ -43,6 +43,11 @@ keep the checks and the read path.
 - The system shall rank an accepted decision that names a capability in its `Scope:` header above one that reaches that capability only through a declared dependency, and both above an unscoped decision, when assembling that capability's context pack.
 - The system shall apply one rule for telling a path from prose, and the commands that ingest a project description shall answer the same input shape the same way.
 - The system shall build every index entry for an artifact through one constructor per record shape, so a command that registers an artifact and the command that rebuilds the index can never disagree about its fields.
+- The system shall declare, in one place, the domain of the `Status` header (`draft`, `active`, `deprecated`), of the `Implementation` header (`planned`, `partial`, `implemented`, `verified`) and of the acceptance-criterion mark (`verified`, `unverified`, `orchestration`), and every operation that writes one of them — `spec set`, `set-header`, `set-criterion`, `append-criterion` — shall read that declaration.
+- The system shall number the boxes of a change — tasks.md, then the proposal's Verification — in reading order over every box, ticked or not, so that an ordinal names the same box on every invocation of `change tick`.
+- The system shall treat a task line opened by any Markdown bullet marker (`-`, `*`, `+`) as a box, for `change tick` and for the archive gate alike.
+- The system shall classify a prompt into its lane after folding it (accents stripped, case folded) and with signal lists that carry both English and Portuguese vocabularies, so that a request phrased in either language is read into the same lane.
+- The system shall validate the name of a new spec, contract or skill against one shared grammar — lowercase letters, digits and hyphens, starting with a letter, no trailing or doubled hyphen, at most 64 characters, never a Windows reserved device name (con, prn, aux, nul, com1-com9, lpt1-lpt9) — and shall name the rule that failed.
 
 ### Event-driven
 
@@ -275,6 +280,8 @@ keep the checks and the read path.
 - When a change is opened without an explicit title, the system shall derive the identifier from the prompt's content words rather than from the whole prompt, and shall keep the whole prompt as the proposal's title.
 - When a description is given where a file path is expected, the system shall accept it as the description when it cannot be a path, and shall otherwise report the missing file naming the form that passes text directly.
 - When `doctrina work` opens a change, the system shall register its index entry only after the proposal is fully written — lane and affected specs stamped — so the tree it leaves passes `doctrina validate` without a rebuild.
+- When `doctrina change new <id>` runs with an id that is not lowercase letters, digits and hyphens opening on a letter or a digit, the system shall report a usage error and create nothing.
+- When `change tick` names a box that is already ticked, the system shall leave it as is and say so; when it names something that is not a box number, the system shall refuse with the usage class and name the argument.
 
 ### Unwanted-behavior (must-not)
 
@@ -296,6 +303,12 @@ keep the checks and the read path.
 - The system shall not scaffold a delta from a ranked capability whose lead over the runner-up is within the ranking's length tie-breaker, nor from the `--from-diff` or `--chore` paths.
 - The system shall not accept a decision record whose Context, Decision or Consequences section is still the shipped template, and shall name the sections that remain unwritten.
 - If a change is opened without a capability the CLI can name, the system shall not create the change's `specs/` directory, because a directory nothing was written into asserts that spec deltas live there.
+- The system shall not resolve an artifact path that escapes the project working directory, whatever the shape of the identifier that produced it.
+- The system shall not write a `Status`, `Implementation` or criterion mark whose state word is outside its domain; the operation fails and the spec is left untouched, while a note after a legal state word remains accepted.
+- The system shall not open a change for a Portuguese prompt that its English twin would be held as RUNTIME; `work` holds both with the precondition class.
+- The system shall not supersede an ADR whose Status is not `accepted`; `decision supersede` refuses a proposed or already-superseded target naming its current state and the remedy for a proposal that fell (set its Status to rejected, or delete it).
+- The system shall not create an ADR whose title is only digits; `decision supersede` refuses it and names the grammar `supersede <number> "<title>"`.
+- The system shall not overwrite an intake whose Status is `converted`, even under `--force`; `intake` refuses with the precondition class and points at `intent add` for new intent and `work` for a change of behaviour, while an intake still `pending` may be replaced.
 
 ## Acceptance criteria
 
@@ -319,6 +332,15 @@ The authoring commands are v0 spec-compliant when:
 16. [verified] `doctrina work` followed by `doctrina validate` exits 0 on a freshly initialised project, with the classified lane present in the index entry — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
 17. [verified] The entry the writer stores equals the one the deriver builds, and re-deriving it replaces rather than duplicates — verified by `packages/doctrina-cli/test/one-change-entry.test.js`.
 18. [verified] A change with no resolved capability holds only its proposal and tasks, while a pinned capability still gets its delta in its own directory — verified by `packages/doctrina-cli/test/no-empty-specs-dir.test.js`.
+19. [verified] A traversing change id is refused and nothing appears beside the project — verified by `packages/doctrina-cli/test/change-id.test.js`.
+20. [verified] An id carrying a space, an uppercase letter or a leading hyphen leaves no folder in the tree — verified by `packages/doctrina-cli/test/change-id.test.js`.
+21. [verified] The id shape `work` derives is still accepted, and the change grammar stays distinct from the stricter capability one — verified by `packages/doctrina-cli/test/change-id.test.js`.
+22. [verified] `spec set --status bogus`, `--implementation banana` and `--criterion 2:banana` are refused with the spec untouched, and a delta's `set-header`, `set-criterion` and `append-criterion` refuse the same values; a note after a legal word is accepted — verified by `packages/doctrina-cli/test/a-header-has-a-domain.test.js`.
+23. [verified] Four sequential `change tick <id> 1..4` calls tick tasks 1-4 and never a closing step or a Verification claim; a `* [ ]` task is ticked and counted; `tick <id> abc` exits 2 naming the argument — verified by `packages/doctrina-cli/test/a-box-keeps-its-number.test.js`.
+24. [verified] Runtime, chore and product prompts are read into the same lane in Portuguese and in English, accents do not change the scores, and `work` holds the Portuguese runtime prompt with exit 3 — verified by `packages/doctrina-cli/test/the-triage-speaks-portuguese.test.js`.
+25. [verified] `supersede` of a proposed ADR is refused naming the state, `supersede` of an accepted ADR still creates the successor and rewrites the target, and a digits-only title is refused with the grammar in the hint — verified by `packages/doctrina-cli/test/only-an-accepted-adr-is-superseded.test.js`.
+26. [verified] `spec new`, `contract new` and `skill new` refuse `nul`, `com1`, `trail-`, `a--b` and a 65-character name with exit 2 and nothing created, and every name in this repository passes — verified by `packages/doctrina-cli/test/a-name-is-portable.test.js`.
+27. [verified] `intake --force` over a converted intake exits 3, leaves the file untouched and names `intent add` and `work`; over a pending intake it replaces the file — verified by `packages/doctrina-cli/test/a-converted-intake-does-not-go-back.test.js`.
 
 ## Out of scope for this spec
 

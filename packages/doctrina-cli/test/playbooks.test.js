@@ -36,7 +36,18 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
-const golden = (name) => readFileSync(path.join(here, "fixtures", "playbooks", `${name}.txt`), "utf8");
+// The recorded expectation, with its line terminators normalised.
+//
+// What these tests pin is the playbook TEXT — the migration from console.log
+// to templates had to change nothing a reader sees. A fixture's terminators
+// are an artifact of the checkout, not of that behaviour: this repository
+// declares no line-ending policy, so on Windows 519 of its 730 versioned
+// files arrive CRLF while the CLI's own stdout is LF, and every one of these
+// comparisons failed for a reason that has nothing to do with playbooks.
+const golden = (name) =>
+  normaliseEol(readFileSync(path.join(here, "fixtures", "playbooks", `${name}.txt`), "utf8"));
+
+const normaliseEol = (s) => String(s).replace(/\r\n/g, "\n");
 
 function runCli(args, cwd, env = {}) {
   return spawnSync(process.execPath, [cliEntry, ...args], {
@@ -86,7 +97,7 @@ test("the work playbook is byte-identical to the pre-migration output", () => {
   try {
     const r = runCli(["work", "add a billing invoice export"], dir);
     assert.equal(r.status, 0, r.stderr);
-    assert.equal(r.stdout, golden("work"));
+    assert.equal(normaliseEol(r.stdout), golden("work"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -97,7 +108,7 @@ test("the chore playbook is byte-identical to the pre-migration output", () => {
   try {
     const r = runCli(["work", "--chore", "tidy the CI matrix", "--id", "0002-chore"], dir);
     assert.equal(r.status, 0, r.stderr);
-    assert.equal(r.stdout, golden("chore"));
+    assert.equal(normaliseEol(r.stdout), golden("chore"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -111,11 +122,11 @@ test("the pinned-capability and thin-prompt variants are byte-identical too", ()
   try {
     const pinned = runCli(["work", "--capability", "billing", "pin the billing capability", "--id", "0003-pinned"], dir);
     assert.equal(pinned.status, 0, pinned.stderr);
-    assert.equal(pinned.stdout, golden("pinned"));
+    assert.equal(normaliseEol(pinned.stdout), golden("pinned"));
 
     const thin = runCli(["work", "fix", "--id", "0005-thin"], dir);
     assert.equal(thin.status, 0, thin.stderr);
-    assert.equal(thin.stdout, golden("thin"));
+    assert.equal(normaliseEol(thin.stdout), golden("thin"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -127,7 +138,7 @@ test("the bootstrap playbook is byte-identical to the pre-migration output", () 
     const r = runCli(["intake", "--text",
       "A billing system for small shops. Users create invoices, send them by email, and track payment. Success is an invoice sent in under a minute."], dir);
     assert.equal(r.status, 0, r.stderr);
-    assert.equal(r.stdout, golden("bootstrap"));
+    assert.equal(normaliseEol(r.stdout), golden("bootstrap"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -143,7 +154,7 @@ test("colour survives the move: the ANSI rendering is byte-identical", () => {
     const r = runCli(["work", "x", "--resume", "0001-billing-invoice-export"], dir,
       { NO_COLOR: undefined, FORCE_COLOR: "1" });
     assert.equal(r.status, 0, r.stderr);
-    assert.equal(r.stdout, golden("work-ansi"));
+    assert.equal(normaliseEol(r.stdout), golden("work-ansi"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

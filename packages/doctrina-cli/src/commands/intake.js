@@ -91,6 +91,16 @@ export async function run(positional, flags) {
     console.error(c.red("error:") + ` ${relPath(projectRoot, intakePath)} already exists (pass --force to overwrite)`);
     return 1;
   }
+  // After conversion the specs are the only source of truth, and the intake
+  // is never edited to change requirements (change 0112). `--force` was the
+  // CLI-sanctioned way to do exactly that: it rewrote the file to `pending`
+  // and printed the bootstrap playbook as if the tree were empty. The door
+  // for new intent is `intent add`; for a change of behaviour, `work`.
+  if (exists(intakePath) && (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase() === "converted") {
+    console.error(c.red("error:") + ` ${relPath(projectRoot, intakePath)} is already converted — the specs are the source of truth now, and --force does not reopen it`);
+    console.error(c.gray("hint: ") + "new product intent: `doctrina intent add \"<text>\"` · a change of behaviour: `doctrina work \"<prompt>\"`");
+    return EXIT.PRECONDITION;
+  }
 
   const projectName = idx.load(projectRoot).project ?? path.basename(projectRoot);
   writeIntakeFile(projectRoot, { body, source, projectName, date: today(), force });

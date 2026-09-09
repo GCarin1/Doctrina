@@ -1,5 +1,4 @@
 // @ts-check
-import { getSection } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -14,9 +13,10 @@ import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { wantsJson, emitJson } from "../lib/json-out.js";
 import {
-  parseTable, parseRuntimeDeclaration, checkWiring, checkEmptySemantics,
+  parseRuntimeDeclaration, checkStructure, checkWiring, checkEmptySemantics,
   checkEnums, checkSelectors,
 } from "../lib/runtime.js";
+import { artifactNameError } from "../lib/names.js";
 
 // Contracts are the first-class home for the integration/runtime surface
 // no single capability owns: the port map, the env/dependency contract,
@@ -58,8 +58,9 @@ export async function run(positional, flags) {
 
 function contractNew(args, flags) {
   const name = args[0];
-  if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
-    console.error(c.red("error:") + " contract name must be lowercase letters, digits, or hyphens (e.g. \"system\", \"api\").");
+  const nameError = artifactNameError(name, "contract name");
+  if (nameError) {
+    console.error(c.red("error:") + ` ${nameError} (e.g. "system", "api")`);
     return 2;
   }
   const force = flagBool(flags, "force", false);
@@ -141,10 +142,6 @@ function contractCheck(args, cmdFlags) {
     return 0;
   }
 
-  // The env contract is checked against .env.example when one exists.
-  const envExamplePath = path.join(projectRoot, ".env.example");
-  const envExample = isFile(envExamplePath) ? read(envExamplePath) : null;
-
   let errors = 0;
   let warnings = 0;
   // The runtime half is counted, not just printed. A contract that declares
@@ -168,48 +165,17 @@ function contractCheck(args, cmdFlags) {
     const text = read(file);
     say(c.bold(name) + c.gray(` (${relPath(projectRoot, file)})`));
 
-    // 1. Port collisions — two services must not claim the same port.
-    const ports = parseTable(getSection(text, "Ports"));
-    if (ports) {
-      const portCol = colIndex(ports.headers, "port");
-      const svcCol = colIndex(ports.headers, "service");
-      const seen = new Map();
-      for (const row of ports.rows) {
-        const port = (row[portCol] ?? "").trim();
-        if (!/^\d+$/.test(port)) continue;
-        const svc = (row[svcCol] ?? "?").trim();
-        if (seen.has(port)) {
-          say(c.red("  ✗ ") + `port ${port} is claimed by both "${seen.get(port)}" and "${svc}"`);
-          errors += 1;
-        } else {
-          seen.set(port, svc);
-        }
-      }
-    }
-
-    // 2. Environment drift — every declared variable must exist in
-    //    .env.example (when present), so code, example, and infra agree.
-    const env = parseTable(getSection(text, "Environment"));
-    if (env && envExample !== null) {
-      const varCol = colIndex(env.headers, "variable");
-      for (const row of env.rows) {
-        const name2 = (row[varCol] ?? "").trim();
-        if (!/^[A-Z][A-Z0-9_]*$/.test(name2)) continue;
-        const declared = new RegExp(`^\\s*(export\\s+)?${name2}\\s*=`, "m").test(envExample);
-        if (!declared) {
-          say(c.yellow("  ! ") + `env var ${name2} is in the contract but absent from .env.example`);
-          warnings += 1;
-        }
-      }
-    }
-
-    // 3. Referenced capability specs must exist.
-    for (const refCap of referencedCapabilities(getSection(text, "References"))) {
-      const specPath = path.join(projectRoot, ".doctrina", "specs", refCap, "spec.md");
-      if (!isFile(specPath)) {
-        say(c.red("  ✗ ") + `references spec "${refCap}" but ${relPath(projectRoot, specPath)} does not exist`);
-        errors += 1;
-      }
+    // 1-3. The STRUCTURAL half — port collisions, environment drift against
+    //      .env.example, references to specs that do not exist. One
+    //      collection in lib/runtime.js (change 0103), shared with the
+    //      close's runtime step and `doctor`, so a contract this command
+    //      fails cannot pass the close.
+    for (const f of checkStructure(projectRoot, text)) {
+      const mark = f.level === "error" ? c.red("  ✗ ") : c.yellow("  ! ");
+      say(mark + f.message + c.gray(` [${f.code}]`));
+      findings.push({ contract: name, code: f.code, level: f.level, message: f.message, remedy: f.remedy });
+      if (f.level === "error") errors += 1;
+      else warnings += 1;
     }
 
     // 4. The RUNTIME half: a declaration is only worth what binds it to the
@@ -296,18 +262,6 @@ function contractCheck(args, cmdFlags) {
   const held = `${plural(names.length, "contract")} consistent, ${plural(declaredRows, "declared row")} ${declaredRows === 1 ? "holds" : "hold"}`;
   say(c.green("ok") + ` ${held}` + (warnings > 0 ? c.gray(`; ${plural(warnings, "warning")} above`) : ""));
   return emit("consistent", 0);
-}
-
-function colIndex(headers, name) {
-  const i = headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
-  return i < 0 ? 0 : i;
-}
-
-// Capability names referenced as `specs/<cap>` (placeholder <...> ignored).
-function referencedCapabilities(text) {
-  const out = new Set();
-  for (const m of text.matchAll(/specs\/([a-z][a-z0-9-]*)/g)) out.add(m[1]);
-  return [...out];
 }
 
 function ensureDoctrinaProject(projectRoot) {

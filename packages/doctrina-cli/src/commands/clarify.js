@@ -89,8 +89,19 @@ function detectLang(text) {
 }
 
 function rulesFor(projectRoot, text, forcedLang = null) {
-  const lang = forcedLang ?? projectLanguage(projectRoot) ?? detectLang(text);
-  return lang === "pt" ? RULES_PT : RULES_EN;
+  const lang = forcedLang ?? projectLanguage(projectRoot);
+  if (lang) return lang === "pt" ? RULES_PT : RULES_EN;
+  // Detected per file, the document is scanned with BOTH lexicons (change
+  // 0107). A bilingual spec — Portuguese purpose, English EARS, or the
+  // reverse — detected as one language hid every smell written in the
+  // other: `clarify --all` found nothing where `--lang pt` found two. The
+  // two vocabularies do not overlap, so a smell in either is a smell; the
+  // detected language only decides which hint text the reader gets first.
+  const detected = detectLang(text);
+  const [first, second] = detected === "pt" ? [RULES_PT, RULES_EN] : [RULES_EN, RULES_PT];
+  // The `placeholder` rule is language-neutral and lives in both lists:
+  // one copy, or TBD is reported twice.
+  return [...first, ...second.filter((r) => r.name !== "placeholder")];
 }
 
 // --lang pt|en wins over the project config and the per-file heuristic

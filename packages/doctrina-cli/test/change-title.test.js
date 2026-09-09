@@ -66,8 +66,11 @@ test("prime, handoff and report print the title, not the slug plus the title", (
     const title = "declare the release wiring";
     assert.equal(runCli(["change", "new", id, title], dir).status, 0);
 
+    // Split on /\r?\n/, as the product code does everywhere: the templates
+    // are checked out CRLF on Windows, and splitting on "\n" alone leaves a
+    // trailing \r that no comparison here is about.
     const h1 = readFileSync(path.join(dir, ".doctrina", "changes", id, "proposal.md"), "utf8")
-      .split("\n")[0];
+      .split(/\r?\n/)[0];
     assert.equal(h1, `# Change ${id} — ${title}`, "the template's H1 is the input this parses");
 
     for (const args of [["prime"], ["handoff"], ["report", "--since", "3650"]]) {

@@ -59,6 +59,25 @@ export function collectAnchors(projectRoot) {
   return out;
 }
 
+// Anchor ids declared MORE THAN ONCE in product.md (change 0108). The
+// collector above keeps the first bullet per id, which is right for the
+// graph and wrong as the only reading: the second intent under the same id
+// vanished from trace, why, intent list and every pack, with `trace
+// --strict` green. Returned as {id, lines} so trace can name both bullets.
+export function collectAnchorDuplicates(projectRoot) {
+  const productPath = path.join(projectRoot, ".doctrina", "product.md");
+  if (!isFile(productPath)) return [];
+  const lines = new Map();
+  const rows = read(productPath).split(/\r?\n/);
+  for (let i = 0; i < rows.length; i++) {
+    const m = rows[i].match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+/);
+    if (!m) continue;
+    if (!lines.has(m[1])) lines.set(m[1], []);
+    lines.get(m[1]).push(i + 1);
+  }
+  return [...lines].filter(([, at]) => at.length > 1).map(([id, at]) => ({ id, lines: at }));
+}
+
 export function collectSpecs(projectRoot) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   if (!isDir(specsDir)) return [];

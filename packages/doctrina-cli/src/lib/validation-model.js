@@ -18,16 +18,17 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./fs-ops.js";
 import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
-import { cliVersion } from "./version.js";
+import { cliVersion, newestVersion } from "./version.js";
 import { today } from "./dates.js";
 import { checklistProgress, kindFromPath, maskComments, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
-import { parseAdrScope, parseSourceGlobs, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
+import { parseAdrScope, parseSourceGlobs, parseDependsOn, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
 import { parseAcceptanceCriteria, isVerified } from "./criteria.js";
 import { parsePipeline, checkPipeline } from "./pipeline.js";
 import { declaredBudget, collectRuntimeFindings, filesMatching } from "./runtime.js";
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
+import { headerValueError, criterionMarkError } from "./spec-ops.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
 import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
 
@@ -197,9 +198,13 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
     // `index rebuild`. Subsequent checks then see the repaired index.
     if (fix) {
       const derived = deriveIndex(projectRoot, index);
-      const staleStamp = (index.framework_version ?? null) !== cliVersion();
+      // Never rewound (change 0116): a stamp AHEAD of this CLI is a tree
+      // managed by a newer release, and the remedy is to upgrade the CLI,
+      // not to rewrite the stamp backwards on every commit.
+      const stamp = newestVersion(index.framework_version, cliVersion());
+      const staleStamp = (index.framework_version ?? null) !== stamp;
       if (!indexesMatch(derived, index) || staleStamp) {
-        derived.framework_version = cliVersion();
+        derived.framework_version = stamp;
         derived.last_updated = today();
         idx.save(projectRoot, derived);
         fixes.push("rebuilt .doctrina/index.json from the tree");
@@ -216,6 +221,11 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
     const runningVersion = cliVersion();
     if (!index.framework_version) {
       warnings.push(`index.json has no framework_version (run \`doctrina index rebuild\` to stamp it)`);
+    } else if (newestVersion(index.framework_version, runningVersion) !== runningVersion) {
+      warnings.push(
+        `index.json framework_version is "${index.framework_version}", ahead of the running CLI ` +
+          `${runningVersion} — this tree is managed by a newer release; upgrade the CLI (the stamp is never rewound)`,
+      );
     } else if (index.framework_version !== runningVersion) {
       warnings.push(
         `index.json framework_version is "${index.framework_version}" but the running CLI is ` +
@@ -429,6 +439,24 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           );
         }
       }
+      // A ghost in `Affects specs:` (change 0108). The header names the
+      // capabilities a change touches, and a name with no spec behind it
+      // — a typo, or a capability that was never created — passed
+      // analyze, check and close in silence. A capability this change is
+      // about to CREATE (an ADDED delta) is not a ghost.
+      if (isFile(proposal)) {
+        const affects = (listHeader(read(proposal), "Affects specs") ?? "")
+          .match(/[a-z][a-z0-9-]*/g) ?? [];
+        const specsRoot = path.join(projectRoot, ".doctrina", "specs");
+        for (const cap of affects) {
+          if (isFile(path.join(specsRoot, cap, "spec.md"))) continue;
+          if (isFile(path.join(changesDir, entry, "specs", cap, "delta.md"))) continue;
+          warnings.push(
+            `open change "${entry}" Affects specs: names "${cap}", which has no spec and no delta ` +
+              `in this change — correct the name, or \`doctrina spec new ${cap}\``,
+          );
+        }
+      }
       for (const deltaPath of walk(path.join(changesDir, entry, "specs"))) {
         if (!deltaPath.endsWith("delta.md")) continue;
         const text = read(deltaPath);
@@ -515,6 +543,25 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         //     ("planned — deferred, see ADR 0007") is the deliberate-gap
         //     escape hatch. Specs with no Implementation header are off
         //     the axis and never warn.
+        // 8j. The two machine-read headers and the criterion mark have a
+        //     DOMAIN (change 0102). Before this check `Status: bogus`,
+        //     `Implementation: banana` and `[banana]` were written by `spec
+        //     set`, synced into the index, and passed here with 0 errors —
+        //     `prime` then reported "1 banana". Every gate branches on these
+        //     words; a word outside the domain is a value no branch reads.
+        //     A note after the value stays legal: only the word is checked.
+        for (const name of ["Status", "Implementation"]) {
+          const raw = specHeader(text, name);
+          if (raw === null || raw.trim() === "") continue;
+          const domain = headerValueError(name, raw);
+          if (domain) errors.push(`${relPath(projectRoot, specPath)}: ${domain}`);
+        }
+        for (const crit of parseAcceptanceCriteria(text)) {
+          if (crit.marker === null) continue;
+          const domain = criterionMarkError(crit.marker);
+          if (domain) errors.push(`${relPath(projectRoot, specPath)}: acceptance criterion #${crit.n}: ${domain}`);
+        }
+
         const implRaw = specHeader(text, "Implementation");
         if (implRaw) {
           const docStatus = (specHeader(text, "Status") ?? "active").toLowerCase();
@@ -542,9 +589,12 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           const mismatch = implementationMismatch(implRaw, derived.get(cap)?.derived ?? null);
           if (mismatch) {
             const row = derived.get(cap);
+            const stillMarked = (row.unverified ?? 0) > 0
+              ? ` and ${row.unverified} of them ${row.unverified === 1 ? "is" : "are"} still marked [unverified]`
+              : "";
             warnings.push(
               `${relPath(projectRoot, specPath)}: Implementation is "${mismatch.written}" but ` +
-                `${row.covered}/${row.total} criteria have resolving proof, which supports ` +
+                `${row.covered}/${row.total} criteria have resolving proof${stillMarked}, which supports ` +
                 `"${mismatch.derived}" (apply it with \`doctrina spec set ${cap} --implementation auto\`, ` +
                 `or add a note after the value saying why the count is not the whole story)`,
             );
@@ -652,6 +702,100 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
                 `backticks, or drop the marker; \`doctrina coverage\`)`,
             );
           }
+        }
+      }
+    }
+  }
+
+  // 8k. A dependency on a capability that does not exist, and an intent
+  //     anchor declared twice (change 0108). `**Depends on:** fantasma`
+  //     feeds `why`, `context` and `review` and none of them said the
+  //     capability was not there — `why` printed it, `context` dropped it
+  //     in silence. Contrast `Realizes: SC9`, which `trace` names as
+  //     dangling. And a second `- [SC1] ...` bullet in product.md was
+  //     deduplicated on read, so the second intent vanished from every
+  //     view while `trace --strict` stayed green.
+  if (isDir(specsDir)) {
+    const known = new Set(readdirSync(specsDir).filter((cap) => isFile(path.join(specsDir, cap, "spec.md"))));
+    for (const cap of [...known].sort()) {
+      const text = read(path.join(specsDir, cap, "spec.md"));
+      for (const dep of parseDependsOn(text)) {
+        if (known.has(dep)) continue;
+        errors.push(
+          `.doctrina/specs/${cap}/spec.md: Depends on "${dep}", which has no spec — ` +
+            `the pack, the graph and the review all read this header; correct the name, or \`doctrina spec new ${dep}\``,
+        );
+      }
+    }
+  }
+  {
+    const productPath = path.join(projectRoot, ".doctrina", "product.md");
+    if (isFile(productPath)) {
+      const seen = new Map();
+      const lines = read(productPath).split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const m = lines[i].match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+/);
+        if (!m) continue;
+        if (seen.has(m[1])) {
+          errors.push(
+            `.doctrina/product.md:${i + 1} intent anchor [${m[1]}] is declared twice (first at line ${seen.get(m[1])}) — ` +
+              `two intents under one id leave the second invisible to trace, why and every pack; give it its own id`,
+          );
+        } else {
+          seen.set(m[1], i + 1);
+        }
+      }
+    }
+  }
+
+  // 8l. A contract still carrying the scaffold's rows (change 0111).
+  //     Tasks and specs had a placeholder check; a contract whose Wiring,
+  //     Selectors and References were all `<NAME>` / `specs/<capability>`
+  //     passed here with nothing said — `contract check` ignores such rows
+  //     by design (change 0029), which is right for the runtime verdict and
+  //     silent about the artifact.
+  {
+    const contractsDir = path.join(projectRoot, ".doctrina", "contracts");
+    if (isDir(contractsDir)) {
+      for (const f of walk(contractsDir)) {
+        if (!f.endsWith(".md")) continue;
+        // The template's own comments mention the placeholders; only the
+        // content counts (comment-is-not-content, change 0055).
+        const text = maskComments(read(f));
+        const left = [];
+        if (/^\|\s*<NAME>\s*\|/m.test(text)) left.push("a `<NAME>` row in Wiring/Selectors/Budgets");
+        if (/specs\/<capability>/.test(text)) left.push("`specs/<capability>` under References");
+        if (left.length > 0) {
+          warnings.push(`${relPath(projectRoot, f)} still carries the scaffold's placeholder rows (${left.join("; ")}) — write them, or delete the rows that do not apply`);
+        }
+      }
+    }
+  }
+
+  // 8m. A spec that is not where the tree reads specs from (change 0113).
+  //     A change directory without `proposal.md` is an error above; a spec
+  //     at `.doctrina/specs/legacy.md`, a capability directory with no
+  //     `spec.md`, and a second `spec-old.md` beside the real one were
+  //     silence — not indexed, in no pack, not counted, not traced.
+  if (isDir(specsDir)) {
+    for (const entry of readdirSync(specsDir, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+      if (entry.isFile()) {
+        if (!entry.name.endsWith(".md")) continue;
+        warnings.push(`.doctrina/specs/${entry.name} is not where a spec is read from — a spec lives at .doctrina/specs/<capability>/spec.md; move it, or it stays outside every pack, count and trace`);
+        continue;
+      }
+      if (!entry.isDirectory()) continue;
+      const capDir = path.join(specsDir, entry.name);
+      if (!isFile(path.join(capDir, "spec.md"))) {
+        warnings.push(`.doctrina/specs/${entry.name}/ has no spec.md — a capability directory is read only through .doctrina/specs/${entry.name}/spec.md (\`doctrina spec new ${entry.name}\`, or remove the directory)`);
+        continue;
+      }
+      for (const sibling of readdirSync(capDir)) {
+        if (sibling === "spec.md" || !sibling.endsWith(".md")) continue;
+        const head = read(path.join(capDir, sibling)).split(/\r?\n/).find((l) => l.trim() !== "") ?? "";
+        if (/^#\s+Spec\b/i.test(head)) {
+          warnings.push(`.doctrina/specs/${entry.name}/${sibling} opens like a spec but only spec.md is read — merge it into spec.md, or rename it so it does not claim to be one`);
         }
       }
     }
@@ -798,6 +942,15 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
       if (nameField && nameField !== baseName) {
         warnings.push(`${rel} name "${nameField}" does not match filename slug "${baseName}"`);
       }
+      // 14c. A frontmatter value still in the scaffold's `<...>` form is a
+      //      value nobody wrote (change 0111) — and it was served into every
+      //      context pack as the skill's description, while `skill sync`
+      //      called the file up to date.
+      for (const [field, value] of [["description", descField], ["when", whenField]]) {
+        if (value && isScaffoldValue(value)) {
+          warnings.push(`${rel} frontmatter "${field}" is still the scaffold's placeholder — write it, or the pack lists a skill nobody described (${value.length > 50 ? `${value.slice(0, 49)}…` : value})`);
+        }
+      }
 
       // 14b. A skill nothing can TRIGGER is a file, not a memory (change
       //      0029). `context` lists a skill's `when:` so an agent can fire
@@ -860,6 +1013,9 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   // the rule's own message. Deterministic, zero-deps, and the instruction
   // survives sessions because it is an artifact, not a memory.
   for (const line of checkProjectRules(projectRoot)) errors.push(line);
+  for (const key of loadConfig(projectRoot).unknown) {
+    warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules (a typo here is a setting that never applied)`);
+  }
 
   // 18. --runtime folds the RUNTIME gate into the structural one, so a
   //     single call covers both halves of the truth: the shape of the
@@ -889,9 +1045,17 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
 // keywords to match on.
 const VAGUE_TRIGGER = /^(?:when(?:ever)?\s+)?(?:it|this|you|the agent)?\s*(?:is\s+)?(?:seems?|feels?|looks?)?\s*(?:relevant|appropriate|needed|necessary|useful|applicable|as needed|if needed)\.?$/i;
 
+/** A value still wrapped in the template's angle brackets: `<one-sentence …>`. */
+export function isScaffoldValue(value) {
+  return /^<[^<>]*>$/.test(String(value ?? "").trim());
+}
+
 export function hasDetectableTrigger(when) {
   const text = String(when ?? "").trim();
   if (text === "" || VAGUE_TRIGGER.test(text)) return false;
+  // The scaffold's own placeholder has enough words to rank on and names
+  // nothing (change 0111): a trigger nobody wrote fires for nobody.
+  if (isScaffoldValue(text)) return false;
   // Anything structural is inherently matchable.
   if (/[\/\]|\*|`|"|'|\.\w{2,4}|[A-Z][A-Z0-9_]{2,}/.test(text)) return true;
   // Otherwise: enough distinctive words to rank on. Stopwords do not count.

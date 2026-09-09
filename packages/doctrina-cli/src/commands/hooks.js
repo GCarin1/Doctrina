@@ -3,7 +3,10 @@ import path from "node:path";
 import process from "node:process";
 import { chmodSync } from "node:fs";
 import { exists, mkdirp, read, relPath, write } from "../lib/fs-ops.js";
-import { locateTemplatesDir } from "../lib/templates.js";
+import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
@@ -45,7 +48,13 @@ export async function run(positional, flags) {
 
   const templatesDir = locateTemplatesDir();
   const tplPath = path.join(templatesDir, "hooks", "pre-commit.sample");
-  const body = read(tplPath);
+  // The hook pins the CLI that installed it (change 0116). `.git/hooks/` is
+  // local to the clone, so an absolute path is the right thing to write;
+  // a bare `doctrina` ran whichever release was on the PATH — a global
+  // 0.15.0 under a 0.15.1 tree rewrote the stamp backwards on every commit.
+  // `DOCTRINA=` in the environment overrides it.
+  const entry = path.resolve(here, "..", "index.js").replaceAll("\\", "/");
+  const body = substitute(read(tplPath), { DOCTRINA_BIN: `node \"${entry}\"` });
   write(target, body, { force: true });
   chmodSync(target, 0o755);
   console.log(c.green("installed") + ` ${relPath(projectRoot, target)}`);

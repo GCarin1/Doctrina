@@ -40,6 +40,40 @@ import { commentRanges, isInsideComment } from "./doc-model.js";
 const HEADER_RE = (name) =>
   new RegExp(`^(\\s*(?:-\\s+)?\\*\\*${escapeRe(name)}:\\*\\*)\\s*(.*)$`, "m");
 
+// The ENUMS behind the two machine-read headers and the criterion mark
+// (change 0102). `--version` and `--bump` always validated their input;
+// `--status`, `--implementation` and `--criterion` wrote whatever string they
+// were given, synced it into the index, and `validate` passed it — so a spec
+// could say `Status: bogus` and `prime` would report "1 banana" without
+// finding anything odd. A header every gate branches on has a domain, and
+// this is it. A note after the state word stays legal ("planned — deferred,
+// see ADR 0007"): only the WORD is checked.
+export const STATUS_VALUES = ["draft", "active", "deprecated"];
+export const IMPLEMENTATION_VALUES = ["planned", "partial", "implemented", "verified"];
+export const CRITERION_MARKS = ["verified", "unverified", "orchestration"];
+
+/** The state word of a header/mark value: the first token, note stripped. */
+export function stateWord(value) {
+  const first = String(value ?? "").trim().split(/\s+/)[0] ?? "";
+  return first.replace(/[—:-]+$/, "").toLowerCase();
+}
+
+/** null when `value` is a legal value for `name`; otherwise the error text. */
+export function headerValueError(name, value) {
+  const allowed = name === "Status" ? STATUS_VALUES : name === "Implementation" ? IMPLEMENTATION_VALUES : null;
+  if (!allowed) return null;
+  const word = stateWord(value);
+  if (allowed.includes(word)) return null;
+  return `${name} must be one of ${allowed.join("|")} (got "${String(value).trim()}") — a note may follow the value, the value itself does not change`;
+}
+
+/** null when `mark` is a legal criterion mark; otherwise the error text. */
+export function criterionMarkError(mark) {
+  const word = stateWord(mark);
+  if (CRITERION_MARKS.includes(word)) return null;
+  return `a criterion mark must be one of ${CRITERION_MARKS.join("|")} (got "${String(mark).trim()}")`;
+}
+
 function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -217,6 +251,12 @@ export function setHeader(text, name, value) {
   if (!re.test(text)) {
     return { error: `set-header: no "**${name}:**" header in the spec to set` };
   }
+  // The domain is the SPEC's (bare bold header). The list form
+  // (`- **Status:** proposed`) is a proposal's or an ADR's, whose Status
+  // has a lifecycle of its own (proposed -> applied, accepted, superseded).
+  const listForm = /^\s*-/.test(text.match(re)?.[1] ?? "");
+  const domain = listForm ? null : headerValueError(name, value);
+  if (domain) return { error: `set-header: ${domain}` };
   const next = text.replace(re, (_m, prefix) => `${prefix} ${value}`.replace(/\s+$/, ""));
   return { text: next, summary: `set ${name}: ${value}` };
 }
@@ -271,6 +311,8 @@ export function setCriterionMark(text, n, markRaw) {
   const item = loc.items.find((it) => it.n === n);
   if (!item) return { error: `set-criterion: no criterion #${n} found` };
   const mark = markRaw.replace(/^\[|\]$/g, "").trim();
+  const domain = criterionMarkError(mark);
+  if (domain) return { error: `set-criterion: ${domain}` };
   const line = loc.lines[item.lineIndex];
   let next;
   if (/\[[^\]]*\]/.test(line)) {
@@ -451,6 +493,11 @@ export function appendCriterion(text, value) {
   if (!loc) return { error: "append-criterion: spec has no '## Acceptance criteria' section" };
   if (loc.items.length === 0) {
     return { error: "append-criterion: no existing numbered criterion to append after" };
+  }
+  const leadingMark = String(value).match(/^\s*\[([^\]]*)\]/);
+  if (leadingMark) {
+    const domain = criterionMarkError(leadingMark[1]);
+    if (domain) return { error: `append-criterion: ${domain}` };
   }
   const last = loc.items[loc.items.length - 1];
   const nextN = Math.max(...loc.items.map((it) => it.n)) + 1;

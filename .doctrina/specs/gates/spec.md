@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.16.0
+**Version:** 1.26.0
 
 ## Purpose
 
@@ -48,6 +48,9 @@ codes, zero-deps, no-network).
 - The system shall exclude a proposal's verification section when reading it for documented-surface signals, since that section names the commands the author will RUN to prove the change rather than the ones it alters.
 - The system shall derive a closing sequence's concluding claim from the steps that actually ran, naming the skipped ones, so the sentence can never assert a gate the run did not perform.
 - The system shall distinguish a tree that declares no acceptance criteria from a filtered capability that declares none of its own, so neither absence is reported in the other's words.
+- The system shall accept as evidence for an acceptance criterion only a cited path that resolves to a file inside the project root; a path that resolves outside the root, or to a directory, shall be reported as not resolving, with the reason.
+- The system shall collect a contract's structural findings — a port claimed by two services (CT01), a declared environment variable absent from `.env.example` (CT02), a reference to a capability spec that does not exist (CT03) — in the same collection as the runtime findings RT01-RT05, so that `contract check`, the close's runtime step, `validate --runtime` and `doctor` render one verdict.
+- The system shall derive the Implementation state no higher than `implemented` while any covered acceptance criterion is still marked `[unverified]`, and shall say, in `validate` and in `coverage`, which criteria are waiting for their mark to be flipped.
 
 ### Event-driven
 
@@ -267,6 +270,16 @@ codes, zero-deps, no-network).
 - When a change names a route, an HTTP method with a route, or an environment-variable identifier in a code span, the system shall treat it as documented surface even when no contract declares it yet.
 - When `contract check` runs with JSON output requested, the system shall emit a payload distinguishing a runtime surface that was verified from one that was never declared, and shall emit nothing else on standard output.
 - When `doctrina review` runs, the system shall name each changed file that belongs to no capability, one by one, rather than reporting the absence only when the whole diff matches nothing.
+- When a covered criterion also cites a file path that does not resolve, the system shall keep the criterion covered and name the path that does not resolve, while a directory cited next to a resolving proof is read as a prose mention and not reported.
+- When a spec's `Status` or `Implementation` header, or an acceptance-criterion mark, carries a state word outside the declared domain, the system shall report an error that names the header or criterion, the value found and the legal values.
+- When `clarify` scans a document with no language forced by `--lang` and none declared in the project configuration, the system shall apply both the English and the Portuguese smell lexicons, so that a smell written in either language is reported.
+- When a spec's `Depends on` header names a capability that has no spec, the system shall report an error naming the spec, the missing capability and the remedy, because the pack, the dependency graph and the review all read that header.
+- When an open change's `Affects specs` header names a capability that has no spec and no ADDED delta in that change, the system shall report a warning naming the change and the capability.
+- When `product.md` declares the same intent anchor id twice, the system shall report an error naming both lines, and `trace` shall name the duplicate rather than silently keep the first.
+- When a contract's Wiring, Selectors or References rows are still the scaffold's placeholders (`<NAME>`, `specs/<capability>`), or a skill's `description:` or `when:` frontmatter is still in the scaffold's `<...>` form, the system shall report a warning naming the artifact and the placeholder.
+- When `.doctrina/specs/` holds a loose Markdown file, a capability directory without `spec.md`, or an extra Markdown file inside a capability directory whose title opens with `# Spec`, the system shall report a warning naming the file and the canonical path `.doctrina/specs/<capability>/spec.md`.
+- When `.doctrina/config.json` cannot be loaded or carries a value that is rejected, the system shall report the `config` row of `doctor` as failing, naming the error, rather than as the defaults it fell back to.
+- When `.doctrina/config.json` carries a key the CLI does not know, the system shall report a warning in `validate` and in `doctor` naming the key and the keys it accepts.
 
 ### State-driven
 
@@ -306,6 +319,9 @@ codes, zero-deps, no-network).
 - If a closing step has nothing to check, the system shall not report conformance; it shall report the absence instead, because a universal statement over an empty set is vacuously true and reads as a check performed.
 - If a scope filter names a capability that has no spec, the system shall not report a verdict; it shall report a usage error naming the value and the capabilities that exist, because a gate that measured nothing must not be indistinguishable from a gate that passed.
 - If a review is asked to diff against a ref the repository cannot resolve, the system shall not report an empty diff; it shall report a usage error naming the ref, because a filter that matches nothing is not a tree with no changes.
+- The system shall not close a change while a contract carries a structural error that `contract check` reports, and shall not report a contract with a structural error as "unchecked" because it declares no Wiring or Selectors rows.
+- The system shall not propose or write `verified` for a spec on the strength of a criterion whose author marked it `[unverified]`, whether the proposal comes from `validate` or the write from `spec set --implementation auto`.
+- The system shall not write a `framework_version` stamp lower than the one the index already carries; an older CLI that rebuilds the index keeps the newer stamp, `validate` reports a stamp ahead of the running CLI as a reason to upgrade the CLI rather than to rebuild, and `index rebuild --check` does not count a stamp ahead as index drift.
 
 ### Optional
 
@@ -387,6 +403,16 @@ The gate surface is spec-compliant when:
 62. [verified] A filter naming a real capability still reports, and an empty tree and an empty capability say different things — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
 63. [verified] A ref the repository cannot resolve is refused with the usage class while a valid ref reports exactly what it reported, and a valid ref with no difference is still an empty diff — verified by `packages/doctrina-cli/test/a-ref-that-resolves-to-nothing.test.js`.
 64. [verified] Outside a git repository the command stays silent, and the ref probe tells a missing ref apart from a repository with no commits, which git words identically — verified by `packages/doctrina-cli/test/a-ref-that-resolves-to-nothing.test.js`.
+65. [verified] A path outside the project, an absolute path and a directory leave a criterion dangling with the reason named; a criterion citing one resolving file and one missing file is covered with the missing one named; a directory next to a real proof is silent — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
+66. [verified] A hand-written `Status: bogus` and a `[banana]` mark are reported by `validate` as errors naming the legal values, while `planned — deferred` passes — verified by `packages/doctrina-cli/test/a-header-has-a-domain.test.js`.
+67. [verified] A contract with a duplicated port and a reference to a missing spec fails `contract check`, stops the close at the runtime step and fails the doctor's runtime row with the same CT codes, while a contract with no defect and no rows stays unchecked at exit 0 — verified by `packages/doctrina-cli/test/the-close-runs-the-whole-contract-check.test.js`.
+68. [verified] With one covered criterion still marked [unverified], validate proposes "implemented" naming the count, `spec set --implementation auto` writes `implemented`, coverage lists the criterion with the op that flips the mark, and flipping it lets the same doors read `verified` — verified by `packages/doctrina-cli/test/the-mark-is-the-authors.test.js`.
+69. [verified] A spec carrying an English and a Portuguese vague term reports both under per-file detection and only the forced language's under `--lang` — verified by `packages/doctrina-cli/test/the-triage-speaks-portuguese.test.js`.
+70. [verified] `Depends on: fantasma` is a validate error, `Affects specs: fantasma` without an ADDED delta is a warning and with one is silent, and a duplicated `[SC1]` is a validate error named by trace — verified by `packages/doctrina-cli/test/a-ghost-reference-is-named.test.js`.
+71. [verified] A freshly scaffolded contract and a freshly scaffolded skill each draw one validate warning naming the placeholder, and the warnings go silent once the rows and the frontmatter are written — verified by `packages/doctrina-cli/test/a-scaffold-is-not-an-artifact.test.js`.
+72. [verified] A loose `specs/legacy.md`, a `specs/orfao/` without `spec.md` and a `specs/carteira/spec-old.md` each draw one validate warning with the canonical path, while a `notes.md` beside a `spec.md` is silent — verified by `packages/doctrina-cli/test/a-spec-off-the-path-is-named.test.js`.
+73. [verified] An invalid config fails the doctor's config row naming the error, a misspelled key draws a warning from validate and from doctor naming the valid keys, and a valid config is silent — verified by `packages/doctrina-cli/test/the-doctor-reads-the-config-that-exists.test.js`.
+74. [verified] A stamp ahead of the running CLI survives `validate --fix` and `index rebuild`, is named by validate as "upgrade the CLI", and `index rebuild --check` exits 0 over it, while a stamp behind is still migrated — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
 
 ## Out of scope for this spec
 

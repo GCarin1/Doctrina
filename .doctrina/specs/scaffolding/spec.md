@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.6.0
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -30,6 +30,7 @@ authoring commands, and the conventions every command shares.
 
 - The system shall carry index.json's config block through an index rebuild, since it has no on-disk source to be rederived from.
 - The system shall read every project configuration option — the language, the context budget, and the project rules — through one reader, resolving each option from `.doctrina/config.json` first, then from the legacy location for that option, then from the built-in default, and shall report which of the three each effective value came from.
+- The system shall write the pre-commit hook so that it invokes the CLI that installed it, by absolute path, and shall honour a `DOCTRINA` environment variable as the override, because `.git/hooks/` is local to the clone and a `doctrina` found on the PATH may be an older release.
 
 ### Event-driven
 
@@ -216,6 +217,7 @@ Project scaffolding is spec-compliant when:
 9. [verified] Scaffolding with an intake lands in the same tree and the same intake file as scaffolding then supplying one, differing only in the description `init` can derive when it holds the intake at scaffold time; the inline and file forms differ only in the recorded source — verified by `packages/doctrina-cli/test/init-intake.test.js`.
 10. [verified] Immediately after `init`, `next` and `prime` name the bootstrap command, the hub's stated trigger matches what `init` writes, the action closes as soon as a capability exists, and a pending or converted intake never fires it — verified by `packages/doctrina-cli/test/bootstrap-door.test.js`.
 11. [verified] A directory holding a kept file or a file the adapter never wrote survives the removal, and the pruning never escapes or removes the project root — verified by `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.
+12. [verified] The installed hook names the installing CLI's entrypoint and reads `DOCTRINA` first — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
 
 ## Out of scope for this spec
 

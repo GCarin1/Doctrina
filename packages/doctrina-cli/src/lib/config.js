@@ -55,12 +55,20 @@ export function configPath(projectRoot) {
  * @returns {{
  *   language: string|null, context_budget: number, rules: any[],
  *   sources: {language: string, context_budget: string, rules: string},
- *   errors: string[]
+ *   errors: string[],
+ *   unknown: string[]
  * }}
  */
 export function loadConfig(projectRoot) {
   const errors = [];
   const cfg = readJson(configPath(projectRoot), CONFIG_REL, errors);
+  // Keys the CLI does not know (change 0115). `{"context_budjet": 10}` was
+  // silence at every door, and the author believed the budget was set.
+  // Reported, never rejected: the effective values are unchanged.
+  const KNOWN_KEYS = new Set(["language", "context_budget", "rules", "$comment", "$schema"]);
+  const unknown = cfg && typeof cfg === "object" && !Array.isArray(cfg)
+    ? Object.keys(cfg).filter((k) => !KNOWN_KEYS.has(k))
+    : [];
   /** @type {{language: string, context_budget: string, rules: string}} */
   const sources = { language: SOURCES.default, context_budget: SOURCES.default, rules: SOURCES.default };
 
@@ -122,7 +130,7 @@ export function loadConfig(projectRoot) {
     }
   }
 
-  return { language, context_budget, rules, sources, errors };
+  return { language, context_budget, rules, sources, errors, unknown };
 }
 
 /**

@@ -394,44 +394,72 @@ function changeTick(args, flags) {
     { label: "tasks.md", path: path.join(changeDir, "tasks.md"), section: null },
     { label: "proposal.md ## Verification", path: path.join(changeDir, "proposal.md"), section: "Verification" },
   ];
+  // STABLE ordinals (change 0104): every box in reading order, checked or
+  // not, so a number means the same box on every invocation. The ordinals
+  // used to run over the UNCHECKED boxes only, and renumbered after each
+  // tick: `tick 1`, `tick 2`, `tick 3`, `tick 4` in four calls ticked task 1,
+  // then "Apply the change", "Update index.json" and "acceptance criteria
+  // are met" — the closing steps and the proposal's Verification claims —
+  // while tasks 2-4 stayed open. A box is a claim; the number that names
+  // it cannot move.
   const boxes = [];
   for (const f of files) {
     if (!isFile(f.path)) continue;
     // One box grammar, from the document model (change 0067).
     for (const box of parseChecklist(read(f.path), { section: f.section })) {
-      if (box.checked) continue;
-      boxes.push({ file: f, lineIndex: box.line, text: box.text, placeholder: box.placeholder });
+      boxes.push({ file: f, lineIndex: box.line, text: box.text, placeholder: box.placeholder, checked: box.checked });
     }
   }
+  const open = boxes.filter((b) => !b.checked);
 
-  if (boxes.length === 0) {
+  if (open.length === 0) {
     console.log(c.green("ok") + " no unchecked boxes in tasks.md or the proposal's ## Verification");
     return 0;
   }
 
   const all = flagBool(flags, "all", false);
-  const ordinals = args.slice(1).map(Number);
+  const rawOrdinals = args.slice(1);
   const isPlaceholder = (box) => box.placeholder;
-  if (!all && ordinals.length === 0) {
-    console.log(c.bold(`Unchecked boxes in ${id}:`));
+  if (!all && rawOrdinals.length === 0) {
+    console.log(c.bold(`Boxes in ${id}`) + c.gray(` (${open.length} of ${boxes.length} unchecked; numbers are stable — a ticked box keeps its number):`));
     console.log("");
     for (let i = 0; i < boxes.length; i++) {
-      const label = isPlaceholder(boxes[i])
+      const b = boxes[i];
+      const label = isPlaceholder(b)
         ? c.yellow("(scaffold placeholder — write the real task, or delete the line)")
-        : boxes[i].text;
-      console.log(`  ${String(i + 1).padStart(3)}. ${label}  ${c.gray(`[${boxes[i].file.label}]`)}`);
+        : b.text;
+      const state = b.checked ? c.green("[x]") : "[ ]";
+      const line = `  ${String(i + 1).padStart(3)}. ${state} ${label}  ${c.gray(`[${b.file.label}]`)}`;
+      console.log(b.checked ? c.gray(line) : line);
     }
     console.log("");
-    console.log(c.gray("tick some: ") + c.cyan(`doctrina change tick ${id} 1 3`) + c.gray(" · all: ") + c.cyan(`doctrina change tick ${id} --all`));
+    const sample = open.slice(0, 2).map((b) => boxes.indexOf(b) + 1).join(" ");
+    console.log(c.gray("tick some: ") + c.cyan(`doctrina change tick ${id} ${sample}`) + c.gray(" · all: ") + c.cyan(`doctrina change tick ${id} --all`));
     return 0;
   }
 
-  const picked = all ? boxes.map((_, i) => i + 1) : ordinals;
-  for (const n of picked) {
-    if (!Number.isInteger(n) || n < 1 || n > boxes.length) {
-      console.error(c.red("error:") + ` no box #${n} (1..${boxes.length} — run \`doctrina change tick ${id}\` to list)`);
-      return 2;
+  let picked;
+  if (all) {
+    picked = open.map((b) => boxes.indexOf(b) + 1);
+  } else {
+    picked = [];
+    for (const raw of rawOrdinals) {
+      const n = /^\d+$/.test(raw) ? Number(raw) : NaN;
+      if (!Number.isInteger(n) || n < 1 || n > boxes.length) {
+        console.error(c.red("error:") + ` no box "${raw}" (a number 1..${boxes.length} — run \`doctrina change tick ${id}\` to list)`);
+        return 2;
+      }
+      picked.push(n);
     }
+  }
+  // A box already ticked is a no-op, named: ticking it twice is not a
+  // second claim, and refusing would punish the stable numbering.
+  const already = picked.filter((n) => boxes[n - 1].checked);
+  for (const n of already) console.log(c.gray(`note:  box ${n} is already ticked — left as is`));
+  picked = picked.filter((n) => !boxes[n - 1].checked);
+  if (picked.length === 0) {
+    console.log(c.green("ok") + " nothing to tick");
+    return 0;
   }
   // Ticking an empty scaffold placeholder is a meaningless claim — it is how
   // a hollow change games the archive gate. Refuse (all-or-nothing) and name

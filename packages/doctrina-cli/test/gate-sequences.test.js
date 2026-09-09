@@ -76,8 +76,13 @@ test("`ci --emit github` reproduces the versioned action.yml byte for byte", () 
   // The action stays versioned because a project writing `uses: owner/repo@v1`
   // has no CLI to generate it with. This is what keeps the committed file and
   // the declaration from drifting apart anyway.
+  // Compared with terminators normalised: what must not drift is the STEPS,
+  // and the emitter writes LF while a Windows checkout hands back the
+  // committed file as CRLF. Comparing raw made this fail on every Windows
+  // machine for a difference no reader of action.yml would ever see.
+  const norm = (s) => String(s).replace(/\r\n/g, "\n");
   const committed = readFileSync(path.join(repoRoot, "action.yml"), "utf8");
-  assert.equal(emitGithub(), committed,
+  assert.equal(norm(emitGithub()), norm(committed),
     "action.yml is stale — re-emit it with `doctrina ci --emit github > action.yml`");
 });
 

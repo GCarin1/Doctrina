@@ -13,6 +13,7 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
 import { git, GIT_STATE } from "../lib/git.js";
 import { FIX_SHAPED, FIX_SHAPED_SUBJECT } from "../lib/lexicon.js";
+import { artifactNameError } from "../lib/names.js";
 
 const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
 
@@ -443,8 +444,9 @@ function firstWhyLine(proposalText) {
 
 function skillNew(args, flags) {
   const name = args[0];
-  if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
-    console.error(c.red("error:") + " skill name must be lowercase letters, digits, or hyphens (e.g. \"db-migration\")");
+  const nameError = artifactNameError(name, "skill name");
+  if (nameError) {
+    console.error(c.red("error:") + ` ${nameError} (e.g. "db-migration")`);
     return 2;
   }
   const force = flagBool(flags, "force", false);
@@ -504,6 +506,13 @@ function skillSync() {
     const desc = parseFrontmatter(read(f), "description");
     if (!desc) {
       console.log(c.yellow("skip   ") + ` ${id} (no description frontmatter)`);
+      continue;
+    }
+    // A description still in the template's `<...>` form is not "up to
+    // date" (change 0111): it is a file nobody wrote yet, and mirroring it
+    // into the index is what put the placeholder in every context pack.
+    if (/^<[^<>]*>$/.test(desc.trim())) {
+      console.log(c.yellow("scaffold") + ` ${id} — description is still the scaffold's placeholder; write description/when, then sync`);
       continue;
     }
     const entry = (index.artifacts.skills ?? []).find((s) => s.id === id);

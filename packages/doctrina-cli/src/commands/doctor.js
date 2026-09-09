@@ -12,7 +12,7 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { agentsMdBudget, collectValidation } from "../lib/validation-model.js";
 import { collectIndexDrift } from "../lib/scan.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
-import { configRows } from "../lib/config.js";
+import { configRows, loadConfig } from "../lib/config.js";
 import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
 
@@ -203,15 +203,19 @@ export async function run(_positional, _flags) {
       const warns = runtime.findings.length - errs.length;
       if (runtime.contracts === 0) {
         row("ok", "runtime", "no contracts — nothing declares a runtime surface");
+      } else if (errs.length > 0) {
+        // An error is an error whether or not any Wiring/Selectors row was
+        // declared: the structural half (CT01-CT03, change 0103) fails a
+        // contract that declares no rows at all, and "unchecked" would
+        // hide it.
+        row("fail", "runtime", `${errs.length} finding${errs.length === 1 ? "" : "s"} do${errs.length === 1 ? "es" : ""} not hold`, "doctrina contract check   (each finding names its own fix)");
+        for (const e of errs.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e.code} ${e.message}`);
       } else if (runtime.declared === 0) {
         // Silence is not proof: an undeclared surface is UNCHECKED, and a row
         // that read "ok" here would be the exact false confidence this
         // command exists to prevent.
         row("warn", "runtime", `${runtime.contracts} contract${runtime.contracts === 1 ? "" : "s"}, 0 Wiring/Selectors rows — the runtime surface is unchecked`, "declare Wiring/Selectors rows, then `doctrina contract check`");
         warningsTotal += 1;
-      } else if (errs.length > 0) {
-        row("fail", "runtime", `${errs.length} declaration${errs.length === 1 ? "" : "s"} do not hold`, "doctrina triage   (each finding names its own fix)");
-        for (const e of errs.slice(0, 3)) console.log(`        ${" ".repeat(16)} ${c.red("·")} ${e.code} ${e.message}`);
       } else if (warns > 0) {
         row("warn", "runtime", `${runtime.declared} declared row${runtime.declared === 1 ? " holds" : "s hold"}; ${warns} advisory finding${warns === 1 ? "" : "s"}`, "doctrina triage");
         warningsTotal += 1;
@@ -271,9 +275,22 @@ export async function run(_positional, _flags) {
     config: () => {
       const rows = configRows(projectRoot);
       const set = rows.filter((r) => r.configured);
-      row("ok", "config", set.length === 0
+      // The FILE first, then the values (change 0115): over an invalid
+      // config.json this row said "ok, all at their defaults" — true of the
+      // values, false of the file, on the same screen where the validate
+      // row failed it. A key the CLI does not know is named, not ignored.
+      const cfg = loadConfig(projectRoot);
+      const summary = set.length === 0
         ? `all ${rows.length} options at their defaults`
-        : `${set.length} of ${rows.length} options configured`);
+        : `${set.length} of ${rows.length} options configured`;
+      if (cfg.errors.length > 0) {
+        row("fail", "config", cfg.errors[0], "fix .doctrina/config.json, then `doctrina validate`");
+      } else if (cfg.unknown.length > 0) {
+        row("warn", "config", `${summary}; unknown key${cfg.unknown.length === 1 ? "" : "s"} ${cfg.unknown.map((k) => `"${k}"`).join(", ")} ignored`, "the keys are language, context_budget, rules");
+        warningsTotal += 1;
+      } else {
+        row("ok", "config", summary);
+      }
       for (const r of rows) {
         console.log(`        ${" ".repeat(16)} ${c.gray("·")} ${r.option.padEnd(15)} ${r.value.padEnd(22)} ${c.gray(r.source)}`);
       }

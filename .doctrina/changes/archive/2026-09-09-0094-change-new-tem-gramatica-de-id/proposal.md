@@ -1,6 +1,7 @@
 # Change 0094-change-new-tem-gramatica-de-id — change new tem gramatica de id
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-09
 - **Date:** 2026-09-09
 - **Owner:**
 - **Lane:** product (uncertain; signals: change)
@@ -29,8 +30,8 @@ carried by `validate` and `index rebuild` as legitimate ids.
 
 ## Verification
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
 - [x] A traversing id is refused with the usage class and writes nothing beside the project.
 - [x] An id with a space, an uppercase letter or a leading hyphen leaves no folder behind.
 - [x] The id shape `work` derives still opens a change.

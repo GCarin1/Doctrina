@@ -78,8 +78,11 @@ test("`init --intake <file>` lands where `init` then `intake <file>` lands", () 
       assert.equal(content, b.get(file), `${file} differs between the one-command and two-command paths`);
     }
     // AGENTS.md differs in exactly one line: the description.
-    const diff = a.get("AGENTS.md").split("\n")
-      .map((line, i) => [line, b.get("AGENTS.md").split("\n")[i]])
+    // Split on /\r?\n/: on a CRLF checkout, splitting on "\n" alone leaves a
+    // trailing \r on every line, so the "unchanged" side compared as "\r"
+    // rather than "" and the two paths looked different when they were not.
+    const diff = a.get("AGENTS.md").split(/\r?\n/)
+      .map((line, i) => [line, b.get("AGENTS.md").split(/\r?\n/)[i]])
       .filter(([x, y]) => x !== y);
     assert.equal(diff.length, 1, `AGENTS.md differs in ${diff.length} lines, expected only the description`);
     assert.ok(diff[0][0].startsWith("A billing system for small shops."),

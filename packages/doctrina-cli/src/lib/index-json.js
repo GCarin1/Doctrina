@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import { read, write, exists } from "./fs-ops.js";
-import { cliVersion } from "./version.js";
+import { cliVersion, newestVersion } from "./version.js";
 
 export const SCHEMA_VERSION = "0.1.0";
 
@@ -39,7 +39,7 @@ export function save(projectRoot, index) {
   // records which CLI last wrote it, so a stale stamp (an index written by an
   // older CLI) is detectable by `doctrina validate` and migrated by
   // `doctrina index rebuild`.
-  index.framework_version = cliVersion();
+  index.framework_version = newestVersion(index.framework_version, cliVersion());
   const p = indexPath(projectRoot);
   const text = JSON.stringify(index, null, 2) + "\n";
   write(p, text, { force: true });

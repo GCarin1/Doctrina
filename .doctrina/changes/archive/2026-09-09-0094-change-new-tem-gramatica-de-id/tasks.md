@@ -9,6 +9,6 @@
 
 ## Closing steps
 
-- [ ] Apply the change: merge each delta into the corresponding spec.
-- [ ] Archive the change folder.
-- [ ] Update `.doctrina/index.json` with new or modified artifacts.
+- [x] Apply the change: merge each delta into the corresponding spec.
+- [x] Archive the change folder.
+- [x] Update `.doctrina/index.json` with new or modified artifacts.

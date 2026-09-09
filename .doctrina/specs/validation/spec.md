@@ -6,7 +6,7 @@
 **Realizes:** SC1, SC2, SC3
 **Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.12.0
+**Version:** 0.13.0
 
 ## Purpose
 
@@ -53,6 +53,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall treat an HTML comment in an artifact as annotation rather than content, and every module that scans an artifact shall obtain the comment ranges from the document model instead of deciding for itself.
 - The system shall recognise, in one place, a section body that is still the shipped template — empty, only its instructional comment, or only a placeholder — and every module that must tell the mould from authored content shall use it.
 - The system shall parse task checkboxes in one module, treating a box with nothing written after it as an unwritten task rather than as no task at all, and every surface that counts or lists boxes shall read that parse.
+- The system's own test suite shall read and compare artifacts independently of line terminators, so a checkout that stores them as CRLF runs the same gate as one that stores them as LF.
 
 ### Event-driven
 
@@ -96,6 +97,7 @@ treatment cohorts using the same definition in each cohort.
 - The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
 - If an artifact the framework owns holds no content, or holds content with no title heading, the system shall report it as an error rather than as a well-formed artifact, because a header comparison finds nothing to disagree with in a file that has no headers.
 - If a capability spec is active and declares no acceptance criterion, the system shall not report the tree as structurally sound, because a capability that states what the system must do and nothing about how anyone would know it does cannot be proven.
+- The system's tests shall not assert against a fixture transformation without first establishing that the transformation occurred, so a pattern that matches nothing fails rather than passing quietly.
 
 ### Optional
 
@@ -175,6 +177,9 @@ The validation capability is delivered when:
 19. [verified] Content with no title, and a title that exists only inside a comment, are both reported, while a well-formed tree stays clean — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
 20. [verified] An active spec with no criteria fails the structural gate, whether the section is empty or absent, while a draft spec with none still passes — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
 21. [verified] An active spec that declares criteria passes, and `clarify`, `doctor` and `validate` reach the same verdict on the same tree — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
+22. [verified] The nine repaired files pass on a CRLF checkout, and no file under `src/` is changed to make them — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+23. [verified] A fixture that renames the recommended headings is held to having renamed them, so the case cannot measure its own no-op — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+24. [verified] The repository root a test builds from resolves on Windows as well as on POSIX — verified by `packages/doctrina-cli/test/check-docs.test.js`.
 
 ## Out of scope for this spec
 

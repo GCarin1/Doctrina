@@ -2,6 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
+import { wantsJson } from "../lib/json-out.js";
 import { spawn, spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
@@ -235,7 +236,11 @@ export async function run(_positional, flags) {
     // slower. Reading and showing are independent: the tee streams every
     // chunk as it arrives AND accumulates it for the match.
     const expectation = parseExpectation(ch);
-    const res = expectation
+    // Under --json the child is TEED as well (change 0114): with
+    // `stdio: "inherit"` its bytes go straight to the file descriptors,
+    // past the envelope's capture, so a failing check's diagnostics landed
+    // on the real stderr while the JSON said `"stderr": []`.
+    const res = expectation || wantsJson(flags)
       ? await runTee(ch.run, ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot)
       : spawnSync(ch.run, {
         cwd: ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot,

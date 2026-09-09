@@ -49,8 +49,17 @@ function project() {
 // leaves behind once someone deletes the placeholder.
 function emptyCriteria(dir, cap, status) {
   const p = specPath(dir, cap);
-  let text = readFileSync(p, "utf8")
-    .replace(/(## Acceptance criteria\n)[\s\S]*?(\n## |$)/, "$1\n$2");
+  // `\r?\n`, not `\n`: the scaffolded spec is CRLF on a Windows checkout, so
+  // the literal-newline pattern matched nothing, the section was never
+  // emptied, and both cases below asserted against an untouched spec.
+  const original = readFileSync(p, "utf8");
+  let text = original
+    .replace(/(## Acceptance criteria\r?\n)[\s\S]*?(\r?\n## |$)/, "$1\n$2");
+  // A fixture that transforms something is held to having transformed it.
+  // With the `\n`-anchored pattern this matched nothing on a CRLF checkout,
+  // the section was never emptied, and both cases below asserted happily
+  // against an untouched spec — green about a setup that never happened.
+  assert.notEqual(text, original, "the fixture did not empty the criteria section");
   if (status) text = text.replace(/\*\*Status:\*\*.*/, `**Status:** ${status}`);
   writeFileSync(p, text);
   assert.equal(run(dir, ["index", "rebuild"]).status, 0);

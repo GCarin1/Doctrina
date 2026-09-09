@@ -746,6 +746,88 @@ export function collectBudgets(projectRoot) {
 // The whole runtime verdict, for every contract in the project
 // ---------------------------------------------------------------------------
 
+/**
+ * The STRUCTURAL half of a contract, as findings (change 0103): port
+ * collisions, environment drift against `.env.example`, and references to
+ * capability specs that do not exist. These three lived inline in
+ * `contract check` while RT01-RT05 lived here — so `close`, which drives
+ * this collection, ran the runtime half and skipped the structural one: a
+ * contract with port 8080 claimed twice and a reference to a spec that did
+ * not exist failed `contract check` with 2 errors and passed the close's
+ * runtime step as "2 declared rows hold". One collection, every driver.
+ *
+ * @param {string} projectRoot
+ * @param {string} text  the contract's Markdown
+ * @returns {Finding[]}
+ */
+export function checkStructure(projectRoot, text) {
+  /** @type {Finding[]} */
+  const out = [];
+  const col = (headers, name) => {
+    const i = headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
+    return i < 0 ? 0 : i;
+  };
+
+  // CT01. Port collisions — two services must not claim the same port.
+  const ports = parseTable(getSection(text, "Ports"));
+  if (ports) {
+    const portCol = col(ports.headers, "port");
+    const svcCol = col(ports.headers, "service");
+    const seen = new Map();
+    for (const row of ports.rows) {
+      const port = (row[portCol] ?? "").trim();
+      if (!/^\d+$/.test(port)) continue;
+      const svc = (row[svcCol] ?? "?").trim();
+      if (seen.has(port)) {
+        out.push({
+          code: "CT01", level: "error",
+          message: `port ${port} is claimed by both "${seen.get(port)}" and "${svc}"`,
+          remedy: `give "${svc}" a port of its own in the Ports table, or drop the duplicate row`,
+        });
+      } else {
+        seen.set(port, svc);
+      }
+    }
+  }
+
+  // CT02. Environment drift — every declared variable must exist in
+  //       .env.example (when the project keeps one).
+  const envExamplePath = path.join(projectRoot, ".env.example");
+  const env = parseTable(getSection(text, "Environment"));
+  if (env && isFile(envExamplePath)) {
+    const envExample = read(envExamplePath);
+    const varCol = col(env.headers, "variable");
+    for (const row of env.rows) {
+      const name = (row[varCol] ?? "").trim();
+      if (!/^[A-Z][A-Z0-9_]*$/.test(name)) continue;
+      const declared = new RegExp(`^\\s*(export\\s+)?${name}\\s*=`, "m").test(envExample);
+      if (!declared) {
+        out.push({
+          code: "CT02", level: "warn",
+          message: `env var ${name} is in the contract but absent from .env.example`,
+          remedy: `add "${name}=" to .env.example, or drop the row from the Environment table`,
+          file: ".env.example",
+        });
+      }
+    }
+  }
+
+  // CT03. Referenced capability specs must exist.
+  for (const m of getSection(text, "References").matchAll(/specs\/([a-z][a-z0-9-]*)/g)) {
+    const refCap = m[1];
+    const specRel = `.doctrina/specs/${refCap}/spec.md`;
+    if (isFile(path.join(projectRoot, specRel))) continue;
+    if (out.some((f) => f.code === "CT03" && f.file === specRel)) continue;
+    out.push({
+      code: "CT03", level: "error",
+      message: `references spec "${refCap}" but ${specRel} does not exist`,
+      remedy: `create it with \`doctrina spec new ${refCap}\`, or correct the reference`,
+      file: specRel,
+    });
+  }
+  return out;
+}
+
 export function contractPaths(projectRoot) {
   const dir = path.join(projectRoot, ".doctrina", "contracts");
   if (!isDir(dir)) return [];
@@ -762,10 +844,12 @@ export function collectRuntimeFindings(projectRoot) {
   let declared = 0;
   const files = contractPaths(projectRoot);
   for (const file of files) {
-    const decl = parseRuntimeDeclaration(read(file));
+    const text = read(file);
+    const decl = parseRuntimeDeclaration(text);
     declared += decl.wiring.length + decl.selectors.length;
     const where = relPath(projectRoot, file).replaceAll("\\", "/");
     for (const f of [
+      ...checkStructure(projectRoot, text),
       ...checkWiring(projectRoot, decl),
       ...checkEmptySemantics(projectRoot, decl),
       ...checkEnums(projectRoot, decl),

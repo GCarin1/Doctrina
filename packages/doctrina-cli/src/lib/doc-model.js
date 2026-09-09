@@ -409,7 +409,11 @@ export function parseChecklist(text, opts = {}) {
       continue;
     }
     if (!inSection) continue;
-    const m = /^\s*-\s*\[([ xX])\]\s*(.*)$/.exec(lines[i]);
+    // Any Markdown bullet marker opens a box (change 0104): `* [ ]` and
+    // `+ [ ]` are task items to every renderer, and a box the grammar
+    // cannot see is one `tick` cannot tick and the archive gate cannot
+    // count — an unchecked task that closes green.
+    const m = /^\s*[-*+]\s*\[([ xX])\]\s*(.*)$/.exec(lines[i]);
     if (!m) continue;
     const body = m[2].trim();
     out.push({ line: i, checked: m[1] !== " ", text: body, placeholder: body === "" });

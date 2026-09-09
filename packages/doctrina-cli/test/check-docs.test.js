@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
 import { runChecks } from "../../../scripts/check-docs.js";
 
 // The docs gate used to check shape only — a page could document a removed
@@ -236,7 +237,11 @@ test("docs gate: a documented ADR range must reach the highest decision on disk"
 });
 
 test("docs gate: this repository's own counts agree with its catalog", async () => {
-  const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
+  // `new URL(...).pathname` yields "/C:/Users/..." on Windows, and resolving
+  // that produces "C:\C:\Users\..." — a path that cannot exist. Every other
+  // test file uses fileURLToPath; this one did not, so the docs gate could
+  // never run on a Windows checkout.
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
   const r = await runChecks(repoRoot);
   assert.deepEqual(failures(r, "count"), [], failures(r, "count").join("\n"));
 });

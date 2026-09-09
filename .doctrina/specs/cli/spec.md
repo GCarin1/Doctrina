@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.46.0
+**Version:** 0.47.0
 
 ## Purpose
 
@@ -67,6 +67,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall define in one module the vocabulary it reads natural language with — how text is folded, which words carry no signal, and how strongly a document answers a query — and every command that ranks or classifies text shall read it from there.
 - The system shall declare each deprecated operation in one place with the command that replaces it, the reason, and the version from which it is deprecated, and shall keep the deprecated name working until a later release removes it.
 - The system shall emit a JSON envelope whose `ok` and `exit_code` are derived from the code the command actually returns, so a consumer branching on the payload reaches the same verdict as one branching on the process.
+- The system shall capture, into the `--json` envelope, every line a command writes to the process's standard error stream as well as to the console, with carriage returns stripped, so that the envelope carries what the terminal showed and standard output stays pure JSON.
 
 ### Event-driven
 
@@ -134,6 +135,7 @@ command shares (git, the lexicon, the usage log).
 - When `doctrina next` runs, the system shall recommend an action for every gate signal the diagnostic reports — uncovered or dangling acceptance criteria, unrealized product intent, an undeclared build gate, and an active spec whose implementation is still planned — computed from the same collection the read-only views render.
 - When a refused flag is a near miss for one the command declares, the system shall name the declared flag as a suggestion, and shall still print the command's help when the help flag is present alongside it.
 - When a command is given a reference that does not resolve — a capability, a change id, an ADR number, a requirement or an acceptance criterion — the system shall report the usage class and name the reference, because the invocation is what has to change.
+- When `close` is given a change id that does not resolve, the system shall refuse with the usage class before sequencing any step, as every other command that takes a change id does.
 
 ### State-driven
 
@@ -223,7 +225,7 @@ The CLI is v0 spec-compliant when:
 13. [verified] No mutating command alters authored `AGENTS.md` or `product.md` content, and `intent add`, whose contract is to append an anchor, preserves every authored line — verified by `packages/doctrina-cli/test/integration.test.js`.
 14. [verified] Every command declares the JSON flag and emits parseable output carrying the schema version, the command, and the exit code — verified by `packages/doctrina-cli/test/json-output.test.js`.
 15. [verified] The envelope's success flag and exit code agree with the process exit status, and JSON output carries no ANSI escapes even when colour is forced — verified by `packages/doctrina-cli/test/json-output.test.js`.
-16. [verified] `tsc --noEmit` reports zero errors across every file under `packages/doctrina-cli/src/` and `scripts/` — run by `doctrina verify` and by CI.
+16. [verified] `tsc --noEmit` reports zero errors across every file under the CLI source and `scripts/` — run by `doctrina verify` and by CI — verified by `packages/doctrina-cli/test/typecheck.test.js`.
 17. [verified] Every source file under `src/` carries `// @ts-check`, so the file stays checked in an editor that does not load the project tsconfig — `packages/doctrina-cli/test/typecheck.test.js`.
 18. [verified] The published tarball contains no TypeScript configuration or type declarations, and the package declares no runtime dependencies — `packages/doctrina-cli/package.json`.
 19. [verified] No usage file appears unless DOCTRINA_USAGE_LOG names one, and no argument, path, id or prompt reaches the log — `packages/doctrina-cli/test/usage.test.js`.
@@ -245,6 +247,7 @@ The CLI is v0 spec-compliant when:
 35. [verified] The captured path is unchanged and every payload keeps its own data fields and schema version — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
 36. [verified] A reference that does not resolve costs the usage class in every command that takes one, and a capability an open change is staging a delta for is not one — verified by `packages/doctrina-cli/test/the-exit-contract-holds.test.js`.
 37. [verified] No view refuses when it finds nothing, and no class that was already right — success, a gate that measured and failed, a malformed invocation — moved — verified by `packages/doctrina-cli/test/the-exit-contract-holds.test.js`.
+38. [verified] `close 0099` exits 2 without sequencing a step; `verify --json` with a check that writes to stderr yields pure JSON on stdout and an envelope carrying those lines without `\r`; `change tick <id> abc` names the argument — verified by `packages/doctrina-cli/test/the-stragglers-of-the-exit-contract.test.js`.
 
 ## Out of scope for this spec
 

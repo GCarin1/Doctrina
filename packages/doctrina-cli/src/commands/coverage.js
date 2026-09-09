@@ -146,7 +146,18 @@ export async function run(_positional, flags) {
     const note = notes.length > 0 ? `  (${notes.join(", ")})` : "";
     console.log(`  ${c.cyan(rep.cap.padEnd(20))} ${covered}/${rep.rows.length} criteria${note}`);
     for (const r of rep.rows) {
-      if (r.kind === "covered") continue;
+      if (r.kind === "covered") {
+        // Linked is not certified (change 0105), and one citation resolving
+        // does not make the other one true (change 0106): both are said,
+        // neither lowers the count — the evidence IS linked.
+        if (r.unverified) {
+          console.log(`    ${c.gray("○")} #${r.n}  proof resolves but the criterion is still marked [unverified] — flip the mark when the test proves it (spec set <cap> --criterion ${r.n}:verified)`);
+        }
+        if (r.missing?.length > 0) {
+          console.log(`    ${c.yellow("!")} #${r.n}  also cites evidence that does not resolve: ${r.missing.map((m) => `\`${m}\``).join(", ")}`);
+        }
+        continue;
+      }
       if (r.kind === "deferred") {
         console.log(`    ${c.gray("○")} #${r.n}  deferred — spec declares "Implementation: planned — <why>" (visible, not gated)`);
       } else if (r.kind === "bare") {

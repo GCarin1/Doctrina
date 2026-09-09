@@ -13,6 +13,7 @@ import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { derivedImplementations } from "../lib/coverage-model.js";
+import { artifactNameError } from "../lib/names.js";
 
 const SUBCOMMANDS = ["new", "list", "set"];
 
@@ -35,8 +36,9 @@ export async function run(positional, flags) {
   if (sub === "set") return specSet(positional.slice(1), flags);
 
   const capability = positional[1];
-  if (!capability || !/^[a-z][a-z0-9-]*$/.test(capability)) {
-    console.error(c.red("error:") + " capability must be lowercase letters, digits, or hyphens (e.g. \"core\", \"templates\").");
+  const nameError = artifactNameError(capability, "capability");
+  if (nameError) {
+    console.error(c.red("error:") + ` ${nameError} (e.g. "core", "templates")`);
     return 2;
   }
 

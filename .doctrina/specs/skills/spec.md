@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/skill.js`
 **Last updated:** 2026-07-02
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -85,6 +85,7 @@ replacing it.
 - Skills shall not duplicate spec content. Specs describe what
   the system does (semantic); skills describe how to perform a
   task well (procedural).
+- The system shall not treat a `when:` trigger still in the scaffold's `<...>` form as detectable, and `skill sync` shall say the skill is still the scaffold rather than report it up to date.
 
 ### Optional
 
@@ -113,6 +114,7 @@ A `.doctrina/skills/` directory is spec-compliant when:
    `packages/doctrina-cli/src/commands/validate.js`.
 6. [verified] A trigger drafted from an error satisfies validate's detectable-trigger check — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 7. [verified] Skills matching a `--for` query are ranked above the rest and marked — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+8. [verified] A scaffolded skill's `when:` is not a detectable trigger and `skill sync` names it as scaffold; once filled, sync indexes it — verified by `packages/doctrina-cli/test/a-scaffold-is-not-an-artifact.test.js`.
 
 ## Out of scope for this spec
 

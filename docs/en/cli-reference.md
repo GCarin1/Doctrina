@@ -129,7 +129,7 @@ doctrina intake                       # reprint the playbook for a pending intak
 | Flag | Purpose |
 |------|---------|
 | `--text "<description>"` | Inline description instead of a file. |
-| `--force` | Overwrite an existing `.doctrina/intake.md`. |
+| `--force` | Overwrite an existing `.doctrina/intake.md` that is still `pending`. A **converted** intake is never reopened — `--force` refuses with exit `3` and points at `doctrina intent add` (new intent) and `doctrina work` (a change of behaviour). |
 
 The positional takes either. A value that cannot be a path — a sentence,
 with spaces and no separator or document extension — is read as the
@@ -187,6 +187,13 @@ defaults, declared enums, and selectors that would match nothing.
 | `--json` | Emit `{ lane, confident, contracts, declared, findings, errors }`. |
 
 Exits 0 when no runtime errors (warnings allowed), 1 when any error stands.
+
+The classifier reads Portuguese as well as English: the prompt is folded
+(accents stripped, lower-cased) and every signal list carries both
+vocabularies, so "o build está quebrado no CI, a variável nunca chega ao
+processo" is held as RUNTIME exactly like its English twin. `clarify`
+does the same when the language is detected per file: a bilingual
+document is scanned with both lexicons.
 
 ## `doctrina work "<prompt>"`
 
@@ -253,7 +260,12 @@ doctrina spec new checkout-flow --bug
 ```
 
 Writes `.doctrina/specs/<capability>/spec.md` and adds an entry to
-`.doctrina/index.json`. Capability names must match `[a-z][a-z0-9-]*`.
+`.doctrina/index.json`. Capability names — and contract and skill names,
+which share the grammar — are lowercase letters, digits and hyphens,
+start with a letter, carry no trailing or doubled hyphen, run at most 64
+characters, and are never a Windows reserved device name (`con`, `prn`,
+`aux`, `nul`, `com1`–`com9`, `lpt1`–`lpt9` — a directory git can neither
+see nor remove there). The error names the rule that failed.
 
 A capability spec carries two independent axes: the document `Status:`
 (`draft` → `active` → `deprecated`) and the `Implementation:` state
@@ -320,6 +332,16 @@ Stamps `Last updated:` and regenerates `.doctrina/index.json` from the
 tree, echoing the **spec's** resulting version (not the CLI's — the two
 looked identical in output and the ambiguity was a field-review
 papercut). With no edit flag it exits 2.
+
+The two headers and the criterion mark have a **domain**, enforced at
+every door: `Status` is `draft | active | deprecated`, `Implementation`
+is the four-rung ladder above, and a criterion mark is `[verified]`,
+`[unverified]` or `[orchestration]`. `spec set`, a delta's `ops` block
+and `validate` read the same list, so `--status bogus` is refused with
+the spec untouched, and a value typed by hand outside the list is a
+`validate` error rather than a state `prime` reports. A note after the
+word stays legal (`planned — deferred, see ADR 0007`): only the word is
+checked.
 
 ## `doctrina change new <id> "<title>"`
 
@@ -501,6 +523,13 @@ unwritten task is a task nobody finished, and hiding it is what let
 boxes to that, because they share its ordinal space, and names the file
 each ordinal came from.
 
+The ordinals are **stable**: they run over every box in reading order,
+ticked or not, so `tick <id> 2` names the same box today and after box 1
+is done. The listing shows each box's state; a box already ticked is a
+named no-op; an argument that is not a number is refused by name. Any
+Markdown bullet (`-`, `*`, `+`) opens a box, for `tick` and for the
+archive gate alike.
+
 ## `doctrina change diff <id>` — deprecated
 
 > **Deprecated.** Use `doctrina change check <id> --verbose`, which runs
@@ -571,7 +600,10 @@ doctrina decision supersede 0007 "Adopt CRDT-based ledger"
 ```
 
 The body of the old ADR is never touched. The new ADR carries
-`Supersedes: 0007` in its frontmatter.
+`Supersedes: 0007` in its frontmatter. Only an **accepted** ADR is
+superseded: a proposed target is refused naming its state (a proposal that
+fell is set to `rejected` or deleted), and a title that is only digits is
+refused as the argument order swapped.
 
 ## `doctrina decision accept <number>`
 
@@ -701,9 +733,10 @@ doctrina skill sync
 The frontmatter is the single source of truth: edit the skill
 file, run `sync`, and the index follows. Skills present on disk
 but absent from the index are indexed; skills without a
-`description:` field are reported and skipped. Never edits skill
-files. `doctrina validate` warns when a description has drifted
-from the index.
+`description:` field are reported and skipped, and a skill whose
+description is still the template's `<…>` placeholder is named as
+scaffold rather than mirrored. Never edits skill files. `doctrina
+validate` warns when a description has drifted from the index.
 
 ## `doctrina skill suggest`
 
@@ -981,6 +1014,12 @@ Install the Doctrina pre-commit hook into `.git/hooks/pre-commit`.
 doctrina hooks install [--force]
 ```
 
+The hook pins the CLI that installed it — `.git/hooks/` is local to the
+clone, so it names that CLI's entrypoint by absolute path and reads
+`DOCTRINA=` from the environment as the override. A bare `doctrina` on the
+PATH may be an older release, and an older release rebuilding the index
+used to rewrite the `framework_version` stamp backwards on every commit.
+
 The hook runs `doctrina validate --fix`: it regenerates
 `index.json` from the tree (healing the most common gate failure —
 a hand-edited header that drifted the index — and re-staging the
@@ -1124,6 +1163,28 @@ Checks performed:
     written as pure prose ("whenever it seems relevant") can never fire,
     and the skill is loaded only by someone who already knew it existed.
 
+30. **Ghost references.** A spec's `Depends on:` naming a capability with
+    no spec is an error (the pack, the graph and the review all read that
+    header); an open change's `Affects specs:` naming one with no spec and
+    no ADDED delta in the change warns; an intent anchor declared twice in
+    `product.md` is an error, and `trace` names the duplicate.
+31. **Scaffold placeholders in contracts and skills.** A contract still
+    carrying `<NAME>` rows or `specs/<capability>` under References warns;
+    a skill whose `description:` or `when:` is still the template's
+    `<…>` form warns, and such a `when:` is never a detectable trigger.
+32. **A spec off the path.** A loose `.md` in `.doctrina/specs/`, a
+    capability directory without `spec.md`, or a second file there that
+    opens like a spec warns with the canonical path — nothing outside
+    `specs/<capability>/spec.md` is read.
+33. **Unknown configuration keys.** A key in `config.json` the CLI does not
+    know warns with the keys it accepts; the value is ignored, never
+    silently.
+
+The `framework_version` stamp is never rewound: an index written by a
+newer CLI keeps its stamp under an older one (`--fix` and `index rebuild`
+alike), `validate` names the gap as "upgrade the CLI", and `index rebuild
+--check` does not count a stamp ahead as drift.
+
 The `--fix` flag regenerates `index.json` from the tree before checking,
 so a drifted index is repaired (and the `framework_version` stamp
 migrated) rather than reported — the shipped pre-commit hook runs this.
@@ -1160,6 +1221,19 @@ A project that declares no criterion at all has no ratio to report, so
 coverage says so — *no criteria declared*, `pct: null` in `--json` — rather
 than scoring 100% over nothing. `status`, `prime`, `report`, `handoff` and
 `doctor` all render that same absence.
+
+Two more things the arithmetic honours. **The author's mark**: a
+criterion still marked `[unverified]` whose proof resolves is evidence
+*linked*, not certified — the derived `Implementation` stops at
+`implemented` until the mark is flipped (`spec set <cap> --criterion
+<n>:verified`), and the report lists the criteria waiting. **Where proof
+lives**: a cited path must be a file inside the project. A path that
+resolves outside the root (`../other/app.py`, an absolute path) or to a
+directory (`tests/`) is not evidence — it is reported as dangling with
+the reason, while a directory named next to a real proof is a prose
+mention and stays silent. A criterion that cites one path that resolves
+and one that does not is covered, and the report names the one that
+does not.
 
 ### Orchestration criteria
 
@@ -1306,7 +1380,9 @@ sign-off, not run as a command.
 Each `run` executes in order through the shell with output streamed;
 `verify` exits non-zero if any command check fails. With no config it exits
 1 and points at `--init`. Sign-offs live in
-`.doctrina/verify.signoffs.json`.
+`.doctrina/verify.signoffs.json`. Under `--json` every check is teed, so
+the envelope's `stdout`/`stderr` carry what the checks printed — carriage
+returns stripped — and standard output stays pure JSON.
 
 ### A manual sign-off expires
 
@@ -1570,6 +1646,7 @@ Run the whole closing sequence for a change in one pass (ADR 0012).
 ```
 doctrina close 0001-add-login
 doctrina close 0001-add-login --force
+doctrina close 0099-nao-existe        # exit 2 before any step: a reference that does not resolve
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 
@@ -1905,7 +1982,11 @@ doctrina doctor
 Sequences the existing checks — the structural checks (`validate`), the
 index drift check, the coverage/trace ratios, the clean-checkout lint
 (`verify --clean`), the template-shape check, the **runtime** surface,
-and the verify-config presence — and reports each area as ok/warn/FAIL
+and the verify-config presence — and reports each area as ok/warn/FAIL.
+The `config` row reports the file first: an unparseable or rejected
+`config.json` fails it naming the error (the values it fell back to are
+not the file), and an unknown key warns with the keys it accepts. Rows
+report
 **with its exact remediation command**. A driver over the same
 collections the gates render (like `close`): it adds no checks of its
 own, so it can never disagree with the gates it fronts, and the whole

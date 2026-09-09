@@ -4,7 +4,7 @@ import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { today } from "./dates.js";
-import { cliVersion } from "./version.js";
+import { cliVersion, newestVersion } from "./version.js";
 import { load } from "./index-json.js";
 import { parseFrontmatter } from "./doc-model.js";
 import { parseCapabilityFromDelta } from "./doc-model.js";
@@ -403,7 +403,10 @@ export function collectIndexDrift(projectRoot) {
     unreadable = err.message;
   }
   const derived = deriveIndex(projectRoot, current);
-  derived.framework_version = cliVersion();
+  // A stamp ahead of this CLI is not drift (change 0116): the tree is
+  // managed by a newer release, and `--check` in CI must not go red because
+  // one teammate's CLI is older than the one that last wrote the index.
+  derived.framework_version = newestVersion(current?.framework_version, cliVersion());
   if (indexesMatch(derived, current)) {
     return { ok: true, drift: [], derived, current, unreadable };
   }

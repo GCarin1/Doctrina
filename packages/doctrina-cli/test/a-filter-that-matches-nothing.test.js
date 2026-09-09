@@ -94,8 +94,14 @@ test("an empty tree and an empty capability say different things", () => {
     // The capability exists but declares no criteria: that is not "the tree
     // has none", and the two used to share the false sentence.
     const spec = path.join(dir, ".doctrina", "specs", "carteira", "spec.md");
-    writeFileSync(spec, readFileSync(spec, "utf8")
-      .replace(/(## Acceptance criteria\n)[\s\S]*?(\n## |$)/, "$1\n$2"));
+    // `\r?\n`: the scaffolded spec is CRLF on a Windows checkout, so this
+    // emptied nothing and the case measured a spec that still declared its
+    // placeholder criterion. Asserted, not trusted — a fixture edit that
+    // matches nothing must fail here rather than downstream.
+    const original = readFileSync(spec, "utf8");
+    const emptied = original.replace(/(## Acceptance criteria\r?\n)[\s\S]*?(\r?\n## |$)/, "$1\n$2");
+    assert.notEqual(emptied, original, "the fixture did not empty the criteria section");
+    writeFileSync(spec, emptied);
     assert.equal(run(dir, ["index", "rebuild"]).status, 0);
 
     const out = run(dir, ["coverage", "--only", "carteira"]);

@@ -8,7 +8,7 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { summarize, collectAnchors, collectSpecs } from "../lib/trace-model.js";
+import { summarize, collectAnchors, collectAnchorDuplicates, collectSpecs } from "../lib/trace-model.js";
 
 // The provenance arithmetic lives in lib/trace-model.js, which `status`,
 // `review` and the project snapshot read too (audit finding F7).
@@ -53,6 +53,11 @@ export async function run(_positional, flags) {
 
   const anchors = collectAnchors(projectRoot); // [{ id }], in document order
   const specs = collectSpecs(projectRoot); // [{ cap, status, realizes: [id] }]
+  // An id declared twice is two intents under one name (change 0108): the
+  // collector keeps the first, so the second is invisible everywhere unless
+  // named here. A gap, like a dropped anchor — `validate` reports it as an
+  // error as well.
+  const duplicates = collectAnchorDuplicates(projectRoot); // [{ id, lines }]
 
   const anchorIds = new Set(anchors.map((a) => a.id));
   // A spec OPTED IN when it cites at least one anchor id. The header alone
@@ -102,8 +107,8 @@ export async function run(_positional, flags) {
 
   if (json) {
     const rows = anchors.map((a) => ({ id: a.id, realizedBy: (realizedBy.get(a.id) ?? []).sort() }));
-    const clean = rows.every((r) => r.realizedBy.length > 0) && dangling.length === 0 && untraceable.length === 0;
-    emitJson("trace", { anchors: rows, dangling, untraceable, summary: summarize(projectRoot) });
+    const clean = rows.every((r) => r.realizedBy.length > 0) && dangling.length === 0 && untraceable.length === 0 && duplicates.length === 0;
+    emitJson("trace", { anchors: rows, dangling, untraceable, duplicates, summary: summarize(projectRoot) });
     return clean ? 0 : strict ? 1 : 0;
   }
 
@@ -121,7 +126,10 @@ export async function run(_positional, flags) {
     }
   }
 
-  if (dangling.length > 0 || untraceable.length > 0) console.log("");
+  if (dangling.length > 0 || untraceable.length > 0 || duplicates.length > 0) console.log("");
+  for (const d of duplicates) {
+    console.log(`  ${c.red("✗")} duplicate anchor [${d.id}] — declared at product.md lines ${d.lines.join(" and ")}; only the first is read, give the second its own id`);
+  }
   for (const d of dangling) {
     console.log(`  ${c.yellow("!")} dangling: spec "${d.cap}" realizes ${d.id} (no such anchor in product.md)`);
   }
@@ -135,11 +143,12 @@ export async function run(_positional, flags) {
     ? `no intent anchors declared in product.md` +
       `; ${dangling.length} dangling, ${untraceable.length} untraceable`
     : `${realized} of ${anchors.length} intent anchor${anchors.length === 1 ? "" : "s"} realized` +
-      `; ${dropped} dropped, ${dangling.length} dangling, ${untraceable.length} untraceable`;
+      `; ${dropped} dropped, ${dangling.length} dangling, ${untraceable.length} untraceable` +
+      (duplicates.length > 0 ? `, ${duplicates.length} duplicate` : "");
   // Reaching the report with no anchors at all is never clean: there is
   // nothing to have realized, and a ratio over zero says nothing true.
   const clean = anchors.length > 0
-    && dropped === 0 && dangling.length === 0 && untraceable.length === 0;
+    && dropped === 0 && dangling.length === 0 && untraceable.length === 0 && duplicates.length === 0;
   if (clean) {
     console.log(c.green("ok") + " " + summary);
     return 0;

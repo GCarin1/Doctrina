@@ -122,12 +122,18 @@ export function summarize(projectRoot) {
  * A spec with no acceptance criteria has nothing to derive from, so it
  * returns null and every surface stays quiet about it.
  *
- * @returns {"verified"|"partial"|"planned"|null}
+ * @returns {"verified"|"implemented"|"partial"|"planned"|null}
  */
 export function deriveImplementation(row) {
   if (!row || row.total === 0) return null;
   const problems = row.dangling + row.conditional + row.unguarded + row.deferred;
-  if (row.covered === row.total && problems === 0) return "verified";
+  if (row.covered === row.total && problems === 0) {
+    // Every proof resolves — but a criterion the author still marks
+    // [unverified] is linked, not certified (change 0105). The ladder's
+    // rung for "the code is there; I have not certified it" is
+    // `implemented`, and the arithmetic may not climb past the mark.
+    return (row.unverified ?? 0) > 0 ? "implemented" : "verified";
+  }
   return row.covered > 0 ? "partial" : "planned";
 }
 
@@ -136,7 +142,7 @@ export function deriveImplementation(row) {
  * arithmetic `validate`, `close` and `spec set --implementation auto` all
  * read, so the three can never propose different values.
  *
- * @returns {Map<string, {derived: string, covered: number, total: number, deferred: boolean}>}
+ * @returns {Map<string, {derived: string, covered: number, total: number, deferred: boolean, unverified: number}>}
  */
 export function derivedImplementations(projectRoot, { only = null } = {}) {
   const out = new Map();
@@ -148,9 +154,10 @@ export function derivedImplementations(projectRoot, { only = null } = {}) {
       conditional: rep.rows.filter((r) => r.kind === "conditional").length,
       unguarded: rep.rows.filter((r) => r.kind === "unguarded").length,
       deferred: rep.rows.filter((r) => r.kind === "deferred").length,
+      unverified: rep.rows.filter((r) => r.kind === "covered" && r.unverified).length,
     };
     const derived = deriveImplementation(row);
-    if (derived) out.set(rep.cap, { derived, covered: row.covered, total: row.total, deferred: rep.deferred });
+    if (derived) out.set(rep.cap, { derived, covered: row.covered, total: row.total, deferred: rep.deferred, unverified: row.unverified });
   }
   return out;
 }
@@ -307,14 +314,39 @@ function classify(criterion, n, projectRoot, specDir) {
   if (cited.length === 0) return { kind: "bare", n };
   const missing = [];
   const resolved = [];
+  // The author's own mark, carried on the row (change 0105): a criterion
+  // marked [unverified] whose proof resolves is evidence LINKED, not a
+  // certification — the mark is flipped when the test proves it, and until
+  // then the derived Implementation may not read "verified" off it.
+  const unverified = /^unverified\b/.test(marker);
+  // Proof lives in the project (change 0106). `path.resolve` happily
+  // followed `../other/app.py` and `C:/Windows/notepad.exe` out of the tree,
+  // and `exists` accepted a directory — `tests/` — as the file that proves a
+  // claim. A path outside the root, or a directory, is not evidence: it is
+  // reported as missing with the reason, and the criterion is not covered
+  // by it.
+  const root = path.resolve(projectRoot);
+  const inside = (abs) => abs === root || abs.startsWith(root + path.sep);
+  // Directories and bare names cited next to a resolving proof are prose
+  // MENTIONS ("every file under `src/`"), not claims of evidence; they are
+  // not reported on a covered row. Alone, they leave the criterion dangling.
+  const mentions = [];
   for (const token of cited) {
-    const candidates = [
-      path.resolve(projectRoot, token),
-      path.resolve(specDir, token),
-    ];
+    const candidates = path.isAbsolute(token)
+      ? [path.resolve(token)]
+      : [path.resolve(projectRoot, token), path.resolve(specDir, token)];
     const hit = candidates.find(exists);
     if (!hit) {
       missing.push(token);
+      continue;
+    }
+    if (!inside(hit)) {
+      missing.push(`${token} (outside the project)`);
+      continue;
+    }
+    if (!isFile(hit)) {
+      missing.push(`${token} (a directory, not a file)`);
+      mentions.push(token);
       continue;
     }
     const isTest = looksLikeTestFile(token);
@@ -328,8 +360,14 @@ function classify(criterion, n, projectRoot, specDir) {
   // Real proof = a non-test artifact, or a test file whose suite runs. If the
   // only thing that resolves is a skipped test, the criterion is conditional.
   const hasRealProof = resolved.some((r) => !r.isTest || !r.skipped);
-  if (hasRealProof) return { kind: "covered", n, evidence };
-  return { kind: "conditional", n, skipped: resolved.map((r) => r.token), evidence: [] };
+  // `missing` rides along on a covered row: one citation resolving does
+  // not make the other one true, and the report names it (change 0106).
+  if (hasRealProof) {
+    const claims = missing.filter((m) =>
+      !mentions.some((d) => m.startsWith(`${d} `)) && /[\\/]/.test(m) && !/[\\/]$/.test(m));
+    return { kind: "covered", n, evidence, unverified, missing: claims };
+  }
+  return { kind: "conditional", n, skipped: resolved.map((r) => r.token), evidence: [], unverified, missing };
 }
 
 // A cited path is a test file when it sits under a tests directory or carries

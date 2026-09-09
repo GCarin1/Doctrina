@@ -196,6 +196,12 @@ well-formed, the specs trace, the criteria cite proof, and the pipeline
 is green while the process never sees the variable. So the check sits in
 the sequence rather than in your judgement.
 
+The step is `doctrina contract check`, whole — the structural half too
+(CT01 a port claimed twice, CT02 a variable absent from `.env.example`,
+CT03 a reference to a spec that does not exist). The two halves are one
+collection in the CLI, so what `contract check` fails, the close fails,
+and `doctor` reports the same findings with the same codes.
+
 The cost is bounded by what you declared:
 
 - **No contracts** — one line, exit 0. Nothing changes.

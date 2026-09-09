@@ -42,9 +42,13 @@ const lines = (dir) => readFileSync(agents(dir), "utf8").split(/\r?\n/).length;
 // measured.
 function withMissingSections(dir, targetLines = 0) {
   const file = agents(dir);
+  // Match the heading LINE, not the heading plus a "\n": AGENTS.md is
+  // checked out CRLF on Windows, so the literal-string replaces matched
+  // nothing, the fixture renamed neither heading, and all five cases below
+  // then measured a project that was missing zero sections.
   const body = readFileSync(file, "utf8")
-    .replace("## Commands\n", "## Build commands\n")
-    .replace("## Repository structure\n", "## Layout\n")
+    .replace(/^## Commands[ \t]*$/m, "## Build commands")
+    .replace(/^## Repository structure[ \t]*$/m, "## Layout")
     .split(/\r?\n/);
   while (body.length < targetLines) body.push(`- padding ${body.length}`);
   writeFileSync(file, body.join("\n"));

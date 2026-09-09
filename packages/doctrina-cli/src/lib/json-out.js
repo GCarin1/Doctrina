@@ -116,14 +116,26 @@ export async function captureOutput(fn) {
   // only console.* let that output escape the envelope and corrupt the
   // JSON on stdout, so the raw stream is captured too.
   const origWrite = process.stdout.write.bind(process.stdout);
+  // The raw stderr stream is captured too (change 0114): `verify` tees a
+  // child's stderr straight to process.stderr, so a failing check's
+  // diagnostics landed on the real stderr while the envelope said
+  // `"stderr": []`. Carriage returns are stripped — a child on Windows
+  // writes CRLF, and `"ok\r"` is not a line.
+  const origErrWrite = process.stderr.write.bind(process.stderr);
   const pushLines = (target, chunk) => {
-    for (const line of String(chunk).replace(/\n$/, "").split("\n")) target.push(line);
+    for (const line of String(chunk).replace(/\r?\n$/, "").split(/\r?\n/)) target.push(line.replace(/\r$/, ""));
   };
   console.log = (...args) => stdout.push(args.map(String).join(" "));
   console.error = (...args) => stderr.push(args.map(String).join(" "));
   console.warn = (...args) => stderr.push(args.map(String).join(" "));
   process.stdout.write = (chunk, ...rest) => {
     pushLines(stdout, chunk);
+    const cb = rest.find((r) => typeof r === "function");
+    if (cb) cb();
+    return true;
+  };
+  process.stderr.write = (chunk, ...rest) => {
+    pushLines(stderr, chunk);
     const cb = rest.find((r) => typeof r === "function");
     if (cb) cb();
     return true;
@@ -136,6 +148,7 @@ export async function captureOutput(fn) {
     console.error = origError;
     console.warn = origWarn;
     process.stdout.write = origWrite;
+    process.stderr.write = origErrWrite;
   }
 }
 

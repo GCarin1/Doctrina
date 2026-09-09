@@ -135,7 +135,7 @@ doctrina intake                       # reimprime o playbook de um intake penden
 | Flag | Função |
 |------|--------|
 | `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
-| `--force` | Sobrescreve um `.doctrina/intake.md` existente. |
+| `--force` | Sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
 
 O positional aceita os dois. Um valor que não pode ser um caminho — uma
 frase, com espaços e sem separador nem extensão de documento — é lido como a
@@ -194,6 +194,13 @@ vazio-vs-ausente, enums declarados e seletores que não casariam nada.
 
 Sai 0 quando não há erro de runtime (warnings permitidos), 1 quando algum
 erro permanece.
+
+O classificador lê português tanto quanto inglês: o prompt é dobrado
+(acentos removidos, minúsculas) e cada lista de sinais carrega os dois
+vocabulários, então "o build está quebrado no CI, a variável nunca chega
+ao processo" é segurado como RUNTIME exatamente como o gêmeo em inglês.
+O `clarify` faz o mesmo quando a língua é detectada por arquivo: um
+documento bilíngue é varrido com os dois léxicos.
 
 ## `doctrina work "<prompt>"`
 
@@ -262,8 +269,12 @@ doctrina spec new checkout-flow --bug
 ```
 
 Escreve `.doctrina/specs/<capability>/spec.md` e adiciona entrada
-em `.doctrina/index.json`. Nomes de capability devem casar com
-`[a-z][a-z0-9-]*`.
+em `.doctrina/index.json`. Nomes de capability — e de contrato e de
+skill, que partilham a gramática — são minúsculas, dígitos e hífens,
+começam por letra, não têm hífen final nem duplo, têm no máximo 64
+caracteres e nunca são um nome de dispositivo reservado do Windows (`con`,
+`prn`, `aux`, `nul`, `com1`–`com9`, `lpt1`–`lpt9` — uma pasta que o git
+não enxerga nem remove lá). O erro nomeia a regra que falhou.
 
 Uma spec de capability tem dois eixos independentes: o `Status:` do
 documento (`draft` → `active` → `deprecated`) e o estado de
@@ -332,6 +343,16 @@ Carimba `Last updated:` e regenera `.doctrina/index.json` a partir
 da árvore, ecoando a versão resultante da **spec** (não a do CLI — as
 duas eram idênticas na saída, e a ambiguidade foi um papercut da review
 de campo). Sem nenhuma flag de edição, sai com código 2.
+
+Os dois cabeçalhos e a marca do critério têm um **domínio**, imposto em
+toda porta: `Status` é `draft | active | deprecated`, `Implementation` é
+a escada de quatro degraus acima, e a marca de um critério é
+`[verified]`, `[unverified]` ou `[orchestration]`. O `spec set`, o bloco
+`ops` de um delta e o `validate` leem a mesma lista, então `--status
+bogus` é recusado com a spec intocada, e um valor digitado à mão fora da
+lista é um erro do `validate`, não um estado que o `prime` reporta. Uma
+nota depois da palavra continua válida (`planned — adiado, ver ADR
+0007`): só a palavra é verificada.
 
 ## `doctrina change new <id> "<title>"`
 
@@ -518,6 +539,13 @@ caixas abertas. O `tick` soma a isso as caixas de Verification do
 proposal, porque elas dividem o espaço de ordinais dele, e nomeia de qual
 arquivo veio cada ordinal.
 
+Os ordinais são **estáveis**: correm sobre toda caixa em ordem de
+leitura, marcada ou não, então `tick <id> 2` nomeia a mesma caixa hoje e
+depois que a 1 for feita. A listagem mostra o estado de cada caixa; uma
+caixa já marcada é um no-op nomeado; um argumento que não é número é
+recusado pelo nome. Qualquer bullet Markdown (`-`, `*`, `+`) abre uma
+caixa, para o `tick` e para o gate de archive igualmente.
+
 ## `doctrina change diff <id>` — depreciado
 
 > **Depreciado.** Use `doctrina change check <id> --verbose`, que executa
@@ -591,7 +619,10 @@ doctrina decision supersede 0007 "Adotar ledger baseado em CRDT"
 ```
 
 O corpo do ADR antigo nunca é tocado. O novo ADR carrega
-`Supersedes: 0007` no frontmatter.
+`Supersedes: 0007` no frontmatter. Só uma ADR **aceita** é superada: um
+alvo `proposed` é recusado com o estado nomeado (uma proposta que caiu vira
+`rejected` ou é apagada), e um título só de dígitos é recusado como a
+ordem dos argumentos trocada.
 
 ## `doctrina decision accept <number>`
 
@@ -721,9 +752,10 @@ doctrina skill sync
 O frontmatter é a fonte única de verdade: edite o arquivo da
 skill, rode `sync`, e o index acompanha. Skills presentes em
 disco mas ausentes do index são indexadas; skills sem campo
-`description:` são reportadas e puladas. Nunca edita arquivos
-de skill. O `doctrina validate` avisa quando uma description
-drifou do index.
+`description:` são reportadas e puladas, e uma skill cuja description
+ainda é o placeholder `<…>` do template é nomeada como scaffold em vez de
+espelhada. Nunca edita arquivos de skill. O `doctrina validate` avisa
+quando uma description drifou do index.
 
 ## `doctrina skill suggest`
 
@@ -1007,6 +1039,12 @@ Instala o pre-commit hook do Doctrina em
 doctrina hooks install [--force]
 ```
 
+O hook fixa a CLI que o instalou — `.git/hooks/` é local ao clone, então
+ele nomeia o entrypoint dessa CLI por caminho absoluto e lê `DOCTRINA=` do
+ambiente como override. Um `doctrina` solto no PATH pode ser uma release
+mais velha, e uma release mais velha reconstruindo o índice reescrevia o
+carimbo `framework_version` para trás a cada commit.
+
 O hook roda `doctrina validate --fix`: ele regenera o `index.json`
 a partir da árvore (curando a falha de gate mais comum — um header
 editado à mão que dessincronizou o índice — e re-stageando o índice
@@ -1160,6 +1198,28 @@ Checagens:
     parecer relevante") nunca dispara, e a skill só é carregada por quem já
     sabia que ela existia.
 
+30. **Referências fantasmas.** Um `Depends on:` de spec que nomeia uma
+    capability sem spec é erro (o pack, o grafo e o review leem esse
+    cabeçalho); um `Affects specs:` de change aberta que nomeia uma sem spec
+    e sem delta ADDED na change avisa; uma âncora de intenção declarada duas
+    vezes no `product.md` é erro, e o `trace` nomeia a duplicata.
+31. **Placeholders de scaffold em contratos e skills.** Um contrato ainda
+    com linhas `<NAME>` ou `specs/<capability>` em References avisa; uma
+    skill cujo `description:` ou `when:` ainda está na forma `<…>` do
+    template avisa, e um `when:` assim nunca é gatilho detectável.
+32. **Uma spec fora do caminho.** Um `.md` solto em `.doctrina/specs/`, uma
+    pasta de capability sem `spec.md`, ou um segundo arquivo ali que abre
+    como spec avisa com o caminho canônico — nada fora de
+    `specs/<capability>/spec.md` é lido.
+33. **Chaves de configuração desconhecidas.** Uma chave em `config.json`
+    que a CLI não conhece avisa com as chaves aceitas; o valor é ignorado,
+    nunca em silêncio.
+
+O carimbo `framework_version` nunca regride: um índice escrito por uma CLI
+mais nova mantém o carimbo sob uma mais velha (`--fix` e `index rebuild`
+igualmente), o `validate` nomeia a diferença como "upgrade the CLI", e o
+`index rebuild --check` não conta um carimbo à frente como drift.
+
 A flag `--fix` regenera o `index.json` a partir da árvore antes de
 checar, então um índice em drift é reparado (e o carimbo
 `framework_version` migrado) em vez de reportado — o pre-commit
@@ -1198,6 +1258,19 @@ Um projeto que não declara critério nenhum não tem razão a reportar, então
 o coverage diz isso — *no criteria declared*, `pct: null` no `--json` — em
 vez de marcar 100% sobre nada. O `status`, o `prime`, o `report`, o
 `handoff` e o `doctor` renderizam a mesma ausência.
+
+Mais duas coisas que a aritmética honra. **A marca do autor**: um
+critério ainda marcado `[unverified]` cuja prova resolve é evidência
+*ligada*, não certificada — o `Implementation` derivado para em
+`implemented` até a marca ser virada (`spec set <cap> --criterion
+<n>:verified`), e o relatório lista os critérios à espera. **Onde a prova
+mora**: um caminho citado tem de ser um arquivo dentro do projeto. Um
+caminho que resolve fora da raiz (`../outro/app.py`, um caminho absoluto)
+ou para um diretório (`tests/`) não é evidência — é reportado como
+dangling com o motivo, enquanto um diretório citado ao lado de uma prova
+real é menção em prosa e fica em silêncio. Um critério que cita um
+caminho que resolve e um que não resolve está coberto, e o relatório
+nomeia o que não resolve.
 
 ### Critérios de orquestração
 
@@ -1350,7 +1423,9 @@ sai 1 e aponta para `--init`. Um campo opcional `cwd` por checagem (relativo
 à raiz do projeto) mira um sub-pacote num monorepo. Uma checagem manual passa
 quando assinada e é reportada como *pendente* caso contrário — não-bloqueante
 por padrão, falhando só sob `--strict`. Sign-offs ficam em
-`.doctrina/verify.signoffs.json`.
+`.doctrina/verify.signoffs.json`. Sob `--json` toda checagem é teed, então
+o `stdout`/`stderr` do envelope carregam o que as checagens imprimiram —
+sem carriage returns — e a saída padrão fica JSON puro.
 
 ### Um sign-off manual vence
 
@@ -1621,6 +1696,7 @@ Roda toda a sequência de fechamento de uma change em uma passada (ADR 0012).
 ```
 doctrina close 0001-add-login
 doctrina close 0001-add-login --force
+doctrina close 0099-nao-existe        # saída 2 antes de qualquer passo: referência que não resolve
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 
@@ -1967,7 +2043,10 @@ Sequencia os checks existentes — os checks estruturais (`validate`), o
 check de drift do index, as razões de coverage/trace, o lint de
 checkout limpo (`verify --clean`), o check de forma dos templates, a
 superfície de **runtime** e a presença de config do verify — e reporta
-cada área como ok/warn/FAIL **com o comando exato de correção**. Um
+cada área como ok/warn/FAIL **com o comando exato de correção**. A linha
+`config` reporta o arquivo primeiro: um `config.json` que não parseia ou
+com valor rejeitado a reprova nomeando o erro (os valores de fallback não
+são o arquivo), e uma chave desconhecida avisa com as chaves aceitas. Um
 driver sobre as mesmas coleções que os gates renderizam (como o
 `close`): não adiciona checks próprios, então nunca discorda dos gates
 que apresenta, e a execução inteira é um processo só — ele não inicia a

@@ -2,7 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { appendFileSync } from "node:fs";
-import { exists, isFile, read, walk } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, read, walk } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "../lib/doc-model.js";
@@ -12,7 +12,7 @@ import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
 import { specHeader, dependentsOf } from "../lib/scan.js";
 import { sequence, stepRerun } from "../lib/gates.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -67,6 +67,14 @@ export async function run(positional, flags) {
 }
 
 async function closeOne(projectRoot, id, flags) {
+  // A change id that does not resolve is the USAGE class, before any step
+  // is sequenced (change 0114) — every sibling that takes a change id
+  // answers 2; `close` answered 1 through the analyze step it ran first.
+  if (!isDir(path.join(projectRoot, ".doctrina", "changes", id))) {
+    console.error(c.red("error:") + ` change "${id}" not found at .doctrina/changes/${id}`);
+    console.error(c.gray("hint: ") + "open changes: `doctrina next`");
+    return EXIT.USAGE;
+  }
   const force = flagBool(flags, "force", false);
   const archiveFlags = force ? new Map([["force", true]]) : new Map();
   // Set by the docs gate when it fails, so a --force close can record the
@@ -168,7 +176,7 @@ async function closeOne(projectRoot, id, flags) {
         }
         const errs = findings.filter((f) => f.level === "error").length;
         if (errs > 0) {
-          console.error(c.red("error:") + ` ${errs} declared row${errs === 1 ? " does" : "s do"} not hold`);
+          console.error(c.red("error:") + ` ${errs} contract finding${errs === 1 ? "" : "s"} block${errs === 1 ? "s" : ""} the close — the same ${errs === 1 ? "one" : "ones"} \`doctrina contract check\` reports`);
           return 1;
         }
         if (declared === 0) {

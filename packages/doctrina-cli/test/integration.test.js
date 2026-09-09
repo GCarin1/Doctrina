@@ -763,6 +763,9 @@ test("decision supersede rewrites old Status and links both ADRs", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Use SQLite for v0"], { cwd: tmp });
+    // Only an accepted decision is superseded (change 0109).
+    writeAdrBody(tmp);
+    assert.equal(runCli(["decision", "accept", "0001"], { cwd: tmp }).status, 0);
     const r = runCli(["decision", "supersede", "0001", "Use Postgres from v1"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
 
@@ -789,6 +792,8 @@ test("decision supersede refuses an already-superseded ADR", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "First take"], { cwd: tmp });
+    writeAdrBody(tmp);
+    assert.equal(runCli(["decision", "accept", "0001"], { cwd: tmp }).status, 0);
     runCli(["decision", "supersede", "0001", "Second take"], { cwd: tmp });
     const r = runCli(["decision", "supersede", "0001", "Third take"], { cwd: tmp });
     assert.equal(r.status, 1);
