@@ -117,3 +117,5 @@ One line per archived change, newest last. Appended by
 - 2026-09-09 — 0114-os-retardatarios-do-contrato-de-saida — os retardatarios do contrato de saida (specs: cli MODIFIED)
 - 2026-09-09 — 0115-o-doctor-le-o-config-que-existe — o doctor le o config que existe (specs: gates MODIFIED)
 - 2026-09-09 — 0116-o-carimbo-nao-regride — o carimbo nao regride (specs: gates MODIFIED, scaffolding MODIFIED)
+- 2026-09-09 — 0095-analyze-roda-o-dry-run-de-ops — analyze roda o dry-run de ops (specs: gates MODIFIED)
+- 2026-09-09 — 0118-a-gramatica-de-nome-tem-dono — a gramatica de nome tem dono (specs: authoring MODIFIED)

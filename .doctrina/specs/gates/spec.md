@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-08-06
-**Version:** 1.26.0
+**Version:** 1.27.0
 
 ## Purpose
 
@@ -280,10 +280,12 @@ codes, zero-deps, no-network).
 - When `.doctrina/specs/` holds a loose Markdown file, a capability directory without `spec.md`, or an extra Markdown file inside a capability directory whose title opens with `# Spec`, the system shall report a warning naming the file and the canonical path `.doctrina/specs/<capability>/spec.md`.
 - When `.doctrina/config.json` cannot be loaded or carries a value that is rejected, the system shall report the `config` row of `doctor` as failing, naming the error, rather than as the defaults it fell back to.
 - When `.doctrina/config.json` carries a key the CLI does not know, the system shall report a warning in `validate` and in `doctor` naming the key and the keys it accepts.
+- When a change is analyzed, the system shall execute each MODIFIED delta's ops block against its target spec in memory and report an op that would fail at apply time, so the pre-flight refuses exactly what the apply refuses.
 
 ### State-driven
 
 
+- While a MODIFIED delta carries no ops block, the system shall report it as a manual merge rather than a failure, since apply writes nothing and prints a merge pointer for it.
 ### Unwanted-behavior (must-not)
 
 - The gate commands shall not modify any file, with two documented
@@ -322,6 +324,7 @@ codes, zero-deps, no-network).
 - The system shall not close a change while a contract carries a structural error that `contract check` reports, and shall not report a contract with a structural error as "unchecked" because it declares no Wiring or Selectors rows.
 - The system shall not propose or write `verified` for a spec on the strength of a criterion whose author marked it `[unverified]`, whether the proposal comes from `validate` or the write from `spec set --implementation auto`.
 - The system shall not write a `framework_version` stamp lower than the one the index already carries; an older CLI that rebuilds the index keeps the newer stamp, `validate` reports a stamp ahead of the running CLI as a reason to upgrade the CLI rather than to rebuild, and `index rebuild --check` does not count a stamp ahead as index drift.
+- The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
 
 ### Optional
 
@@ -413,6 +416,9 @@ The gate surface is spec-compliant when:
 72. [verified] A loose `specs/legacy.md`, a `specs/orfao/` without `spec.md` and a `specs/carteira/spec-old.md` each draw one validate warning with the canonical path, while a `notes.md` beside a `spec.md` is silent — verified by `packages/doctrina-cli/test/a-spec-off-the-path-is-named.test.js`.
 73. [verified] An invalid config fails the doctor's config row naming the error, a misspelled key draws a warning from validate and from doctor naming the valid keys, and a valid config is silent — verified by `packages/doctrina-cli/test/the-doctor-reads-the-config-that-exists.test.js`.
 74. [verified] A stamp ahead of the running CLI survives `validate --fix` and `index rebuild`, is named by validate as "upgrade the CLI", and `index rebuild --check` exits 0 over it, while a stamp behind is still migrated — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
+75. [verified] `analyze` refuses an ops block that `apply` would refuse, and names the offending op — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
+76. [verified] The refusal reaches `apply` through the structure gate, not only through `analyze`'s own rendering — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
+77. [verified] A MODIFIED delta with no ops block still passes, and an applied change still archives — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
 
 ## Out of scope for this spec
 

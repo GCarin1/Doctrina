@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.14.0
+**Version:** 0.14.1
 
 ## Purpose
 
@@ -47,7 +47,7 @@ keep the checks and the read path.
 - The system shall number the boxes of a change — tasks.md, then the proposal's Verification — in reading order over every box, ticked or not, so that an ordinal names the same box on every invocation of `change tick`.
 - The system shall treat a task line opened by any Markdown bullet marker (`-`, `*`, `+`) as a box, for `change tick` and for the archive gate alike.
 - The system shall classify a prompt into its lane after folding it (accents stripped, case folded) and with signal lists that carry both English and Portuguese vocabularies, so that a request phrased in either language is read into the same lane.
-- The system shall validate the name of a new spec, contract or skill against one shared grammar — lowercase letters, digits and hyphens, starting with a letter, no trailing or doubled hyphen, at most 64 characters, never a Windows reserved device name (con, prn, aux, nul, com1-com9, lpt1-lpt9) — and shall name the rule that failed.
+- The system shall validate the name of a new spec, contract or skill against one shared grammar, defined once in `packages/doctrina-cli/src/lib/names.js` — lowercase letters, digits and hyphens, starting with a letter, no trailing or doubled hyphen, at most 64 characters, never a Windows reserved device name (con, prn, aux, nul, com1-com9, lpt1-lpt9) — and shall name the rule that failed.
 
 ### Event-driven
 

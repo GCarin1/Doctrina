@@ -4,6 +4,7 @@ import { exists, isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import { c } from "./colors.js";
 import { checklistProgress, isUntouchedScaffold } from "./doc-model.js";
 import { collectBudgets } from "./runtime.js";
+import { extractOps, applyOps } from "./spec-ops.js";
 
 // The structural ANALYSIS of a change folder, as data.
 //
@@ -129,6 +130,18 @@ export function collectAnalysis(projectRoot, changeDir) {
           results.push(fail(`  ${cap} (MODIFIED) but target ${targetRel} does not exist`, "pre-apply"));
         } else {
           results.push(pass(`  ${cap} (MODIFIED) → ${targetRel}`));
+          // THE OPS, EXECUTED (third audit, finding 2). Until now this said
+          // "ready to apply" for a delta whose ops block `apply` then refused:
+          // the pre-flight inspected everything about the delta except the one
+          // part that does the work. `change check` already ran this dry-run,
+          // so the answer existed — the gate `close` and `apply` consult was
+          // simply not the one asking.
+          //
+          // Scoped pre-apply: after a successful apply the target holds what
+          // these ops just wrote, and re-running them against it is a question
+          // with no meaning. `archive`'s integrity gate excludes this scope for
+          // exactly that reason.
+          for (const line of opsFindings(read(targetSpec), text, rel)) results.push(line);
         }
       } else {
         if (!exists(targetSpec)) {
@@ -196,6 +209,35 @@ function checkBudgetRaises(projectRoot, changeDir) {
 // must not be spliced into a pattern unescaped.
 function escapeRe(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Run a MODIFIED delta's ops block against its target spec IN MEMORY and
+ * report what `apply` would report.
+ *
+ * The whole finding behind this: `apply` executes these ops all-or-none and
+ * refuses on the first error, so an unappliable block is knowable before
+ * anything is touched — and the pre-flight was not looking. A delta with no
+ * ops block is not a failure: `apply` prints a manual-merge pointer for it,
+ * and saying so here is what lets a close be planned around it rather than
+ * surprised by it.
+ *
+ * @returns {Array<{kind: string, line: string, scope?: string}>}
+ */
+function opsFindings(specText, deltaText, rel) {
+  const ops = extractOps(deltaText);
+  if (ops.length === 0) {
+    return [info(`  ${rel}: no ops block — apply will print a manual-merge pointer`)];
+  }
+  const result = applyOps(specText, ops);
+  if (result.errors.length === 0) {
+    const n = result.applied.length;
+    return [pass(`  ${rel}: ${n} op${n === 1 ? "" : "s"} would apply cleanly`)];
+  }
+  return [
+    fail(`  ${rel}: ${result.errors.length} op error${result.errors.length === 1 ? "" : "s"} ` +
+      `(apply would refuse): ${result.errors.join("; ")}`, "pre-apply"),
+  ];
 }
 
 function pass(msg) {

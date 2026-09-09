@@ -909,7 +909,13 @@ test("change apply refuses a MODIFIED ops block with an error and leaves the spe
     planTasks(tmp, "0001-bad");
     const apply = runCli(["change", "apply", "0001-bad"], { cwd: tmp });
     assert.equal(apply.status, 1, apply.stdout);
-    assert.match(apply.stderr, /operation error/);
+    // Since change 0095 the refusal comes from the STRUCTURE gate rather than
+    // from apply's own ops execution: the pre-flight now runs the dry-run, so
+    // an unappliable block is caught before apply starts. The subject of this
+    // test is unchanged — it refuses, and the spec is untouched — so the
+    // assertion accepts either voice and keeps naming the offending op.
+    assert.match(apply.stdout + apply.stderr, /operation error|op errors? \(apply would refuse\)/);
+    assert.match(apply.stdout + apply.stderr, /Nope/);
     // All-or-nothing: the failing op set is refused, the spec is unchanged
     // byte-for-byte, and the proposal does not flip.
     const after = readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8");

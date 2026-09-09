@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.14.0",
+        "version": "0.14.1",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "depends_on": [
@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.26.0",
+        "version": "1.27.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -505,14 +505,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0095-analyze-roda-o-dry-run-de-ops",
-        "title": "analyze roda o dry-run de ops",
-        "path": ".doctrina/changes/0095-analyze-roda-o-dry-run-de-ops",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain; signals: change)"
-      },
       {
         "id": "0096-o-ledger-registra-o-que-aconteceu",
         "title": "o ledger registra o que aconteceu",
@@ -1838,6 +1830,19 @@
         ]
       },
       {
+        "id": "0095-analyze-roda-o-dry-run-de-ops",
+        "title": "analyze roda o dry-run de ops",
+        "path": ".doctrina/changes/archive/2026-09-09-0095-analyze-roda-o-dry-run-de-ops",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
         "id": "0102-os-cabecalhos-tem-um-enum",
         "title": "os cabecalhos tem um enum",
         "path": ".doctrina/changes/archive/2026-09-09-0102-os-cabecalhos-tem-um-enum",
@@ -2061,6 +2066,19 @@
         "specs_affected": [
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0118-a-gramatica-de-nome-tem-dono",
+        "title": "a gramatica de nome tem dono",
+        "path": ".doctrina/changes/archive/2026-09-09-0118-a-gramatica-de-nome-tem-dono",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ]
