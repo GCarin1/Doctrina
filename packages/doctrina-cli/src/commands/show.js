@@ -6,7 +6,7 @@ import { exists, isDir, isFile, read, relPath } from "../lib/fs-ops.js";
 import { parseAcceptanceCriteria } from "../lib/criteria.js";
 import { suggest } from "../lib/suggest.js";
 import { c } from "../lib/colors.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { maskComments } from "../lib/doc-model.js";
 
 // Point reads. An agent that needs ONE requirement re-reads a whole spec —
@@ -58,7 +58,7 @@ function showAdr(projectRoot, num) {
   const file = isDir(dir) ? readdirSync(dir).find((f) => f.startsWith(`${num}-`) && f.endsWith(".md")) : null;
   if (!file) {
     console.error(c.red("error:") + ` no ADR ${num} under .doctrina/decisions/`);
-    return 1;
+    return EXIT.USAGE;
   }
   const full = path.join(dir, file);
   console.log(c.gray(`— ${relPath(projectRoot, full)} —`));
@@ -80,7 +80,7 @@ function loadSpec(projectRoot, cap) {
 
 function showSpecHead(projectRoot, cap) {
   const spec = loadSpec(projectRoot, cap);
-  if (!spec) return 1;
+  if (!spec) return EXIT.USAGE;
   const lines = spec.text.split(/\r?\n/);
   const out = [];
   let mode = "head"; // header block -> seek Purpose -> purpose body -> stop
@@ -99,14 +99,14 @@ function showSpecHead(projectRoot, cap) {
 
 function showSpecItem(projectRoot, cap, kind, n) {
   const spec = loadSpec(projectRoot, cap);
-  if (!spec) return 1;
+  if (!spec) return EXIT.USAGE;
 
   if (kind === "C") {
     const criteria = parseAcceptanceCriteria(spec.text);
     const crit = criteria.find((r) => r.n === n);
     if (!crit) {
       console.error(c.red("error:") + ` ${cap} has no acceptance criterion #${n} (it declares ${criteria.length})`);
-      return 1;
+      return EXIT.USAGE;
     }
     console.log(c.gray(`— ${cap}-C${n} · ${relPath(projectRoot, spec.specPath)} · ## Acceptance criteria —`));
     console.log(`${n}. ${crit.body}`);
@@ -120,7 +120,7 @@ function showSpecItem(projectRoot, cap, kind, n) {
   const req = reqs[n - 1];
   if (!req) {
     console.error(c.red("error:") + ` ${cap} has no requirement R${n} (it declares ${reqs.length})`);
-    return 1;
+    return EXIT.USAGE;
   }
   console.log(c.gray(`— ${cap}-R${n} · ${relPath(projectRoot, spec.specPath)} · ${req.section} —`));
   console.log(req.text);

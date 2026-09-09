@@ -11,7 +11,7 @@ import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { derivedImplementations } from "../lib/coverage-model.js";
 
 const SUBCOMMANDS = ["new", "list", "set"];
@@ -136,7 +136,7 @@ function specSet(args, flags) {
   const specPath = path.join(projectRoot, ".doctrina", "specs", capability, "spec.md");
   if (!isFile(specPath)) {
     console.error(c.red("error:") + ` no spec at ${relPath(projectRoot, specPath)} (create it with \`doctrina spec new ${capability}\`)`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   const impl = flagString(flags, "implementation");

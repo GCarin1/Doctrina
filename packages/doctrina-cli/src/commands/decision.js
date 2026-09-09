@@ -9,7 +9,7 @@ import * as idx from "../lib/index-json.js";
 import { today, slugify, padNumber } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { flagBool } from "../lib/args.js";
 import { parseAdrScope, decisionEntry } from "../lib/scan.js";
 
@@ -100,7 +100,7 @@ function decisionSupersede(args) {
   const oldFile = files.find((f) => path.basename(f).startsWith(`${padded}-`));
   if (!oldFile) {
     console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
   const oldText = read(oldFile);
   const oldStatusValue = getHeader(oldText, "Status");
@@ -175,7 +175,7 @@ function decisionAccept(args) {
   const file = walk(adrDir).find((f) => path.basename(f).startsWith(`${padded}-`));
   if (!file) {
     console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
   const text = read(file);
   const statusValue = getHeader(text, "Status");
@@ -248,7 +248,7 @@ function decisionLand(args) {
   const file = walk(adrDir).find((f) => path.basename(f).startsWith(`${padded}-`));
   if (!file) {
     console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
   const text = read(file);
   const statusValue = getHeader(text, "Status");
@@ -397,7 +397,14 @@ function decisionScope(args, cmdFlags) {
   }
 
   if (rows.length === 0) {
-    console.log(c.gray(wanted ? `no ADR ${wanted}` : "no ADRs found in .doctrina/decisions/"));
+    // A number that names no ADR is a wrong invocation, not an empty tree:
+    // reporting it as success was the one place in this family that
+    // APPROVED an unresolvable reference (change 0093).
+    if (wanted) {
+      console.error(c.red("error:") + ` no ADR ${wanted} under .doctrina/decisions/`);
+      return EXIT.USAGE;
+    }
+    console.log(c.gray("no ADRs found in .doctrina/decisions/"));
     return 0;
   }
 

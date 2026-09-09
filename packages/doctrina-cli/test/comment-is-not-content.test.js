@@ -132,7 +132,7 @@ test("show reports the count of authored requirements, not of legend bullets", (
   try {
     assert.equal(runCli(["spec", "new", "chasing"], dir).status, 0);
     const r = runCli(["show", "chasing-R1"], dir);
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.match(r.stderr, /it declares 0\b/, r.stderr);
   } finally {
     rmSync(dir, { recursive: true, force: true });

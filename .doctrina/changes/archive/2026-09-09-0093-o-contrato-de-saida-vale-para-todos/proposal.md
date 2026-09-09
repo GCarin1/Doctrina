@@ -1,6 +1,7 @@
 # Change 0093-o-contrato-de-saida-vale-para-todos — o contrato de saida vale para todos
 
-- **Status:** proposed
+- **Status:** applied
+- **Applied:** 2026-09-09
 - **Date:** 2026-09-09
 - **Owner:**
 - **Lane:** product (uncertain)
@@ -58,11 +59,11 @@ unchecked (pass --force to archive anyway and record the gap). Distinguish
 "task marked done" from "verification passed" — link the evidence.
 -->
 
-- [ ] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
-- [ ] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
-- [ ] Uma referência que não resolve usa a mesma classe em todos os comandos.
-- [ ] Uma vista sem resultado não recusa.
-- [ ] Nenhum comando que hoje sai 0, 1 (por gate) ou 3 muda de classe.
+- [x] Automated checks pass (`doctrina verify`, or the project's typecheck/test/build).
+- [x] The affected spec's acceptance criteria are met and cite their evidence (`doctrina coverage`).
+- [x] Uma referência que não resolve usa a mesma classe em todos os comandos.
+- [x] Uma vista sem resultado não recusa.
+- [x] Nenhum comando que hoje sai 0, 1 (por gate) ou 3 muda de classe.
 
 ## Open questions
 

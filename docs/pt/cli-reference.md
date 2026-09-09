@@ -1846,9 +1846,18 @@ pack degrada para um índice de orientação: cada capability por
 título e propósito, cada decisão por título e resumo. Nomear uma
 capability é como você pede a verdade dela por inteiro.
 
+Uma capability que a árvore não conhece — sem spec no disco e sem
+change aberta preparando um delta para ela — é um erro de digitação,
+não um pack: o comando a nomeia, sugere o vizinho mais próximo e sai
+2, em vez de imprimir um pack global sob um título com escopo. Uma
+capability que uma change aberta está preparando conta como
+conhecida, porque escrever essa spec é exatamente quando a leitura é
+necessária.
+
 É a seção de ordem de leitura do AGENTS.md virada em tooling:
-seleção em vez de despejo. Read-only; sai 0, ou 1 quando só o core
-do pack não cabe no orçamento.
+seleção em vez de despejo. Read-only; sai 0, 1 quando só o core do
+pack não cabe no orçamento, ou 2 quando a capability nomeada não
+existe.
 
 ## `doctrina search <termo> [...]`
 
@@ -1862,9 +1871,10 @@ doctrina search quota --archive
 
 Todo termo deve casar na mesma linha (AND). Categorias: specs,
 decisions, changes, skills, product, AGENTS.md. O archive de
-changes fica de fora a menos que `--archive` seja passado. Sai 0
-quando há matches, 1 caso contrário. Read-only — responde "onde X
-foi decidido?" sem conhecer o layout da árvore.
+changes fica de fora a menos que `--archive` seja passado. Read-only
+— responde "onde X foi decidido?" sem conhecer o layout da árvore.
+Não achar é uma resposta, não uma recusa: o comando diz isso e sai 0,
+como toda vista.
 
 ## `doctrina prime`
 

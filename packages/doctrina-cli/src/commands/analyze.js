@@ -4,6 +4,7 @@ import process from "node:process";
 import { isDir, relPath } from "../lib/fs-ops.js";
 import { c } from "../lib/colors.js";
 import { collectAnalysis } from "../lib/analysis.js";
+import { EXIT } from "../lib/exit-codes.js";
 
 // The findings themselves live in lib/analysis.js, where the gate map reads
 // them; this command is their renderer (audit finding F7).
@@ -25,7 +26,7 @@ export async function run(positional, _flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   console.log(`analyzing ${relPath(projectRoot, changeDir)}/`);

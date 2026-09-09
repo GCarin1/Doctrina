@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.45.0",
+        "version": "0.46.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "source": [
@@ -504,16 +504,7 @@
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
-    "changes": [
-      {
-        "id": "0093-o-contrato-de-saida-vale-para-todos",
-        "title": "o contrato de saida vale para todos",
-        "path": ".doctrina/changes/0093-o-contrato-de-saida-vale-para-todos",
-        "status": "proposed",
-        "opened": "2026-09-09",
-        "lane": "product (uncertain)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -1759,6 +1750,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0093-o-contrato-de-saida-vale-para-todos",
+        "title": "o contrato de saida vale para todos",
+        "path": ".doctrina/changes/archive/2026-09-09-0093-o-contrato-de-saida-vale-para-todos",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ]

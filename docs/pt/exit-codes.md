@@ -41,8 +41,21 @@ qualquer transição de ciclo de vida recusada. Algo que você escreveu
 precisa mudar.
 
 **`2` — a linha de comando.** Comando ou subcomando desconhecido,
-argumento obrigatório ausente, id malformado. Repetir a mesma string vai
-falhar do mesmo jeito.
+argumento obrigatório ausente, id malformado e **uma referência que não
+resolve** — uma capability sem spec, um id de change que não está aberto,
+um número de ADR que ninguém escreveu, um requisito ou critério que a spec
+não declara. Repetir a mesma string vai falhar do mesmo jeito, então o que
+se corrige é a string: `show`, `why`, `context`, `change check`,
+`spec set`, `decision accept`, `decision scope`, `analyze` e
+`coverage --only` respondem `2` a um nome que não encontram. Nomear uma
+capability que uma change aberta está preparando com um delta **não** é
+uma referência que não resolve — `doctrina context <cap>` é exatamente a
+leitura para escrever essa spec.
+
+**Não achar não é falhar.** Uma vista monta o que existe. `search` sem
+resultado, e toda `list` sem nada para listar, dizem que não acharam e
+saem `0`. Só um gate reporta `1`, e um gate é algo que mediu trabalho real
+e o reprovou.
 
 **`3` — o setup.** Rodar fora de um projeto Doctrina (`doctrina init`),
 `verify` sem `.doctrina/verify.json` (`doctrina verify --init`), `intake`

@@ -8,9 +8,8 @@ import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { suggest } from "../lib/suggest.js";
-import { isDir } from "../lib/fs-ops.js";
-import { readdirSync } from "node:fs";
 import { collect, summarize } from "../lib/coverage-model.js";
+import { knownCapabilities } from "../lib/scan.js";
 
 // The numbers this command reports come from lib/coverage-model.js, which
 // `status`, `review`, `validate`, `close` and `spec set` read too — so no
@@ -287,11 +286,3 @@ Flags:
                      passes". The CLI never guesses a test runner.
   --json             Emit per-spec criterion rows + summary as JSON.
 `;
-
-// The capabilities that actually have a spec on disk — the set `--only` is
-// checked against, and the list its error prints.
-function knownCapabilities(projectRoot) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  if (!isDir(specsDir)) return [];
-  return readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md")));
-}

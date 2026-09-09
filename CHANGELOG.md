@@ -19,6 +19,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **One exit class for a reference that does not resolve, everywhere.**
+  ADR 0018 declares five classes, and two of them tell a consumer different
+  things: `1` is GATE ("fix the work, retry"), `2` is USAGE ("correct the
+  invocation"). Measured over a name that does not exist, nine commands gave
+  three answers — `1` in six, `0` in two, `2` in one. Typing a name wrong
+  asks nobody to fix the work, and `decision scope 9999` exiting `0` was the
+  worst of the three: it approved. `show`, `why`, `change check`, `spec set`,
+  `decision accept`, `decision scope`, `analyze` and `context` now all answer
+  `2`, joining `coverage --only`. `doctrina context <cap>` no longer prints a
+  global pack under a scoped heading when the capability does not exist — it
+  names the near miss and refuses, while a capability an open change is
+  staging a delta for still counts as known, because writing that spec is
+  exactly when the read is needed.
+
+- **A view that finds nothing no longer refuses.** Of the CLI's listings,
+  only `search` exited `1` when it found no match, following `grep`'s
+  convention rather than Doctrina's own five-class contract. The `insight`
+  spec says of this family that a view assembles what is there and never
+  refuses anything: not finding is the answer, not a failure. `search` now
+  says it found nothing and exits `0`, like the six listings beside it.
+
 - **`doctrina review --diff` refuses a ref that resolves to nothing.** On a
   tree where `--diff HEAD` reported two breaks, `--diff nao-existe --strict`
   reported "no changes" and exited 0. The root cause is one message doing two

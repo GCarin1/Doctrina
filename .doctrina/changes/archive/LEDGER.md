@@ -99,3 +99,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-08 — 0090-um-filtro-que-nao-casa-nada-nao-aprova — um filtro que nao casa nada nao aprova (specs: gates MODIFIED)
 - 2026-09-08 — 0091-uma-spec-ativa-declara-como-provar — uma spec ativa declara como provar (specs: validation MODIFIED)
 - 2026-09-09 — 0092-o-review-nao-aprova-contra-o-que-nao-existe — o review nao aprova contra o que nao existe (specs: gates MODIFIED)
+- 2026-09-09 — 0093-o-contrato-de-saida-vale-para-todos — o contrato de saida vale para todos (specs: cli MODIFIED)

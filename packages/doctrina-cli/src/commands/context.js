@@ -3,7 +3,8 @@ import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
-import { listHeader, parseDependsOn, parseAdrScope, adrSummary } from "../lib/scan.js";
+import { listHeader, parseDependsOn, parseAdrScope, adrSummary, knownCapabilities } from "../lib/scan.js";
+import { suggest } from "../lib/suggest.js";
 import { checklistProgress, getTitle, getSectionParagraph } from "../lib/doc-model.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
@@ -11,7 +12,7 @@ import { c } from "../lib/colors.js";
 import { loadConfig, DEFAULTS } from "../lib/config.js";
 import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
 import { terms as queryTerms, relevance } from "../lib/lexicon.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
@@ -86,7 +87,31 @@ export async function run(positional, cmdFlags) {
 
   if (capability && !/^[a-z][a-z0-9-]*$/.test(capability)) {
     console.error(c.red("error:") + ` invalid capability "${capability}" (lowercase letters, digits, hyphens)`);
-    return 2;
+    return EXIT.USAGE;
+  }
+
+  // A named capability with no spec on disk is a mistyped invocation, not a
+  // pack to assemble. It used to print the whole pack, headed "capability:
+  // <typo>", with the warning about the missing spec buried under it and
+  // exit 0 — so the agent read a GLOBAL pack believing it was scoped, and
+  // nothing in the exit code said otherwise. Same defect as `coverage --only`
+  // naming a capability that no longer exists (change 0090): a filter that
+  // matches nothing must refuse, wherever it appears.
+  if (capability) {
+    // A capability the tree has never heard of — no spec, and no open change
+    // staging one. A change that CREATES a capability is the reason the
+    // second half of that test exists: its delta folder names the capability
+    // before any spec does, and `context <newcap>` is exactly the read an
+    // agent needs while writing it.
+    const known = capabilitiesInPlay(projectRoot);
+    if (!known.includes(capability)) {
+      console.error(c.red("error:") + ` no spec for capability "${capability}"`);
+      const guess = suggest(capability, known);
+      if (guess) console.error(c.gray("hint: ") + `did you mean "${guess}"?`);
+      if (known.length > 0) console.error(c.gray("known: ") + known.sort().join(", "));
+      console.error(c.gray("hint: ") + `create it with \`doctrina spec new ${capability}\`, or run \`doctrina context\` unscoped`);
+      return EXIT.USAGE;
+    }
   }
 
   // A value-taking flag written without a value is a usage error, not a
@@ -157,7 +182,6 @@ export async function run(positional, cmdFlags) {
   //    With --for and no named capability, the specs are RANKED by the query
   //    and become degradable: retrieval is what decides which truths this
   //    task needs, and the budget is what enforces the decision.
-  let specMissing = false;
   const specsRoot = path.join(projectRoot, ".doctrina", "specs");
   const dependencies = new Set();
   if (capability) {
@@ -176,8 +200,6 @@ export async function run(positional, cmdFlags) {
           pushFile(depRel, `dependency of ${capability}`, { tier: TIER.DEPENDENCY });
         }
       }
-    } else {
-      specMissing = true;
     }
   } else if (isDir(specsRoot)) {
     // No capability named: this is the orientation read, and it cannot
@@ -421,12 +443,27 @@ export async function run(positional, cmdFlags) {
     }
   }
 
-  if (specMissing) {
-    console.error("");
-    console.error(c.yellow("warn:") + ` no spec for capability "${capability}" — create one with \`doctrina spec new ${capability}\``);
-  }
   // The pack fits, or the command says so. It never silently exceeds.
   return fit.overflowed ? 1 : 0;
+}
+
+// Every capability this tree knows about: one with a spec on disk, plus one
+// an open change is staging a delta for. Naming anything else is a typo, and
+// a pack assembled for a typo is a GLOBAL pack wearing a scoped heading.
+function capabilitiesInPlay(projectRoot) {
+  const caps = new Set(knownCapabilities(projectRoot));
+  const changesDir = path.join(projectRoot, ".doctrina", "changes");
+  if (isDir(changesDir)) {
+    for (const id of readdirSync(changesDir)) {
+      if (id === "archive" || id.startsWith(".")) continue;
+      const specsDir = path.join(changesDir, id, "specs");
+      if (!isDir(specsDir)) continue;
+      for (const cap of readdirSync(specsDir)) {
+        if (isFile(path.join(specsDir, cap, "delta.md"))) caps.add(cap);
+      }
+    }
+  }
+  return [...caps];
 }
 
 function estimateTokens(text) {

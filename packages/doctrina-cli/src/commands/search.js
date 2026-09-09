@@ -92,7 +92,14 @@ export async function run(positional, flags) {
 
   if (totalMatches === 0) {
     console.log(c.gray(`no matches for "${positional.join(" ")}"${includeArchive ? "" : " (archive excluded; pass --archive to include it)"}`));
-    return 1;
+    // Not finding is the answer, not a failure. Exit 1 is GATE in the
+    // five-class contract — "fix the work, retry the same command" — and
+    // this command fixes nothing. The `insight` spec says it outright: a
+    // VIEW assembles what is there and never refuses anything, and the
+    // other six listings (spec, decision, skill, contract, templates,
+    // intent) all exit 0 on an empty result. The grep convention is a
+    // shell habit; this CLI declared its own contract (change 0093).
+    return 0;
   }
   console.log(c.gray(`${totalMatches} match${totalMatches === 1 ? "" : "es"} in ${filesWithMatches} file${filesWithMatches === 1 ? "" : "s"}`));
   return 0;

@@ -126,7 +126,7 @@ function changeApply(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Gate parity (C6). `apply` used to mutate specs with no preconditions,
@@ -286,7 +286,7 @@ async function changeCheck(id, { verbose = false } = {}) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   let failures = 0;
@@ -385,7 +385,7 @@ function changeTick(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Unified ordinal space over both files, in reading order: every unchecked
@@ -473,7 +473,7 @@ function changeArchive(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Verification gate. "Done" is a claim until it is checked. Archiving is
@@ -572,7 +572,7 @@ async function changeAbandon(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Consent before destruction (audit item C9). This deletes work with no
@@ -685,7 +685,7 @@ function changeDiff(args, _flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));

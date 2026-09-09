@@ -9,7 +9,7 @@ import { parseAcceptanceCriteria, isVerified } from "../lib/criteria.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 
 // Provenance explainer (review 2026-06-27 passive-user feature #5): answer
 // "why does this capability exist / why was it built this way?" by assembling
@@ -51,7 +51,7 @@ export async function run(positional, _flags) {
     const guess = suggest(cap, known);
     if (guess) console.error(c.gray("hint: ") + `did you mean "${guess}"?`);
     else if (known.length) console.error(c.gray("known: ") + known.sort().join(", "));
-    return 1;
+    return EXIT.USAGE;
   }
 
   const text = read(specPath);

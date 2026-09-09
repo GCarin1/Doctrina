@@ -1051,7 +1051,7 @@ test("spec set edits headers, bumps the version, and resyncs the index (G8)", ()
     // No-op guard: spec set with no edit flags is a usage error.
     assert.equal(runCli(["spec", "set", "billing"], { cwd: tmp }).status, 2);
     // Unknown spec: a clear failure, no write.
-    assert.equal(runCli(["spec", "set", "ghost", "--bump", "patch"], { cwd: tmp }).status, 1);
+    assert.equal(runCli(["spec", "set", "ghost", "--bump", "patch"], { cwd: tmp }).status, 2);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1443,7 +1443,7 @@ test("context excludes non-accepted ADRs and --concat prints contents", () => {
   }
 });
 
-test("search finds terms grouped by category and exits 1 on no match", () => {
+test("search finds terms grouped by category and exits 0 on no match", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
@@ -1457,7 +1457,7 @@ test("search finds terms grouped by category and exits 1 on no match", () => {
     assert.match(hit.stdout, /billing\/spec\.md:\d+: The system shall support SAML/);
 
     const miss = runCli(["search", "kerberos"], { cwd: tmp });
-    assert.equal(miss.status, 1);
+    assert.equal(miss.status, 0);
     assert.match(miss.stdout, /no matches/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -2878,7 +2878,7 @@ test("why prints a capability's provenance chain", () => {
     assert.match(r.stdout, /Decisions/);
     // Unknown capability is a clear error.
     const bad = runCli(["why", "nope"], { cwd: tmp });
-    assert.equal(bad.status, 1);
+    assert.equal(bad.status, 2);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -3122,7 +3122,7 @@ test("show resolves R-refs, C-refs, ADR numbers, and spec headers", () => {
     assert.match(adr.stdout, /Use Stripe/);
 
     const missing = runCli(["show", "billing-R9"], { cwd: tmp });
-    assert.equal(missing.status, 1);
+    assert.equal(missing.status, 2);
     assert.match(missing.stderr, /no requirement R9/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });

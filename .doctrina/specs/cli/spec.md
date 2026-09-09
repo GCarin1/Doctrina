@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.45.0
+**Version:** 0.46.0
 
 ## Purpose
 
@@ -133,6 +133,7 @@ command shares (git, the lexicon, the usage log).
 - When a superseded command name is invoked with `--json`, the system shall include the replacement command, the version from which the old name is legacy, and the reason in the JSON envelope, in addition to the notice it writes to standard error.
 - When `doctrina next` runs, the system shall recommend an action for every gate signal the diagnostic reports — uncovered or dangling acceptance criteria, unrealized product intent, an undeclared build gate, and an active spec whose implementation is still planned — computed from the same collection the read-only views render.
 - When a refused flag is a near miss for one the command declares, the system shall name the declared flag as a suggestion, and shall still print the command's help when the help flag is present alongside it.
+- When a command is given a reference that does not resolve — a capability, a change id, an ADR number, a requirement or an acceptance criterion — the system shall report the usage class and name the reference, because the invocation is what has to change.
 
 ### State-driven
 
@@ -170,6 +171,8 @@ command shares (git, the lexicon, the usage log).
 - The system shall not recommend a gate action for a project that declares no capability yet, and shall not offer the hand-authoring commands as the way to start work.
 - The system shall not silently ignore a flag a command has not declared; it shall refuse the invocation, name the flag, and exit with the usage class, so a gate can never report a verdict for a mode it was not asked to run in.
 - The system shall not write a JSON envelope before the command's exit code is known, because a call site that emits ahead of its own return can only guess the verdict.
+- The system shall not report a reference that does not resolve with the class reserved for a failed gate, and shall not report it as success.
+- The system shall not refuse a view that found nothing; a listing or a search with no result shall say so and exit successfully.
 
 ### Optional
 
@@ -183,11 +186,13 @@ command shares (git, the lexicon, the usage log).
 ## Exit codes
 
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success, including validation with warnings only |
-| 1 | Validation errors, or a command-level failure |
-| 2 | Misuse: unknown command, missing required argument |
+| Code | Class | Meaning |
+|------|-------|---------|
+| 0 | OK | Success, including validation with warnings only, and a view that found nothing |
+| 1 | GATE | A gate measured the work and refused it |
+| 2 | USAGE | Unknown command, missing or malformed argument, or a reference that does not resolve |
+| 3 | PRECONDITION | The project is not set up for this yet; the error names the command that clears it |
+| 4 | ENVIRONMENT | The environment cannot run this; no retry helps |
 
 ## Acceptance criteria
 
@@ -238,6 +243,8 @@ The CLI is v0 spec-compliant when:
 33. [verified] Every flag every command declares is still accepted, an undeclared one is refused on every command, and a flag's VALUE is never mistaken for a flag — verified by `packages/doctrina-cli/test/an-unknown-flag-is-refused.test.js`.
 34. [verified] A failing gate reports `ok: false` and the process's own code in its payload, and a passing one still reports success — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
 35. [verified] The captured path is unchanged and every payload keeps its own data fields and schema version — verified by `packages/doctrina-cli/test/the-envelope-tells-the-truth.test.js`.
+36. [verified] A reference that does not resolve costs the usage class in every command that takes one, and a capability an open change is staging a delta for is not one — verified by `packages/doctrina-cli/test/the-exit-contract-holds.test.js`.
+37. [verified] No view refuses when it finds nothing, and no class that was already right — success, a gate that measured and failed, a malformed invocation — moved — verified by `packages/doctrina-cli/test/the-exit-contract-holds.test.js`.
 
 ## Out of scope for this spec
 

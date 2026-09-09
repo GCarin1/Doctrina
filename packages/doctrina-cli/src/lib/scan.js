@@ -440,6 +440,24 @@ function describeDrift(current, derived) {
 }
 
 /**
+ * The capabilities that actually have a spec on disk.
+ *
+ * The one list every command checks a named capability against. `coverage
+ * --only` refuses a name that is not in it (change 0090); `context <cap>`
+ * refuses the same way, because a scope filter that matches nothing is the
+ * same defect wherever it appears. Kept here rather than in either command
+ * so the two cannot disagree about which capabilities exist.
+ *
+ * @param {string} projectRoot
+ * @returns {string[]} directory names, in readdir order
+ */
+export function knownCapabilities(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (!isDir(specsDir)) return [];
+  return readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md")));
+}
+
+/**
  * Which capabilities declare a dependency on any of `caps`.
  *
  * The `**Depends on:**` header is the tree's only machine-readable statement

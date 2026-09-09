@@ -1789,9 +1789,17 @@ so the pack degrades to an orientation index: every capability by
 title and purpose, every decision by title and summary. Naming a
 capability is how you ask for its truth in full.
 
+A capability the tree does not know — no spec on disk, and no open
+change staging a delta for it — is a typo, not a pack: the command
+names it, suggests the near miss, and exits 2 rather than printing a
+global pack under a scoped heading. A capability an open change is
+staging counts as known, because writing that spec is exactly when
+you need the read.
+
 This is the read-order section of AGENTS.md turned into tooling:
-selection over dumping. Read-only; exits 0, or 1 when the pack's
-core alone cannot meet the budget.
+selection over dumping. Read-only; exits 0, 1 when the pack's core
+alone cannot meet the budget, or 2 when the named capability does
+not exist.
 
 ## `doctrina search <term> [...]`
 
@@ -1805,9 +1813,10 @@ doctrina search quota --archive
 
 Every term must match on the same line (AND). Categories: specs,
 decisions, changes, skills, product, AGENTS.md. The change archive
-is excluded unless `--archive` is passed. Exits 0 when matches are
-found, 1 otherwise. Read-only — answers "where is X decided?"
-without knowing the tree layout.
+is excluded unless `--archive` is passed. Read-only — answers "where
+is X decided?" without knowing the tree layout. Finding nothing is an
+answer, not a refusal: the command says so and exits 0, like every
+other view.
 
 ## `doctrina prime`
 
