@@ -13,7 +13,7 @@ import * as idx from "./index-json.js";
 import { today } from "./dates.js";
 import { flagBool, flagString } from "./args.js";
 import { c } from "./colors.js";
-import { ensureDoctrinaProject } from "./project.js";
+import { ensureDoctrinaProject, isChangeId, resolveWithinProject } from "./project.js";
 import { changeEntry } from "./scan.js";
 export function changeNew(args, flags) {
   const id = args[0];
@@ -26,6 +26,16 @@ export function changeNew(args, flags) {
     console.error(c.red("error:") + " change new requires a title (quote it if it contains spaces)");
     return 2;
   }
+  // The id names a DIRECTORY, so it obeys the same grammar every other
+  // authoring command enforces on its argument (third audit, finding 1).
+  // Without this `change new ../../../elsewhere/evil` scaffolded outside the
+  // project, and `0003-com espaco` was accepted here and then carried by
+  // `validate`, `index rebuild` and `next` as a legitimate id.
+  if (!isChangeId(id)) {
+    console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
+    console.error(c.gray("hint: ") + "ids look like `0042-short-slug`; `doctrina work \"<prompt>\"` derives one for you");
+    return 2;
+  }
 
   const force = flagBool(flags, "force", false);
   // A chore is a spec-less change (infra / docs / build / migration) — review
@@ -36,7 +46,9 @@ export function changeNew(args, flags) {
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
 
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  // Belt and braces: the grammar above already refuses a traversing id, and
+  // this holds if a future caller reaches this line another way.
+  const changeDir = resolveWithinProject(projectRoot, ".doctrina", "changes", id);
   if (exists(changeDir) && !force) {
     console.error(c.red("error:") + ` change "${id}" already exists at ${relPath(projectRoot, changeDir)}`);
     return 1;

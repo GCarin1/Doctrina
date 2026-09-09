@@ -15,6 +15,7 @@ import { printPlaybookTemplate } from "../lib/playbook.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { isChangeId } from "../lib/project.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -130,7 +131,7 @@ export async function run(positional, flags) {
     ? slugify(title)
     : (prompt ? slugFromPrompt(prompt) : "backfill");
   const id = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+  if (!isChangeId(id)) {
     console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
     return 2;
   }

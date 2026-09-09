@@ -329,6 +329,16 @@ Open a change proposal.
 doctrina change new 0042-add-saml "Add SAML login"
 ```
 
+The id names a directory, so it obeys a grammar: lowercase letters,
+digits and hyphens, opening on a letter or a digit — the shape
+`doctrina work` derives. Anything else is a usage error (exit 2) and
+nothing is written. Without that rule `change new ../../../elsewhere/evil`
+scaffolded a change **outside the project**, and an id like
+`0003-with space` was accepted here and then carried by `validate`,
+`index rebuild` and `next` as legitimate — producing a remediation line
+that could not be run.
+
+
 Writes `.doctrina/changes/<id>/` populated with `proposal.md` and
 `tasks.md`. `design.md` scaffolds only under `--design` — in practice it
 stayed blank on every change that did not ask for one — and the

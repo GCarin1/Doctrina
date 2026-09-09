@@ -341,6 +341,16 @@ Abre uma proposta de change.
 doctrina change new 0042-add-saml "Adicionar login SAML"
 ```
 
+O id nomeia um diretório, então obedece a uma gramática: letras
+minúsculas, dígitos e hífens, começando por letra ou dígito — a forma que
+o `doctrina work` deriva. Qualquer outra coisa é erro de uso (exit 2) e
+nada é escrito. Sem essa regra, `change new ../../../outro/evil`
+esqueletizava uma change **fora do projeto**, e um id como
+`0003-com espaco` era aceito aqui e depois carregado por `validate`,
+`index rebuild` e `next` como legítimo — produzindo uma linha de
+remediação que não dava para executar.
+
+
 Escreve `.doctrina/changes/<id>/` com `proposal.md` e `tasks.md`; o
 `design.md` só é esqueletizado sob `--design` — na prática ele ficava em
 branco em toda change que não pediu um — e o diretório
