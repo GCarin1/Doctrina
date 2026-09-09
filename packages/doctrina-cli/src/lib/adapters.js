@@ -126,15 +126,4 @@ export function renderAdapterFile(file, tokens) {
   });
 }
 
-// Is this project-relative path one that some adapter owns? Used by
-// `adapter remove` so it deletes only what an adapter created, and by
-// `init` so it never counts adapter files as user content.
-export function isAdapterOwnedPath(projectRoot, relPathPosix) {
-  for (const name of listAdapterNames(projectRoot)) {
-    const spec = adapterFiles(projectRoot, name);
-    if (spec?.files.some((f) => f.relativePath === relPathPosix)) return true;
-  }
-  return false;
-}
-
 export { exists };

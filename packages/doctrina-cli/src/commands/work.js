@@ -2,7 +2,6 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, mkdirp, read, relPath, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";
@@ -10,8 +9,14 @@ import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
-import { changeNew } from "./change.js";
-import { classify } from "./triage.js";
+import { changeNew, reindexChange } from "../lib/change-ops.js";
+import { classify } from "../lib/triage-model.js";
+import { printPlaybookTemplate } from "../lib/playbook.js";
+import { changedFiles } from "../lib/git.js";
+import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
+import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { isChangeId } from "../lib/project.js";
+export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
 // prompt ("add login") becomes a fully scaffolded change plus a playbook
@@ -46,7 +51,7 @@ export async function run(positional, flags) {
   const chore = flagBool(flags, "chore", false) || flagBool(flags, "no-spec", false);
   let files = [];
   if (fromDiff) {
-    files = changedFiles(projectRoot);
+    files = changedFiles(projectRoot).files;
     if (files.length === 0) {
       console.error(c.red("error:") + " --from-diff found no working-tree changes to backfill from");
       console.error(c.gray("hint: ") + "make (or stage) the code changes first, then run `doctrina work --from-diff`");
@@ -80,9 +85,16 @@ export async function run(positional, flags) {
   // prompt is stopped here, once, with the diagnosis path named. It is a
   // deterministic term match and it can be wrong, so --force proceeds and
   // the message says so.
-  if (!fromDiff && !chore && !flagBool(flags, "force", false)) {
-    const verdict = classify(prompt);
-    if (verdict.lane === "runtime" && verdict.confident) {
+  // The verdict is computed for EVERY prompt, not only the ones the hold
+  // applies to (change 0042). It used to be calculated, printed and thrown
+  // away, so an archived proposal never recorded which lane the change was
+  // born in — no report could say what kind of work the team does, and the
+  // classifier had no set of right and wrong answers to be calibrated
+  // against. It is recorded as HISTORY: a gate never reads it to decide.
+  const verdict = prompt ? classify(prompt) : null;
+  const forced = flagBool(flags, "force", false);
+  if (!fromDiff && !chore && !forced) {
+    if (verdict && verdict.lane === "runtime" && verdict.confident) {
       console.error(c.yellow("hold:") + " this reads as a RUNTIME problem, not a change of behaviour");
       console.error(c.gray(`signals: ${[...new Set(verdict.scores.runtime.hits)].slice(0, 6).join(", ")}`));
       console.error("");
@@ -109,15 +121,38 @@ export async function run(positional, flags) {
   // drives the slug and the proposal H1; the whole prompt still lands, intact,
   // under ## Why. Without it a long prompt used to become a 900-char H1.
   const title = flagString(flags, "title") ?? effPrompt;
-  const slug = prompt || flags.has("title") ? slugify(title) : "backfill";
+  // The id is what a person types and what sorts a backlog, so it stays short;
+  // the title is what a person reads, so it stays whole (change 0070). With
+  // `--title` the author has already made that split, so the slug follows the
+  // title they chose; without it, the slug is the prompt's first content words
+  // and the H1's title half is the prompt, so the two halves stop being the
+  // same sentence twice.
+  const slug = flags.has("title")
+    ? slugify(title)
+    : (prompt ? slugFromPrompt(prompt) : "backfill");
   const id = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+  if (!isChangeId(id)) {
     console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
     return 2;
   }
 
   const code = changeNew([id, title], flags);
   if (code !== 0) return code;
+
+  // The CLI reduces a prompt to an id deterministically; it cannot write a
+  // good short name, and ADR 0005 says it must not try. So it says how to get
+  // one, once, where the author is already looking.
+  if (!flags.has("title") && !flags.has("id") && prompt) {
+    console.error(c.gray("note:  ") +
+      `id derived from the prompt — \`--title "<short name>"\` gives a shorter one ` +
+      "and keeps the full prompt under ## Why");
+  }
+
+  // Stamp the lane the classifier read, and — when the operator went a
+  // different way — what they did instead. Recording only the agreements
+  // would make the calibration set exactly the one that needs no
+  // calibrating; the disagreements are the data.
+  writeLane(projectRoot, id, verdict, { forced, chore, fromDiff });
 
   // Record the prompt verbatim as the change's Why — the raw intent has
   // one home, and it is the proposal, not the playbook output. For --from-diff,
@@ -140,33 +175,42 @@ export async function run(positional, flags) {
     if (updated !== txt) write(proposalPath, updated, { force: true });
   }
 
-  // A pinned capability is an explicit statement of intent, so the delta —
-  // historically the only 100% hand-authored file in the flow, and the one
-  // whose missing **Operation:** header exploded days later at analyze
-  // (operator review 2026-07-19 §3.2) — is scaffolded from the template with
-  // the Operation prefilled: MODIFIED when the spec exists, ADDED when it
-  // does not. Never scaffolded from a ranked GUESS (that would put a wrong
-  // capability's delta in the change); only from --capability.
-  if (pinned && !chore) {
-    const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", pinned, "delta.md");
-    if (!exists(deltaPath)) {
-      const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
-      const op = isFile(path.join(projectRoot, ".doctrina", "specs", pinned, "spec.md")) ? "MODIFIED" : "ADDED";
-      const body = substitute(tpl, { CAPABILITY: pinned })
-        .replace(/^\*\*Operation:\*\*.*$/m, `**Operation:** ${op}`);
-      mkdirp(path.dirname(deltaPath));
-      write(deltaPath, body);
-      console.log(c.green("created") + ` ${relPath(projectRoot, deltaPath)}` + c.gray(` (Operation: ${op} prefilled)`));
-    }
-  }
-
   // Capability hint: term overlap for a prompt, changed-file overlap for a diff
   // (review F10 — rank by what the working tree touched, not just prompt words).
-  const allChanged = fromDiff ? files : changedFiles(projectRoot);
+  const allChanged = fromDiff ? files : changedFiles(projectRoot).files;
   const diffMatches = pinned ? [] : rankCapabilitiesByDiff(projectRoot, allChanged);
-  const matches = pinned ? [] : (fromDiff ? diffMatches : rankCapabilities(projectRoot, effPrompt));
+  const promptMatches = pinned || fromDiff ? [] : rankCapabilities(projectRoot, effPrompt);
+  const matches = pinned ? [] : (fromDiff ? diffMatches : promptMatches);
   const capability = pinned ?? matches[0]?.id ?? null;
   const clarity = assessBrief(effPrompt, { kind: "prompt" });
+
+  // The delta is scaffolded whenever the CLI can NAME the capability — from
+  // --capability, or from a prompt ranking whose winner leads the runner-up
+  // by a real margin (change 0044). It was historically the only 100%
+  // hand-authored file in the flow, and the one whose missing **Operation:**
+  // header exploded days later at analyze (operator review 2026-07-19 §3.2);
+  // leaving the default path hand-authoring it left the failure in place for
+  // every run that did not pin. A wrong, obvious file costs less than an
+  // absent, silent one — so the guess is MARKED as one, and below the margin
+  // nothing is written at all: a weak guess in the wrong folder is worse
+  // than no file.
+  //
+  // Only the PROMPT ranking scaffolds. The diff ranker scores on its own
+  // scale (path/citation points, no density term), so CONFIDENT_MARGIN does
+  // not transfer to it, and a backfill normally touches several capabilities
+  // at once — one scaffolded winner would be the wrong shape there.
+  const winner = promptMatches[0];
+  const guess = winner && winner.margin >= CONFIDENT_MARGIN ? winner : null;
+  const scaffolded = chore || !capability || (!pinned && !guess)
+    ? null
+    : scaffoldDelta(projectRoot, { id, capability, guess, runnerUp: promptMatches[1] ?? null });
+
+  // The proposal is written in two passes — `changeNew` scaffolds it, the
+  // lines above stamp the lane and the pinned specs — so its index entry is
+  // re-derived HERE, from the finished file. Indexing at the end of the first
+  // pass is what made every `doctrina work` leave the tree failing `validate`
+  // on the very next command (change 0076).
+  reindexChange(projectRoot, id);
 
   // --quiet: registering backlog, not starting now (operator review §3.7 — 19
   // works printed 19 identical 50-line playbooks). One line per change; the
@@ -183,27 +227,91 @@ export async function run(positional, flags) {
     printChorePlaybook(projectRoot, { id, prompt: effPrompt });
   } else {
     printPlaybook(projectRoot, {
-      id, prompt: effPrompt, pinned, matches, capability, clarity,
+      id, prompt: effPrompt, pinned, matches, capability, clarity, scaffolded,
       fromDiff, diffMatches: fromDiff ? [] : diffMatches,
     });
   }
   return 0;
 }
 
-// Changed files in the working tree (tracked + untracked), for the diff-based
-// capability hint and `--from-diff` backfill. Empty outside a git repo or with
-// no changes. Read-only: never invokes a mutating git command.
-function changedFiles(projectRoot) {
-  const run = (args) => {
-    const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-    if (r.error || r.status !== 0) return [];
-    return r.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  };
-  const set = new Set([
-    ...run(["diff", "--name-only", "HEAD"]),                 // tracked, staged + unstaged
-    ...run(["ls-files", "--others", "--exclude-standard"]),  // untracked
-  ]);
-  return [...set];
+// Write the change's spec delta from the template with **Operation:**
+// prefilled — MODIFIED when the target spec exists, ADDED when it does not.
+//
+// A GUESS (the ranked winner rather than a pinned capability) can only ever
+// be MODIFIED: the ranker scores existing specs, so it cannot name one that
+// is not there. It carries a comment saying it is a guess and how to correct
+// it, because the whole trade this makes is that a wrong file the agent can
+// see beats a missing file nothing reports.
+//
+// Returns what was written, or null when the file already exists.
+function scaffoldDelta(projectRoot, { id, capability, guess = null, runnerUp = null }) {
+  const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", capability, "delta.md");
+  if (exists(deltaPath)) return null;
+  const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
+  const op = isFile(path.join(projectRoot, ".doctrina", "specs", capability, "spec.md")) ? "MODIFIED" : "ADDED";
+  let body = substitute(tpl, { CAPABILITY: capability })
+    .replace(/^\*\*Operation:\*\*.*$/m, `**Operation:** ${op}`);
+  if (guess) body = body.replace(/(\*\*Target spec on apply:\*\*.*\r?\n)/, `$1\n${guessNote(id, guess, runnerUp)}\n`);
+  mkdirp(path.dirname(deltaPath));
+  write(deltaPath, body);
+  console.log(c.green("created") + ` ${relPath(projectRoot, deltaPath)}` +
+    c.gray(guess
+      ? ` (Operation: ${op} prefilled — ranked guess, correct it if wrong)`
+      : ` (Operation: ${op} prefilled)`));
+  return { capability, op, guess: Boolean(guess) };
+}
+
+// The words that make a guessed delta self-describing on disk: --resume
+// prints nothing it did not write itself, so the file is the only place a
+// later session can learn the capability was ranked rather than chosen.
+const GUESS_MARK = "RANKED GUESS";
+
+// The mark a guessed delta carries. It names the evidence (the score and the
+// runner-up it beat) and the exact correction, so the agent can overrule the
+// ranking in one step instead of inheriting it silently.
+function guessNote(id, guess, runnerUp) {
+  const beat = runnerUp
+    ? `beating \`${runnerUp.id}\` (${runnerUp.score})`
+    : "the only spec the prompt matched";
+  return [
+    `<!-- ${GUESS_MARK} — no --capability was given. \`doctrina work\` picked`,
+    `     \`${guess.id}\` by deterministic term overlap (score ${guess.score}, ${beat}).`,
+    "     It is a hint, never a decision (ADR 0005). If it is the wrong",
+    "     capability, delete this folder and write the right one instead:",
+    `         rm -r .doctrina/changes/${id}/specs/${guess.id}`,
+    `         .doctrina/changes/${id}/specs/<capability>/delta.md`,
+    "     Delete this comment once the capability is confirmed. -->",
+  ].join("\n");
+}
+
+// Render the Lane header: the classifier's verdict, how sure it was, the
+// signals that decided it, and any operator override. One line, so the
+// proposal header stays a header.
+function laneRecord(verdict, { forced, chore, fromDiff }) {
+  const override = chore ? "chore" : fromDiff ? "backfill" : null;
+  if (!verdict) return override ? `${override} (no prompt to classify)` : "";
+  const hits = [...new Set(verdict.scores[verdict.lane]?.hits ?? [])].slice(0, 6);
+  const detail = hits.length > 0 ? `; signals: ${hits.join(", ")}` : "";
+  let line = `${verdict.lane} (${verdict.confident ? "confident" : "uncertain"}${detail})`;
+  // The operator disagreed with the classifier, or overrode its hold. That is
+  // the row calibration actually needs: recording only the agreements would
+  // make the set exactly the one that needs no calibrating.
+  if (override) line += ` — opened as ${override}`;
+  else if (forced && verdict.lane === "runtime") line += " — opened anyway (--force)";
+  return line;
+}
+
+function writeLane(projectRoot, id, verdict, opts) {
+  const line = laneRecord(verdict, opts);
+  if (!line) return;
+  const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
+  if (!isFile(proposalPath)) return;
+  const text = read(proposalPath);
+  // CRLF-safe: the scaffolded proposals are CRLF, and a `.*$` pattern
+  // silently matches nothing against them — the `patch-doctrina-files-as-crlf`
+  // skill exists for exactly this mistake.
+  const updated = text.replace(/^(-[ \t]+\*\*Lane:\*\*)[^\r\n]*/m, `$1 ${line}`);
+  if (updated !== text) write(proposalPath, updated, { force: true });
 }
 
 // Next sequential NNNN across open changes and the archive, so work-driven
@@ -289,9 +397,17 @@ function resumeChange(projectRoot, resumeId) {
   const matches = rankCapabilities(projectRoot, prompt);
   const capability = matches[0]?.id ?? null;
   const clarity = assessBrief(prompt, { kind: "prompt" });
+  // --resume creates nothing, but it must not tell the agent to write a delta
+  // the first run already scaffolded (pinned or guessed): it reads the folder.
+  const deltaPath = capability
+    ? path.join(projectRoot, ".doctrina", "changes", resumeId, "specs", capability, "delta.md")
+    : null;
+  const existing = deltaPath && isFile(deltaPath)
+    ? { capability, op: null, guess: read(deltaPath).includes(GUESS_MARK) }
+    : null;
   console.log(c.bold(`Resuming change ${resumeId}`) + c.gray(" — agent-executed (ADR 0005)."));
   console.log("");
-  printPlaybook(projectRoot, { id: resumeId, prompt, pinned: null, matches, capability, clarity });
+  printPlaybook(projectRoot, { id: resumeId, prompt, pinned: null, matches, capability, clarity, scaffolded: existing });
   return 0;
 }
 
@@ -314,229 +430,80 @@ export function slugify(text) {
   return slug.length > 0 ? slug : "task";
 }
 
-// Deterministic term overlap: fold prompt and spec text to ASCII lowercase,
-// drop short/stop words, score name hits heavily and body hits lightly.
-// This is a hint for the agent, never a decision (ADR 0005).
-const STOPWORDS = new Set([
-  // en
-  "the", "and", "for", "with", "from", "that", "this", "into", "when",
-  "then", "shall", "should", "must", "can", "will", "make", "add", "new",
-  "use", "create", "implement", "feature", "system", "user", "users",
-  // pt (ASCII-folded)
-  "uma", "umas", "uns", "dos", "das", "nos", "nas", "por", "para", "com",
-  "que", "sem", "aos", "faca", "fazer", "criar", "crie", "novo", "nova",
-  "adicionar", "adicione", "implementar", "implemente", "funcionalidade",
-  "sistema", "usuario", "usuarios",
-]);
-
-function fold(text) {
-  return text.normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
-}
-
-function promptTerms(prompt) {
-  return [...new Set(
-    fold(prompt)
-      .split(/[^a-z0-9]+/)
-      .filter((t) => t.length >= 3 && !STOPWORDS.has(t)),
-  )];
-}
-
-export function rankCapabilities(projectRoot, prompt) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  const terms = promptTerms(prompt);
-  if (terms.length === 0 || !isDir(specsDir)) return [];
-
-  const ranked = [];
-  for (const cap of readdirSync(specsDir).sort()) {
-    const specPath = path.join(specsDir, cap, "spec.md");
-    if (!isFile(specPath)) continue;
-    const body = fold(read(specPath));
-    const nameTokens = cap.split("-");
-    let score = 0;
-    for (const term of terms) {
-      if (nameTokens.includes(term)) score += 5;
-      const hits = body.split(term).length - 1;
-      score += Math.min(hits, 5);
-    }
-    if (score > 0) ranked.push({ id: cap, score, path: `.doctrina/specs/${cap}/spec.md` });
-  }
-  return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, 3);
-}
-
-// Rank capabilities by the working tree, not the prompt (review F10): a changed
-// file scores its capability when the file sits under a path segment named for
-// it, or when the spec cites the file as evidence. A deterministic overlap
-// hint for the agent — never a decision (ADR 0005).
-export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  if (!files || files.length === 0 || !isDir(specsDir)) return [];
-  const norm = files.map((f) => f.replace(/\\/g, "/"));
-
-  const ranked = [];
-  for (const cap of readdirSync(specsDir).sort()) {
-    const specPath = path.join(specsDir, cap, "spec.md");
-    if (!isFile(specPath)) continue;
-    const specText = read(specPath);
-    let score = 0;
-    for (const f of norm) {
-      if (f.split("/").includes(cap)) score += 3;            // src/<cap>/... etc.
-      if (specText.includes(f)) score += 5;                  // file cited in the spec
-      else if (specText.includes(path.basename(f))) score += 2; // filename cited
-    }
-    if (score > 0) ranked.push({ id: cap, score, path: `.doctrina/specs/${cap}/spec.md` });
-  }
-  // `limit` keeps the work-playbook hint short (top 3); review passes
-  // Infinity — truncating there is how it missed 5 of 8 touched capabilities
-  // in the 0.11.0 field session.
-  return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, limit);
-}
-
 // A chore is a spec-less change (review F9): the playbook drops the spec-delta
 // steps and goes straight to implement → verify → archive → validate, so the
 // agent is not prompted to invent a delta for infra/docs/build work.
+// Both playbooks are rendered from templates (lib/playbook.js), resolved
+// project-over-bundled like every other scaffold. What stays here is the only
+// part that is not prose: computing the variable blocks. Each is PRE-RENDERED
+// into a token, so `substitute` stays a plain string map and the template
+// stays a document rather than a language with conditionals in it.
 function printChorePlaybook(projectRoot, { id, prompt }) {
-  console.log(c.bold(`Chore playbook — change ${id}`) + c.gray(" — agent-executed (ADR 0005); no spec deltas."));
-  console.log("");
-  console.log(`Prompt: "${prompt}"`);
-  console.log("");
-  console.log("Execute in order, in a single linear pass:");
-  console.log("");
-  console.log(`1. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
-  console.log("   with small, checkable steps; implement them, checking each box.");
-  console.log(c.gray("   (Do it before implementing — analyze/close refuse leftover scaffold"));
-  console.log(c.gray("   placeholders, and `change tick` will not tick an empty box.)"));
-  console.log("2. Prove it (archive refuses unchecked boxes):");
-  console.log(`       ${c.cyan("doctrina verify")}     — the project's typecheck/test/build gate`);
-  console.log(`       ${c.cyan("doctrina verify --clean")} — clean-checkout reproducibility lint`);
-  console.log("   Then check the proposal's ## Verification boxes and every task.");
-  console.log("3. This is a chore: no spec changes. If you find yourself needing a");
-  console.log(`   spec delta, it is not a chore — reopen with ${c.cyan("doctrina work \"<prompt>\"")}.`);
-  console.log(`4. ${c.cyan(`doctrina change apply ${id}`)}  (zero deltas → flips to applied).`);
-  console.log(`5. ${c.cyan(`doctrina change archive ${id}`)}, then ${c.cyan("doctrina validate")}.`);
-  console.log(c.gray("   If this fix taught a lesson worth not relearning, capture it: ") +
-    c.cyan("doctrina skill new <slug>") + c.gray("."));
+  printPlaybookTemplate(projectRoot, "chore", { CHANGE_ID: id, PROMPT: prompt });
 }
 
-function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, fromDiff = false, diffMatches = [] }) {
-  const capToken = capability ?? "<capability>";
-  const title = fromDiff ? "Backfill playbook" : "Work playbook";
-  console.log(c.bold(`${title} — change ${id}`) + c.gray(" — agent-executed (ADR 0005)."));
-  console.log("");
-  console.log(`Prompt: "${prompt}"`);
-  if (fromDiff) {
-    console.log(c.gray("Code-first: write the spec that describes what the working tree already does."));
-  }
+function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, scaffolded = null, fromDiff = false, diffMatches = [] }) {
+  printPlaybookTemplate(projectRoot, "work", {
+    TITLE: fromDiff ? "Backfill playbook" : "Work playbook",
+    CHANGE_ID: id,
+    PROMPT: prompt,
+    CAPABILITY: capability ?? "<capability>",
+    FROM_DIFF_NOTE: fromDiff
+      ? c.gray("Code-first: write the spec that describes what the working tree already does.")
+      : "",
+    // Clarification gate (review Topic A): a thin prompt is the moment to ask
+    // the user, not to invent a spec. Advisory — the change is still
+    // scaffolded (it is a draft), but the agent is told to resolve the gaps
+    // first. The leading blank line belongs to the block, so an absent
+    // warning leaves no gap behind.
+    THIN_WARNING: clarity?.thin && !fromDiff
+      ? ["", c.yellow("⚠ thin prompt — clarify with the user before writing spec deltas:"),
+         ...clarity.reasons.map((r) => `    - ${r}`)].join("\n")
+      : "",
+    CAPABILITY_BLOCK: capabilityBlock(projectRoot, { pinned, matches, fromDiff }),
+    // Extra signal (review F10): even for a prompt-driven change, show which
+    // capabilities the working tree touched — often the truer hint.
+    DIFF_MATCHES: !fromDiff && diffMatches.length > 0
+      ? c.gray("Also touched by your working tree: ") + diffMatches.map((m) => c.cyan(m.id)).join(", ")
+      : "",
+    STEP3_INTRO: scaffolded
+      ? "3. A delta is already scaffolded (Operation prefilled) at\n" +
+        `   .doctrina/changes/${id}/specs/${scaffolded.capability}/delta.md — fill its body.\n` +
+        (scaffolded.guess
+          // Coloured per line: a span left open across a newline survives a
+          // terminal but not every pager the output gets piped into.
+          ? c.yellow("   It was RANKED, not pinned — confirm the capability first; the file") + "\n" +
+            c.yellow("   says how to correct it if the ranking got it wrong.") + "\n"
+          : "") +
+        "   Add one more delta per additional affected capability:"
+      : "3. Write one delta per affected capability at\n" +
+        `   .doctrina/changes/${id}/specs/<capability>/delta.md:`,
+    FROM_DIFF_DELTA_NOTE: fromDiff
+      ? [c.gray("   --from-diff: the code already exists — describe its CURRENT behaviour, and"),
+         c.gray("   mark each criterion [unverified] until a test proves it (don't assume the"),
+         c.gray("   diff is tested). The changed files are listed in the proposal's ## Why.")].join("\n")
+      : "",
+  });
+}
 
-  // Clarification gate (review Topic A): a thin prompt is the moment to ask
-  // the user, not to invent a spec. Advisory — the change is still scaffolded
-  // (it is a draft), but the agent is told to resolve the gaps first.
-  if (clarity?.thin && !fromDiff) {
-    console.log("");
-    console.log(c.yellow("⚠ thin prompt — clarify with the user before writing spec deltas:"));
-    for (const r of clarity.reasons) console.log(`    - ${r}`);
-  }
-
+// Which capability the change is about, as far as the CLI can tell: pinned by
+// the operator, ranked by term overlap, or nothing — a hint in every case,
+// never a decision (ADR 0005).
+function capabilityBlock(projectRoot, { pinned, matches, fromDiff }) {
   if (pinned) {
     const hasSpec = isFile(path.join(projectRoot, ".doctrina", "specs", pinned, "spec.md"));
-    console.log(`Capability (pinned): ${c.cyan(pinned)}` +
-      (hasSpec ? "" : c.yellow(" — no spec yet; create it in step 2")));
-  } else if (matches.length > 0) {
+    return `Capability (pinned): ${c.cyan(pinned)}` +
+      (hasSpec ? "" : c.yellow(" — no spec yet; create it in step 2"));
+  }
+  if (matches.length > 0) {
     const how = fromDiff ? "touched by your working tree" : "deterministic term match";
-    console.log(`Likely capabilities (${how} — a hint, not a decision):`);
-    for (const m of matches) {
-      console.log(`    ${c.cyan(m.id.padEnd(20))} score ${String(m.score).padStart(3)}   ${c.gray(m.path)}`);
-    }
-  } else {
-    console.log(c.gray(fromDiff
-      ? "No existing spec matches the changed files — likely a new capability."
-      : "No existing spec matches the prompt — likely a new capability."));
+    return [`Likely capabilities (${how} — a hint, not a decision):`,
+      ...matches.map((m) => `    ${c.cyan(m.id.padEnd(20))} score ${String(m.score).padStart(3)}   ${c.gray(m.path)}`),
+    ].join("\n");
   }
-
-  // Extra signal (review F10): even for a prompt-driven change, show which
-  // capabilities the working tree touched — often the truer hint.
-  if (!fromDiff && diffMatches.length > 0) {
-    console.log(c.gray("Also touched by your working tree: ") +
-      diffMatches.map((m) => c.cyan(m.id)).join(", "));
-  }
-
-  console.log("");
-  console.log("Execute in order, in a single linear pass:");
-  console.log("");
-  console.log("1. Read the context pack and confirm (or correct) the capability:");
-  console.log(`       ${c.cyan(`doctrina context ${capToken} --concat`)}`);
-  console.log("");
-  console.log("2. If the capability has no spec yet:");
-  console.log(`       ${c.cyan("doctrina spec new <capability>")}`);
-  console.log(c.gray("   Trace it to product intent: tag the product.md success-criteria bullet"));
-  console.log(c.gray("   it serves with an anchor (\"- [SC1] ...\") and set the spec's"));
-  console.log(c.gray("   \"**Realizes:** SC1\" header (or \"n/a — <why>\"). `doctrina validate` warns"));
-  console.log(c.gray("   on an active spec with no Realizes; `doctrina trace` reports the link."));
-  console.log("");
-  if (pinned) {
-    console.log(`3. A delta is already scaffolded (Operation prefilled) at`);
-    console.log(`   .doctrina/changes/${id}/specs/${pinned}/delta.md — fill its body.`);
-    console.log("   Add one more delta per additional affected capability:");
-  } else {
-    console.log("3. Write one delta per affected capability at");
-    console.log(`   .doctrina/changes/${id}/specs/<capability>/delta.md:`);
-  }
-  console.log(c.gray("       # Spec Delta — capability: <capability>"));
-  console.log(c.gray("       **Operation:** ADDED | MODIFIED | REMOVED"));
-  console.log(c.gray("       **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`"));
-  console.log(c.gray("       ---"));
-  console.log(c.gray("       <EARS body. Keep the two axes honest (Status vs Implementation),"));
-  console.log(c.gray("        keep aspiration under ## Maturity → Future, and cite the proof per"));
-  console.log(c.gray("        criterion: \"1. [unverified] <signal> — verified by `path/to/test`\">"));
-  console.log(c.gray("   New capability? `spec new` then an ADDED delta with the FULL body — apply"));
-  console.log(c.gray("   replaces the untouched scaffold. Bookkeeping edits? MODIFIED with an ops"));
-  console.log(c.gray("   block, applied mechanically (all ops or none):"));
-  console.log(c.gray("       ```ops"));
-  console.log(c.gray("       set-header Implementation: verified — `src/x.js`"));
-  console.log(c.gray("       bump-version minor"));
-  console.log(c.gray("       set-criterion 1: verified"));
-  console.log(c.gray("       append-criterion [unverified] new signal — verified by `test/y.test.js`"));
-  console.log(c.gray("       append-requirement event: When <trigger>, the system shall <action>."));
-  console.log(c.gray("       replace-requirement ubiquitous 2: The system shall <action>."));
-  console.log(c.gray("       ```"));
-  console.log(c.gray("   append-* ops number/position at APPLY time, so concurrent changes"));
-  console.log(c.gray("   appending to the same spec never collide. Only free-prose rewrites"));
-  console.log(c.gray("   (Purpose, Maturity, ...) stay a by-hand merge."));
-  if (fromDiff) {
-    console.log(c.gray("   --from-diff: the code already exists — describe its CURRENT behaviour, and"));
-    console.log(c.gray("   mark each criterion [unverified] until a test proves it (don't assume the"));
-    console.log(c.gray("   diff is tested). The changed files are listed in the proposal's ## Why."));
-  }
-  console.log("");
-  console.log(`4. Replace the placeholder tasks in .doctrina/changes/${id}/tasks.md`);
-  console.log("   with small, checkable implementation tasks (a few hours each, max),");
-  console.log("   and record the change's What/Scope in its proposal.md. Do this BEFORE");
-  console.log("   implementing — analyze and close refuse a change whose scaffold");
-  console.log("   placeholders were never replaced, and `change tick` will not tick them.");
-  console.log("");
-  console.log("5. Implement task by task, checking each box as it lands. Advance the");
-  console.log("   spec's Implementation: planned → partial → implemented as code lands.");
-  console.log("   If the prompt is genuinely ambiguous, ask the user before assuming.");
-  console.log("");
-  console.log(`6. ADR checkpoint — does this change decide something structural`);
-  console.log("   (an architecture, a boundary, a trade-off a future session must");
-  console.log(`   not relitigate)? If yes: ${c.cyan("doctrina decision new \"<title>\"")} now,`);
-  console.log("   before closing — the definition of done requires it recorded.");
-  console.log(c.gray("   (close re-checks this: it warns when the change touches capabilities"));
-  console.log(c.gray("   cited by an accepted ADR — amend via decision supersede, not silence.)"));
-  console.log("   Touching an integration surface (ports, env vars, public endpoints)?");
-  console.log(`   Own it in a contract: ${c.cyan("doctrina contract new <id>")} · ${c.cyan("doctrina contract check")}.`);
-  console.log("");
-  console.log(`7. Close in one attested pass (preferred — runs every gate and stops`);
-  console.log("   at the first failure with the exact rerun command):");
-  console.log(`       ${c.cyan(`doctrina close ${id}`)}`);
-  console.log(c.gray("   (equivalent, step by step: ") +
-    c.gray(`analyze → change apply → verify → coverage → trace → change archive → validate)`));
-  console.log("   Before it: check the proposal's ## Verification boxes and every task,");
-  console.log("   closing steps included, and bump Implementation to verified.");
-  console.log("");
-  console.log(`8. ${c.cyan("doctrina next")} for the follow-up.`);
-  console.log(c.gray("   If this change taught a reusable lesson (a fix you'd hate to relearn,"));
-  console.log(c.gray("   a recurring convention), capture it: ") + c.cyan("doctrina skill new <slug>") + c.gray("."));
+  return c.gray(fromDiff
+    ? "No existing spec matches the changed files — likely a new capability."
+    : "No existing spec matches the prompt — likely a new capability.");
 }
 
 export const help = `
@@ -552,6 +519,12 @@ context → spec delta → tasks → implement → analyze → apply → verify
 (verify + coverage) → archive → validate. No natural-language
 interpretation happens in the CLI.
 
+The change's spec delta is scaffolded with **Operation:** prefilled
+whenever the CLI can name the capability: from --capability, or from the
+ranking when the winner leads the runner-up by a whole matched term. A
+ranked delta is always MODIFIED and says in the file that it is a guess,
+with the command that corrects it. Below that margin nothing is written.
+
 When the prompt is a bare "continue"/"prossiga"/"next" and a change is
 already open, work suggests resuming it instead of opening a junk change
 named after that word (review G1). Use --resume to do so directly.
@@ -559,10 +532,8 @@ named after that word (review G1). Use --resume to do so directly.
 Options:
   --title "<short>"    Short display title: drives the slug and the proposal
                        H1; the full prompt still lands under ## Why
-  --capability <cap>   Pin the capability instead of ranking matches. Also
-                       scaffolds specs/<cap>/delta.md in the change with the
-                       Operation header prefilled (MODIFIED when the spec
-                       exists, ADDED when it does not)
+  --capability <cap>   Pin the capability instead of ranking matches, and
+                       drop the guess comment from the scaffolded delta
   --quiet              Register the change and print one line — no playbook
                        (backlog entry; reprint later with --resume <id>)
   --id <id>            Override the derived change id

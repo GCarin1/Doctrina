@@ -2,13 +2,18 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
-import * as idx from "../lib/index-json.js";
-import { deriveIndex, indexesMatch, listHeader } from "../lib/scan.js";
+import { exists, isDir } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
-import { collectRuntimeFindings } from "../lib/runtime.js";
+import { EXIT } from "../lib/exit-codes.js";
+import { action, computeActions, invocation } from "../lib/actions.js";
+
+// `next` answers "what now?". The ANSWER lives in `lib/actions.js` as
+// records; this module renders them and, under `--run`, executes one
+// (change 0032). Before that the answer WAS the sentence, so `--json`
+// returned prose in quotes and an agent had to re-read English to re-issue
+// a command the CLI had already assembled.
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -17,19 +22,28 @@ import { collectRuntimeFindings } from "../lib/runtime.js";
 // wrap it in the generic envelope.
 export const jsonNative = true;
 
-export const flags = { boolean: ["json"], string: [] };
+export const flags = { boolean: ["json", "run"], string: [] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   const json = flagBool(flags, "json", false);
   if (!exists(path.join(projectRoot, ".doctrina"))) {
-    const first = "doctrina init — this directory is not a Doctrina project yet";
+    const first = action({
+      id: "not-a-project",
+      command: "init",
+      runnable: false,
+      why: "this directory is not a Doctrina project yet",
+    });
     if (json) emitJson("next", { actions: [first] });
-    else console.log(`1. ${first}`);
+    else console.log(`1. ${first.text}`);
     return 0;
   }
 
   const actions = computeActions(projectRoot);
+
+  if (flagBool(flags, "run", false)) {
+    return runFirst(actions);
+  }
 
   if (json) {
     emitJson("next", { actions });
@@ -37,166 +51,98 @@ export async function run(_positional, flags) {
   }
 
   if (actions.length === 0) {
-    console.log(c.green("ok") + " no open work.");
+    // The two doors AGENTS.md tells an agent to use, not the two hand-authoring
+    // commands it tells them to avoid (second audit). `intake` first for a
+    // project with nothing specced yet, `work` for one that has.
+    const specced = isDir(path.join(projectRoot, ".doctrina", "specs"))
+      && readdirSync(path.join(projectRoot, ".doctrina", "specs"), { withFileTypes: true })
+        .some((e) => e.isDirectory());
+    console.log(c.green("ok") + " every gate is satisfied and no change is open.");
     console.log("");
     console.log("Start something:");
-    console.log(`  doctrina change new <id> "<title>"   open a change proposal`);
-    console.log(`  doctrina spec new <capability>       spec a new capability`);
+    if (!specced) {
+      console.log(`  doctrina intake --text "<what this project is>"   turn intent into specs`);
+    }
+    console.log(`  doctrina work "<prompt>"                          open the next change`);
     return 0;
   }
 
   console.log(c.bold("Next actions") + c.gray(" (in priority order):"));
   console.log("");
-  actions.forEach((a, i) => console.log(`${i + 1}. ${a}`));
+  actions.forEach((a, i) => console.log(`${i + 1}. ${a.text}`));
   return 0;
 }
 
-// The priority-ordered action list, render-free — shared with `prime`,
-// `handoff`, and the --json output.
-export function computeActions(projectRoot) {
-  const actions = [];
+// The command modules `--run` may dispatch to, loaded on demand. Static
+// imports here would make every module that imports `next` (prime, handoff,
+// watch) pay for the whole command tree just to render a list.
+export const RUNNERS = {
+  triage: () => import("./triage.js"),
+  intake: () => import("./intake.js"),
+  analyze: () => import("./analyze.js"),
+  "change apply": () => import("./change.js"),
+  "change archive": () => import("./change.js"),
+  "index rebuild": () => import("./index-rebuild.js"),
+};
 
-  // RUNTIME FIRST (change 0029). A declared wiring that does not hold is
-  // not a queue item — it is the reason the last run lied. After a job goes
-  // green having executed nothing, "open a change on the observability
-  // capability" sends the agent to polish the Markdown of an empty-state
-  // message while the cause sits in a file no other action names. A broken
-  // declaration outranks every artifact chore below it.
-  try {
-    const runtime = collectRuntimeFindings(projectRoot);
-    const errs = runtime.findings.filter((f) => f.level === "error");
-    if (errs.length > 0) {
-      actions.push(
-        `doctrina triage — ${errs.length} runtime declaration${errs.length === 1 ? " does" : "s do"} not hold ` +
-        `(first: ${errs[0].code} ${errs[0].message.slice(0, 80)}${errs[0].message.length > 80 ? "…" : ""})`,
-      );
+/**
+ * Execute the first runnable action, and only that one.
+ *
+ * ONE action, not the queue: the list is recomputed from the tree after
+ * every change to it, so running two in a row would act on a list the
+ * second half of which was computed before the first half ran. Stopping
+ * also keeps the human's approval point where they put it — `close` is the
+ * command that deliberately runs a whole sequence.
+ */
+async function runFirst(actions) {
+  const next = actions.find((a) => a.runnable);
+  if (!next) {
+    const blocked = actions.find((a) => !a.runnable);
+    if (!blocked) {
+      console.log(c.green("ok") + " no open work to run.");
+      return EXIT.OK;
     }
-  } catch {
-    // A malformed contract is `validate`'s finding to make, not a reason
-    // for `next` to fall over.
-  }
-
-  // A pending intake is the very first thing to resolve: until it is
-  // converted, product.md and the specs are still empty scaffolding.
-  const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
-  if (isFile(intakePath)) {
-    const status = (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase();
-    if (status !== "converted") {
-      actions.push("doctrina intake — a pending intake awaits conversion into product.md and specs");
+    // Everything left needs authorship, not execution. Say what, and say
+    // it is not a failure of the command.
+    console.log(c.yellow("nothing to run") + " — the next action needs a person, not a command:");
+    console.log("");
+    console.log(`    ${blocked.text}`);
+    const inv = invocation(blocked);
+    if (inv) {
+      console.log("");
+      console.log(c.gray("When you have made the call, record it with: ") + c.cyan(inv));
     }
+    return EXIT.OK;
   }
 
-  // Open changes drive the loop: finish what is started before opening more.
-  const changesDir = path.join(projectRoot, ".doctrina", "changes");
-  if (isDir(changesDir)) {
-    for (const id of readdirSync(changesDir).sort()) {
-      if (id === "archive" || id.startsWith(".")) continue;
-      if (!isDir(path.join(changesDir, id))) continue;
-      const proposalPath = path.join(changesDir, id, "proposal.md");
-      if (!isFile(proposalPath)) {
-        actions.push(`add a proposal.md to .doctrina/changes/${id}/ (open changes need one)`);
-        continue;
-      }
-      const status = listHeader(read(proposalPath), "Status") ?? "proposed";
-      if (status === "applied") {
-        actions.push(`doctrina change archive ${id} — applied but not archived`);
-        continue;
-      }
-      const tasksPath = path.join(changesDir, id, "tasks.md");
-      const unchecked = isFile(tasksPath)
-        ? (read(tasksPath).match(/^-\s+\[ \]/gm) ?? []).length
-        : 0;
-      if (unchecked > 0) {
-        actions.push(`complete ${unchecked} open task${unchecked === 1 ? "" : "s"} in .doctrina/changes/${id}/tasks.md`);
-        continue;
-      }
-      const deltas = walk(path.join(changesDir, id, "specs")).filter((p) => p.endsWith("delta.md"));
-      if (deltas.length > 0) {
-        actions.push(`doctrina analyze ${id}, then doctrina change apply ${id} — tasks done, ${deltas.length} delta${deltas.length === 1 ? "" : "s"} ready`);
-      } else {
-        actions.push(`add spec deltas under .doctrina/changes/${id}/specs/, or apply as metadata-only: doctrina change apply ${id}`);
-      }
-    }
+  const loader = RUNNERS[next.command];
+  if (!loader) {
+    // A runnable action whose command has no runner is a bug in this map,
+    // not something to paper over by silently doing nothing.
+    console.error(c.red("error:") + ` no runner for "${next.command}"`);
+    console.error(c.gray("hint: ") + `run it yourself: ${invocation(next)}`);
+    return EXIT.GATE;
   }
 
-  // ADRs stuck in proposed need a human decision; accepted-but-bare ADRs are
-  // the rot the review flagged — a decision with nothing behind it (no Evidence,
-  // no Landed) is drift waiting to be superseded. Surface the proposed ones
-  // first (a pending decision blocks more than a missing stamp).
-  const adrDir = path.join(projectRoot, ".doctrina", "decisions");
-  const landNudges = [];
-  const isBareValue = (v) => {
-    const t = (v ?? "").trim();
-    return t === "" || t === "—" || t === "-";
-  };
-  for (const f of walk(adrDir)) {
-    if (!f.endsWith(".md")) continue;
-    const m = path.basename(f).match(/^(\d{4})-/);
-    if (!m) continue;
-    const text = read(f);
-    const status = listHeader(text, "Status");
-    if (status && status.toLowerCase() === "proposed") {
-      actions.push(`review ADR ${m[1]} (${relPath(projectRoot, f)}): doctrina decision accept ${m[1]}, or supersede it`);
-    } else if (status && status.toLowerCase() === "accepted") {
-      // Bare only when BOTH anchors are empty (Evidence header present-but-bare
-      // and no Landed stamp). An ADR that opts out of Evidence entirely
-      // (header absent) is not nagged.
-      const evidence = listHeader(text, "Evidence");
-      const landed = listHeader(text, "Landed");
-      if (evidence !== null && isBareValue(evidence) && isBareValue(landed)) {
-        landNudges.push(`record what proves ADR ${m[1]}: cite its **Evidence:**, or once it ships, doctrina decision land ${m[1]}`);
-      }
-    }
+  console.log(c.bold("Running") + ` ${c.cyan(invocation(next))}` + c.gray(` — ${next.why}`));
+  console.log("");
+  const mod = await loader();
+  // A sub-operation ("change archive") is passed as a positional, exactly
+  // as the entrypoint would.
+  const [, ...sub] = next.command.split(" ");
+  const code = await mod.run([...sub, ...next.args], new Map());
+
+  console.log("");
+  if (code === EXIT.OK) {
+    console.log(c.green("✓ ran ") + c.cyan(invocation(next)) + c.gray(" — `doctrina next` for what follows"));
+  } else {
+    console.log(c.red("✗ ") + c.cyan(invocation(next)) + c.gray(` exited ${code} — fix it, then rerun`));
   }
-  for (const n of landNudges) actions.push(n);
-
-  // No procedural memory captured yet, but the history shows a fix-shaped
-  // change — exactly the lesson a skill exists to keep from being relearned
-  // (review §5: the change-0003 "tolerate LLM code fences" case). One gentle
-  // nudge, only when skills are empty, so it never nags a project that opted in.
-  const skillNudge = suggestSkillCapture(projectRoot);
-  if (skillNudge) actions.push(skillNudge);
-
-  // Index drift is silent rot; surface it last.
-  try {
-    const current = idx.load(projectRoot);
-    if (!indexesMatch(deriveIndex(projectRoot, current), current)) {
-      actions.push("doctrina index rebuild — index.json has drifted from the tree");
-    }
-  } catch {
-    actions.push("doctrina index rebuild — index.json is missing or unreadable");
-  }
-
-  return actions;
-}
-
-// Return a single skill-capture nudge, or null. Fires only when no skill has
-// been written yet (skills/ holds nothing but .gitkeep) AND the archive shows a
-// fix-shaped change whose lesson is the textbook case for a skill. Deterministic
-// pattern match on the archived folder name — a hint, never a decision (ADR 0005).
-const FIX_SHAPED = /(?:^|-)(fix|bug|hotfix|patch|parse|parsing|tolerate|workaround|race|deadlock|flaky|retry|escape|sanitize|sanitise)(?:-|$)/;
-
-function suggestSkillCapture(projectRoot) {
-  const skillsDir = path.join(projectRoot, ".doctrina", "skills");
-  if (isDir(skillsDir)) {
-    const hasSkill = walk(skillsDir).some((f) => f.endsWith(".md"));
-    if (hasSkill) return null; // opted in already — never nag
-  }
-  const archiveDir = path.join(projectRoot, ".doctrina", "changes", "archive");
-  if (!isDir(archiveDir)) return null;
-  for (const name of readdirSync(archiveDir).sort()) {
-    if (!isDir(path.join(archiveDir, name))) continue;
-    const id = name.replace(/^\d{4}-\d{2}-\d{2}-/, "");
-    if (FIX_SHAPED.test(id)) {
-      return `capture a skill from past fixes (e.g. "${id}"): doctrina skill new <slug> — ` +
-        `on-demand procedural memory so the next agent does not relearn it (none exist yet)`;
-    }
-  }
-  return null;
+  return code;
 }
 
 export const help = `
-Usage: doctrina next [--json]
+Usage: doctrina next [--json] [--run]
 
 Inspect the .doctrina/ tree and print the recommended next workflow
 actions in priority order: runtime declarations that no longer hold
@@ -205,8 +151,20 @@ run lied), open changes (missing proposal, unchecked
 tasks, deltas ready to apply, applied-but-unarchived), ADRs still in
 proposed status, accepted ADRs with nothing proving them (cite Evidence
 or run "decision land"), a skill-capture nudge when a past fix went
-uncaptured, and index drift last. Read-only; always exits 0.
+uncaptured, and index drift last.
 
 Intended use: agents and humans run it to resume work without
 re-reading the whole tree.
+
+Options:
+  --json   Emit the actions as records — { id, command, args, why, gate,
+           severity, runnable, text }. Branch on \`command\`/\`args\`; \`text\`
+           is the same line the terminal prints.
+  --run    Execute the first RUNNABLE action in-process and stop. An action
+           that needs a person to decide — accept an ADR, write a proposal,
+           complete a task, capture a skill — is never runnable however
+           mechanical its edit would be, and \`--run\` names it instead.
+           Exits with the executed command's own code.
+
+Read-only without --run, and always exits 0 then.
 `;

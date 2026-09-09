@@ -94,6 +94,43 @@ v0.1.0 does not yet have.
 the bench script does not predict, or the validation A/B
 protocol surfaces validate as a bottleneck.
 
+## Line-ending policy (`.gitattributes`)
+
+**Status:** deferred — the failure it caused is fixed, the root
+cause is not.
+
+This repository declares no line-ending policy, so a Windows
+checkout stores 519 of its 730 versioned files as CRLF. That is
+not a problem for the CLI, which splits on `/\r?\n/` throughout;
+it was a problem for the TESTS, nine of which assumed LF and so
+could not run on the machine the work was being done on. Change
+0117 made those nine agnostic, and the suite now runs on both.
+
+**Why the obvious fix is not the chosen one.** `* text=auto
+eol=lf` plus a renormalising commit would settle it in one line —
+and rewrite 519 files, burying every subsequent `git blame` and
+colliding with any work in flight. That cost is paid once by
+everyone who ever reads the history, to solve a problem that no
+longer bites.
+
+**The preferred approach when this is revisited**, cheaper and
+narrower than renormalising:
+
+1. A lint over `test/` that refuses the assumption rather than the
+   bytes — no bare `.split("\n")` on file content, no `\n`-anchored
+   pattern against a file read from disk. That is what actually
+   broke, and it prevents the next instance instead of the last.
+2. `.gitattributes` scoped to the files a test compares byte for
+   byte — `.doctrina/templates/**`, `test/fixtures/**`, `action.yml`
+   — which is a few dozen files, not 519.
+3. Whole-tree normalisation only if a third class of failure appears
+   that neither of those covers.
+
+**Trigger to revisit:** a line-ending failure that is NOT in a test
+fixture — the CLI itself, or an adopting team's artifacts, behaving
+differently by platform. Until then the assumption is linted and the
+bytes are left alone.
+
 ## Other items deferred or scoped out
 
 - **`/checklist` quality-gate command.** The spec template's
@@ -102,7 +139,7 @@ protocol surfaces validate as a bottleneck.
   acceptance criteria.
 - **Centralised constitution document — shipped in 0.10.0.** Rather
   than a separate `constitution.md` (a second home for facts already
-  in the ADRs), `doctrina constitution` assembles the view on demand
+  in the ADRs), `doctrina prime --rules` assembles the view on demand
   from the accepted ADRs plus the product non-goals. Read-only; owns
   nothing of its own.
 

@@ -2,12 +2,15 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
+import { wantsJson } from "../lib/json-out.js";
 import { spawn, spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
+import { loadSignoffs, saveSignoffs, recordSignoff, signoffState, short, SIGNOFF_REL } from "../lib/signoff.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
+import { collectReproducibility } from "../lib/reproducibility.js";
 
 // The build/verify gate `validate` is not. `validate` checks the shape of
 // the artifact tree; it never runs the project, so a repo that does not
@@ -18,7 +21,7 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 // `.doctrina/verify.json`, and `verify` runs exactly that, in order.
 
 const CONFIG_REL = ".doctrina/verify.json";
-const SIGNOFF_REL = ".doctrina/verify.signoffs.json";
+
 
 const STARTER = {
   $comment:
@@ -53,7 +56,7 @@ export async function run(_positional, flags) {
   // fresh `npm install` differ from the dirty machine, without doing a real
   // (slow, package-manager-specific) clean install.
   if (flagBool(flags, "clean", false)) {
-    return reproducibilityLint(projectRoot);
+    return renderReproducibility(projectRoot);
   }
 
   const configPath = path.join(projectRoot, CONFIG_REL);
@@ -117,12 +120,11 @@ export async function run(_positional, flags) {
     return 1;
   }
 
-  // Sign-off store for manual checks: { "<check name>": { date, note } }.
-  const signoffPath = path.join(projectRoot, SIGNOFF_REL);
-  let signoffs = {};
-  if (isFile(signoffPath)) {
-    try { signoffs = JSON.parse(read(signoffPath)) ?? {}; } catch { signoffs = {}; }
-  }
+  // Sign-off store for manual checks. Since change 0039 a record carries what
+  // it covered and the commit it covered it at, so the signature can expire
+  // (lib/signoff.js); a pre-expiry record is read unchanged and reported as
+  // unverifiable rather than silently trusted.
+  const signoffs = loadSignoffs(projectRoot);
 
   // --signoff "<name>=<note>" records a manual check's human/eval sign-off
   // (date stamped today) and exits. The name must be a declared manual check.
@@ -140,9 +142,22 @@ export async function run(_positional, flags) {
         : `add one: { "name": "${name || "quality"}", "type": "manual", "rubric": "<the question>" }`));
       return 1;
     }
-    signoffs[name] = { date: today(), note };
-    write(signoffPath, JSON.stringify(signoffs, null, 2) + "\n", { force: true });
-    console.log(c.green("signed off") + ` ${name} on ${today()}${note ? `: ${note}` : ""}`);
+    signoffs[name] = recordSignoff(projectRoot, target, note);
+    saveSignoffs(projectRoot, signoffs);
+    const stamped = signoffs[name];
+    console.log(c.green("signed off") + ` ${name} on ${stamped.date}${note ? `: ${note}` : ""}`);
+    // Say what the signature is anchored to, so its expiry is not a surprise
+    // later: an unanchored signature is one nothing can hold to the code.
+    if (stamped.sha && stamped.paths) {
+      console.log(c.gray(`   covers ${stamped.paths.join(", ")} as of ${short(stamped.sha)}`));
+      console.log(c.gray("   expires when one of those paths changes"));
+    } else if (!stamped.paths) {
+      console.log(c.yellow("warn:") + ` "${name}" declares no "paths" — the sign-off cannot expire, ` +
+        "so `verify` will report it as unverifiable rather than passing");
+      console.log(c.gray(`   fix: add "paths": ["src/..."] to the check in ${CONFIG_REL}`));
+    } else {
+      console.log(c.yellow("warn:") + " not a git repository — nothing can tell when this signature goes stale");
+    }
     return 0;
   }
 
@@ -178,13 +193,29 @@ export async function run(_positional, flags) {
     // can require the human/eval sign-off without blocking local runs.
     if (ch.type === "manual") {
       console.log(c.gray(`──── ${name}: `) + c.gray(`manual${ch.rubric ? " — " + ch.rubric : ""}`));
-      const so = signoffs[name];
-      if (so && so.date) {
-        console.log(c.green(`✓ ${name}`) + c.gray(` — signed off ${so.date}${so.note ? `: ${so.note}` : ""}`));
-        results.push({ name, ok: true, kind: "manual" });
+      // Four states, one rule: only a signature that still demonstrably
+      // covers the code passes. The other three warn by default and fail
+      // under --strict — which is what `pending` already did, so a manual
+      // check keeps ONE rule rather than gaining a second.
+      const verdict = signoffState(projectRoot, ch, signoffs[name]);
+      const so = verdict.record;
+      const resign = c.gray(` (doctrina verify --signoff "${name}=<note>")`);
+      if (verdict.state === "fresh") {
+        console.log(c.green(`✓ ${name}`) + c.gray(` — signed off ${so.date}${so.note ? `: ${so.note}` : ""}`) +
+          c.gray(` · still covers ${so.paths.join(", ")} at ${short(so.sha)}`));
+        results.push({ name, ok: true, kind: "manual", signoff: "fresh" });
+      } else if (verdict.state === "expired") {
+        console.log(c.yellow(`○ ${name} — sign-off expired`) +
+          c.gray(` (signed ${so.date} at ${short(so.sha)}; changed since: ${verdict.changed.slice(0, 3).join(", ")}` +
+            `${verdict.changed.length > 3 ? `, +${verdict.changed.length - 3} more` : ""})`) + resign);
+        results.push({ name, ok: false, kind: "manual", pending: true, signoff: "expired" });
+      } else if (verdict.state === "unverifiable") {
+        console.log(c.yellow(`○ ${name} — sign-off cannot be verified`) +
+          c.gray(` (signed ${so.date}; ${verdict.why})`) + resign);
+        results.push({ name, ok: false, kind: "manual", pending: true, signoff: "unverifiable" });
       } else {
-        console.log(c.yellow(`○ ${name} — pending sign-off`) + c.gray(` (doctrina verify --signoff "${name}=<note>")`));
-        results.push({ name, ok: false, kind: "manual", pending: true });
+        console.log(c.yellow(`○ ${name} — pending sign-off`) + resign);
+        results.push({ name, ok: false, kind: "manual", pending: true, signoff: "pending" });
       }
       continue;
     }
@@ -205,7 +236,11 @@ export async function run(_positional, flags) {
     // slower. Reading and showing are independent: the tee streams every
     // chunk as it arrives AND accumulates it for the match.
     const expectation = parseExpectation(ch);
-    const res = expectation
+    // Under --json the child is TEED as well (change 0114): with
+    // `stdio: "inherit"` its bytes go straight to the file descriptors,
+    // past the envelope's capture, so a failing check's diagnostics landed
+    // on the real stderr while the JSON said `"stderr": []`.
+    const res = expectation || wantsJson(flags)
       ? await runTee(ch.run, ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot)
       : spawnSync(ch.run, {
         cwd: ch.cwd ? path.resolve(projectRoot, ch.cwd) : projectRoot,
@@ -346,138 +381,25 @@ export function judgeOutput(expectation, output) {
   return { ok: true };
 }
 
-// Static reproducibility lint: walk the project's package.json files and
-// report the two "works on my machine" footguns the review hit — a package
-// whose entry points live in a build-output dir with nothing that builds it
-// on install, and a codegen dependency (Prisma) with no install hook that
-// generates. Returns 0 when clean, 1 when any risk is found. Pure read.
-function reproducibilityLint(projectRoot) {
-  const pkgPaths = findPackageJsons(projectRoot);
+
+// The reproducibility lint, rendered. The lint itself is a collection in
+// lib/reproducibility.js so `doctor` can ask for it in process.
+function renderReproducibility(projectRoot) {
+  const { packages, findings } = collectReproducibility(projectRoot);
   console.log(c.bold("doctrina verify --clean") + c.gray(" — reproducibility lint (static, not a real fresh install)"));
   console.log("");
-
-  if (pkgPaths.length === 0) {
+  if (packages === 0) {
     console.log(c.gray("no package.json found — nothing this lint can check (it knows Node/npm footguns)"));
     return 0;
   }
-
-  const findings = [];
-  for (const pkgPath of pkgPaths) {
-    const rel = relPath(projectRoot, pkgPath);
-    let pkg;
-    try {
-      pkg = JSON.parse(read(pkgPath));
-    } catch (err) {
-      findings.push(`${rel}: not valid JSON (${err.message})`);
-      continue;
-    }
-    const scripts = pkg.scripts ?? {};
-    const hasInstallBuild = typeof scripts.prepare === "string" || typeof scripts.prepack === "string";
-
-    // 1. Entry point into a build output with nothing to build it on install.
-    const built = entryIntoBuildDir(pkg);
-    if (built && !hasInstallBuild) {
-      findings.push(
-        `${rel}: ${built.field} → \`${built.value}\` is a build output, but no "prepare"/"prepack" ` +
-        `script builds it on install — a fresh install/clone won't have it (add a prepare script, or commit the output)`,
-      );
-    }
-
-    // 2. Codegen dependency with no install hook that generates.
-    const deps = {
-      ...pkg.dependencies, ...pkg.devDependencies,
-      ...pkg.peerDependencies, ...pkg.optionalDependencies,
-    };
-    for (const [dep, gen] of Object.entries(CODEGEN_DEPS)) {
-      if (!(dep in deps)) continue;
-      const installHook = `${scripts.postinstall ?? ""} ${scripts.prepare ?? ""}`;
-      if (!gen.test(installHook)) {
-        findings.push(
-          `${rel}: depends on "${dep}" but no "postinstall"/"prepare" runs its codegen ` +
-          `(\`${gen.source.replace(/\\s\+/g, " ")}\`) — a fresh install has no generated output`,
-        );
-      }
-    }
-  }
-
   if (findings.length === 0) {
-    console.log(c.green("ok") + ` ${pkgPaths.length} package.json file${pkgPaths.length === 1 ? "" : "s"} — no reproducibility risks found`);
+    console.log(c.green("ok") + ` ${packages} package.json file${packages === 1 ? "" : "s"} — no reproducibility risks found`);
     return 0;
   }
   for (const f of findings) console.log(`  ${c.yellow("!")} ${f}`);
   console.log("");
   console.log(c.red("fail") + ` ${findings.length} reproducibility risk${findings.length === 1 ? "" : "s"} — a clean checkout may not build`);
   return 1;
-}
-
-// Known codegen dependencies → the command an install hook must run so a
-// fresh install produces their generated output.
-const CODEGEN_DEPS = {
-  "@prisma/client": /prisma\s+generate/,
-  "prisma": /prisma\s+generate/,
-};
-
-const BUILD_DIR_RE = /(?:^|\/)(?:dist|build|out)\//;
-
-// The first entry-point field that points into a build-output directory, or
-// null. Scans main/module/types/typings, bin (string or map), and exports
-// (recursively, string leaves only).
-function entryIntoBuildDir(pkg) {
-  for (const field of ["main", "module", "types", "typings"]) {
-    if (typeof pkg[field] === "string" && BUILD_DIR_RE.test(pkg[field])) {
-      return { field, value: pkg[field] };
-    }
-  }
-  if (typeof pkg.bin === "string" && BUILD_DIR_RE.test(pkg.bin)) return { field: "bin", value: pkg.bin };
-  if (pkg.bin && typeof pkg.bin === "object") {
-    for (const v of Object.values(pkg.bin)) {
-      if (typeof v === "string" && BUILD_DIR_RE.test(v)) return { field: "bin", value: v };
-    }
-  }
-  const fromExports = scanExports(pkg.exports);
-  if (fromExports) return { field: "exports", value: fromExports };
-  return null;
-}
-
-function scanExports(node) {
-  if (typeof node === "string") return BUILD_DIR_RE.test(node) ? node : null;
-  if (node && typeof node === "object") {
-    for (const v of Object.values(node)) {
-      const hit = scanExports(v);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
-
-// Bounded walk for package.json files: skip dependency, build, and VCS
-// directories so the lint stays fast and ignores vendored manifests.
-const LINT_SKIP_DIRS = new Set([
-  ".git", "node_modules", "dist", "build", "out", "vendor", ".next",
-  "coverage", ".venv", "venv", "__pycache__", "target", ".doctrina",
-]);
-
-function findPackageJsons(projectRoot) {
-  const found = [];
-  const stack = [projectRoot];
-  while (stack.length) {
-    const dir = stack.pop();
-    let entries;
-    try {
-      entries = readdirSync(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (!LINT_SKIP_DIRS.has(entry.name) && !entry.name.startsWith(".")) stack.push(full);
-      } else if (entry.name === "package.json") {
-        found.push(full);
-      }
-    }
-  }
-  return found.sort();
 }
 
 export const help = `

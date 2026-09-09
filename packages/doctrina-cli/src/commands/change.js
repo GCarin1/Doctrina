@@ -1,5 +1,5 @@
 // @ts-check
-import { getSection, getHeader } from "../lib/doc-model.js";
+import { parseChecklist, getSection, getHeader, parseChangeTitle } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
@@ -13,17 +13,20 @@ import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gat
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js";
 import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
+import { changeNew } from "../lib/change-ops.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec"], string: ["reason"] };
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -35,7 +38,8 @@ export async function run(positional, flags) {
     case "archive":
       return forEachId(positional.slice(1), "archive", (id) => changeArchive([id], flags));
     case "check":
-      return forEachId(positional.slice(1), "check", (id) => changeCheck(id));
+      return forEachId(positional.slice(1), "check", (id) =>
+        changeCheck(id, { verbose: flagBool(flags, "verbose", false) }));
     case "tick":
       return changeTick(positional.slice(1), flags);
     case "diff":
@@ -53,13 +57,23 @@ export async function run(positional, flags) {
 }
 
 // Enforce a lifecycle transition's preconditions from the shared gate map.
-// Returns true when the transition may proceed. One implementation, so
-// every driver of a transition refuses — and explains, and forces —
-// identically (C6).
+// One implementation, so every driver of a transition refuses — and
+// explains, and forces — identically (C6).
+//
+// Returns `{ ok, forced }`. `forced` carries the blockers that were waved
+// through, for the caller to record ONCE THE TRANSITION HAS ACTUALLY
+// HAPPENED — see `recordForcedGap` below. This used to record here, at the
+// moment the gate was overridden, which wrote history for an event that had
+// not occurred yet and often never would: `change apply --force` on a
+// change with an unappliable ops block logged "forced apply past 3
+// blockers" while the apply wrote nothing, the spec stayed byte-identical
+// and the proposal stayed `proposed` (third audit, finding 3). The ledger
+// is the readable source of what happened to the tree; an attempt that
+// changed nothing did not happen to it.
 function enforceTransition(projectRoot, id, changeDir, transition, flags) {
   const force = flagBool(flags, "force", false);
   const { ok, blockers } = checkTransition(projectRoot, changeDir, transition);
-  if (ok) return true;
+  if (ok) return { ok: true, forced: null };
 
   const label = TRANSITIONS[transition].label;
   if (!force) {
@@ -67,12 +81,11 @@ function enforceTransition(projectRoot, id, changeDir, transition, flags) {
     for (const b of blockers) console.error(`  - [${b.gate}] ${b.message}`);
     const reruns = [...new Set(blockers.map((b) => GATES[b.gate].rerun(id)))];
     console.error(c.gray("hint: ") + `fix them (${reruns.join(" · ")}), or pass --force to ${transition} anyway (records the gap)`);
-    return false;
+    return { ok: false, forced: null };
   }
   console.log(c.yellow("warn:") + ` ${label} "${id}" with ${blockers.length} blocker${blockers.length === 1 ? "" : "s"} (--force):`);
   for (const b of blockers) console.log(c.yellow("  - ") + `[${b.gate}] ${b.message}`);
-  recordForcedGap(projectRoot, id, transition, blockers);
-  return true;
+  return { ok: true, forced: blockers };
 }
 
 // Batch driver (operator review 2026-07-19 §3.5/§4.5): apply/archive/check
@@ -109,76 +122,6 @@ async function forEachId(ids, name, one) {
   return worst;
 }
 
-function changeNew(args, flags) {
-  const id = args[0];
-  const title = args.slice(1).join(" ").trim();
-  if (!id) {
-    console.error(c.red("error:") + " change new requires <id> and \"<title>\"");
-    return 2;
-  }
-  if (!title) {
-    console.error(c.red("error:") + " change new requires a title (quote it if it contains spaces)");
-    return 2;
-  }
-
-  const force = flagBool(flags, "force", false);
-  // A chore is a spec-less change (infra / docs / build / migration) — review
-  // G9. It runs the full proposal → apply → archive → ledger lifecycle (so the
-  // history shows it) without forcing a fake spec delta. The empty specs/ dir
-  // is kept so `change apply`'s zero-delta path flips it to applied unchanged.
-  const chore = flagBool(flags, "chore", false) || flagBool(flags, "no-spec", false);
-  const projectRoot = process.cwd();
-  ensureDoctrinaProject(projectRoot);
-
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
-  if (exists(changeDir) && !force) {
-    console.error(c.red("error:") + ` change "${id}" already exists at ${relPath(projectRoot, changeDir)}`);
-    return 1;
-  }
-
-  const templatesDir = locateTemplatesDir();
-  const date = today();
-  const tokens = { CHANGE_ID: id, CHANGE_TITLE: title, DATE: date, CAPABILITY: "" };
-
-  // design.md is opt-in (--design): in practice it scaffolded on every change
-  // and stayed empty — nine changes out of nine in the 0.11.0 field review. A
-  // change that needs a design doc asks for one; the rest stop carrying a
-  // blank file through apply/archive/ledger.
-  const wantDesign = flagBool(flags, "design", false);
-  const tree = loadTemplateTree(templatesDir, "change");
-  for (const entry of tree) {
-    if (entry.relativePath === "spec-delta.md.template") continue;
-    if (entry.relativePath === "design.md.template" && !wantDesign) continue;
-    const written = materialiseEntry(entry, changeDir, tokens, { force });
-    console.log(c.green("created") + ` ${relPath(projectRoot, written)}`);
-  }
-  mkdirp(path.join(changeDir, "specs"));
-
-  // Stamp the proposal so a chore is honest in the artifact, not just the CLI.
-  if (chore) {
-    const proposalPath = path.join(changeDir, "proposal.md");
-    if (exists(proposalPath)) {
-      const txt = read(proposalPath);
-      const updated = txt.replace(/^(-\s+\*\*Affects specs:\*\*).*$/m, "$1 (none — chore)");
-      if (updated !== txt) write(proposalPath, updated, { force: true });
-    }
-  }
-
-  const index = idx.load(projectRoot);
-  idx.addChange(index, { id, title, path: `.doctrina/changes/${id}`, status: "proposed", opened: date });
-  idx.touch(index, date);
-  idx.save(projectRoot, index);
-
-  console.log("");
-  if (chore) {
-    console.log(c.bold("Chore opened.") + " No spec deltas expected — implement, check the tasks, then " +
-      c.cyan(`doctrina change apply ${id}`) + " and " + c.cyan(`doctrina change archive ${id}`) + ".");
-  } else {
-    console.log(c.bold("Change opened.") + " Add spec deltas under " +
-      c.cyan(`.doctrina/changes/${id}/specs/<capability>/delta.md`));
-  }
-  return 0;
-}
 
 function changeApply(args, flags) {
   const id = args[0];
@@ -192,7 +135,7 @@ function changeApply(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Gate parity (C6). `apply` used to mutate specs with no preconditions,
@@ -200,7 +143,8 @@ function changeApply(args, flags) {
   // and exit 0 — through the very analyze → apply path the docs prescribe.
   // The preconditions now come from the shared map, so what guards a
   // transition does not depend on which command drove it.
-  if (!enforceTransition(projectRoot, id, changeDir, "apply", flags)) return 1;
+  const applyGate = enforceTransition(projectRoot, id, changeDir, "apply", flags);
+  if (!applyGate.ok) return 1;
 
   // Applying twice is silent corruption. The ops verbs are ADDITIVE —
   // `append-requirement` appends, `bump-version` bumps — so a second pass
@@ -334,6 +278,12 @@ function changeApply(args, flags) {
   }
 
   console.log("");
+  // The gap is history only once the transition happened. An apply that
+  // errored wrote nothing and left the proposal `proposed`, so there is
+  // nothing for the ledger to record (change 0096).
+  if (applyGate.forced && errors === 0) {
+    recordForcedGap(projectRoot, id, "apply", applyGate.forced);
+  }
   console.log(c.bold("Apply summary:") + ` ${writes} written, ${manual} manual, ${errors} errors.`);
   if (manual > 0) {
     console.log(`Resolve manual merges, then run ${c.cyan(`doctrina change archive ${id}`)}.`);
@@ -346,13 +296,13 @@ function changeApply(args, flags) {
 // Pre-close dry-run (operator review 2026-07-19 §4.4): everything analyze,
 // apply, and archive would refuse, listed BEFORE any of them runs, with the
 // remediation next to each finding. Read-only — the per-change `doctor`.
-async function changeCheck(id) {
+async function changeCheck(id, { verbose = false } = {}) {
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   let failures = 0;
@@ -398,6 +348,15 @@ async function changeCheck(id) {
   if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
   if (opsFindings > 0) failures += 1;
 
+  // --verbose: the same per-delta preview `change diff` prints. The dry-run
+  // above says whether the ops WOULD apply; this says what the file would
+  // look like afterwards, which is the question the separate command existed
+  // to answer (change 0049).
+  if (verbose && deltaFiles.length > 0) {
+    console.log(c.gray("──── deltas in full (--verbose)"));
+    if (printDeltaPreview(projectRoot, changeDir, deltaFiles) > 0) failures += 1;
+  }
+
   // 3. Archive gate preview: what archive will refuse, listed with the fix.
   console.log(c.gray("──── 3/3 archive gate"));
   // Preview through the SAME map the transitions enforce, so `check` can
@@ -442,7 +401,7 @@ function changeTick(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Unified ordinal space over both files, in reading order: every unchecked
@@ -451,56 +410,72 @@ function changeTick(args, flags) {
     { label: "tasks.md", path: path.join(changeDir, "tasks.md"), section: null },
     { label: "proposal.md ## Verification", path: path.join(changeDir, "proposal.md"), section: "Verification" },
   ];
+  // STABLE ordinals (change 0104): every box in reading order, checked or
+  // not, so a number means the same box on every invocation. The ordinals
+  // used to run over the UNCHECKED boxes only, and renumbered after each
+  // tick: `tick 1`, `tick 2`, `tick 3`, `tick 4` in four calls ticked task 1,
+  // then "Apply the change", "Update index.json" and "acceptance criteria
+  // are met" — the closing steps and the proposal's Verification claims —
+  // while tasks 2-4 stayed open. A box is a claim; the number that names
+  // it cannot move.
   const boxes = [];
   for (const f of files) {
     if (!isFile(f.path)) continue;
-    const lines = read(f.path).split(/\r?\n/);
-    const inScope = f.section === null
-      ? () => true
-      : (() => {
-          const scoped = new Set();
-          let inSection = false;
-          for (let i = 0; i < lines.length; i++) {
-            if (/^##\s+/.test(lines[i])) inSection = new RegExp(`^##\\s+${f.section}\\b`, "i").test(lines[i]);
-            else if (inSection) scoped.add(i);
-          }
-          return (i) => scoped.has(i);
-        })();
-    for (let i = 0; i < lines.length; i++) {
-      if (/^\s*-\s*\[ \]/.test(lines[i]) && inScope(i)) {
-        boxes.push({ file: f, lineIndex: i, text: lines[i].replace(/^\s*-\s*\[ \]\s*/, "") });
-      }
+    // One box grammar, from the document model (change 0067).
+    for (const box of parseChecklist(read(f.path), { section: f.section })) {
+      boxes.push({ file: f, lineIndex: box.line, text: box.text, placeholder: box.placeholder, checked: box.checked });
     }
   }
+  const open = boxes.filter((b) => !b.checked);
 
-  if (boxes.length === 0) {
+  if (open.length === 0) {
     console.log(c.green("ok") + " no unchecked boxes in tasks.md or the proposal's ## Verification");
     return 0;
   }
 
   const all = flagBool(flags, "all", false);
-  const ordinals = args.slice(1).map(Number);
-  const isPlaceholder = (box) => box.text.trim() === "";
-  if (!all && ordinals.length === 0) {
-    console.log(c.bold(`Unchecked boxes in ${id}:`));
+  const rawOrdinals = args.slice(1);
+  const isPlaceholder = (box) => box.placeholder;
+  if (!all && rawOrdinals.length === 0) {
+    console.log(c.bold(`Boxes in ${id}`) + c.gray(` (${open.length} of ${boxes.length} unchecked; numbers are stable — a ticked box keeps its number):`));
     console.log("");
     for (let i = 0; i < boxes.length; i++) {
-      const label = isPlaceholder(boxes[i])
+      const b = boxes[i];
+      const label = isPlaceholder(b)
         ? c.yellow("(scaffold placeholder — write the real task, or delete the line)")
-        : boxes[i].text;
-      console.log(`  ${String(i + 1).padStart(3)}. ${label}  ${c.gray(`[${boxes[i].file.label}]`)}`);
+        : b.text;
+      const state = b.checked ? c.green("[x]") : "[ ]";
+      const line = `  ${String(i + 1).padStart(3)}. ${state} ${label}  ${c.gray(`[${b.file.label}]`)}`;
+      console.log(b.checked ? c.gray(line) : line);
     }
     console.log("");
-    console.log(c.gray("tick some: ") + c.cyan(`doctrina change tick ${id} 1 3`) + c.gray(" · all: ") + c.cyan(`doctrina change tick ${id} --all`));
+    const sample = open.slice(0, 2).map((b) => boxes.indexOf(b) + 1).join(" ");
+    console.log(c.gray("tick some: ") + c.cyan(`doctrina change tick ${id} ${sample}`) + c.gray(" · all: ") + c.cyan(`doctrina change tick ${id} --all`));
     return 0;
   }
 
-  const picked = all ? boxes.map((_, i) => i + 1) : ordinals;
-  for (const n of picked) {
-    if (!Number.isInteger(n) || n < 1 || n > boxes.length) {
-      console.error(c.red("error:") + ` no box #${n} (1..${boxes.length} — run \`doctrina change tick ${id}\` to list)`);
-      return 2;
+  let picked;
+  if (all) {
+    picked = open.map((b) => boxes.indexOf(b) + 1);
+  } else {
+    picked = [];
+    for (const raw of rawOrdinals) {
+      const n = /^\d+$/.test(raw) ? Number(raw) : NaN;
+      if (!Number.isInteger(n) || n < 1 || n > boxes.length) {
+        console.error(c.red("error:") + ` no box "${raw}" (a number 1..${boxes.length} — run \`doctrina change tick ${id}\` to list)`);
+        return 2;
+      }
+      picked.push(n);
     }
+  }
+  // A box already ticked is a no-op, named: ticking it twice is not a
+  // second claim, and refusing would punish the stable numbering.
+  const already = picked.filter((n) => boxes[n - 1].checked);
+  for (const n of already) console.log(c.gray(`note:  box ${n} is already ticked — left as is`));
+  picked = picked.filter((n) => !boxes[n - 1].checked);
+  if (picked.length === 0) {
+    console.log(c.green("ok") + " nothing to tick");
+    return 0;
   }
   // Ticking an empty scaffold placeholder is a meaningless claim — it is how
   // a hollow change games the archive gate. Refuse (all-or-nothing) and name
@@ -542,7 +517,7 @@ function changeArchive(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Verification gate. "Done" is a claim until it is checked. Archiving is
@@ -555,7 +530,8 @@ function changeArchive(args, flags) {
   // `close` path always ran first, so the same state was guarded
   // differently depending on the route taken. --force is the escape hatch
   // for both, and records the gap.
-  if (!enforceTransition(projectRoot, id, changeDir, "archive", flags)) return 1;
+  const archiveGate = enforceTransition(projectRoot, id, changeDir, "archive", flags);
+  if (!archiveGate.ok) return 1;
 
   const date = today();
   const archiveName = `${date}-${id}`;
@@ -585,6 +561,13 @@ function changeArchive(args, flags) {
 
   move(changeDir, archiveDir);
   console.log(c.green("archived") + ` ${relPath(projectRoot, archiveDir)}`);
+  // The move happened, so a waved-through blocker is now part of the
+  // history and the ledger says so (change 0096). Recorded here rather than
+  // at the gate, so a forced transition that then failed leaves no claim
+  // behind it.
+  if (archiveGate.forced) {
+    recordForcedGap(projectRoot, id, "archive", archiveGate.forced);
+  }
 
   // Collect affected specs from delta files for the index entry
   const deltaFiles = walk(path.join(archiveDir, "specs")).filter((p) => p.endsWith("delta.md"));
@@ -599,30 +582,16 @@ function changeArchive(args, flags) {
   // Title from proposal
   const proposal = path.join(archiveDir, "proposal.md");
   if (exists(proposal)) {
-    // First line may end in \r on Windows checkouts (autocrlf); split on
-    // either ending so the title regex is not defeated by a stray \r.
-    const firstLine = read(proposal).split(/\r?\n/, 1)[0] ?? "";
-    // The id itself may contain hyphens (NNNN-slug), so match it as \S+
-    // and split on the em-dash/hyphen separator that follows whitespace.
-    const m = firstLine.match(/^#\s+Change\s+\S+\s*[—-]\s*(.+)$/);
-    if (m) title = m[1].trim();
+    // One owner for the H1's grammar (ADR 0021): the id contains hyphens,
+    // and every copy of this parse got that wrong in a different way.
+    title = parseChangeTitle(read(proposal)) ?? title;
   }
 
   // Append a one-line summary to the archive ledger so history stays
   // scannable without opening folders (the archive is out of the default
   // read path; the ledger is the cheap way back in).
-  const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
-  if (!exists(ledgerPath)) {
-    write(ledgerPath,
-      "# Change ledger\n\n" +
-      "One line per archived change, newest last. Appended by\n" +
-      "`doctrina change archive`; edit freely, the CLI only appends.\n\n");
-  }
-  const specsSummary = specsAffected.length > 0
-    ? ` (specs: ${specsAffected.map((s) => `${s.capability} ${s.operation}`).join(", ")})`
-    : "";
-  write(ledgerPath, read(ledgerPath) + `- ${date} — ${id} — ${title}${specsSummary}\n`, { force: true });
-  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerPath)}`);
+  const ledgerFile = appendLedgerLine(projectRoot, archivedLine(id, title, specsAffected, date));
+  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
 
   const index = idx.load(projectRoot);
   idx.moveChangeToArchive(index, id, {
@@ -655,7 +624,7 @@ async function changeAbandon(args, flags) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
 
   // Consent before destruction (audit item C9). This deletes work with no
@@ -690,16 +659,8 @@ async function changeAbandon(args, flags) {
   console.log(c.green("removed") + ` ${relPath(projectRoot, changeDir)}`);
 
   // Ledger line so the abandonment is part of the visible history.
-  const ledgerPath = path.join(projectRoot, ".doctrina", "changes", "archive", "LEDGER.md");
-  if (!exists(ledgerPath)) {
-    write(ledgerPath,
-      "# Change ledger\n\n" +
-      "One line per archived change, newest last. Appended by\n" +
-      "`doctrina change archive`; edit freely, the CLI only appends.\n\n");
-  }
-  const reasonSuffix = reason ? ` — ${reason}` : "";
-  write(ledgerPath, read(ledgerPath) + `- ${date} — ${id} — abandoned${reasonSuffix}\n`, { force: true });
-  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerPath)}`);
+  const ledgerFile = appendLedgerLine(projectRoot, abandonedLine(id, reason, date));
+  console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
 
   // Drop the change entry; rebuild from the tree so nothing drifts.
   const current = idx.load(projectRoot);
@@ -710,27 +671,15 @@ async function changeAbandon(args, flags) {
   return 0;
 }
 
-function changeDiff(args, _flags) {
-  const id = args[0];
-  if (!id) {
-    console.error(c.red("error:") + " change diff requires <id>");
-    return 2;
-  }
-  const projectRoot = process.cwd();
-  ensureDoctrinaProject(projectRoot);
-
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
-  if (!isDir(changeDir)) {
-    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return 1;
-  }
-
-  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
-  if (deltaFiles.length === 0) {
-    console.log(c.gray("no spec deltas in this change; nothing to diff"));
-    return 0;
-  }
-
+// The per-delta preview: what applying this delta would do to its target.
+// ADDED reports the body it would write, REMOVED the spec it would delete,
+// MODIFIED a line diff against the current spec.
+//
+// One renderer, two callers (change 0049): `change diff` is this and nothing
+// else, and `change check --verbose` prints it after its ops dry-run — which
+// is what makes the merge honest rather than a claim. Returns the number of
+// deltas it could not read.
+export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
   let errors = 0;
   for (const deltaPath of deltaFiles) {
     const rel = relPath(changeDir, deltaPath);
@@ -773,28 +722,35 @@ function changeDiff(args, _flags) {
       console.log(out);
     }
   }
+  return errors;
+}
 
+function changeDiff(args, _flags) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change diff requires <id>");
+    return 2;
+  }
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
+    return EXIT.USAGE;
+  }
+
+  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  if (deltaFiles.length === 0) {
+    console.log(c.gray("no spec deltas in this change; nothing to diff"));
+    return 0;
+  }
+
+  const errors = printDeltaPreview(projectRoot, changeDir, deltaFiles);
   console.log("");
   return errors > 0 ? 1 : 0;
 }
 
-function parseOperation(text) {
-  const m = text.match(/^\*\*Operation:\*\*\s*([A-Z]+)/m);
-  if (!m) return null;
-  const op = m[1];
-  if (op === "ADDED" || op === "MODIFIED" || op === "REMOVED") return op;
-  return null;
-}
-
-function parseCapabilityFromDelta(text, deltaPath) {
-  // Prefer the explicit header "# Spec Delta — capability: <name>"
-  const m = text.match(/^#\s+Spec Delta\s*[—-]\s*capability:\s*([a-z][a-z0-9-]*)/m);
-  if (m) return m[1];
-  // Fall back to the parent directory name of the delta file
-  const parent = path.basename(path.dirname(deltaPath));
-  if (/^[a-z][a-z0-9-]*$/.test(parent)) return parent;
-  return null;
-}
 
 function extractDeltaBody(text) {
   // The delta separates headers from the spec body with a `---` line.
@@ -803,37 +759,6 @@ function extractDeltaBody(text) {
   return text.slice(idxSep + 5).replace(/^\n+/, "");
 }
 
-// Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
-// check: render the shipped capability template for the same capability and
-// compare, ignoring the date-bearing "Last updated" line and whitespace
-// normalisation. When the template cannot be located (unusual installs),
-// fall back to the scaffold's own placeholder fingerprints — text no real
-// spec keeps. Used by `change apply` so an ADDED delta can replace a
-// scaffold (the canonical spec-new → delta flow) without ever clobbering a
-// spec that carries real content.
-function isUntouchedScaffold(specText, capability) {
-  const normalize = (s) =>
-    s.replace(/\r\n/g, "\n")
-      .split("\n")
-      .filter((line) => !/^\*\*Last updated:\*\*/.test(line))
-      .join("\n")
-      .trim();
-  try {
-    const tplPath = path.join(locateTemplatesDir(), "spec.md.template");
-    const rendered = read(tplPath)
-      .replace(/\{\{CAPABILITY\}\}/g, capability)
-      .replace(/\{\{DATE\}\}/g, "");
-    if (normalize(rendered) === normalize(specText)) return true;
-  } catch {
-    // fall through to the fingerprint heuristic
-  }
-  // Fingerprints: the Purpose placeholder comment AND an empty Ubiquitous
-  // section survive only in a scaffold nobody edited.
-  return (
-    specText.includes("<!-- One paragraph: what this capability does and why it exists. -->") &&
-    /##\s+Requirements \(EARS\)[\s\S]*?### Ubiquitous\s*\n\s*-\s*\n/.test(specText)
-  );
-}
 
 // Reasons a change is not finished enough to archive. Counts unchecked
 // GitHub-style checkboxes (`- [ ]`) in tasks.md (every task, including the
@@ -917,4 +842,5 @@ Options:
 
 // Re-export parsers so scan.js (index rebuild) can reuse them, and the
 // scaffold so `work` can open a change without duplicating the logic.
-export { parseOperation, parseCapabilityFromDelta, changeNew, isUntouchedScaffold };
+export { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
+export { changeNew } from "../lib/change-ops.js";

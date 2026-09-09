@@ -18,6 +18,9 @@
 //     a non-canonical form is REPORTED (so `validate --fix` can repair it)
 //     rather than silently accepted or silently missed.
 //   STRICT ON WRITE.  One canonical form per artifact kind, always.
+import path from "node:path";
+import { read } from "./fs-ops.js";
+import { locateTemplatesDir } from "./templates.js";
 
 // Artifact kinds and the header form each one canonically uses. Specs and
 // contracts use bare bold; ADRs, proposals, and the intake use list items.
@@ -284,4 +287,327 @@ export function parseArtifact(text, { kind = ARTIFACT_KIND.UNKNOWN } = {}) {
     sections: listSections(text),
     nonConforming: nonConformingHeaders(text, kind),
   };
+}
+
+// ---------------------------------------------------------------------------
+// The rest of the on-disk grammar (ADR 0021, change 0043)
+// ---------------------------------------------------------------------------
+//
+// ADR 0021 declares ONE document model that owns how a Doctrina artifact is
+// read off disk. Three parsers lived outside it — skill frontmatter in a
+// command module, and the two delta parsers in another — and `lib/scan.js`
+// imported them FROM `commands/`, inverting the dependency the layering
+// depends on. Change 0037 broke that edge by moving them into lib/; this is
+// the second half: they belong to the module the ADR names, not to two more
+// libraries beside it.
+//
+// Pure text predicates, all of them. Nothing here reads a file.
+
+export function parseFrontmatter(text, key) {
+  // Match frontmatter blocks bounded by `---` lines at start of file.
+  const fmMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+  if (!fmMatch) return null;
+  const block = fmMatch[1];
+  const lineRe = new RegExp(`^${key}\\s*:\\s*(.+)$`, "m");
+  const m = block.match(lineRe);
+  return m ? m[1].trim() : null;
+}
+
+export function parseOperation(text) {
+  const m = text.match(/^\*\*Operation:\*\*\s*([A-Z]+)/m);
+  if (!m) return null;
+  const op = m[1];
+  if (op === "ADDED" || op === "MODIFIED" || op === "REMOVED") return op;
+  return null;
+}
+
+export function parseCapabilityFromDelta(text, deltaPath) {
+  // Prefer the explicit header "# Spec Delta — capability: <name>"
+  const m = text.match(/^#\s+Spec Delta\s*[—-]\s*capability:\s*([a-z][a-z0-9-]*)/m);
+  if (m) return m[1];
+  // Fall back to the parent directory name of the delta file
+  const parent = path.basename(path.dirname(deltaPath));
+  if (/^[a-z][a-z0-9-]*$/.test(parent)) return parent;
+  return null;
+}
+
+/**
+ * The value a shipped template writes for `name`, or null when the template
+ * cannot be located (an unusual install) or does not carry that header.
+ *
+ * @param {string} templateName  e.g. "spec.md.template"
+ * @param {string} name
+ * @returns {string|null}
+ */
+export function templateHeaderValue(templateName, name) {
+  try {
+    return getHeader(read(path.join(locateTemplatesDir(), templateName)), name);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Is this header value still the scaffold's placeholder?
+ *
+ * A check written to catch a MISSING header is dead in the normal flow when
+ * the scaffold writes a value for it: the escape hatch arrives pre-armed
+ * (change 0057). The templates mark a placeholder by wrapping the whole
+ * value in angle brackets, so that is the portable rule; when the templates
+ * can be located, the template's own value settles it exactly.
+ *
+ * @param {string|null|undefined} value
+ * @param {{ template?: string, name?: string }} [opts]
+ * @returns {boolean}
+ */
+export function isPlaceholderHeaderValue(value, opts = {}) {
+  if (value === null || value === undefined) return true;
+  const v = String(value).trim();
+  if (v === "") return true;
+  // `<...>` wrapping the WHOLE value — the templates' placeholder convention.
+  // A real value may still contain angle brackets ("n/a — <why>" does not,
+  // but a prose value could), which is why the whole value must be wrapped.
+  if (/^<[\s\S]*>$/.test(v)) return true;
+  if (opts.template && opts.name) {
+    const tpl = templateHeaderValue(opts.template, opts.name);
+    if (tpl !== null && tpl.trim() === v) return true;
+  }
+  return false;
+}
+
+/**
+ * Every GitHub-style checkbox in `text`, in reading order.
+ *
+ * One owner for the box grammar (ADR 0021). It had six, and they disagreed:
+ * `snapshot.js` required TEXT after the box (`\[[ xX]\]\s+(.*)`), so the three
+ * empty placeholders `work` scaffolds were invisible to it and `prime` printed
+ * "tasks 0/3" for a change with six open boxes — the three it counted being
+ * the closing steps, not the work. `gates.js` required no text and counted
+ * six; `change tick` counted eight, adding the proposal's Verification boxes.
+ * Three numbers for the same file, side by side in the same session.
+ *
+ * Each entry carries whether the box is a scaffold PLACEHOLDER — a box with
+ * nothing written after it — because that is a real distinction (`analyze`
+ * refuses a change that still has them) and it is the one the counters must
+ * agree to make explicitly rather than by accident.
+ *
+ * @param {string} text
+ * @param {{ section?: string|null }} [opts] limit to one `## ` section
+ * @returns {Array<{ line: number, checked: boolean, text: string, placeholder: boolean }>}
+ */
+export function parseChecklist(text, opts = {}) {
+  const section = opts.section ?? null;
+  const lines = String(text).split(/\r?\n/);
+  const out = [];
+  let inSection = section === null;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      if (section !== null) {
+        inSection = new RegExp(`^##\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
+          .test(lines[i]);
+      }
+      continue;
+    }
+    if (!inSection) continue;
+    // Any Markdown bullet marker opens a box (change 0104): `* [ ]` and
+    // `+ [ ]` are task items to every renderer, and a box the grammar
+    // cannot see is one `tick` cannot tick and the archive gate cannot
+    // count — an unchecked task that closes green.
+    const m = /^\s*[-*+]\s*\[([ xX])\]\s*(.*)$/.exec(lines[i]);
+    if (!m) continue;
+    const body = m[2].trim();
+    out.push({ line: i, checked: m[1] !== " ", text: body, placeholder: body === "" });
+  }
+  return out;
+}
+
+/**
+ * How many boxes a checklist holds and how many are done — the pair every
+ * progress line prints. Placeholders count: a box nobody wrote is a box
+ * nobody finished, and hiding it is what made "0/3" mean six.
+ *
+ * @param {string} text
+ * @param {{ section?: string|null }} [opts]
+ * @returns {{ total: number, done: number, open: string[], placeholders: number }}
+ */
+export function checklistProgress(text, opts = {}) {
+  const boxes = parseChecklist(text, opts);
+  return {
+    total: boxes.length,
+    done: boxes.filter((b) => b.checked).length,
+    open: boxes.filter((b) => !b.checked).map((b) => b.text),
+    placeholders: boxes.filter((b) => b.placeholder).length,
+  };
+}
+
+/**
+ * Is this section still the shipped template's — empty, or nothing but the
+ * template's own instructional comment and placeholder?
+ *
+ * The framework writes artifacts from templates and then trusts that someone
+ * filled them in. Exactly one gate checked that (`analyze`, over a change
+ * proposal); everything else took the mould for a decision (change 0065).
+ * This is the same ruler `isPlaceholderHeaderValue` applies to a header,
+ * applied to a section body: an HTML comment is annotation (change 0055), so
+ * a section that is only annotation is a section nobody wrote.
+ *
+ * @param {string} text          the whole artifact
+ * @param {string} name          the `## ` section name
+ * @param {{ template?: string }} [opts]  template file to compare against
+ * @returns {boolean}
+ */
+export function isUnwrittenSection(text, name, opts = {}) {
+  const body = getSection(text, name);
+  if (body === null) return true;
+  const prose = maskComments(body).trim();
+  if (prose === "") return true;
+  // A body that is nothing but the template's placeholder bullets or an
+  // angle-bracket placeholder is unwritten too.
+  const stripped = prose.replace(/^[-*]\s*$/gm, "").trim();
+  if (stripped === "") return true;
+  if (/^<[\s\S]*>$/.test(stripped)) return true;
+  if (opts.template) {
+    try {
+      const tpl = read(path.join(locateTemplatesDir(), opts.template));
+      const tplBody = getSection(tpl, name);
+      if (tplBody !== null && maskComments(tplBody).trim() === prose) return true;
+    } catch {
+      // No templates dir — the checks above already carry the common cases.
+    }
+  }
+  return false;
+}
+
+/**
+ * The named sections of `text` that nobody has written yet, in order.
+ *
+ * @param {string} text
+ * @param {string[]} names
+ * @param {{ template?: string }} [opts]
+ * @returns {string[]}
+ */
+export function unwrittenSections(text, names, opts = {}) {
+  return names.filter((name) => isUnwrittenSection(text, name, opts));
+}
+
+// Is the on-disk spec still the untouched `spec new <cap>` scaffold? Precise
+// check: render the shipped capability template for the same capability and
+// compare, ignoring the date-bearing "Last updated" line and whitespace
+// normalisation. When the template cannot be located (unusual installs),
+// fall back to the scaffold's own placeholder fingerprints — text no real
+// spec keeps. Used by `change apply` so an ADDED delta can replace a
+// scaffold (the canonical spec-new → delta flow) without ever clobbering a
+// spec that carries real content.
+export function isUntouchedScaffold(specText, capability) {
+  const normalize = (s) =>
+    s.replace(/\r\n/g, "\n")
+      .split("\n")
+      .filter((line) => !/^\*\*Last updated:\*\*/.test(line))
+      .join("\n")
+      .trim();
+  try {
+    const tplPath = path.join(locateTemplatesDir(), "spec.md.template");
+    const rendered = read(tplPath)
+      .replace(/\{\{CAPABILITY\}\}/g, capability)
+      .replace(/\{\{DATE\}\}/g, "");
+    if (normalize(rendered) === normalize(specText)) return true;
+  } catch {
+    // fall through to the fingerprint heuristic
+  }
+  // Fingerprints: the Purpose placeholder comment AND an empty Ubiquitous
+  // section survive only in a scaffold nobody edited.
+  return (
+    specText.includes("<!-- One paragraph: what this capability does and why it exists. -->") &&
+    /##\s+Requirements \(EARS\)[\s\S]*?### Ubiquitous\s*\n\s*-\s*\n/.test(specText)
+  );
+}
+
+
+/**
+ * The byte ranges every HTML comment occupies in `text`, in file order.
+ *
+ * A comment is annotation, not content: the scaffolded spec carries the
+ * five-line EARS legend inside one, and the guessed delta (change 0044)
+ * carries its `RANKED GUESS` note inside another. Every reader of an
+ * on-disk artifact has to agree on that, so the ranges are computed HERE
+ * and nowhere else (ADR 0021 — one owner for the on-disk grammar).
+ *
+ * @param {string} text
+ * @returns {Array<[number, number]>}
+ */
+export function commentRanges(text) {
+  /** @type {Array<[number, number]>} */
+  const ranges = [];
+  for (const m of text.matchAll(/<!--[\s\S]*?-->/g)) {
+    ranges.push([m.index ?? 0, (m.index ?? 0) + m[0].length]);
+  }
+  return ranges;
+}
+
+/**
+ * Is this offset inside one of `ranges`?
+ *
+ * @param {Array<[number, number]>} ranges
+ * @param {number} offset
+ * @returns {boolean}
+ */
+export function isInsideComment(ranges, offset) {
+  return ranges.some(([a, b]) => offset >= a && offset < b);
+}
+
+/**
+ * `text` with every HTML comment blanked out — same length, same line
+ * count, same offset for every character that survives.
+ *
+ * This is the skip-by-position rule of `spec-ops.matchOpsBlock` in a form
+ * a line- or regex-oriented scanner can use directly: a bullet inside a
+ * comment stops looking like a bullet, and a command name inside one stops
+ * looking like a reference, WITHOUT any surviving character moving. Masking
+ * is for SCANNING only. Never write the masked text back to disk, and never
+ * derive an authored value from it — a delta whose `append-criterion` value
+ * legitimately contains `<!-- illustrative -->` must land with the marker
+ * intact, which is why `applyOps` still works on the raw text.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+export function maskComments(text) {
+  let out = text;
+  for (const [a, b] of commentRanges(text)) {
+    const blanked = text.slice(a, b).replace(/[^\r\n]/g, " ");
+    out = out.slice(0, a) + blanked + out.slice(b);
+  }
+  return out;
+}
+
+/**
+ * The title a change proposal's H1 states, or null.
+ *
+ * The H1 the template writes is `# Change <id> — <title>`, and the id itself
+ * contains hyphens (`NNNN-slug`) — which is what four separate copies of this
+ * regex kept getting wrong in four slightly different ways. The one that read
+ * `[^—-]*` for the id stopped at the FIRST hyphen, which in any multi-word id
+ * is the id's own, so `prime`, `handoff` and `report` printed the slug glued
+ * in front of the title on every change `work` had ever generated. The ones
+ * that read `\s*[—-]\s*` accepted a bare hyphen with no spaces around it, so
+ * an H1 with no separator at all had its last segment read as the title.
+ *
+ * The separator is a dash WITH whitespace on both sides; an id's hyphens
+ * never have that, which is the whole ambiguity, resolved. Both the em dash
+ * and the plain hyphen are accepted, because the character was never the
+ * problem — a hand-written H1 using `-` reads exactly as clearly.
+ *
+ * The `Change <id> —` prefix is optional: an H1 written without it is a title
+ * in its own right and is returned whole (ADR 0021 — one owner for the
+ * on-disk grammar).
+ *
+ * @param {string} text  the proposal, or just its first line
+ * @returns {string|null}
+ */
+export function parseChangeTitle(text) {
+  const first = String(text ?? "").split(/\r?\n/).find((l) => /^#\s+\S/.test(l));
+  if (!first) return null;
+  const m = first.match(/^#\s+(?:Change\s+\S+\s+[—-]\s+)?(.+)$/);
+  const title = m?.[1]?.trim();
+  return title ? title : null;
 }

@@ -2,15 +2,17 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
-import { listHeader, parseDependsOn, parseAdrScope, adrSummary } from "../lib/scan.js";
-import { getTitle, getSectionParagraph } from "../lib/doc-model.js";
-import { parseFrontmatter } from "./skill.js";
+import { listHeader, parseDependsOn, parseAdrScope, adrSummary, knownCapabilities } from "../lib/scan.js";
+import { suggest } from "../lib/suggest.js";
+import { checklistProgress, getTitle, getSectionParagraph } from "../lib/doc-model.js";
+import { parseFrontmatter } from "../lib/doc-model.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { GIT_STATE, historyState } from "../lib/git.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { loadConfig, DEFAULTS } from "../lib/config.js";
+import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
+import { terms as queryTerms, relevance } from "../lib/lexicon.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
@@ -39,15 +41,33 @@ import * as idx from "../lib/index-json.js";
 const TOKEN_DIVISOR = 4;
 
 // The ceiling a pack is assembled to when the project has not set one.
-// Override per project with `"config": { "context_budget": <n> }` in
-// .doctrina/index.json, or per call with `--budget`.
-export const DEFAULT_BUDGET = 15000;
+// Override per project with `"context_budget": <n>` in .doctrina/config.json
+// (or the legacy `config` block of index.json), or per call with `--budget`.
+// The number itself is DEFAULTS.context_budget in lib/config.js — declared
+// once, so the reader and this renderer cannot disagree about it.
+export const DEFAULT_BUDGET = DEFAULTS.context_budget;
 
 // Tiers, worst-first in the degradation ladder. The CORE is the pack's
 // irreducible minimum: the rules, the product truth, the named capability's
-// spec, and the work in flight. It is never degraded and never dropped — if
-// it alone exceeds the budget, that is a finding, not something to hide.
-const TIER = { CORE: 0, SPEC: 1, DEPENDENCY: 2, DECISION: 3 };
+// spec, and the change this pack is FOR. It is never degraded and never
+// dropped — if it alone exceeds the budget, that is a finding, not
+// something to hide.
+//
+// CHANGE is its own tier since change 0035. Every open change used to sit
+// in CORE, so a backlog — trabalho legítimo, planned and parked — was an
+// irreducible subtraction from every pack: 21 open changes took this
+// repository's own packs from 95% of the ceiling to 230% of it, `context`
+// exited 1, and the CI budget gate went red. The size of the queue decided
+// whether the read path worked at all, which is the one thing a context
+// budget must never be hostage to. Work in flight is still the last thing
+// dropped — it is what a resuming agent cannot reconstruct — but it
+// degrades like everything else.
+// Exported so the ladder's own tests name the tiers instead of repeating
+// their numbers: the fixture hard-coded `3` for a decision, so inserting
+// CHANGE at 2 silently reclassified every ADR in it as a dependency and
+// the ladder tests failed for a reason that had nothing to do with the
+// ladder.
+export const TIER = { CORE: 0, SPEC: 1, CHANGE: 2, DEPENDENCY: 3, DECISION: 4 };
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -67,7 +87,31 @@ export async function run(positional, cmdFlags) {
 
   if (capability && !/^[a-z][a-z0-9-]*$/.test(capability)) {
     console.error(c.red("error:") + ` invalid capability "${capability}" (lowercase letters, digits, hyphens)`);
-    return 2;
+    return EXIT.USAGE;
+  }
+
+  // A named capability with no spec on disk is a mistyped invocation, not a
+  // pack to assemble. It used to print the whole pack, headed "capability:
+  // <typo>", with the warning about the missing spec buried under it and
+  // exit 0 — so the agent read a GLOBAL pack believing it was scoped, and
+  // nothing in the exit code said otherwise. Same defect as `coverage --only`
+  // naming a capability that no longer exists (change 0090): a filter that
+  // matches nothing must refuse, wherever it appears.
+  if (capability) {
+    // A capability the tree has never heard of — no spec, and no open change
+    // staging one. A change that CREATES a capability is the reason the
+    // second half of that test exists: its delta folder names the capability
+    // before any spec does, and `context <newcap>` is exactly the read an
+    // agent needs while writing it.
+    const known = capabilitiesInPlay(projectRoot);
+    if (!known.includes(capability)) {
+      console.error(c.red("error:") + ` no spec for capability "${capability}"`);
+      const guess = suggest(capability, known);
+      if (guess) console.error(c.gray("hint: ") + `did you mean "${guess}"?`);
+      if (known.length > 0) console.error(c.gray("known: ") + known.sort().join(", "));
+      console.error(c.gray("hint: ") + `create it with \`doctrina spec new ${capability}\`, or run \`doctrina context\` unscoped`);
+      return EXIT.USAGE;
+    }
   }
 
   // A value-taking flag written without a value is a usage error, not a
@@ -138,7 +182,6 @@ export async function run(positional, cmdFlags) {
   //    With --for and no named capability, the specs are RANKED by the query
   //    and become degradable: retrieval is what decides which truths this
   //    task needs, and the budget is what enforces the decision.
-  let specMissing = false;
   const specsRoot = path.join(projectRoot, ".doctrina", "specs");
   const dependencies = new Set();
   if (capability) {
@@ -157,8 +200,6 @@ export async function run(positional, cmdFlags) {
           pushFile(depRel, `dependency of ${capability}`, { tier: TIER.DEPENDENCY });
         }
       }
-    } else {
-      specMissing = true;
     }
   } else if (isDir(specsRoot)) {
     // No capability named: this is the orientation read, and it cannot
@@ -168,32 +209,110 @@ export async function run(positional, cmdFlags) {
     // is how you ask for its truth in full. That is the whole thesis:
     // without a task there is nothing to retrieve ON, so the honest
     // answer is an index, not a dump.
+    const specItems = [];
     for (const cap of readdirSync(specsRoot).sort()) {
       const specRel = `.doctrina/specs/${cap}/spec.md`;
       const full = path.join(projectRoot, specRel);
       if (!wanted(specRel) || !isFile(full)) continue;
       const text = read(full);
-      pushFile(specRel, `spec: ${cap}`, {
+      const item = pushFile(specRel, `spec: ${cap}`, {
         tier: TIER.SPEC,
         rank: relevance(text, terms, `${cap} ${getTitle(text) ?? ""}`),
         title: getTitle(text) ?? cap,
         summary: sectionSummary(text, "Purpose"),
       });
+      if (item) specItems.push(item);
+    }
+
+    // `--for` IS naming a capability, indirectly — so the spec the query
+    // unambiguously points at joins the CORE, exactly as a named one does.
+    // Without this the ladder treats it as one summarisable spec among
+    // eight, and on a tree where a single spec is half the budget the
+    // answer to "what is this task about?" is the one thing that gets
+    // summarised away. Same unambiguous-leader rule the change focus uses:
+    // a tie means the query did not pick anything.
+    if (terms.length > 0 && specItems.length > 0) {
+      const ranked = [...specItems].sort((a, b) => compareRank(b.rank, a.rank) || (a.rel < b.rel ? -1 : 1));
+      const leader = ranked[0];
+      if (leader.rank[1] > 0 && (ranked.length === 1 || compareRank(leader.rank, ranked[1].rank) > 0)) {
+        leader.tier = TIER.CORE;
+        leader.note = `${leader.note} (the task's capability)`;
+      }
     }
   }
 
-  // 4. Open changes (their proposal, tasks, and deltas) — never diff-filtered,
-  //    never degraded. Work in flight is the one thing a resuming agent
-  //    cannot reconstruct from anywhere else.
+  // 4. Open changes (their proposal, tasks, and deltas) — never
+  //    diff-filtered: work in flight is the one thing a resuming agent
+  //    cannot reconstruct from anywhere else, so it is always present.
+  //
+  //    But present is not the same as WHOLE (change 0035). One change is
+  //    the one this pack is for; the rest are a queue, and a queue belongs
+  //    in a pack as a list of what is open, not as every word of it. The
+  //    focus change stays in CORE; the others degrade to a line each.
   const changesDir = path.join(projectRoot, ".doctrina", "changes");
   if (isDir(changesDir)) {
+    const open = [];
     for (const id of readdirSync(changesDir).sort()) {
       if (id === "archive" || id.startsWith(".")) continue;
-      if (!isDir(path.join(changesDir, id))) continue;
-      for (const f of walk(path.join(changesDir, id))) {
-        if (!f.endsWith(".md")) continue;
-        pushFile(relPath(projectRoot, f), `open change: ${id}`);
+      const changeDir = path.join(changesDir, id);
+      if (!isDir(changeDir)) continue;
+      const files = walk(changeDir).filter((f) => f.endsWith(".md"));
+      if (files.length === 0) continue;
+      // Does this change carry a delta for the named capability? Read from
+      // the delta's own folder, the same place `close` reads its touched
+      // set from.
+      const touches = capability !== null && files.some((f) =>
+        relPath(projectRoot, f).replaceAll("\\", "/").includes(`/specs/${capability}/`));
+      const body = files.map((f) => read(f)).join("\n");
+      // Best-first: the capability it touches outranks a query match,
+      // which outranks the id — so a tie goes to the newest change.
+      open.push({ id, files, rank: [touches ? 1 : 0, ...relevance(body, terms, id)] });
+    }
+
+    // EXACTLY ONE change is in focus, and only when the signals pick it
+    // UNAMBIGUOUSLY. Two rules, both learned the hard way here:
+    //
+    //   Being *about* the named capability is not focus. Nine of this
+    //   repository's own changes carry a `gates` delta; exempting all nine
+    //   from degradation put the pack straight back over the ceiling.
+    //
+    //   A tie is not a winner. `context cli` matches five changes equally,
+    //   and picking the lowest-numbered one gave a whole change CORE
+    //   standing for no reason a reader could see — the pack silently
+    //   decided what you were working on. When nothing distinguishes the
+    //   candidates there is no focus, and the queue is the honest answer;
+    //   `--for "<task>"` is how you say which one you mean.
+    //
+    // Everything else is a ranked queue the ladder shortens worst-first,
+    // so the runners-up still survive whole whenever there is room.
+    const ranked = [...open].sort((a, b) => compareRank(b.rank, a.rank) || (a.id < b.id ? -1 : 1));
+    const leader = ranked[0];
+    const unambiguous = leader
+      && leader.rank.some((n) => n > 0)
+      && (ranked.length === 1 || compareRank(leader.rank, ranked[1].rank) > 0);
+    const focusId = unambiguous ? leader.id : null;
+
+    for (const ch of open) {
+      if (ch.id === focusId) {
+        // The change being worked on: every file, whole, in CORE.
+        for (const f of ch.files) pushFile(relPath(projectRoot, f), `open change: ${ch.id}`);
+        continue;
       }
+      // A PARKED change is ONE entry in a queue, not three documents. It
+      // used to contribute its proposal, its tasks and every delta
+      // separately — 21 parked changes meant 63 pack entries, and even
+      // summarised they crowded out every ADR. What a reader needs from
+      // work they are not doing is that it exists, what it is about, and
+      // how far along it is; its proposal anchors that, and the summary
+      // carries the rest.
+      const anchor = ch.files.find((f) => path.basename(f) === "proposal.md") ?? ch.files[0];
+      const rel = relPath(projectRoot, anchor);
+      pushFile(rel, `open change: ${ch.id} (parked)`, {
+        tier: TIER.CHANGE,
+        rank: ch.rank,
+        title: ch.id,
+        summary: parkedSummary(projectRoot, ch),
+      });
     }
   }
 
@@ -214,18 +333,29 @@ export async function run(positional, cmdFlags) {
     // An unscoped ADR is global by definition — it belongs in every pack.
     // That is what makes scoping opt-in and backward compatible.
     const global = scope.length === 0;
-    const governs = capability !== null
-      && (scope.includes(capability) || scope.some((s) => dependencies.has(s)));
+    // NAMED beats INHERITED beats global (change 0075). Both used to collapse
+    // to the same 1, so `Scope:` decided candidacy and then said nothing about
+    // order — and with no `--for` query every relevance term is 0, leaving the
+    // ADR NUMBER as the only tie-break. Worst-first then dropped the oldest
+    // decisions, which is how `authoring` lost ADR 0005 (the playbooks for
+    // `intake` and `work`) and ADR 0007 (the `ops` verbs it applies) out of its
+    // own pack while keeping ADRs that merely reached it through `cli`.
+    const named = capability !== null && scope.includes(capability);
+    const inherited = capability !== null && scope.some((s) => dependencies.has(s));
+    const governs = named || inherited;
     if (capability !== null && !global && !governs) continue;
 
     const id = path.basename(f).match(/^(\d{4})-/)?.[1] ?? "0000";
     const title = getTitle(text) ?? path.basename(f, ".md");
     pushFile(rel, global ? "accepted ADR" : `accepted ADR (${scope.join(", ")})`, {
       tier: TIER.DECISION,
-      // Best-first, deterministic: an ADR that explicitly governs this
-      // capability outranks a merely global one; then query relevance;
-      // then the number, so the newer decision survives the longer.
-      rank: [governs ? 1 : 0, ...relevance(text, terms, title), Number.parseInt(id, 10)],
+      // Best-first, deterministic: an ADR that NAMES this capability outranks
+      // an unscoped one — which is DECLARED to belong in every pack — which in
+      // turn outranks one that merely inherits through a dependency. Putting
+      // global below inherited broke the guarantee that "unscoped means
+      // global", and a test caught it. Then query relevance; then the number,
+      // so between equals the newer decision survives the longer.
+      rank: [named ? 3 : global ? 2 : 1, ...relevance(text, terms, title), Number.parseInt(id, 10)],
       adrId: id,
       title,
       summary: adrSummary(text),
@@ -313,12 +443,27 @@ export async function run(positional, cmdFlags) {
     }
   }
 
-  if (specMissing) {
-    console.error("");
-    console.error(c.yellow("warn:") + ` no spec for capability "${capability}" — create one with \`doctrina spec new ${capability}\``);
-  }
   // The pack fits, or the command says so. It never silently exceeds.
   return fit.overflowed ? 1 : 0;
+}
+
+// Every capability this tree knows about: one with a spec on disk, plus one
+// an open change is staging a delta for. Naming anything else is a typo, and
+// a pack assembled for a typo is a GLOBAL pack wearing a scoped heading.
+function capabilitiesInPlay(projectRoot) {
+  const caps = new Set(knownCapabilities(projectRoot));
+  const changesDir = path.join(projectRoot, ".doctrina", "changes");
+  if (isDir(changesDir)) {
+    for (const id of readdirSync(changesDir)) {
+      if (id === "archive" || id.startsWith(".")) continue;
+      const specsDir = path.join(changesDir, id, "specs");
+      if (!isDir(specsDir)) continue;
+      for (const cap of readdirSync(specsDir)) {
+        if (isFile(path.join(specsDir, cap, "delta.md"))) caps.add(cap);
+      }
+    }
+  }
+  return [...caps];
 }
 
 function estimateTokens(text) {
@@ -332,14 +477,12 @@ function resolveBudget(projectRoot, budgetRaw) {
     const n = Number.parseInt(budgetRaw, 10);
     return Number.isFinite(n) && n > 0 ? n : null;
   }
-  try {
-    const configured = idx.load(projectRoot)?.config?.context_budget;
-    if (Number.isFinite(configured) && configured > 0) return configured;
-  } catch {
-    // An unreadable index is `validate`'s problem, not a reason to refuse
-    // to assemble a pack.
-  }
-  return DEFAULT_BUDGET;
+  // One configuration reader (lib/config.js, change 0047): `.doctrina/
+  // config.json` is the declared home and index.json's `config` block is
+  // still read as the legacy one. A malformed file is `validate`'s problem,
+  // not a reason to refuse to assemble a pack, so the reader reports rather
+  // than throws.
+  return loadConfig(projectRoot).context_budget;
 }
 
 // What an artifact reduces to when the budget cannot hold its body: the
@@ -351,6 +494,73 @@ function degradedBody(item) {
   if (item.summary) lines.push(item.summary, "");
   lines.push(`(summarised to fit the context budget — full text: ${item.rel})`);
   return lines.join("\n");
+}
+
+// A parked change as ONE queue line: status, what it is about, how far
+// along, and which specs it will move. Deliberately terse — twenty of
+// these share the pack with the ADRs, and a paragraph each is what pushed
+// the decisions out of it. The reader who wants more names the change.
+function parkedSummary(projectRoot, ch) {
+  let status = "proposed";
+  let why = null;
+  let done = 0;
+  let total = 0;
+  const caps = new Set();
+
+  for (const f of ch.files) {
+    const base = path.basename(f);
+    if (base === "proposal.md") {
+      const text = read(f);
+      status = listHeader(text, "Status") ?? status;
+      why = sectionSummary(text, "Why", 130);
+    } else if (base === "tasks.md") {
+      // One counter, shared with every other surface (change 0067).
+      const progress = checklistProgress(read(f));
+      total += progress.total;
+      done += progress.done;
+    } else if (base === "delta.md") {
+      const cap = relPath(projectRoot, f).replaceAll("\\", "/").match(/\/specs\/([^/]+)\/delta\.md$/);
+      if (cap) caps.add(cap[1]);
+    }
+  }
+
+  const parts = [`[${status}]`];
+  if (why) parts.push(why);
+  if (total > 0) parts.push(`${done}/${total} tasks`);
+  if (caps.size > 0) parts.push(`specs: ${[...caps].sort().join(", ")}`);
+  return parts.join(" · ");
+}
+
+// What one file of an open change reduces to: enough to know it exists,
+// what it is about, and how far along it is — which is what a queue owes a
+// reader. Never null, so a change file can always degrade; an item with no
+// summary is refused by the ladder and would sit at full size forever.
+export function changeSummary(rel, text) {
+  const base = path.basename(rel.replaceAll("\\", "/"));
+
+  if (base === "proposal.md") {
+    const status = listHeader(text, "Status") ?? "proposed";
+    const why = sectionSummary(text, "Why", 240);
+    return why ? `[${status}] ${why}` : `[${status}] no rationale written yet.`;
+  }
+
+  if (base === "tasks.md") {
+    const progress = checklistProgress(text);
+    const { total, done } = progress;
+    const open = progress.open.filter((t) => t !== "");
+    if (total === 0) return "no checklist.";
+    const head = `${done}/${total} tasks checked.`;
+    return open.length === 0 ? head : `${head} Next: ${open.slice(0, 2).join("; ")}`;
+  }
+
+  if (base === "delta.md") {
+    const op = listHeader(text, "Operation") ?? "?";
+    const target = listHeader(text, "Target spec on apply") ?? "?";
+    return `${op} → ${target}`;
+  }
+
+  // design.md and anything else a change carries.
+  return sectionSummary(text, "Purpose", 240) ?? `${base} in this change.`;
 }
 
 // The opening paragraph of a named section, flattened to one line. This is
@@ -398,9 +608,11 @@ export function fitToBudget(pack, budget, capability = null) {
   /** @type {Array<[number, (item: PackItem) => void]>} */
   const ladder = [
     [TIER.DECISION, degrade],   // 1. every decision to title + summary
-    [TIER.SPEC, degrade],       // 2. every unnamed capability to title + purpose
-    [TIER.DECISION, drop],      // 3. only now, let decisions go
-    [TIER.DEPENDENCY, drop],    // 4. then dependency specs (never the named one)
+    [TIER.CHANGE, degrade],     // 2. every parked change to status + why + progress
+    [TIER.SPEC, degrade],       // 3. every unnamed capability to title + purpose
+    [TIER.DECISION, drop],      // 4. only now, let decisions go
+    [TIER.DEPENDENCY, drop],    // 5. then dependency specs (never the named one)
+    [TIER.CHANGE, drop],        // 6. last: a parked change, already one line
   ];
   for (const [tier, apply] of ladder) {
     for (const item of worstFirst(tier)) {
@@ -427,12 +639,19 @@ function reportBudget(totalTokens, budget, fit, log) {
   }
   log(c.green("within budget") + c.gray(` ~${totalTokens} of ${budget} tokens (${pct}%) after assembly:`));
   const adrs = fit.summarised.filter((i) => i.adrId);
-  const specs = fit.summarised.filter((i) => !i.adrId);
+  const changes = fit.summarised.filter((i) => i.tier === TIER.CHANGE);
+  const specs = fit.summarised.filter((i) => !i.adrId && i.tier !== TIER.CHANGE);
   if (adrs.length > 0) {
     log(c.gray(`  ${adrs.length} ADR${adrs.length === 1 ? "" : "s"} reduced to title + summary (least relevant first)`));
   }
   if (specs.length > 0) {
     log(c.gray(`  ${specs.length} spec${specs.length === 1 ? "" : "s"} reduced to title + purpose — name one to read it in full`));
+  }
+  // Parked changes are their own line: reporting them as "specs" is how a
+  // pack that had summarised twenty queue entries claimed to have
+  // summarised twenty capabilities.
+  if (changes.length > 0) {
+    log(c.gray(`  ${changes.length} parked change${changes.length === 1 ? "" : "s"} reduced to a queue line — name one to read it in full`));
   }
   if (fit.dropped.length > 0) {
     log(c.gray(`  ${fit.dropped.length} omitted: `) + fit.dropped.map((i) => i.adrId ?? path.basename(path.dirname(i.rel))).join(", "));
@@ -444,52 +663,11 @@ function reportBudget(totalTokens, budget, fit, log) {
   }
 }
 
-// Content words in a --for query. Deliberately tiny: the stop list covers
-// the connective tissue of an English task description, nothing domain-
-// specific, so retrieval never quietly discards a real term.
-const STOPWORDS = new Set([
-  "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
-  "from", "has", "have", "how", "i", "if", "in", "into", "is", "it", "its",
-  "of", "on", "or", "should", "that", "the", "then", "this", "to", "up",
-  "was", "we", "what", "when", "where", "which", "why", "will", "with",
-]);
-
-export function queryTerms(query) {
-  if (query === undefined || query === null) return [];
-  return [...new Set(
-    String(query).toLowerCase().match(/[a-z][a-z0-9-]{1,}/g)?.filter((w) => !STOPWORDS.has(w)) ?? [],
-  )];
-}
-
-// How strongly a document answers the query, as a comparable tuple rather
-// than one blended number — so the tiebreak order is readable and no
-// weighting constant has to be guessed:
-//
-//   [ terms in the title/id, terms in the body, hits per 1000 chars ]
-//
-// Density, not raw hit count, breaks the final tie. Raw hits reward a
-// document for being long: the 473-line `cli` spec out-scored `skills` on
-// the query "write a skill from git history" purely on volume, which is
-// the length bias that makes naive retrieval useless on a mature tree.
-export function relevance(text, terms, emphasis = "") {
-  if (terms.length === 0) return [0, 0, 0];
-  const hay = text.toLowerCase();
-  const head = emphasis.toLowerCase();
-  let inTitle = 0;
-  let inBody = 0;
-  let hits = 0;
-  for (const term of terms) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const boundary = `(^|[^a-z0-9-])${escaped}`;
-    const n = (hay.match(new RegExp(boundary, "g")) ?? []).length;
-    if (n > 0) {
-      inBody += 1;
-      hits += n;
-    }
-    if (new RegExp(boundary).test(head)) inTitle += 1;
-  }
-  return [inTitle, inBody, Math.round((hits * 1000) / Math.max(text.length, 1))];
-}
+// Query terms and relevance both come from the SHARED lexicon (change 0040):
+// `work` ranked the same prompt against the same specs with a different stop
+// list, and the work playbook tells the agent to run `context` right after.
+// One vocabulary, so the two cannot disagree about what a prompt is about.
+export { terms as queryTerms, relevance } from "../lib/lexicon.js";
 
 // Ascending comparison of two rank tuples, shorter-is-smaller on a prefix.
 // Ties are broken by the caller (on path), so two runs over the same tree
@@ -517,21 +695,14 @@ function changedPaths(projectRoot, ref) {
     }
     return null;
   }
-  const run = (args) => spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-  const diff = run(["diff", "--name-only", ref, "--"]);
-  if (diff.status !== 0) {
-    console.error(c.red("error:") + ` git diff against "${ref}" failed${diff.stderr ? `: ${diff.stderr.trim().split("\n")[0]}` : ""}`);
+  const changed = changedFiles(projectRoot, { since: ref });
+  if (!changed.ok) {
+    // An unresolvable ref is a usage error, not an empty diff — reporting it
+    // as "nothing changed" would silently hand back the whole pack.
+    console.error(c.red("error:") + ` git diff against "${ref}" failed (${changed.state})`);
     return null;
   }
-  const untracked = run(["ls-files", "--others", "--exclude-standard"]);
-  const out = new Set();
-  for (const chunk of [diff.stdout, untracked.status === 0 ? untracked.stdout : ""]) {
-    for (const line of chunk.split(/\r?\n/)) {
-      const p = line.trim();
-      if (p) out.add(p);
-    }
-  }
-  return out;
+  return new Set(changed.files);
 }
 
 export const help = `
@@ -545,8 +716,8 @@ listed name + description + when-trigger only — they are on-demand by
 design. The change archive is excluded.
 
 Assembly is retrieval, not a dump. A token budget ALWAYS applies
-(default ${DEFAULT_BUDGET}; set "config": { "context_budget": <n> } in
-.doctrina/index.json, or pass --budget). Over budget, accepted ADRs
+(default ${DEFAULT_BUDGET}; set "context_budget": <n> in
+.doctrina/config.json, or pass --budget). Over budget, accepted ADRs
 degrade to title + summary — least relevant first — before anything is
 dropped, and the report names what was given up. Naming a capability
 also drops the ADRs scoped away from it; see \`doctrina decision scope\`.

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
 import { runChecks } from "../../../scripts/check-docs.js";
 
 // The docs gate used to check shape only — a page could document a removed
@@ -177,4 +178,70 @@ test("docs gate: catches EN/PT content divergence that filename parity cannot se
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+// ------------------------------- change 0059: the surface size has an owner
+
+// The catalog owns how many commands and operations exist; the decisions
+// directory owns how many ADRs there are. Every count written into prose is
+// a copy, and four of them had drifted in four different directions under a
+// check that only looked at two files and one claim form.
+
+test("docs gate: an operation count is checked, not just a command count", async () => {
+  const tmp = makeDocsFixture();
+  try {
+    writeFileSync(path.join(tmp, "README.md"),
+      "# R\n\nSee docs/en/page.md — the CLI ships 3 operations.\n");
+    const r = await runChecks(tmp);
+    const found = failures(r, "count");
+    assert.equal(found.length, 1, r.problems.join("\n"));
+    assert.match(found[0], /claims 3 operations/, found[0]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("docs gate: a count under docs/ is checked, not only the root READMEs", async () => {
+  const tmp = makeDocsFixture({ en: "# Page\n\n3 commands, and English body.\n" });
+  try {
+    const r = await runChecks(tmp);
+    const found = failures(r, "count");
+    assert.equal(found.length, 1, r.problems.join("\n"));
+    assert.match(found[0], /docs[/\\]en[/\\]page\.md claims 3 commands/, found[0]);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("docs gate: a documented ADR range must reach the highest decision on disk", async () => {
+  const tmp = makeDocsFixture();
+  try {
+    mkdirSync(path.join(tmp, ".doctrina", "decisions"), { recursive: true });
+    for (const n of ["0001", "0002", "0003"]) {
+      writeFileSync(path.join(tmp, ".doctrina", "decisions", `${n}-x.md`), `# ADR ${n}\n`);
+    }
+    writeFileSync(path.join(tmp, "README.md"),
+      "# R\n\nSee docs/en/page.md — the ADRs 0001–0002 describe the framework.\n");
+    const r = await runChecks(tmp);
+    const found = failures(r, "count");
+    assert.equal(found.length, 1, r.problems.join("\n"));
+    assert.match(found[0], /highest decision on disk is 0003/, found[0]);
+
+    // Adding the missing one clears it — the remedy resolves the finding.
+    writeFileSync(path.join(tmp, "README.md"),
+      "# R\n\nSee docs/en/page.md — the ADRs 0001–0003 describe the framework.\n");
+    assert.deepEqual(failures(await runChecks(tmp), "count"), []);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("docs gate: this repository's own counts agree with its catalog", async () => {
+  // `new URL(...).pathname` yields "/C:/Users/..." on Windows, and resolving
+  // that produces "C:\C:\Users\..." — a path that cannot exist. Every other
+  // test file uses fileURLToPath; this one did not, so the docs gate could
+  // never run on a Windows checkout.
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const r = await runChecks(repoRoot);
+  assert.deepEqual(failures(r, "count"), [], failures(r, "count").join("\n"));
 });

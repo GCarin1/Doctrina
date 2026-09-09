@@ -123,6 +123,53 @@ like: rework rate and CFR improved (Trigger 1 says keep), but PR
 review time blew up past the 50% Faros threshold (Trigger 2 fires
 and you should simplify the proposal/review surface).
 
+## What the CLI measures for you
+
+Three of those columns come from the repository itself, no dashboard
+required:
+
+```bash
+doctrina metrics --save     # snapshot today's window into .doctrina/metrics/
+doctrina metrics --trend    # every saved snapshot, and the direction each rate moved
+doctrina report --since 30  # the period's digest, with the same rates
+```
+
+`--save` writes one dated JSON per snapshot. Those files are a **time
+series**, versioned like any other artifact, and `--trend` reads the
+whole of it: every snapshot in date order, then the movement from the
+FIRST to the LAST — not against the previous one. A rate that drifted up
+for six months and dipped once reads as an improvement from a delta and
+as what it is from the series.
+
+`report --since <days>` carries the revert rate and the re-edit rate for
+its own window, computed from the same snapshot `metrics` renders — one
+definition, so the two surfaces cannot report different numbers for the
+same period.
+
+Neither is a gate, and neither carries a verdict. Both rates move with
+team size, release cadence and how the window was drawn, and the re-edit
+proxy counts ordinary iterative work exactly as it counts rework. The
+numbers are an input to the triggers below; the reading is yours.
+
+### The command surface, if you asked to be measured
+
+```bash
+export DOCTRINA_USAGE_LOG=$PWD/.doctrina/usage.jsonl
+doctrina doctor          # lists the catalog operations never invoked
+doctrina metrics --commands
+```
+
+Off unless you set that variable: no file appears and nothing is
+recorded until you ask. It stores the operation only — never arguments,
+paths, ids or prompts — in one local append-only file, and the CLI makes
+no network calls at all. `doctor` mentions it only when the log exists,
+and never creates it.
+
+An operation with zero samples is a **candidate**, never a verdict: a
+command reached for once a quarter and one nobody wants look identical
+over a week. Retiring one takes demonstrated redundancy — a survivor
+that produces what it produced — not a low count (ADR 0026).
+
 ## Step 4 — Act on triggers
 
 For each fired trigger, do something concrete in the next change:

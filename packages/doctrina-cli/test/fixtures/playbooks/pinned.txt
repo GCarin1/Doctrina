@@ -1,0 +1,80 @@
+created .doctrina/changes/0003-pinned/proposal.md
+created .doctrina/changes/0003-pinned/tasks.md
+
+Change opened. Add spec deltas under .doctrina/changes/0003-pinned/specs/<capability>/delta.md
+created .doctrina/changes/0003-pinned/specs/billing/delta.md (Operation: MODIFIED prefilled)
+
+Work playbook — change 0003-pinned — agent-executed (ADR 0005).
+
+Prompt: "pin the billing capability"
+Capability (pinned): billing
+
+Execute in order, in a single linear pass:
+
+1. Read the context pack and confirm (or correct) the capability:
+       doctrina context billing --concat
+
+2. If the capability has no spec yet:
+       doctrina spec new <capability>
+   Trace it to product intent: tag the product.md success-criteria bullet
+   it serves with an anchor ("- [SC1] ...") and set the spec's
+   "**Realizes:** SC1" header (or "n/a — <why>"). `doctrina validate` warns
+   on an active spec with no Realizes; `doctrina trace` reports the link.
+
+3. A delta is already scaffolded (Operation prefilled) at
+   .doctrina/changes/0003-pinned/specs/billing/delta.md — fill its body.
+   Add one more delta per additional affected capability:
+       # Spec Delta — capability: <capability>
+       **Operation:** ADDED | MODIFIED | REMOVED
+       **Target spec on apply:** `.doctrina/specs/<capability>/spec.md`
+       ---
+       <EARS body. Keep the two axes honest (Status vs Implementation),
+        keep aspiration under ## Maturity → Future, and cite the proof per
+        criterion: "1. [unverified] <signal> — verified by `path/to/test`">
+   New capability? `spec new` then an ADDED delta with the FULL body — apply
+   replaces the untouched scaffold. Bookkeeping edits? MODIFIED with an ops
+   block, applied mechanically (all ops or none):
+       ```ops
+       set-header Implementation: verified — `src/x.js`
+       bump-version minor
+       set-criterion 1: verified
+       append-criterion [unverified] new signal — verified by `test/y.test.js`
+       append-requirement event: When <trigger>, the system shall <action>.
+       replace-requirement ubiquitous 2: The system shall <action>.
+       ```
+   append-* ops number/position at APPLY time, so concurrent changes
+   appending to the same spec never collide. Only free-prose rewrites
+   (Purpose, Maturity, ...) stay a by-hand merge.
+
+4. Replace the placeholder tasks in .doctrina/changes/0003-pinned/tasks.md
+   with small, checkable implementation tasks (a few hours each, max),
+   and record the change's What/Scope in its proposal.md. Do this BEFORE
+   implementing — analyze and close refuse a change whose scaffold
+   placeholders were never replaced, and `change tick` will not tick them.
+
+5. Implement task by task, checking each box as it lands. Advance the
+   spec's Implementation: planned → partial → implemented as code lands.
+   If the prompt is genuinely ambiguous, ask the user before assuming.
+
+6. ADR checkpoint — does this change decide something structural
+   (an architecture, a boundary, a trade-off a future session must
+   not relitigate)? If yes: doctrina decision new "<title>" now,
+   before closing — the definition of done requires it recorded.
+   (close re-checks this: it warns when the change touches capabilities
+   cited by an accepted ADR — amend via decision supersede, not silence.)
+   Touching an integration surface (ports, env vars, public endpoints)?
+   Own it in a contract: doctrina contract new <id> · doctrina contract check.
+
+7. Close in one attested pass (preferred — runs every gate and stops
+   at the first failure with the exact rerun command):
+       doctrina close 0003-pinned
+   It self-reviews on the way through: the close runs `doctrina review`
+   before the apply, where its findings can still change what gets
+   written. Advisory — it reports and the close continues.
+   (equivalent, step by step: analyze → change apply → verify → coverage → trace → change archive → validate)
+   Before it: check the proposal's ## Verification boxes and every task,
+   closing steps included, and bump Implementation to verified.
+
+8. doctrina next for the follow-up.
+   If this change taught a reusable lesson (a fix you'd hate to relearn,
+   a recurring convention), capture it: doctrina skill new <slug>.

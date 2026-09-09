@@ -28,12 +28,11 @@ flowchart TD
         delta["spec delta + tasks.md<br/>(bloco ops: headers · critérios · requisitos EARS)"]
         specset["doctrina spec set (cap)<br/>avança Implementation / bump"]
         ctick["doctrina change tick (id) --all<br/>marca caixas em lote"]
-        ccheck["doctrina change check (id)<br/>dry-run pré-fechamento"]
-        cdiff["doctrina change diff (id)<br/>preview dos deltas"]
+        ccheck["doctrina change check (id) [--verbose]<br/>dry-run pré-fechamento + preview dos deltas"]
         capply["doctrina change apply (id...)<br/>funde deltas nas specs"]
         carchive["doctrina change archive (id...)<br/>recusa trabalho aberto"]
         cabandon["doctrina change abandon (id)<br/>descarta limpo"]
-        work --> context --> delta --> specset --> ctick --> ccheck --> cdiff --> capply --> carchive
+        work --> context --> delta --> specset --> ctick --> ccheck --> capply --> carchive
         delta -. "inviável" .-> cabandon
     end
 
@@ -47,7 +46,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>smell-test de ambiguidade"]
     end
 
-    close["doctrina close (id...)<br/>analyze → checkpoint de ADR → apply → verify → coverage → trace → docs → archive → validate → skill suggest"]
+    close["doctrina close (id...)<br/>analyze → checkpoint de ADR → apply → runtime → verify → coverage → trace → docs → archive → validate → skill suggest"]
 
     subgraph GOV["Decisões & superfície de integração"]
         direction TB
@@ -132,11 +131,12 @@ flowchart TD
   canônica, com estimativas de tokens. Rode em qualquer tarefa, não só no
   `work` (`--budget <n>` limita o tamanho; `--diff <ref>` é o pack de
   retomada de sessão).
-- `doctrina change tick <id> [--all]` → `change check <id>` → `analyze <id>` →
-  `change diff <id>` → `change apply <id...>` → `change archive <id...>` —
-  marca as caixas em lote, dry-run de tudo que o close recusaria, pré-checa,
-  preview, funde deltas nas specs (blocos ops cobrem headers, critérios e os
-  bullets EARS de requisito) e arquiva (recusando trabalho aberto).
+- `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
+  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
+  marca as caixas em lote, dry-run de tudo que o close recusaria (com
+  `--verbose`, também o preview por delta), pré-checa, funde deltas nas specs
+  (blocos ops cobrem headers, critérios e os bullets EARS de requisito) e
+  arquiva (recusando trabalho aberto).
   apply/archive/check aceitam vários ids. `change abandon <id>` descarta.
 
 **Gates (verdade-base).**
@@ -152,10 +152,13 @@ flowchart TD
 
 **Fechamento em uma passada.**
 - `doctrina close <id...>` — roda analyze → checkpoint de ADR (advisory) →
-  apply → verify → coverage → trace → **docs** → archive → validate → skill
-  suggest (advisory) numa passada, parando na primeira falha. Aceita vários
-  ids. O gate de docs recusa uma change que altera uma superfície documentada
-  sem documentação ao lado; o `--force` registra o gap.
+  apply → **runtime** → verify → coverage → trace → **docs** → archive →
+  validate → skill suggest (advisory) numa passada, parando na primeira
+  falha. Aceita vários ids. O gate de runtime cobra da implementação o
+  wiring, os enums e os seletores que cada contrato declara (RT01-RT05):
+  um erro bloqueia, um aviso é reportado e o close segue. O gate de docs
+  recusa uma change que altera uma superfície documentada sem documentação
+  ao lado; o `--force` registra o gap.
 
 **Decisões & contratos.**
 - `doctrina decision new → accept → land` (ou `supersede`), `decision list` —
@@ -178,6 +181,10 @@ flowchart TD
   `doctrina handoff` — a nota de retomada em Markdown para a próxima sessão.
   `doctrina watch` — re-roda `validate --fix` + `next` a cada save.
   `status`/`next`/`validate`/`coverage`/`trace` falam `--json`.
+  `prime`, `handoff` e `report` são **vistas de um único snapshot** — os
+  mesmos bytes de `doctrina status --view prime|handoff|report`,
+  renderizados a partir de uma só coleta da árvore, então as quatro não têm
+  como reportar números diferentes.
 
 **Manutenção / setup.**
 - `doctrina doctor` — diagnóstico agregado com correção por achado.

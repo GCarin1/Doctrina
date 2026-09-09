@@ -1,14 +1,21 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { exists, isDir, isFile, read, relPath } from "../lib/fs-ops.js";
-import { specHeader } from "../lib/scan.js";
+import { exists, isFile, read, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
+import { suggest } from "../lib/suggest.js";
+import { collect, summarize } from "../lib/coverage-model.js";
+import { knownCapabilities } from "../lib/scan.js";
+
+// The numbers this command reports come from lib/coverage-model.js, which
+// `status`, `review`, `validate`, `close` and `spec set` read too — so no
+// two surfaces can disagree about what "covered" means, and none of them
+// has to import out of this file to find out (audit finding F7).
+export { collect, summarize, deriveImplementation, derivedImplementations, implementationMismatch } from "../lib/coverage-model.js";
 
 // Traceability report: how many acceptance criteria cite an artifact or
 // test that actually exists on disk. Doctrina otherwise has no link
@@ -48,6 +55,28 @@ export async function run(_positional, flags) {
   const onlyRaw = flagString(flags, "only");
   const only = onlyRaw ? new Set(onlyRaw.split(",").map((s) => s.trim()).filter(Boolean)) : null;
 
+  // A filter that matches no capability is a USAGE error, not a clean gate.
+  // It used to fall through to "no acceptance criteria found under
+  // .doctrina/specs/" and exit 0 — on THIS repository, which declares over
+  // two hundred of them — `--strict` included. So a CI job running
+  // `coverage --only billing --strict` stayed green forever once the
+  // capability was renamed or split: the failure looked exactly like
+  // success. RT05 already refuses a contract selector that matches zero
+  // targets, for the same reason (change 0090).
+  if (only) {
+    const known = knownCapabilities(projectRoot);
+    const missing = [...only].filter((cap) => !known.includes(cap));
+    if (missing.length > 0) {
+      for (const cap of missing) {
+        console.error(c.red("error:") + ` --only names no capability with a spec: "${cap}"`);
+        const guess = suggest(cap, known);
+        if (guess) console.error(c.gray("hint: ") + `did you mean "${guess}"?`);
+      }
+      if (known.length > 0) console.error(c.gray("known: ") + known.sort().join(", "));
+      return EXIT.USAGE;
+    }
+  }
+
   const reports = collect(projectRoot, { only });
 
   // --run: execute the cited evidence instead of only checking it exists —
@@ -60,10 +89,14 @@ export async function run(_positional, flags) {
 
   if (reports.length === 0) {
     if (json) {
-      emitJson("coverage", { specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: 100 } });
+      emitJson("coverage", { specs: [], summary: { criteria: 0, covered: 0, dangling: 0, conditional: 0, pct: null } });
       return 0;
     }
-    console.log(c.gray("no acceptance criteria found under .doctrina/specs/"));
+    // The two cases used to share one sentence, and the shared one was the
+    // false one whenever a filter was in play.
+    console.log(c.gray(only
+      ? `no acceptance criteria declared by ${[...only].sort().join(", ")}`
+      : "no acceptance criteria found under .doctrina/specs/"));
     return 0;
   }
 
@@ -81,7 +114,8 @@ export async function run(_positional, flags) {
     totalUnguarded += rep.rows.filter((r) => r.kind === "unguarded").length;
     totalDeferred += rep.rows.filter((r) => r.kind === "deferred").length;
   }
-  const jsonPct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  // null, not 100: a ratio over nothing is not a perfect score (change 0057).
+  const jsonPct = totalCriteria === 0 ? null : Math.round((totalCovered / totalCriteria) * 100);
   // Deferred criteria are visible but never gate: declared debt ≠ hidden debt.
   const jsonClean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0
     && totalConditional === 0 && totalUnguarded === 0;
@@ -112,7 +146,18 @@ export async function run(_positional, flags) {
     const note = notes.length > 0 ? `  (${notes.join(", ")})` : "";
     console.log(`  ${c.cyan(rep.cap.padEnd(20))} ${covered}/${rep.rows.length} criteria${note}`);
     for (const r of rep.rows) {
-      if (r.kind === "covered") continue;
+      if (r.kind === "covered") {
+        // Linked is not certified (change 0105), and one citation resolving
+        // does not make the other one true (change 0106): both are said,
+        // neither lowers the count — the evidence IS linked.
+        if (r.unverified) {
+          console.log(`    ${c.gray("○")} #${r.n}  proof resolves but the criterion is still marked [unverified] — flip the mark when the test proves it (spec set <cap> --criterion ${r.n}:verified)`);
+        }
+        if (r.missing?.length > 0) {
+          console.log(`    ${c.yellow("!")} #${r.n}  also cites evidence that does not resolve: ${r.missing.map((m) => `\`${m}\``).join(", ")}`);
+        }
+        continue;
+      }
       if (r.kind === "deferred") {
         console.log(`    ${c.gray("○")} #${r.n}  deferred — spec declares "Implementation: planned — <why>" (visible, not gated)`);
       } else if (r.kind === "bare") {
@@ -127,9 +172,12 @@ export async function run(_positional, flags) {
     }
   }
 
-  const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
+  const pct = totalCriteria === 0 ? null : Math.round((totalCovered / totalCriteria) * 100);
   console.log("");
-  const summary = `${totalCovered} of ${totalCriteria} acceptance criteria across ${reports.length} spec${reports.length === 1 ? "" : "s"} have linked evidence (${pct}%)`;
+  const specCount = `${reports.length} spec${reports.length === 1 ? "" : "s"}`;
+  const summary = pct === null
+    ? `no acceptance criteria declared across ${specCount} — nothing to cover yet`
+    : `${totalCovered} of ${totalCriteria} acceptance criteria across ${specCount} have linked evidence (${pct}%)`;
   const clean = totalCovered + totalDeferred === totalCriteria && totalDangling === 0
     && totalConditional === 0 && totalUnguarded === 0;
   const extras = [];
@@ -201,269 +249,6 @@ function runEvidence(projectRoot, reports, strict) {
   return 1;
 }
 
-// Per-spec criterion rows — the full classification behind both the report
-// and the --json output. Each row: { n, kind, missing?, skipped? }.
-//
-// A spec that declares a deliberate deferral — `Implementation: planned —
-// <why>`, the exact escape hatch `validate` already honours — has its
-// non-covered criteria remapped to kind "deferred": visible in every report,
-// never a --strict failure. Declared debt and hidden debt stop being punished
-// identically (0.11.0 field review item 4: one deferred capability poisoned
-// the close of every unrelated change).
-export function collect(projectRoot, { only = null } = {}) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  const reports = [];
-  if (isDir(specsDir)) {
-    for (const cap of readdirSync(specsDir).sort()) {
-      if (only && !only.has(cap)) continue;
-      const specPath = path.join(specsDir, cap, "spec.md");
-      if (!isFile(specPath)) continue;
-      const text = read(specPath);
-      const criteria = extractAcceptanceCriteria(text);
-      if (criteria.length === 0) continue;
-      const deferred = isDeclaredDeferral(text);
-      const rows = criteria.map((crit, i) => {
-        const row = classify(crit, i + 1, projectRoot, path.dirname(specPath));
-        if (deferred && row.kind !== "covered") {
-          return { ...row, kind: "deferred", was: row.kind };
-        }
-        return row;
-      });
-      reports.push({ cap, specPath, rows, deferred });
-    }
-  }
-  return reports;
-}
-
-// The declared-deferral escape hatch, matching validate's two-axis check:
-// Implementation is "planned" WITH an explanatory note after the state word.
-// A bare "planned" is an inventory claim, not a deferral, and gets no pass.
-function isDeclaredDeferral(specText) {
-  const implRaw = specHeader(specText, "Implementation");
-  if (!implRaw) return false;
-  const tokens = implRaw.trim().split(/\s+/);
-  const word = (tokens[0] ?? "").replace(/[—-]+$/, "").toLowerCase();
-  return word === "planned" && tokens.length > 1;
-}
-
-// Pure summary of coverage across the spec tree, for other commands
-// (`status`, `review`) that need the numbers without the report output.
-// Deferred criteria (declared deferral, see collect) are counted separately
-// and excluded from the problem counts, matching the gate semantics.
-export function summarize(projectRoot) {
-  let totalCriteria = 0, totalCovered = 0, totalDangling = 0, totalConditional = 0, totalDeferred = 0;
-  const perCap = [];
-  for (const rep of collect(projectRoot)) {
-    const covered = rep.rows.filter((r) => r.kind === "covered").length;
-    const dangling = rep.rows.filter((r) => r.kind === "dangling").length;
-    const conditional = rep.rows.filter((r) => r.kind === "conditional").length;
-    const unguarded = rep.rows.filter((r) => r.kind === "unguarded").length;
-    const deferred = rep.rows.filter((r) => r.kind === "deferred").length;
-    totalCriteria += rep.rows.length;
-    totalCovered += covered;
-    totalDangling += dangling;
-    totalConditional += conditional;
-    totalDeferred += deferred;
-    perCap.push({ cap: rep.cap, total: rep.rows.length, covered, dangling, conditional, unguarded, deferred });
-  }
-  const pct = totalCriteria === 0 ? 100 : Math.round((totalCovered / totalCriteria) * 100);
-  return { perCap, totalCriteria, totalCovered, totalDangling, totalConditional, totalDeferred, pct };
-}
-
-// Pull the numbered items out of the "## Acceptance criteria" section.
-// Each item may span multiple lines (continuation prose); accumulate until
-// the next number or the next "## " heading. Returns an array of strings.
-function extractAcceptanceCriteria(text) {
-  const lines = text.split(/\r?\n/);
-  const out = [];
-  let inSection = false;
-  let buf = null;
-  const flush = () => {
-    if (buf !== null) out.push(buf.trim());
-    buf = null;
-  };
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      // Entering or leaving a section.
-      if (inSection) {
-        flush();
-        inSection = false;
-      }
-      if (/^##\s+Acceptance criteria\b/i.test(line)) inSection = true;
-      continue;
-    }
-    if (!inSection) continue;
-    if (/^\s*\d+\.\s+/.test(line)) {
-      flush();
-      buf = line.replace(/^\s*\d+\.\s+/, "");
-    } else if (buf !== null) {
-      // Continuation line of the current criterion.
-      if (line.trim() === "") buf += " ";
-      else buf += " " + line.trim();
-    }
-  }
-  flush();
-  // Drop empty placeholder items (a lone "1." with no text).
-  return out.filter((s) => s.length > 0);
-}
-
-// ORCHESTRATION criteria (change 0029). Coverage measures CITATION: a
-// criterion is covered when it cites a file that exists (and, since G3, a
-// test whose suite is not skipped). That is the right test for "this
-// function behaves", and the wrong one for "the pipeline ran at all".
-//
-// A criterion like "absence of the report is explicit and the step does not
-// fail" is satisfied, on paper, by a job that executed zero cases and
-// printed a well-written empty state — the citation resolves, the suite is
-// not skipped, and the only visible signal is a tidy message saying nothing
-// happened. Coverage calls that proven.
-//
-// Marking a criterion `[orchestration]` says: the claim is that a RUN
-// happened, so the proof must be a fail-closed one. It cites a verify check
-// by name (`verify:<check>`), and that check must declare an `expect` guard
-// — the thing that turns "exit 0" into "exit 0 having actually done
-// something". A named check without a guard is UNGUARDED: the criterion is
-// not proven, and says so, instead of quietly counting as covered.
-const ORCHESTRATION_MARKER = /^orchestration\b/;
-
-function citedVerifyChecks(criterion) {
-  const out = new Set();
-  for (const m of criterion.matchAll(/`verify:([A-Za-z0-9_.-]+)`/g)) out.add(m[1]);
-  return [...out];
-}
-
-function guardedVerifyChecks(projectRoot) {
-  const configPath = path.join(projectRoot, ".doctrina", "verify.json");
-  if (!isFile(configPath)) return null;
-  let config;
-  try {
-    config = JSON.parse(read(configPath));
-  } catch {
-    return null;
-  }
-  const map = new Map();
-  for (const ch of Array.isArray(config?.checks) ? config.checks : []) {
-    if (!ch?.name) continue;
-    const exp = ch.expect;
-    const guarded = Boolean(exp && typeof exp === "object"
-      && (typeof exp.fail_if_output_matches === "string" || typeof exp.require_output_matches === "string"));
-    map.set(ch.name, guarded);
-  }
-  return map;
-}
-
-function classifyOrchestration(criterion, n, projectRoot) {
-  const named = citedVerifyChecks(criterion);
-  if (named.length === 0) {
-    return { kind: "unguarded", n, reason: "cites no verify check — an orchestration claim is proven by a fail-closed check, cited as `verify:<check>`" };
-  }
-  const checks = guardedVerifyChecks(projectRoot);
-  if (checks === null) {
-    return { kind: "dangling", n, missing: named.map((x) => `verify:${x}`) };
-  }
-  const unknown = named.filter((x) => !checks.has(x));
-  if (unknown.length > 0) {
-    return { kind: "dangling", n, missing: unknown.map((x) => `verify:${x}`) };
-  }
-  const unguarded = named.filter((x) => !checks.get(x));
-  if (unguarded.length > 0) {
-    return {
-      kind: "unguarded",
-      n,
-      reason: `verify check${unguarded.length === 1 ? "" : "s"} ${unguarded.join(", ")} declare${unguarded.length === 1 ? "s" : ""} no "expect" guard — a check that exits 0 having run nothing would still pass it`,
-    };
-  }
-  return { kind: "covered", n, evidence: [] };
-}
-
-// Decide whether a single criterion is covered, conditional, dangling, or bare.
-function classify(criterion, n, projectRoot, specDir) {
-  // An orchestration criterion is judged on its GUARD, not on whether a
-  // cited file exists — the whole point is that existence proves nothing here.
-  const marker = criterion.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase() ?? "";
-  if (ORCHESTRATION_MARKER.test(marker)) {
-    return classifyOrchestration(criterion, n, projectRoot);
-  }
-
-  const cited = extractBacktickPaths(criterion);
-  if (cited.length === 0) return { kind: "bare", n };
-  const missing = [];
-  const resolved = [];
-  for (const token of cited) {
-    const candidates = [
-      path.resolve(projectRoot, token),
-      path.resolve(specDir, token),
-    ];
-    const hit = candidates.find(exists);
-    if (!hit) {
-      missing.push(token);
-      continue;
-    }
-    const isTest = looksLikeTestFile(token);
-    const skipped = isTest && isFile(hit) ? testSuiteIsSkipped(read(hit)) : false;
-    resolved.push({ token, isTest, skipped });
-  }
-  if (resolved.length === 0) return { kind: "dangling", n, missing };
-  // Runnable evidence: the resolving test-shaped citations, recorded so
-  // `coverage --run` can execute them (existence → passing proof).
-  const evidence = resolved.filter((r) => r.isTest && !r.skipped).map((r) => r.token);
-  // Real proof = a non-test artifact, or a test file whose suite runs. If the
-  // only thing that resolves is a skipped test, the criterion is conditional.
-  const hasRealProof = resolved.some((r) => !r.isTest || !r.skipped);
-  if (hasRealProof) return { kind: "covered", n, evidence };
-  return { kind: "conditional", n, skipped: resolved.map((r) => r.token), evidence: [] };
-}
-
-// A cited path is a test file when it sits under a tests directory or carries
-// a test/spec/e2e filename marker — the only files skip-detection applies to.
-function looksLikeTestFile(token) {
-  if (/(?:^|\/)(?:tests?|__tests__|specs?|e2e)\//i.test(token)) return true;
-  if (/(?:\.|_|-)(?:test|spec|e2e)\.[a-z0-9]+$/i.test(token)) return true;
-  if (/(?:^|\/)test_[^/]+\.py$/i.test(token)) return true;
-  return false;
-}
-
-// Heuristic, dependency-free "is this whole test file gated off?" check: the
-// first test construct in the file is a skip/todo (e.g. the Prisma e2e suite
-// wrapped in `describe.skip`). A file whose first suite runs is treated as
-// real proof even if it has an incidental `it.skip` later — that keeps the
-// false-positive rate low without parsing the file. Python skip decorators
-// and a module-level `pytest.skip` count too.
-function testSuiteIsSkipped(text) {
-  const m = text.match(
-    /\b(x(?:describe|context|it|test)|(?:describe|context|suite|it|test|specify)\s*\.\s*(?:skip|todo)|(?:describe|context|suite|it|test|specify))\s*\(/,
-  );
-  if (m) {
-    const head = m[1];
-    if (/^x/.test(head) || /\.\s*(?:skip|todo)/.test(head)) return true;
-  }
-  if (/@(?:pytest\.mark\.skip|unittest\.skip)\b/.test(text)) return true;
-  if (/^\s*pytest\.skip\s*\(/m.test(text)) return true;
-  return false;
-}
-
-// Backtick spans that look like repository file paths. Mirrors the
-// validate stale-link heuristic: a token is a path if it has a slash or a
-// file extension and is not a URL/placeholder.
-function extractBacktickPaths(text) {
-  const out = new Set();
-  for (const m of text.matchAll(/`([^`]+)`/g)) {
-    const token = m[1].trim();
-    if (looksLikePath(token)) out.add(token);
-  }
-  return [...out];
-}
-
-function looksLikePath(s) {
-  if (!s) return false;
-  if (/^(https?:|mailto:|ftp:|#|@)/i.test(s)) return false;
-  if (/[\s<>*?{}]/.test(s)) return false;
-  const hasSlash = s.includes("/");
-  const hasExt = /\.[a-z0-9]{1,8}$/i.test(s);
-  if (!hasSlash && !hasExt) return false;
-  if (s.startsWith("-")) return false;
-  return true;
-}
 
 export const help = `
 Usage: doctrina coverage [--strict] [--only <cap,cap>] [--run] [--json]

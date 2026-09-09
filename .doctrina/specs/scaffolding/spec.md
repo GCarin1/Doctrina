@@ -5,8 +5,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
+**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.1.0
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -28,6 +29,8 @@ authoring commands, and the conventions every command shares.
 ### Ubiquitous
 
 - The system shall carry index.json's config block through an index rebuild, since it has no on-disk source to be rederived from.
+- The system shall read every project configuration option — the language, the context budget, and the project rules — through one reader, resolving each option from `.doctrina/config.json` first, then from the legacy location for that option, then from the built-in default, and shall report which of the three each effective value came from.
+- The system shall write the pre-commit hook so that it invokes the CLI that installed it, by absolute path, and shall honour a `DOCTRINA` environment variable as the override, because `.git/hooks/` is local to the clone and a `doctrina` found on the PATH may be an older release.
 
 ### Event-driven
 
@@ -170,11 +173,19 @@ authoring commands, and the conventions every command shares.
 
 - When `doctrina adapter list` runs, the system shall report each adapter as installed, available, or native, where native means the agent reads `AGENTS.md` directly and the adapter installs no file.
 
-- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, and shall keep any file edited since install unless `--force` is given.
+- When `doctrina adapter remove <name>` runs, the system shall delete only files that adapter created, shall keep any file edited since install unless `--force` is given, and shall then remove every directory it emptied, walking up and stopping at the first directory that still holds anything.
 
 - When `doctrina init --force` would overwrite an `AGENTS.md` or `.doctrina/product.md` that carries authored content, the system shall refuse, name the files it declined to touch, point at `doctrina adapter add`, and write nothing; `--overwrite-content` shall be required to discard that content.
 
 - When `doctrina init` has no project description and no terminal to ask on, the system shall refuse and name the flags that supply one, rather than scaffolding with an empty description.
+- When `doctrina init` scaffolds a project, the system shall create `.doctrina/config.json` documenting every option and its default while declaring none of them, so that the first key a project adds is the first choice it has made.
+- When `doctrina doctor` runs, the system shall print one row per configuration option with its effective value and its source, and shall never fail on account of an option sitting at its default.
+- When `doctrina metrics --trend` runs, the system shall read every saved snapshot in date order and report the movement of each tracked rate from the first snapshot to the last, stating that the direction is not a verdict, and shall say so plainly when fewer than two snapshots exist.
+- When `doctrina report` runs inside a repository with history, the system shall include the period's revert rate and re-edit rate, derived from the same snapshot `metrics` renders for that window.
+- When `doctrina doctor` runs and the usage log named by the environment exists, the system shall report how many operations in the catalog were never invoked and name at most eight of them, pointing at `doctrina metrics --commands` for the rest; with no log, or an empty one, it shall report nothing about usage.
+- When `doctrina init --intake-text "<text>"` runs, the system shall store the text verbatim as the project's intake, recording that its source was inline, and shall otherwise behave exactly as `--intake <file>` does.
+- When `doctrina init` receives both `--intake` and `--intake-text`, the system shall report a usage error naming the two as alternatives, and scaffold nothing.
+- When a project declares no capability spec and has no intake awaiting conversion, the system shall recommend the bootstrap command, naming the code-first alternative for a project adopting an existing codebase.
 
 ### State-driven
 
@@ -184,6 +195,10 @@ authoring commands, and the conventions every command shares.
   beyond invoking `doctrina validate --fix` and re-staging
   `.doctrina/index.json` when the fix rewrites it. Lint, tests, and
   project-specific checks are out of scope for the shipped hook.
+- The system shall not fail to assemble a context pack, run a command, or scaffold a project because a configuration file is malformed; it shall fall back to the default for the affected option, keep working, and report the malformation through the structural gate.
+- The system shall not create, populate, or require a usage log in order to report on one, and shall not treat an operation with no samples as a defect.
+- The system shall not treat a value-taking intake flag written without a value as an absent one; it shall report a usage error and scaffold nothing, so a project is never created without the intake its operator asked for.
+- The system shall not instruct an agent to check a condition that `init` does not leave on disk.
 
 ### Optional
 
@@ -191,10 +206,18 @@ authoring commands, and the conventions every command shares.
 
 Project scaffolding is spec-compliant when:
 
-1. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
+1. [verified] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — directories included, for an adapter that creates them — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.] `adapter add` leaves `AGENTS.md` and `.doctrina/product.md` byte-identical, and an add/remove round trip returns the tree to its prior state — verified by `packages/doctrina-cli/test/integration.test.js`.
 2. [verified] `init --agent <name> --force` on a project with authored content exits non-zero, names the files, and writes nothing; `--overwrite-content` still allows the discard — verified by `packages/doctrina-cli/test/integration.test.js`.
 3. [verified] `adapter list` distinguishes installed, available, and native, and a native adapter installs nothing — verified by `packages/doctrina-cli/test/integration.test.js`.
 4. [verified] A project's context_budget survives `index rebuild`, and --budget overrides it — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
+5. [verified] A project configured the legacy way and one configured in `config.json` resolve to the same effective values, the declared home wins per option, and the source of each value is reported — verified by `packages/doctrina-cli/test/config-surface.test.js`.
+6. [verified] `init` scaffolds a config that declares nothing, `doctor` prints every option with its value and origin, and a malformed file is reported by `validate` without stopping `context` — verified by `packages/doctrina-cli/test/config-surface.test.js`.
+7. [verified] The saved snapshots are read as a series — malformed and non-snapshot files skipped — and the trend spans first to last rather than the last two — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
+8. [verified] `report` and `metrics` state the same rates for the same window, and `doctor` reports usage only when the log exists, creating nothing — verified by `packages/doctrina-cli/test/metrics-feedback.test.js`.
+9. [verified] Scaffolding with an intake lands in the same tree and the same intake file as scaffolding then supplying one, differing only in the description `init` can derive when it holds the intake at scaffold time; the inline and file forms differ only in the recorded source — verified by `packages/doctrina-cli/test/init-intake.test.js`.
+10. [verified] Immediately after `init`, `next` and `prime` name the bootstrap command, the hub's stated trigger matches what `init` writes, the action closes as soon as a capability exists, and a pending or converted intake never fires it — verified by `packages/doctrina-cli/test/bootstrap-door.test.js`.
+11. [verified] A directory holding a kept file or a file the adapter never wrote survives the removal, and the pruning never escapes or removes the project root — verified by `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.
+12. [verified] The installed hook names the installing CLI's entrypoint and reads `DOCTRINA` first — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
 
 ## Out of scope for this spec
 

@@ -1,9 +1,12 @@
 // @ts-check
 import path from "node:path";
-import { spawnSync } from "node:child_process";
-import { isFile, read, walk } from "./fs-ops.js";
+import { readdirSync } from "node:fs";
+import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { COMMAND_NAMES } from "./commands.js";
 import { locateTemplatesDir } from "./templates.js";
+import { changedFiles, isRepo } from "./git.js";
+import { maskComments, getSection } from "./doc-model.js";
+import { listHeader } from "./scan.js";
 
 // "Docs ship inside the change, never after it" (audit item D2).
 //
@@ -46,11 +49,81 @@ function scaffoldLines() {
   return lines;
 }
 
+function escapeRe(x) {
+  return x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// The names THIS project declares as its integration surface, read from its
+// own contracts: the variables of the Environment and Wiring tables, the
+// services of the Ports table, and the backticked tokens of Interfaces.
+//
+// A contract is the right home for this. It is where a project already states
+// what an external consumer integrates against, it is versioned beside the
+// code, and `contract check` already holds parts of it to the implementation
+// (ADR 0023 — the runtime surface is declared, never inferred). The same
+// principle, applied to documentation: declared, never guessed.
+//
+// Returns [] for a project with no contracts, which is what keeps the change
+// backward compatible: that project's gate behaves exactly as it did.
+export function declaredSurfaceNames(projectRoot) {
+  const dir = path.join(projectRoot, ".doctrina", "contracts");
+  if (!isDir(dir)) return [];
+  const names = new Set();
+  for (const file of walk(dir)) {
+    if (!file.endsWith(".md")) continue;
+    const text = maskComments(read(file));
+
+    // First column of a table, for the sections whose first column IS the name.
+    for (const section of ["Ports", "Environment", "Wiring", "Selectors", "Budgets"]) {
+      const body = getSection(text, section);
+      if (!body) continue;
+      for (const line of body.split(/\r?\n/)) {
+        const m = /^\s*\|\s*([A-Za-z][\w.-]*)\s*\|/.exec(line);
+        if (!m) continue;
+        const cell = m[1];
+        // Skip the header row and the template's own placeholder rows.
+        if (/^(service|variable|selector|limit|name)$/i.test(cell)) continue;
+        if (/^-+$/.test(cell)) continue;
+        names.add(cell);
+      }
+    }
+
+    // Interfaces is prose with backticked tokens: endpoints, flags, shapes.
+    const interfaces = getSection(text, "Interfaces");
+    if (interfaces) {
+      for (const m of interfaces.matchAll(/`([^`\n]{2,60})`/g)) {
+        const token = m[1].trim();
+        // A command with a subcommand ("ledgerly reconcile") is exactly the
+        // shape worth declaring, so single internal spaces are allowed —
+        // anything with punctuation or prose in it is not a name.
+        if (/^[\w./:@+-]+(?: [\w./:@+-]+)*$/.test(token)) names.add(token);
+      }
+    }
+  }
+  return [...names];
+}
+
 // Does this change alter something the documentation makes promises about?
 // Read from the change's own artifacts — the deltas it will merge into
 // specs, plus the proposal that states its shape. Returns the list of
 // signals found (empty when the change touches no documented surface).
-export function documentedSurfaceSignals(changeDir) {
+// Drop the proposal's `## Verification` section before reading it for
+// surface signals. That section answers "how will you know this landed", so
+// the commands it names are the ones the author will RUN — the same reason
+// the template's own checklist lines are subtracted below. Running a gate is
+// not changing it (change 0088).
+function withoutVerification(text) {
+  const lines = text.split(/\r?\n/);
+  const out = [];
+  let skipping = false;
+  for (const line of lines) {
+    if (/^##\s+/.test(line)) skipping = /^##\s+Verification\b/i.test(line);
+    if (!skipping) out.push(line);
+  }
+  return out.join("\n");
+}
+
+export function documentedSurfaceSignals(changeDir, projectRoot = null) {
   const signals = [];
   const known = new Set(COMMAND_NAMES);
 
@@ -59,15 +132,39 @@ export function documentedSurfaceSignals(changeDir) {
   // and `doctrina coverage` — so scanning the raw file made every change look
   // like it touched a documented surface. A gate that fires on everything is
   // a gate that gets ignored, so the template's lines are subtracted first.
+  // An HTML comment is annotation, not authored surface. The guessed delta
+  // change 0044 scaffolds carries a `RANKED GUESS` note that names
+  // `doctrina work` — not template text, so the subtraction below never
+  // reaches it, and every change on the default path arrived at the docs
+  // gate carrying a phantom `commands: work`. Comments are blanked FIRST,
+  // by the document model, which is the one owner of that rule.
   const boilerplate = scaffoldLines();
-  const authored = (text) => text
+  const authored = (text) => maskComments(text)
     .split(/\r?\n/)
     .filter((line) => !boilerplate.has(normaliseScaffoldLine(line)))
     .join("\n");
 
   const sources = [];
   const proposal = path.join(changeDir, "proposal.md");
-  if (isFile(proposal)) sources.push(authored(read(proposal)));
+  if (isFile(proposal)) {
+    const text = read(proposal);
+
+    // A CHORE declares that no behaviour changes and no spec moves — that is
+    // what the lane means, and `analyze` already reads it that way ("0 spec
+    // deltas, metadata-only change"). Asking such a change to document a
+    // surface it declared it does not touch contradicts its own lane. The
+    // declaration is the author's, recorded in the proposal header and the
+    // index (change 0042), so it is auditable rather than invisible.
+    //
+    // This is the case that mattered: of the archived changes, every chore
+    // names a command in code context and none of them changes one. Change
+    // 0085 reorganised headings in AGENTS.md and was refused for "commands:
+    // close, templates" — the two commands its own proposal cited to describe
+    // the finding — and had to close with --force (change 0088).
+    if (/chore/i.test(listHeader(text, "Lane") ?? "")) return signals;
+
+    sources.push(authored(withoutVerification(text)));
+  }
   for (const p of walk(path.join(changeDir, "specs"))) {
     if (p.endsWith("delta.md")) sources.push(authored(read(p)));
   }
@@ -89,10 +186,50 @@ export function documentedSurfaceSignals(changeDir) {
     signals.push(`commands: ${[...commands].sort().join(", ")}`);
   }
 
+  // The surface the PROJECT declares, matched by name (change 0075's sibling
+  // problem, found in the second audit). Matching commands against Doctrina's
+  // own catalog made the gate maximally sensitive inside this repository and
+  // inert everywhere else: in an adopting project a new command, a public HTTP
+  // endpoint, a renamed environment variable and a changed config key all
+  // produced ZERO signals, and the change closed with no documentation and no
+  // complaint. The vocabulary was already in the right place — the contract
+  // declares Ports, Environment, Wiring, Selectors and Interfaces — so the gate
+  // reads it instead of carrying a catalog that only fits its author.
+  const declared = projectRoot === null ? [] : declaredSurfaceNames(projectRoot);
+  const hit = declared.filter((name) => new RegExp(`\\b${escapeRe(name)}\\b`).test(code));
+  // Report the most specific declaration only: "ledgerly reconcile" says more
+  // than the bare service name it starts with.
+  const touchedDeclared = hit.filter((a) => !hit.some((b) => b !== a && b.includes(a)));
+  if (touchedDeclared.length > 0) {
+    signals.push(`declared surface: ${touchedDeclared.sort().slice(0, 8).join(", ")}`);
+  }
+
   const flags = new Set();
   for (const m of code.matchAll(/--([a-z][a-z0-9-]{2,})/g)) flags.add(`--${m[1]}`);
   if (flags.size > 0) {
     signals.push(`flags: ${[...flags].sort().slice(0, 8).join(", ")}`);
+  }
+
+  // Surface SHAPES, for the surface a change is ADDING — which by definition
+  // is not in the contract yet, and is the case the declared-name match cannot
+  // reach. Deterministic and language-agnostic (ADR 0005): a route path, an
+  // HTTP method in front of one, an environment-variable identifier. Read from
+  // code spans only, so prose that happens to contain a slash is not a signal.
+  const routes = new Set();
+  for (const m of code.matchAll(/(?:^|[\s`"'(])((?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+)?(\/[a-z][\w.-]*(?:\/[\w.:{}$<>-]+)+)/gi)) {
+    routes.add(((m[1] ?? "").toUpperCase().trim() + " " + m[2]).trim());
+  }
+  if (routes.size > 0) {
+    signals.push(`endpoints: ${[...routes].sort().slice(0, 6).join(", ")}`);
+  }
+
+  const envVars = new Set();
+  for (const m of code.matchAll(/\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)) {
+    // Not twice: a declared variable is already reported by name above.
+    if (!touchedDeclared.includes(m[1])) envVars.add(m[1]);
+  }
+  if (envVars.size > 0) {
+    signals.push(`environment: ${[...envVars].sort().slice(0, 8).join(", ")}`);
   }
 
   if (/\bexit\s+code|\bexits?\s+(?:with\s+)?[0-4]\b/i.test(text)) {
@@ -116,38 +253,70 @@ export function documentedSurfaceSignals(changeDir) {
 // all, and attributing a hunk to a change would need guesswork the rest of
 // the framework refuses to do (ADR 0005).
 export function docsTouched(projectRoot) {
-  const git = (args) => {
-    const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-    if (r.error || r.status !== 0) return [];
-    return r.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  };
-  const set = new Set();
-  for (const f of git(["diff", "--name-only", "HEAD"])) set.add(f);
-  for (const f of git(["ls-files", "--others", "--exclude-standard"])) set.add(f);
-  for (const base of ["main", "master"]) {
-    const mb = git(["merge-base", "HEAD", base]);
-    if (mb.length > 0) {
-      for (const f of git(["diff", "--name-only", `${mb[0]}..HEAD`])) set.add(f);
-      break;
-    }
-  }
-  return [...set]
-    .map((f) => f.replace(/\\/g, "/"))
+  // mergeBase: a branch's EARLIER commits count as documentation that moved
+  // with the change — the gate asks "did docs ship with this work", not "did
+  // docs change since the last commit".
+  return changedFiles(projectRoot, { mergeBase: true })
+    .files
     .filter((f) => DOC_PATHS.some((re) => re.test(f)));
 }
 
 export function isGitRepo(projectRoot) {
-  const r = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
-    cwd: projectRoot, encoding: "utf8",
-  });
-  return !r.error && r.status === 0;
+  return isRepo(projectRoot);
+}
+
+// Where THIS project keeps its documentation, read off its own tree.
+//
+// The gate is portable; the instruction it printed was not. It named
+// `docs/en/` AND `docs/pt/` and a skill that exists only in Doctrina's own
+// repository, so an adopting project with neither read that it had to
+// translate (change 0058). The gate itself never asked for any of that — it
+// accepts anything under `docs/` or a README — so the remedy is derived from
+// what the checked project actually has.
+//
+// Returns the documentation homes in reading order, or [] for a project that
+// has none yet.
+export function documentationHomes(projectRoot) {
+  const homes = [];
+  const docsDir = path.join(projectRoot, "docs");
+  // Only a directory that holds prose is somewhere to write prose: naming
+  // `docs/assets/` — an SVG and nothing else — turned change 0058's portable
+  // hint into a five-item list with a wrong item in it.
+  const holdsMarkdown = (dir) => walk(dir).some((f) => f.endsWith(".md"));
+  if (isDir(docsDir)) {
+    // A per-language or per-audience split is a convention, not a rule: name
+    // the subdirectories this project HAS, and fall back to `docs/` itself.
+    const subs = readdirSync(docsDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+      .filter((e) => holdsMarkdown(path.join(docsDir, e.name)))
+      .map((e) => `docs/${e.name}/`)
+      .sort();
+    if (subs.length > 0) homes.push(...subs);
+    else if (holdsMarkdown(docsDir)) homes.push("docs/");
+  }
+  for (const readme of ["README.md", "README.pt.md"]) {
+    if (isFile(path.join(projectRoot, readme))) homes.push(readme);
+  }
+  return homes;
+}
+
+// The hint the docs gate prints when it refuses. Names the places this
+// project documents in, and says "a README" when it documents nowhere yet —
+// never a path the checked project does not have.
+export function docsRemedy(projectRoot) {
+  const homes = documentationHomes(projectRoot);
+  if (homes.length === 0) return "document it in a README, or under docs/";
+  if (homes.length === 1) return `document it in ${homes[0]}`;
+  const last = homes[homes.length - 1];
+  return `document it in ${homes.slice(0, -1).join(", ")} or ${last}` +
+    (homes.length > 2 ? " — whichever this change belongs in" : "");
 }
 
 // The gate itself: { ok, signals, touched, reason }. `ok` is true when the
 // change touches no documented surface, when documentation moved with it,
 // or when git cannot answer.
 export function checkDocsImpact(projectRoot, changeDir) {
-  const signals = documentedSurfaceSignals(changeDir);
+  const signals = documentedSurfaceSignals(changeDir, projectRoot);
   if (signals.length === 0) {
     return { ok: true, signals, touched: [], reason: "touches no documented surface" };
   }

@@ -4,8 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
+**Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-08-06
-**Version:** 0.5.0
+**Version:** 0.14.1
 
 ## Purpose
 
@@ -47,6 +48,14 @@ treatment cohorts using the same definition in each cohort.
 - The system shall define the on-disk artifact grammar in one module, and every header read, section extraction, and header write shall go through it.
 - The system shall read headers leniently, accepting every recognised written form, and write them strictly in one canonical form whose list-or-bare style is decided by the artifact kind.
 - The system shall treat an artifact marked `(external)` in a Pipeline step as supplied from outside the pipeline, and shall not require a producing step for it.
+- The system shall keep the grammar for reading an artifact off disk in one document model, and every module that parses an artifact shall read that grammar from there rather than define its own.
+- The system shall read a change proposal's title through the document model, treating the separator between the change id and the title as a dash surrounded by whitespace — never a bare hyphen, which an id contains — and returning the whole heading when it carries no `Change <id>` prefix.
+- The system shall treat an HTML comment in an artifact as annotation rather than content, and every module that scans an artifact shall obtain the comment ranges from the document model instead of deciding for itself.
+- The system shall recognise, in one place, a section body that is still the shipped template — empty, only its instructional comment, or only a placeholder — and every module that must tell the mould from authored content shall use it.
+- The system shall parse task checkboxes in one module, treating a box with nothing written after it as an unwritten task rather than as no task at all, and every surface that counts or lists boxes shall read that parse.
+- The system's own test suite shall read and compare artifacts independently of line terminators, so a checkout that stores them as CRLF runs the same gate as one that stores them as LF.
+- The system shall parse acceptance criteria through exactly one implementation, so that every surface reporting them agrees about what a criterion is.
+- The system shall remove a leading byte-order mark when reading any file, so that no surface treats an encoding artifact as content or as a missing heading.
 
 ### Event-driven
 
@@ -64,6 +73,7 @@ treatment cohorts using the same definition in each cohort.
 - When `doctrina validate --fix` runs, the system shall repair headers that are recognised but not canonical, preserving each line's existing ending and never altering content.
 - When a spec declares a `### Pipeline` block, the system shall report as an error any step that requires an artifact which no earlier step produces, and any step numbering that does not read in execution order.
 - When a skill's `when:` frontmatter names no concrete keyword, path, command or error string, the system shall warn that nothing can match the trigger.
+- When a capability spec carries an acceptance criterion still in the scaffold's placeholder form, the system shall report it, saying that its cited proof resolves nowhere.
 
 ### State-driven
 
@@ -86,6 +96,11 @@ treatment cohorts using the same definition in each cohort.
   measurement against pre-declared thresholds, not research-grade
   inference.
 - The system shall not treat bold prose as a metadata header; a header carries a colon and lives before the first section.
+- The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
+- If an artifact the framework owns holds no content, or holds content with no title heading, the system shall report it as an error rather than as a well-formed artifact, because a header comparison finds nothing to disagree with in a file that has no headers.
+- If a capability spec is active and declares no acceptance criterion, the system shall not report the tree as structurally sound, because a capability that states what the system must do and nothing about how anyone would know it does cannot be proven.
+- The system's tests shall not assert against a fixture transformation without first establishing that the transformation occurred, so a pattern that matches nothing fails rather than passing quietly.
+- The system shall not read a numbered item inside a fenced code block as an acceptance criterion, nor its citations as that criterion's proof.
 
 ### Optional
 
@@ -156,6 +171,23 @@ The validation capability is delivered when:
 10. [verified] `validate --fix` repairs a non-canonical header end to end and the finding clears — verified by `packages/doctrina-cli/test/doc-model.test.js`.
 11. [verified] A pipeline step requiring what a later step produces is an error, and the same steps in order are not — verified by `packages/doctrina-cli/test/pipeline.test.js`.
 12. [verified] A vague skill trigger warns and a concrete one does not — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+13. [verified] The frontmatter and spec-delta parsers live in the document model, no other module defines them, and no library depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
+14. [verified] A multi-word change id no longer leaks into the title, an id with no hyphen and a heading with no prefix are unchanged, a heading with no separator is returned whole, and no module outside the document model carries the parse — verified by `packages/doctrina-cli/test/change-title.test.js`.
+15. [verified] A comment is blanked without moving any surviving character or line, and a bullet, a command name and an ops fence inside one all stop being read as content while an op value containing a comment marker still applies verbatim — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
+16. [verified] A section that is only the template's annotation is unwritten and one with a line of prose is not, every accepted decision in this repository is written, and a scaffolded criterion is reported while a written one citing real proof is silent — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
+17. [verified] `prime`, `report`, `handoff` and `next` report the same number of boxes for one change, `change tick` lists exactly the unchecked boxes of the tasks file plus the proposal's Verification section and names which file each came from, and no module outside the document model carries a box regex of its own — verified by `packages/doctrina-cli/test/one-box-count.test.js`.
+18. [verified] Every artifact kind — product, spec, ADR, proposal, contract and skill — is caught when emptied, and whitespace alone is not content — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
+19. [verified] Content with no title, and a title that exists only inside a comment, are both reported, while a well-formed tree stays clean — verified by `packages/doctrina-cli/test/an-empty-artifact-does-not-pass.test.js`.
+20. [verified] An active spec with no criteria fails the structural gate, whether the section is empty or absent, while a draft spec with none still passes — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
+21. [verified] An active spec that declares criteria passes, and `clarify`, `doctor` and `validate` reach the same verdict on the same tree — verified by `packages/doctrina-cli/test/an-active-spec-says-how-to-prove-it.test.js`.
+22. [verified] The nine repaired files pass on a CRLF checkout, and no file under `src/` is changed to make them — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+23. [verified] A fixture that renames the recommended headings is held to having renamed them, so the case cannot measure its own no-op — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+24. [verified] The repository root a test builds from resolves on Windows as well as on POSIX — verified by `packages/doctrina-cli/test/check-docs.test.js`.
+25. [verified] A fenced example is not counted, and its citation does not become the real criterion's proof — verified by `packages/doctrina-cli/test/an-example-is-not-a-criterion.test.js`.
+26. [verified] `coverage` and `show` report the same count for the same spec, because both read through the shared parser — verified by `packages/doctrina-cli/test/an-example-is-not-a-criterion.test.js`.
+27. [verified] A heading inside a fence does not open the criteria section, and fence tracking follows the CommonMark closing rule — verified by `packages/doctrina-cli/test/an-example-is-not-a-criterion.test.js`.
+28. [verified] A spec, and an index.json, saved with a byte-order mark are read exactly as the same files without one — verified by `packages/doctrina-cli/test/a-byte-order-mark-is-not-content.test.js`.
+29. [verified] Marking every always-read artifact in a tree changes no gate's verdict, and a mark in the middle of a file is left alone — verified by `packages/doctrina-cli/test/a-byte-order-mark-is-not-content.test.js`.
 
 ## Out of scope for this spec
 

@@ -11,6 +11,28 @@ import { readFileSync } from "node:fs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+// Numeric semver comparison ("0.15.10" sorts above "0.15.9"); anything
+// that is not X.Y.Z sorts lowest, so a garbage stamp is always migrated.
+export function compareVersions(a, b) {
+  const parse = (v) => {
+    const m = String(v ?? "").match(/^(\d+)\.(\d+)\.(\d+)$/);
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+  };
+  const pa = parse(a); const pb = parse(b);
+  if (!pa && !pb) return 0;
+  if (!pa) return -1;
+  if (!pb) return 1;
+  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] < pb[i] ? -1 : 1;
+  return 0;
+}
+
+// The stamp to WRITE: the newer of what the index holds and what runs
+// (change 0116). An older CLI rebuilding a newer tree keeps the newer
+// stamp; a newer CLI migrates an older one forward. Never rewound.
+export function newestVersion(current, running) {
+  return compareVersions(current, running) > 0 ? String(current) : String(running);
+}
+
 export function cliVersion() {
   // src/lib/version.js -> packages/doctrina-cli/package.json
   const pkgPath = path.resolve(here, "..", "..", "package.json");

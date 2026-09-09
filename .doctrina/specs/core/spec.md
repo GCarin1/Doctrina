@@ -4,6 +4,7 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC4
+**Source:** `packages/doctrina-cli/src/lib/{dates,fs-ops}.js`
 **Last updated:** 2026-07-02
 **Version:** 0.1.1
 

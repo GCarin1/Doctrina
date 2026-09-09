@@ -5,7 +5,9 @@ import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read, relPath, walk } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { detectLanguage } from "../lib/lexicon.js";
+import { loadConfig } from "../lib/config.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // Two lexicons, one linter (0.11.0 field review item 3: an English-only
 // clarify is permanently red on a PT-BR project — "some" is the verb *sumir*,
@@ -26,7 +28,16 @@ const RULES_EN = [
   },
   {
     name: "vague",
-    re: /\b(many|few|some|several)\b(?!\s+\d)/gi,
+    // Two exclusions, both structural rather than a vocabulary loosening.
+    // The lookahead was already here: `many 5` quantifies. The lookbehind is
+    // change 0079: `how many` is INTERROGATIVE, and a requirement that says
+    // "shall report how many contracts declared no rows" names exactly the
+    // number the command must print — the opposite of vague. Five of this
+    // repository's seventeen smells were that phrase, and the noise is what
+    // hid the one real finding among them ("name some of them", which said
+    // nothing about how many). A gate that cries wolf teaches people to
+    // ignore it.
+    re: /(?<!\bhow\s+)\b(many|few|some|several)\b(?!\s+\d)/gi,
     hint: "quantify (use a number or a precise scope)",
   },
   {
@@ -35,6 +46,10 @@ const RULES_EN = [
     hint: "resolve before applying",
   },
 ];
+
+// How much of the previous line a rule may look back into. Long enough for
+// a wrapped two-word phrase, short enough that the probe stays cheap.
+const LOOKBEHIND_TAIL = 40;
 
 const RULES_PT = [
   {
@@ -59,30 +74,34 @@ const RULES_PT = [
 // Language for a file: the project-declared `.doctrina/config.json`
 // ("language": "pt-BR" / "pt" / "en") wins; otherwise a deterministic
 // stopword count over the file text decides. Never semantic (ADR 0005).
-const PT_STOPWORDS = /\b(que|n[aã]o|para|uma|como|mais|ser|quando|est[aá]|s[aã]o|pela|pelo|dos|das|ou seja|deve)\b/gi;
-const EN_STOPWORDS = /\b(the|and|that|with|shall|when|this|from|are|not|for|must)\b/gi;
 
 function projectLanguage(projectRoot) {
-  const cfgPath = path.join(projectRoot, ".doctrina", "config.json");
-  if (isFile(cfgPath)) {
-    try {
-      const lang = String(JSON.parse(read(cfgPath))?.language ?? "").toLowerCase();
-      if (lang.startsWith("pt")) return "pt";
-      if (lang.startsWith("en")) return "en";
-    } catch { /* fall through to detection */ }
-  }
-  return null;
+  // One configuration reader (lib/config.js, change 0047): the key still
+  // lives in .doctrina/config.json, but `doctor` can now show what it
+  // resolved to, which is what a pt-BR project sitting red needed.
+  return loadConfig(projectRoot).language;
 }
 
+// Which lexicon a document is written in — the shared detector (change
+// 0040), so `clarify` and any future consumer count the same grammar words.
 function detectLang(text) {
-  const pt = (text.match(PT_STOPWORDS) ?? []).length;
-  const en = (text.match(EN_STOPWORDS) ?? []).length;
-  return pt > en ? "pt" : "en";
+  return detectLanguage(text);
 }
 
 function rulesFor(projectRoot, text, forcedLang = null) {
-  const lang = forcedLang ?? projectLanguage(projectRoot) ?? detectLang(text);
-  return lang === "pt" ? RULES_PT : RULES_EN;
+  const lang = forcedLang ?? projectLanguage(projectRoot);
+  if (lang) return lang === "pt" ? RULES_PT : RULES_EN;
+  // Detected per file, the document is scanned with BOTH lexicons (change
+  // 0107). A bilingual spec — Portuguese purpose, English EARS, or the
+  // reverse — detected as one language hid every smell written in the
+  // other: `clarify --all` found nothing where `--lang pt` found two. The
+  // two vocabularies do not overlap, so a smell in either is a smell; the
+  // detected language only decides which hint text the reader gets first.
+  const detected = detectLang(text);
+  const [first, second] = detected === "pt" ? [RULES_PT, RULES_EN] : [RULES_EN, RULES_PT];
+  // The `placeholder` rule is language-neutral and lives in both lists:
+  // one copy, or TBD is reported twice.
+  return [...first, ...second.filter((r) => r.name !== "placeholder")];
 }
 
 // --lang pt|en wins over the project config and the per-file heuristic
@@ -117,8 +136,15 @@ export async function run(positional, flags) {
   }
   const fullPath = path.resolve(projectRoot, target);
   if (!isFile(fullPath)) {
+    // USAGE, not GATE (third audit, finding 9). A path that does not exist
+    // is a wrong invocation: retrying it unchanged never succeeds, and an
+    // agent branching on the exit code reads 1 as "the work is not ready"
+    // and iterates forever (ADR 0018). Every sibling that takes a path —
+    // `intake --file`, `init --intake-file`, `templates check --path` —
+    // already exits 2 here; `clarify` was the straggler.
     console.error(c.red("error:") + ` file not found: ${target}`);
-    return 1;
+    console.error(c.gray("hint: ") + "pass a path to an existing Markdown file, or `--all` for the tree");
+    return EXIT.USAGE;
   }
 
   console.log(`clarify ${relPath(projectRoot, fullPath)}`);
@@ -208,11 +234,22 @@ function scanFile(fullPath, projectRoot = process.cwd(), lang = null) {
       cursor = lineEnd + 1;
       continue;
     }
+    // A rule reads the previous line as CONTEXT, never as content: a match
+    // is only reported when it starts inside this line. Prose wraps, and
+    // "report per spec how / many criteria..." split the interrogative
+    // across a line break — which a line-at-a-time scanner cannot see, so
+    // the phrase came back as a smell on one line of the same document and
+    // not on the next (change 0079). The prefix is trimmed to the tail of
+    // the previous line: enough for a lookbehind, cheap on every line.
+    const prev = i > 0 ? lines[i - 1].slice(-LOOKBEHIND_TAIL) : "";
+    const probe = prev === "" ? line : `${prev}\n${line}`;
+    const offset = probe.length - line.length;
     for (const rule of rules) {
       rule.re.lastIndex = 0;
       let m;
-      while ((m = rule.re.exec(line))) {
-        const absoluteStart = lineStart + m.index;
+      while ((m = rule.re.exec(probe))) {
+        if (m.index < offset) continue;   // the match belongs to the previous line
+        const absoluteStart = lineStart + m.index - offset;
         if (isInSkippedRange(absoluteStart, skippedRanges)) continue;
         smells.push({
           line: i + 1,

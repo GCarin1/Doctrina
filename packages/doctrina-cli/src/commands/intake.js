@@ -8,6 +8,11 @@ import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { looksLikePath, warnIfThinIntake, writeIntakeFile, printBootstrapPlaybook } from "../lib/intake-model.js";
+
+// `init --intake` performs the same operations; they live in
+// lib/intake-model.js so neither command imports out of the other (F7).
+export { warnIfThinIntake, writeIntakeFile, printBootstrapPlaybook } from "../lib/intake-model.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // `intake` is the first half of the no-ceremony path (ADR 0005): store the
@@ -58,12 +63,24 @@ export async function run(positional, flags) {
     source = "inline (--text)";
   } else {
     const abs = path.resolve(projectRoot, sourceFile);
-    if (!isFile(abs)) {
+    if (isFile(abs)) {
+      body = read(abs);
+      source = relPath(projectRoot, abs);
+    } else if (looksLikePath(sourceFile)) {
       console.error(c.red("error:") + ` description file not found: ${sourceFile}`);
+      console.error(c.gray("hint: ") +
+        'to pass the description itself, use `doctrina intake --text "<description>"`');
       return 1;
+    } else {
+      // Prose, not a path (change 0071). The surface block says "store the
+      // intent", so passing the intent is what its wording invites; answering
+      // "description file not found:" and echoing the author's whole sentence
+      // back as a filename was the CLI blaming the reader for reading it.
+      body = sourceFile;
+      source = "inline";
+      console.error(c.gray("note:  ") +
+        'read as the description itself, not as a file — `--text "<description>"` says so explicitly');
     }
-    body = read(abs);
-    source = relPath(projectRoot, abs);
   }
   if (body.trim().length === 0) {
     console.error(c.red("error:") + " the description is empty");
@@ -73,6 +90,16 @@ export async function run(positional, flags) {
   if (exists(intakePath) && !force) {
     console.error(c.red("error:") + ` ${relPath(projectRoot, intakePath)} already exists (pass --force to overwrite)`);
     return 1;
+  }
+  // After conversion the specs are the only source of truth, and the intake
+  // is never edited to change requirements (change 0112). `--force` was the
+  // CLI-sanctioned way to do exactly that: it rewrote the file to `pending`
+  // and printed the bootstrap playbook as if the tree were empty. The door
+  // for new intent is `intent add`; for a change of behaviour, `work`.
+  if (exists(intakePath) && (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase() === "converted") {
+    console.error(c.red("error:") + ` ${relPath(projectRoot, intakePath)} is already converted — the specs are the source of truth now, and --force does not reopen it`);
+    console.error(c.gray("hint: ") + "new product intent: `doctrina intent add \"<text>\"` · a change of behaviour: `doctrina work \"<prompt>\"`");
+    return EXIT.PRECONDITION;
   }
 
   const projectName = idx.load(projectRoot).project ?? path.basename(projectRoot);
@@ -84,95 +111,6 @@ export async function run(positional, flags) {
   return 0;
 }
 
-// Clarification gate (review Topic A). A description too thin to spec from is
-// the moment to ask the user, not to let the agent invent requirements. Prints
-// the specific gaps before the bootstrap playbook; advisory, never blocking —
-// the intake is still captured verbatim (the playbook step 6 resolves it).
-export function warnIfThinIntake(body) {
-  const assessment = assessBrief(body, { kind: "intake" });
-  if (!assessment.thin) return;
-  console.log(c.yellow("⚠ thin intake — clarify with the user before converting to specs:"));
-  for (const reason of assessment.reasons) console.log(`    - ${reason}`);
-  console.log("");
-}
-
-// Shared with `init --intake`. Writes the intake verbatim under a small
-// status header; the agent flips Status to converted at the end of the
-// playbook, which is how `next` knows the bootstrap is done.
-export function writeIntakeFile(projectRoot, { body, source, projectName, date, force = false }) {
-  const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
-  const content = [
-    `# Intake — ${projectName}`,
-    "",
-    "- **Status:** pending",
-    `- **Date:** ${date}`,
-    `- **Source:** ${source}`,
-    "",
-    "<!-- Raw project intent, stored verbatim. The bootstrap playbook",
-    "     (doctrina intake) converts it into product.md and capability",
-    "     specs, then flips Status to converted. After conversion the",
-    "     specs are the only source of truth; never edit this file to",
-    "     change requirements. -->",
-    "",
-    "---",
-    "",
-    body.replace(/\r\n/g, "\n").replace(/\n*$/, "\n"),
-  ].join("\n");
-  write(intakePath, content, { force });
-  return intakePath;
-}
-
-// Exported so `init --intake` can print the same playbook inline instead
-// of bouncing the user to a second command.
-export function printBootstrapPlaybook(projectRoot) {
-  const hasSpecs = exists(path.join(projectRoot, ".doctrina", "specs"));
-  console.log(c.bold("Bootstrap playbook") + c.gray(" — agent-executed (ADR 0005); the CLI does no interpretation."));
-  console.log("");
-  console.log("Execute in order, in a single linear pass:");
-  console.log("");
-  console.log(`1. Read ${c.cyan(".doctrina/intake.md")} (raw intent) and ${c.cyan(".doctrina/product.md")}.`);
-  console.log("");
-  console.log("2. Fill every product.md section from the intake: Vision, Problem,");
-  console.log("   Target users, Scope (in/out), Non-goals, Success criteria, and the");
-  console.log("   Delivery order — name the ONE end-to-end walking skeleton to build");
-  console.log("   and verify before fanning out (depth before breadth).");
-  console.log("   One fact, one home — product.md holds vision, never requirements.");
-  console.log("");
-  console.log("3. Derive the capability list: kebab-case, one per area of behaviour");
-  console.log("   (e.g. auth, billing, reports). For each capability:");
-  console.log(`       ${c.cyan("doctrina spec new <capability>")}`);
-  console.log("   then replace the template placeholders in");
-  console.log("   .doctrina/specs/<capability>/spec.md with EARS requirements derived");
-  console.log("   from the intake (Ubiquitous / Event-driven / State-driven /");
-  console.log("   Unwanted-behavior / Optional). Keep the two axes honest — leave");
-  console.log("   Implementation: planned for what is not built yet; keep aspiration");
-  console.log("   under ## Maturity → Future, not in EARS; write concrete Acceptance");
-  console.log("   criteria, each [unverified] until a cited test proves it.");
-  console.log("");
-  console.log("4. If the project spans services/front-ends, own the seams between");
-  console.log("   them (port map, env, API/WS/event shapes) as a contract:");
-  console.log(`       ${c.cyan("doctrina contract new <name>")} → fill it → ${c.cyan("doctrina contract check")}`);
-  console.log("");
-  console.log("5. Record any architectural decision the intake forces (cite Evidence):");
-  console.log(`       ${c.cyan("doctrina decision new \"<title>\"")} → edit → ${c.cyan("doctrina decision accept <num>")}`);
-  console.log("");
-  console.log("6. Quality gates — fix everything they report before moving on:");
-  console.log(`       ${c.cyan("doctrina clarify --all")}`);
-  console.log(`       ${c.cyan("doctrina validate")}`);
-  console.log(`       ${c.cyan("doctrina coverage")}   (and ${c.cyan("doctrina verify --init")} to declare the build gate)`);
-  console.log("   If something in the intake is genuinely ambiguous, ask the user");
-  console.log("   before assuming.");
-  console.log("");
-  console.log("7. Mark the intake consumed: in .doctrina/intake.md flip");
-  console.log("   \"- **Status:** pending\" to \"- **Status:** converted\".");
-  console.log("");
-  console.log(`8. ${c.cyan("doctrina next")} — follow the recommendation. Implementation then`);
-  console.log(`   flows through ${c.cyan("doctrina work \"<brief prompt>\"")}, one change at a time.`);
-  if (!hasSpecs) {
-    console.log("");
-    console.log(c.yellow("warn:") + " .doctrina/specs/ is missing — re-run `doctrina init` first.");
-  }
-}
 
 export const help = `
 Usage: doctrina intake [<file>] [--text "<description>"] [--force]

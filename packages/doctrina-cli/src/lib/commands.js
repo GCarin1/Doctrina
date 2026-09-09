@@ -20,7 +20,7 @@ export const COMMAND_NAMES = [
   // gates
   "analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor",
   // maintenance
-  "templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade",
+  "templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade", "ci",
 ];
 
 // The full operation surface — every `doctrina <command> [<subcommand>]` a
@@ -93,6 +93,7 @@ export const OPERATIONS = [
   ["metrics", "Local git-derived adoption metrics (no network)"],
   ["report", "Markdown digest for a period: changes, gates, git summary"],
   ["completion", "Print bash/zsh/pwsh completions (generated from the catalog)"],
+  ["ci", "Emit the CI pipeline for the declared gate sequence (--emit github)"],
   ["upgrade", "Bring an existing project up to the installed CLI (--write applies)"],
 ];
 
@@ -118,7 +119,7 @@ export const COMMAND_META = {
   intake:       { moment: "Bootstrap",  when: "you have a full project description and no specs yet", purpose: "store the intent and print the bootstrap playbook" },
   adapter:      { moment: "Bootstrap",  when: "adding or removing an agent's pointer files", purpose: "install/remove agent adapters (additive)" },
 
-  prime:        { moment: "Orient",     when: "at the START of every session", purpose: "gates, standing rules, and open work in one read" },
+  prime:        { moment: "Orient",     when: "at the START of every session", purpose: "gates, open work and next steps in one read (--rules for the full standing rules)" },
   status:       { moment: "Orient",     when: "you need the health of the tree at a glance", purpose: "index, coverage, trace, and artifact counts" },
   next:         { moment: "Orient",     when: "you finished something and do not know what follows", purpose: "the recommended next workflow action" },
   context:      { moment: "Orient",     when: "before working on any task, to load the right files", purpose: "the read pack, assembled to fit a token budget" },
@@ -131,7 +132,7 @@ export const COMMAND_META = {
   triage:       { moment: "Change",     when: "a request arrives — BEFORE scaffolding, especially if it smells like an incident", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
   work:         { moment: "Change",     when: "a request arrives that changes behaviour (triage says PRODUCT)", purpose: "scaffold a change and print the playbook to execute" },
   spec:         { moment: "Change",     when: "a capability needs creating or its headers advancing", purpose: "create, list, and edit capability specs" },
-  change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "new / apply / archive / check / tick / diff / abandon" },
+  change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "new / apply / archive / check (--verbose) / tick / abandon" },
   decision:     { moment: "Change",     when: "the change decides something a later session must not relitigate", purpose: "record, accept, land, scope, and supersede ADRs" },
   contract:     { moment: "Change",     when: "the change touches ports, env vars, or public endpoints", purpose: "own and verify the integration surface" },
   intent:       { moment: "Change",     when: "new product intent appears after the intake", purpose: "append and list product intent anchors" },
@@ -155,6 +156,7 @@ export const COMMAND_META = {
   metrics:      { moment: "Maintain",   when: "reporting adoption over a period", purpose: "local git-derived adoption metrics" },
   report:       { moment: "Maintain",   when: "summarising a period for a human", purpose: "a Markdown digest of changes, gates, and git" },
   completion:   { moment: "Maintain",   when: "setting up a human's shell", purpose: "print shell completions from the catalog" },
+  ci:           { moment: "Maintain",   when: "the declared gate sequence changed and CI must follow", purpose: "emit the CI pipeline from the gate declaration" },
 };
 
 // The order moments appear in the generated block.
@@ -195,9 +197,47 @@ const SURFACE_HINTS = {
   clarify: "--all (--lang pt|en)",
   close: "<id...>",
   upgrade: "--write",
+  ci: "--emit github",
   prime: "(session start)",
   handoff: "(before compaction/handover)",
 };
+
+// ---------------------------------------------------------------------------
+// Deprecations (change 0049).
+//
+// The surface has a hard 40-line budget precisely so that adding a command
+// forces the question "what comes off?" — and for two releases the answer was
+// "nothing", while the budget was met by compressing a whole moment onto one
+// line (audit finding F23). These are the first two removals, and both are
+// MERGES: the surviving command already does everything the retired one did,
+// which is why they can go without waiting for usage evidence. Usage counts
+// can tell you a command is unloved; only redundancy can tell you it is
+// unnecessary, and an unloved command that does something nothing else does
+// has to stay.
+//
+// A deprecated operation keeps working, warns once on the way through, and
+// leaves the surface block — an agent should not reach for it, and the block
+// is the list of things to reach for. Removal is a later, separate change.
+export const DEPRECATED = Object.freeze({
+  "constitution": {
+    since: "0.16.0",
+    use: "doctrina prime --rules",
+    why: "prime renders the same standing-rules view, from the same collection",
+  },
+  "change diff": {
+    since: "0.16.0",
+    use: "doctrina change check --verbose",
+    why: "check runs every ops block against the target spec and now prints the same per-delta preview",
+  },
+});
+
+/** The deprecation record for an invocation, or null. */
+export function deprecationFor(argv) {
+  const words = argv.filter((a) => !a.startsWith("-"));
+  const two = words.slice(0, 2).join(" ");
+  const one = words[0] ?? "";
+  return DEPRECATED[two] ?? DEPRECATED[one] ?? null;
+}
 
 // The declared size budget for the generated block. A surface that cannot
 // describe itself in this many lines is too large — the answer is to cut
@@ -219,8 +259,13 @@ const COMPACT_MOMENTS = new Set(["Maintain"]);
 // a name index never told it. Same shape `context` prints for skills —
 // description plus `when:`, body on demand.
 export function surfaceMarkdown() {
+  // A deprecated operation stays in the catalog — `--help` and the shell
+  // completions must still know the name someone types — but leaves this
+  // block: it is the list of commands to REACH FOR, and pointing an agent at
+  // a name that warns when used is worse than not listing it.
   const subsByCmd = new Map();
   for (const [op] of OPERATIONS) {
+    if (DEPRECATED[op]) continue;
     const [cmd, sub] = op.split(" ");
     if (!subsByCmd.has(cmd)) subsByCmd.set(cmd, []);
     if (sub) subsByCmd.get(cmd).push(sub);
@@ -242,7 +287,7 @@ export function surfaceMarkdown() {
     "canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.",
   ];
   for (const moment of MOMENTS) {
-    const cmds = COMMAND_NAMES.filter((n) => COMMAND_META[n]?.moment === moment);
+    const cmds = COMMAND_NAMES.filter((n) => COMMAND_META[n]?.moment === moment && !DEPRECATED[n]);
     if (cmds.length === 0) continue;
     if (COMPACT_MOMENTS.has(moment)) {
       // Each name still carries the `doctrina ` prefix: the compact line is
@@ -405,6 +450,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.16.0": [
+    "A reference or path that does not resolve now answers exit 2 (USAGE) everywhere — `clarify`, `show`, `why`, `analyze`, `context`, `change check`, `spec set`, `decision accept|scope`. Correct the invocation; retrying it unchanged never succeeds.",
+    "The `--json` envelope names the OPERATION in `command` and carries arguments in `args` — branch on those two, not on a joined string. An undeclared flag now answers with `{ok: false, exit_code: 2}` instead of an empty stdout.",
+    "`analyze` executes a MODIFIED delta's `ops` block, so `analyze`, `change apply` and `close` all refuse the same unappliable block. Fix the ops before closing; a delta with no ops block is still a legitimate manual merge.",
+    "`validate` refuses more: an active spec declaring no acceptance criteria, an empty artifact, a scaffold section left unwritten, a reference that resolves to nothing. Write the criteria before flipping a spec to `active`.",
+    "`change new <id>` requires the `NNNN-slug` shape (lowercase letters, digits, hyphens) and writes nothing otherwise — `doctrina work \"<prompt>\"` derives one for you.",
+  ],
   "0.15.1": [
     "Exporting a variable under a name that is not its source's is routine — declare it in the Wiring row's Origin cell as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`) and RT02 stays silent until either side moves.",
   ],

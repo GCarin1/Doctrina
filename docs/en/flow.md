@@ -25,12 +25,11 @@ flowchart TD
         delta["spec delta + tasks.md<br/>(ops block: headers · criteria · EARS requirements)"]
         specset["doctrina spec set (cap)<br/>advance Implementation / bump"]
         ctick["doctrina change tick (id) --all<br/>check boxes in bulk"]
-        ccheck["doctrina change check (id)<br/>pre-close dry-run"]
-        cdiff["doctrina change diff (id)<br/>preview deltas"]
+        ccheck["doctrina change check (id) [--verbose]<br/>pre-close dry-run + delta preview"]
         capply["doctrina change apply (id...)<br/>merge deltas into specs"]
         carchive["doctrina change archive (id...)<br/>refuses unchecked work"]
         cabandon["doctrina change abandon (id)<br/>discard cleanly"]
-        work --> context --> delta --> specset --> ctick --> ccheck --> cdiff --> capply --> carchive
+        work --> context --> delta --> specset --> ctick --> ccheck --> capply --> carchive
         delta -. "not viable" .-> cabandon
     end
 
@@ -44,7 +43,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>ambiguity smell-test"]
     end
 
-    close["doctrina close (id...)<br/>analyze → ADR checkpoint → apply → verify → coverage → trace → docs → archive → validate → skill suggest"]
+    close["doctrina close (id...)<br/>analyze → ADR checkpoint → apply → runtime → verify → coverage → trace → docs → archive → validate → skill suggest"]
 
     subgraph GOV["Decisions & integration surface"]
         direction TB
@@ -127,11 +126,12 @@ flowchart TD
 - `doctrina context [<cap>] --concat` — assemble the read pack in canonical
   order, with token estimates. Run it for any task, not only `work`
   (`--budget <n>` gates the size; `--diff <ref>` is the resume-session pack).
-- `doctrina change tick <id> [--all]` → `change check <id>` → `analyze <id>` →
-  `change diff <id>` → `change apply <id...>` → `change archive <id...>` —
-  bulk-check the boxes, dry-run everything close would refuse, pre-flight,
-  preview, merge deltas into specs (ops blocks cover headers, criteria, and
-  EARS requirement bullets), then archive (which refuses unchecked work).
+- `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
+  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
+  bulk-check the boxes, dry-run everything close would refuse (with
+  `--verbose`, the per-delta preview too), pre-flight, merge deltas into
+  specs (ops blocks cover headers, criteria, and EARS requirement bullets),
+  then archive (which refuses unchecked work).
   apply/archive/check take multiple ids. `change abandon <id>` discards.
 
 **Gates (ground truth).**
@@ -147,10 +147,13 @@ flowchart TD
 
 **One-shot close.**
 - `doctrina close <id...>` — runs analyze → ADR checkpoint (advisory) →
-  apply → verify → coverage → trace → **docs** → archive → validate → skill
-  suggest (advisory) in one pass, stopping at the first failure. Takes
-  multiple ids. The docs gate refuses a change that alters a documented
-  surface with no documentation beside it; `--force` records the gap.
+  apply → **runtime** → verify → coverage → trace → **docs** → archive →
+  validate → skill suggest (advisory) in one pass, stopping at the first
+  failure. Takes multiple ids. The runtime gate holds each contract's
+  declared wiring, enums and selectors to the implementation (RT01-RT05):
+  an error blocks, a warning is reported and the close continues. The docs
+  gate refuses a change that alters a documented surface with no
+  documentation beside it; `--force` records the gap.
 
 **Decisions & contracts.**
 - `doctrina decision new → accept → land` (or `supersede`), `decision list` —
@@ -172,6 +175,10 @@ flowchart TD
   `doctrina handoff` — the Markdown resume note for the next session.
   `doctrina watch` — re-run `validate --fix` + `next` on every save.
   `status`/`next`/`validate`/`coverage`/`trace` all speak `--json`.
+  `prime`, `handoff` and `report` are **views of one snapshot** — the same
+  bytes as `doctrina status --view prime|handoff|report`, rendered from a
+  single collection of the tree, so the four can never report different
+  numbers.
 
 **Maintenance / setup.**
 - `doctrina doctor` — aggregate diagnostic with per-finding remediation.

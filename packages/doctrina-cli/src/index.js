@@ -5,11 +5,11 @@ import { parseArgs } from "./lib/args.js";
 import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
-import { surfaceHelp, OPERATIONS } from "./lib/commands.js";
+import { surfaceHelp, OPERATIONS, deprecationFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
-import { recordUsage } from "./lib/usage.js";
-import { wantsJson, emitJson, captureOutput, stripAnsi } from "./lib/json-out.js";
+import { recordUsage, operationOf } from "./lib/usage.js";
+import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation, deferJson, flushJson } from "./lib/json-out.js";
 
 import * as init from "./commands/init.js";
 import * as spec from "./commands/spec.js";
@@ -48,6 +48,7 @@ import * as intent from "./commands/intent.js";
 import * as upgrade from "./commands/upgrade.js";
 import * as adapter from "./commands/adapter.js";
 import * as triage from "./commands/triage.js";
+import * as ci from "./commands/ci.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
@@ -55,7 +56,7 @@ const COMMANDS = {
   intake, work, coverage, verify, contract, trace,
   status, close, review, watch, why, constitution,
   prime, handoff, show, doctor, report, completion,
-  intent, upgrade, adapter, triage,
+  intent, upgrade, adapter, triage, ci,
 };
 
 const TOP_HELP = `
@@ -127,18 +128,98 @@ async function main(argv) {
     return 0;
   }
 
+  // A flag the command does not declare is REFUSED, never ignored.
+  //
+  // Declaring the flags (C3) fixed the parser swallowing a positional; it
+  // did not make anything CHECK the declaration, so an unrecognised flag was
+  // simply dropped. On the same tree, `doctrina coverage --strict` exited 1
+  // and `doctrina coverage --stricts` exited 0: the gate the operator asked
+  // for never ran, and nothing said so. That is the most expensive failure a
+  // gate can have, because it is indistinguishable from success — a CI job
+  // with a typo in `--strict` stays green forever over a tree the gate would
+  // reject (change 0082).
+  //
+  // Usage error, not gate failure: exit 2 (ADR 0018). Checked after --help,
+  // so `doctrina <cmd> --typo --help` still explains the command instead of
+  // refusing to.
+  if (spec) {
+    const declared = new Set([
+      ...GLOBAL_FLAGS.boolean, ...GLOBAL_FLAGS.string,
+      ...(spec.boolean ?? []), ...(spec.string ?? []),
+    ]);
+    const undeclared = [...flags.keys()].filter((f) => !declared.has(f));
+    if (undeclared.length > 0) {
+      const lines = [];
+      for (const f of undeclared) {
+        lines.push(`error: unknown flag "--${f}" for \`doctrina ${commandName}\``);
+        console.error(c.red("error:") + ` unknown flag "--${f}" for \`doctrina ${commandName}\``);
+        const guess = suggest(f, [...declared]);
+        if (guess) {
+          lines.push(`hint: did you mean \`--${guess}\`?`);
+          console.error(c.gray("hint: ") + `did you mean \`--${guess}\`?`);
+        }
+      }
+      lines.push(`hint: \`doctrina ${commandName} --help\` lists the flags it accepts`);
+      console.error(c.gray("hint: ") + `\`doctrina ${commandName} --help\` lists the flags it accepts`);
+      // A consumer that asked for JSON gets JSON, including when the answer
+      // is "I refused" (third audit, finding 7). Change 0086 made the
+      // envelope tell the truth about the exit code; the flag check runs
+      // BEFORE the envelope exists, so a rejected invocation returned exit 2
+      // with an empty stdout and the consumer got a parse error instead of
+      // `{ok: false, exit_code: 2}`.
+      if (wantsJson(flags)) {
+        emitJson(operationName(positional), { stderr: lines },
+          { ok: false, exitCode: EXIT.USAGE, args: positional.slice(1) });
+      }
+      return EXIT.USAGE;
+    }
+  }
+
+  // A deprecated name keeps working and says so, once, before it runs
+  // (change 0049). On stderr, so a piped stdout stays exactly what it was —
+  // a warning that corrupts the output it warns about is a breaking change
+  // wearing a deprecation's clothes.
+  const deprecated = deprecationFor(positional);
+  if (deprecated) {
+    console.error(c.yellow("deprecated:") + ` this command is superseded — use ${c.cyan(deprecated.use)}`);
+    console.error(c.gray(`            ${deprecated.why}; the old name still works and will be removed in a later minor.`));
+    // And into the envelope, for the consumer that never sees a terminal
+    // (change 0061). The prose line above stays for the one that does.
+    setDeprecation({ use: deprecated.use, since: deprecated.since, why: deprecated.why });
+  }
+
   try {
     // --json on a command that builds no payload of its own still answers in
     // JSON: its output is captured into a versioned envelope beside `ok` and
     // `exit_code`. Branch on those; the lines are for completeness (M7).
-    if (wantsJson(flags) && !command.jsonNative) {
+    // A module with several subcommands is native for some and not others —
+    // `contract check` builds a real payload, `contract new` has nothing but
+    // its prose — so `jsonNative` may be a predicate over the subcommand's
+    // own arguments (change 0068).
+    const jsonNative = typeof command.jsonNative === "function"
+      ? command.jsonNative(positional.slice(1))
+      : command.jsonNative === true;
+    if (wantsJson(flags) && !jsonNative) {
       const { code, stdout, stderr } = await captureOutput(
         () => command.run(positional.slice(1), flags),
       );
-      emitJson([commandName, ...positional.slice(1)].join(" "), {
+      emitJson(operationName(positional), {
         stdout: stdout.map(stripAnsi),
         stderr: stderr.map(stripAnsi),
-      }, { ok: code === EXIT.OK, exitCode: code });
+      }, { ok: code === EXIT.OK, exitCode: code, args: operationArgs(positional) });
+      return code;
+    }
+    // The native path: hold the payload the command builds, run it, then
+    // write the envelope with the code it returned — so `ok` and `exit_code`
+    // say what the process says (change 0086).
+    if (wantsJson(flags)) {
+      deferJson();
+      let code = EXIT.OK;
+      try {
+        code = (await command.run(positional.slice(1), flags)) ?? EXIT.OK;
+      } finally {
+        flushJson(code);
+      }
       return code;
     }
     return await command.run(positional.slice(1), flags);
@@ -155,6 +236,24 @@ async function main(argv) {
     // is the GATE class: something is wrong here, fix it and retry (C7).
     return err.exitCode ?? EXIT.GATE;
   }
+}
+
+// The OPERATION an invocation names, and the arguments it carries — the two
+// halves the envelope's `command` field used to run together (third audit,
+// finding 6). `doctrina why carteira --json` answered `"command": "why
+// carteira"`, so a consumer reading that field got a different shape for
+// every capability, while `next --json` documents `command`/`args` as the
+// contract to branch on. The catalog is what tells a sub-operation
+// (`spec list`) from an argument (`why carteira`) — shape alone cannot,
+// which is the same reason `lib/usage.js` consults it.
+const KNOWN_OPERATIONS = new Set(OPERATIONS.map((o) => o[0]));
+
+function operationName(positional) {
+  return operationOf(positional, KNOWN_OPERATIONS) ?? positional[0] ?? "";
+}
+
+function operationArgs(positional) {
+  return positional.slice(operationName(positional).split(" ").length);
 }
 
 main(process.argv.slice(2)).then((code) => {

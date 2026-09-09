@@ -2,7 +2,6 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { exists, isDir, isFile, mkdirp, read, relPath, walk, write } from "../lib/fs-ops.js";
 import { readTemplate, locateTemplatesDir, substitute } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
@@ -11,6 +10,10 @@ import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { parseFrontmatter } from "../lib/doc-model.js";
+import { git, GIT_STATE } from "../lib/git.js";
+import { FIX_SHAPED, FIX_SHAPED_SUBJECT } from "../lib/lexicon.js";
+import { artifactNameError } from "../lib/names.js";
 
 const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
 
@@ -46,15 +49,7 @@ export async function run(positional, flags) {
 // --write it scaffolds a stub per candidate, pre-seeded from the source so the
 // human/agent only fills the body. Both sources are a pattern match — a hint,
 // never a decision (ADR 0005); skills are still authored, never generated.
-const FIX_SHAPED = /(?:^|-)(fix|bug|hotfix|patch|parse|parsing|tolerate|workaround|race|deadlock|flaky|retry|escape|sanitize|sanitise)(?:-|$)/;
 
-// The same idea applied to a commit subject. Narrower than FIX_SHAPED on
-// purpose: a deliberate folder slug tolerates more noise than a free-form
-// subject line. Matches conventional fix-type prefixes (fix:, fix(scope):,
-// bug:, hotfix:, patch:, and the free-form "Fix the…") plus the strongly
-// fix-flavoured debugging keywords — never feat:/refactor:/docs:/chore:.
-const FIX_SHAPED_SUBJECT =
-  /^(?:fix|bug|hotfix|patch)\b|\b(?:tolerate|workaround|deadlock|flaky|race condition|retry|sanitiz|sanitis)/i;
 
 // How far back the git source looks when --since is not given, and how many
 // candidates we print before collapsing the rest into a "+N more" line.
@@ -379,8 +374,8 @@ function gitFixCommits(projectRoot, { since, limit }) {
   if (since) args.push(`${since}..HEAD`);
   else args.push("-n", String(limit));
 
-  const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-  if (r.error || r.status !== 0 || !r.stdout) return [];
+  const r = git(projectRoot, args);
+  if (r.state !== GIT_STATE.OK || !r.stdout) return [];
 
   /** @type {SkillCandidate[]} */
   const out = [];
@@ -449,8 +444,9 @@ function firstWhyLine(proposalText) {
 
 function skillNew(args, flags) {
   const name = args[0];
-  if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
-    console.error(c.red("error:") + " skill name must be lowercase letters, digits, or hyphens (e.g. \"db-migration\")");
+  const nameError = artifactNameError(name, "skill name");
+  if (nameError) {
+    console.error(c.red("error:") + ` ${nameError} (e.g. "db-migration")`);
     return 2;
   }
   const force = flagBool(flags, "force", false);
@@ -512,6 +508,13 @@ function skillSync() {
       console.log(c.yellow("skip   ") + ` ${id} (no description frontmatter)`);
       continue;
     }
+    // A description still in the template's `<...>` form is not "up to
+    // date" (change 0111): it is a file nobody wrote yet, and mirroring it
+    // into the index is what put the placeholder in every context pack.
+    if (/^<[^<>]*>$/.test(desc.trim())) {
+      console.log(c.yellow("scaffold") + ` ${id} — description is still the scaffold's placeholder; write description/when, then sync`);
+      continue;
+    }
     const entry = (index.artifacts.skills ?? []).find((s) => s.id === id);
     if (!entry) {
       idx.addSkill(index, {
@@ -568,15 +571,6 @@ function skillList() {
   return 0;
 }
 
-function parseFrontmatter(text, key) {
-  // Match frontmatter blocks bounded by `---` lines at start of file.
-  const fmMatch = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
-  if (!fmMatch) return null;
-  const block = fmMatch[1];
-  const lineRe = new RegExp(`^${key}\\s*:\\s*(.+)$`, "m");
-  const m = block.match(lineRe);
-  return m ? m[1].trim() : null;
-}
 
 function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
@@ -618,6 +612,3 @@ Skills are written by humans, not generated. See docs/en/skills.md
 for the design rationale and the distinction from specs / AGENTS.md /
 the rejected memory/ folder.
 `;
-
-// Re-export the frontmatter parser so validate.js can reuse it.
-export { parseFrontmatter };

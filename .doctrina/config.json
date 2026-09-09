@@ -1,0 +1,4 @@
+{
+  "$comment": "Project configuration. JSON carries no comments, hence $comment. `doctrina doctor` reports which options are configured and which are at their defaults.",
+  "context_budget": 50000
+}

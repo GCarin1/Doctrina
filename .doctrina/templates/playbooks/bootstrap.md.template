@@ -1,0 +1,43 @@
+[[b]]Bootstrap playbook[[/b]][[g]] — agent-executed (ADR 0005); the CLI does no interpretation.[[/g]]
+
+Execute in order, in a single linear pass:
+
+1. Read [[c]].doctrina/intake.md[[/c]] (raw intent) and [[c]].doctrina/product.md[[/c]].
+
+2. Fill every product.md section from the intake: Vision, Problem,
+   Target users, Scope (in/out), Non-goals, Success criteria, and the
+   Delivery order — name the ONE end-to-end walking skeleton to build
+   and verify before fanning out (depth before breadth).
+   One fact, one home — product.md holds vision, never requirements.
+
+3. Derive the capability list: kebab-case, one per area of behaviour
+   (e.g. auth, billing, reports). For each capability:
+       [[c]]doctrina spec new <capability>[[/c]]
+   then replace the template placeholders in
+   .doctrina/specs/<capability>/spec.md with EARS requirements derived
+   from the intake (Ubiquitous / Event-driven / State-driven /
+   Unwanted-behavior / Optional). Keep the two axes honest — leave
+   Implementation: planned for what is not built yet; keep aspiration
+   under ## Maturity → Future, not in EARS; write concrete Acceptance
+   criteria, each [unverified] until a cited test proves it.
+
+4. If the project spans services/front-ends, own the seams between
+   them (port map, env, API/WS/event shapes) as a contract:
+       [[c]]doctrina contract new <name>[[/c]] → fill it → [[c]]doctrina contract check[[/c]]
+
+5. Record any architectural decision the intake forces (cite Evidence):
+       [[c]]doctrina decision new "<title>"[[/c]] → edit → [[c]]doctrina decision accept <num>[[/c]]
+
+6. Quality gates — fix everything they report before moving on:
+       [[c]]doctrina clarify --all[[/c]]
+       [[c]]doctrina validate[[/c]]
+       [[c]]doctrina coverage[[/c]]   (and [[c]]doctrina verify --init[[/c]] to declare the build gate)
+   If something in the intake is genuinely ambiguous, ask the user
+   before assuming.
+
+7. Mark the intake consumed: in .doctrina/intake.md flip
+   "- **Status:** pending" to "- **Status:** converted".
+
+8. [[c]]doctrina next[[/c]] — follow the recommendation. Implementation then
+   flows through [[c]]doctrina work "<brief prompt>"[[/c]], one change at a time.
+{{MISSING_SPECS_WARNING}}

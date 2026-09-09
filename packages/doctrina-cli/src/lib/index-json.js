@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import { read, write, exists } from "./fs-ops.js";
-import { cliVersion } from "./version.js";
+import { cliVersion, newestVersion } from "./version.js";
 
 export const SCHEMA_VERSION = "0.1.0";
 
@@ -39,7 +39,7 @@ export function save(projectRoot, index) {
   // records which CLI last wrote it, so a stale stamp (an index written by an
   // older CLI) is detectable by `doctrina validate` and migrated by
   // `doctrina index rebuild`.
-  index.framework_version = cliVersion();
+  index.framework_version = newestVersion(index.framework_version, cliVersion());
   const p = indexPath(projectRoot);
   const text = JSON.stringify(index, null, 2) + "\n";
   write(p, text, { force: true });
@@ -80,12 +80,6 @@ export function addContract(index, entry) {
   return index;
 }
 
-export function removeSkill(index, id) {
-  if (!index.artifacts.skills) return index;
-  index.artifacts.skills = index.artifacts.skills.filter((s) => s.id !== id);
-  return index;
-}
-
 export function touch(index, date) {
   index.last_updated = date;
   return index;
@@ -95,11 +89,6 @@ export function addSpec(index, entry) {
   if (!index.artifacts.specs.some((s) => s.id === entry.id)) {
     index.artifacts.specs.push(entry);
   }
-  return index;
-}
-
-export function removeSpec(index, id) {
-  index.artifacts.specs = index.artifacts.specs.filter((s) => s.id !== id);
   return index;
 }
 
@@ -117,12 +106,6 @@ export function updateDecision(index, id, mutator) {
   return index;
 }
 
-export function addChange(index, entry) {
-  if (!index.artifacts.changes.some((c) => c.id === entry.id)) {
-    index.artifacts.changes.push(entry);
-  }
-  return index;
-}
 
 export function moveChangeToArchive(index, id, archiveEntry) {
   index.artifacts.changes = index.artifacts.changes.filter((c) => c.id !== id);

@@ -1,0 +1,44 @@
+created .doctrina/intake.md
+
+Bootstrap playbook — agent-executed (ADR 0005); the CLI does no interpretation.
+
+Execute in order, in a single linear pass:
+
+1. Read .doctrina/intake.md (raw intent) and .doctrina/product.md.
+
+2. Fill every product.md section from the intake: Vision, Problem,
+   Target users, Scope (in/out), Non-goals, Success criteria, and the
+   Delivery order — name the ONE end-to-end walking skeleton to build
+   and verify before fanning out (depth before breadth).
+   One fact, one home — product.md holds vision, never requirements.
+
+3. Derive the capability list: kebab-case, one per area of behaviour
+   (e.g. auth, billing, reports). For each capability:
+       doctrina spec new <capability>
+   then replace the template placeholders in
+   .doctrina/specs/<capability>/spec.md with EARS requirements derived
+   from the intake (Ubiquitous / Event-driven / State-driven /
+   Unwanted-behavior / Optional). Keep the two axes honest — leave
+   Implementation: planned for what is not built yet; keep aspiration
+   under ## Maturity → Future, not in EARS; write concrete Acceptance
+   criteria, each [unverified] until a cited test proves it.
+
+4. If the project spans services/front-ends, own the seams between
+   them (port map, env, API/WS/event shapes) as a contract:
+       doctrina contract new <name> → fill it → doctrina contract check
+
+5. Record any architectural decision the intake forces (cite Evidence):
+       doctrina decision new "<title>" → edit → doctrina decision accept <num>
+
+6. Quality gates — fix everything they report before moving on:
+       doctrina clarify --all
+       doctrina validate
+       doctrina coverage   (and doctrina verify --init to declare the build gate)
+   If something in the intake is genuinely ambiguous, ask the user
+   before assuming.
+
+7. Mark the intake consumed: in .doctrina/intake.md flip
+   "- **Status:** pending" to "- **Status:** converted".
+
+8. doctrina next — follow the recommendation. Implementation then
+   flows through doctrina work "<brief prompt>", one change at a time.

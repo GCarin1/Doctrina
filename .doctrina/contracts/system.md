@@ -63,8 +63,8 @@ this repository, so there is no source to lint for empty-vs-unset (RT03).
 ## Budgets
 
 <!--
-Both of these are ceilings that get hit while adding a feature, and both
-have exactly one honest response: send less. They are recorded here so
+Each of these is a ceiling that gets hit while adding a feature, and each
+has exactly one honest response: send less. They are recorded here so
 that "just raise the cap" becomes an argument someone has to win rather
 than a diff nobody notices.
 
@@ -75,17 +75,35 @@ than a diff nobody notices.
                     generated surface block twice in one release (0.15.0)
                     is what this row is meant to keep happening.
 
+  surface-block-lines
+                    The generated `doctrina:surface` block is written
+                    INTO AGENTS.md, so the two ceilings above are
+                    COUPLED: one command added to the catalog spends a
+                    line of each. `doctor` reports the smaller of the
+                    two slacks for that reason. OUTPUT, for the same
+                    reason as `agents-md-lines`: the honest response to
+                    a block that no longer fits is to cut commands.
+
   context-pack      The token ceiling `doctrina context` assembles a pack
-                    to (lib default; a project may override it via
-                    index.json config.context_budget). INPUT: widening it
-                    to fit more sources is a legitimate trade-off, so it is
-                    documented here rather than gated.
+                    to. The value here is THIS project's, declared in
+                    `.doctrina/config.json` (change 0047 made that the home;
+                    the `config` block of index.json is still read as the
+                    legacy one, and the lib default for a project that
+                    declares nothing is 15000). INPUT: widening it to fit
+                    more sources is a legitimate trade-off, so it is
+                    documented here rather than gated — `analyze` refuses a
+                    raise of an OUTPUT ceiling and deliberately does not
+                    refuse this one. Raised to 50000 in 0.16.0: this tree
+                    needs ~29000 with a full change backlog open, and
+                    degrading eleven ADRs out of a pack to protect a number
+                    is paying for the ceiling with the content.
 -->
 
-| Limit           | Direction | Value |
-|-----------------|-----------|-------|
-| agents-md-lines | output    | 150   |
-| context-pack    | input     | 15000 |
+| Limit               | Direction | Value |
+|---------------------|-----------|-------|
+| agents-md-lines     | output    | 150   |
+| surface-block-lines | output    | 40    |
+| context-pack        | input     | 50000 |
 
 ## Interfaces
 
@@ -101,8 +119,10 @@ external consumer (a CI job, another agent) actually integrates against.
 - **`--json`** — every command emits a stable envelope carrying the
   schema version, so a machine consumer never parses human output.
 - **The composite action** (`action.yml`) — runs `validate`,
-  `index rebuild --check`, `coverage` and `trace`. Note that it does NOT
-  run `verify`: the build gate is the project's own to run.
+  `index rebuild --check`, `contract check`, `coverage` and `trace`. The
+  `contract check` step is what runs RT01-RT05 in CI, so a declaration that
+  no longer holds fails the pipeline instead of passing it silently. Note
+  that it does NOT run `verify`: the build gate is the project's own to run.
 
 ## References
 

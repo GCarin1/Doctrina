@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.15.1",
-  "last_updated": "2026-09-04",
+  "framework_version": "0.16.0",
+  "last_updated": "2026-09-09",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -12,12 +12,32 @@
     },
     "specs": [
       {
+        "id": "authoring",
+        "path": ".doctrina/specs/authoring/spec.md",
+        "status": "active",
+        "version": "0.15.0",
+        "last_updated": "2026-09-07",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
+          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js"
+        ]
+      },
+      {
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.36.0",
+        "version": "0.48.0",
         "last_updated": "2026-08-06",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/index.js",
+          "packages/doctrina-cli/src/commands/next.js",
+          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js"
+        ]
       },
       {
         "id": "core",
@@ -29,66 +49,106 @@
         "realizes": [
           "SC3",
           "SC4"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/lib/{dates,fs-ops}.js"
         ]
       },
       {
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.5.1",
+        "version": "0.6.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
           "SC3",
           "SC5"
+        ],
+        "source": [
+          "docs/**",
+          "scripts/check-docs.js",
+          "CHANGELOG.md",
+          "README*.md"
         ]
       },
       {
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "1.27.1",
         "last_updated": "2026-08-06",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js",
+          "scripts/bench.js"
+        ]
+      },
+      {
+        "id": "insight",
+        "path": ".doctrina/specs/insight/spec.md",
+        "status": "active",
+        "version": "0.6.0",
+        "last_updated": "2026-09-07",
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js",
+          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js"
+        ]
       },
       {
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.1.0",
+        "version": "0.7.0",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "depends_on": [
           "cli"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js",
+          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js"
         ]
       },
       {
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "last_updated": "2026-07-02",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/skill.js"
+        ]
       },
       {
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.16.0",
+        "version": "0.20.0",
         "last_updated": "2026-08-06",
-        "implementation": "implemented"
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js",
+          ".doctrina/templates/**"
+        ]
       },
       {
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.14.1",
         "last_updated": "2026-08-06",
         "implementation": "implemented",
         "realizes": [
           "SC1",
           "SC2",
           "SC3"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/lib/{doc-model,validation-model}.js"
         ]
       }
     ],
@@ -115,6 +175,9 @@
         "title": "Defer the `memory/` folder to a post-v1 milestone",
         "status": "accepted",
         "date": "2026-06-03",
+        "scope": [
+          "docs"
+        ],
         "summary": "Doctrina v0 and v1 will not ship a `.doctrina/memory/` folder."
       },
       {
@@ -123,6 +186,9 @@
         "title": "Adopt a single linear orchestrator instead of role-based parallel agents",
         "status": "accepted",
         "date": "2026-06-03",
+        "scope": [
+          "cli"
+        ],
         "summary": "Doctrina's reference orchestration is a single linear orchestrator that:"
       },
       {
@@ -134,7 +200,9 @@
         "scope": [
           "cli",
           "docs",
-          "gates"
+          "gates",
+          "authoring",
+          "insight"
         ],
         "summary": "The CLI does the deterministic half and prints a playbook for the"
       },
@@ -160,7 +228,8 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/lib/spec-ops.js`, `packages/doctrina-cli/src/commands/change.js`",
         "scope": [
           "cli",
-          "core"
+          "core",
+          "authoring"
         ],
         "summary": "Introduce a small, declarative operation set that a MODIFIED delta may carry"
       },
@@ -199,7 +268,9 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/work.js`, `packages/doctrina-cli/src/commands/change.js`, `packages/doctrina-cli/src/commands/validate.js`",
         "scope": [
           "cli",
-          "docs"
+          "docs",
+          "authoring",
+          "gates"
         ],
         "summary": "Add four targeted ergonomics, all opt-in, all deterministic:"
       },
@@ -239,7 +310,8 @@
         "date": "2026-06-28",
         "landed": "2026-06-28 — `packages/doctrina-cli/src/commands/skill.js`",
         "scope": [
-          "skills"
+          "skills",
+          "authoring"
         ],
         "summary": "Add the git commit history as a second deterministic source for"
       },
@@ -253,7 +325,9 @@
         "scope": [
           "cli",
           "gates",
-          "templates"
+          "templates",
+          "authoring",
+          "scaffolding"
         ],
         "summary": "Close the mechanical-delta gap."
       },
@@ -266,7 +340,8 @@
         "landed": "2026-07-19 — shipped in 0.13.0; regeneration covered by `packages/doctrina-cli/test/integration.test.js` (init/templates/upgrade surface tests) and `packages/doctrina-cli/test/commands.test.js` (catalog↔block parity)",
         "scope": [
           "cli",
-          "templates"
+          "templates",
+          "scaffolding"
         ],
         "summary": "The command-surface section of AGENTS.md is a CLI-owned block,"
       },
@@ -342,7 +417,8 @@
         "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/doc-model.test.js`",
         "scope": [
           "cli",
-          "validation"
+          "validation",
+          "authoring"
         ],
         "summary": "`src/lib/doc-model.js` owns the grammar."
       },
@@ -355,7 +431,10 @@
         "landed": "2026-08-06 — covered by `packages/doctrina-cli/test/context-retrieval.test.js`",
         "scope": [
           "gates",
-          "cli"
+          "cli",
+          "authoring",
+          "insight",
+          "scaffolding"
         ],
         "summary": "Assembly is retrieval."
       },
@@ -384,6 +463,45 @@
           "gates"
         ],
         "summary": "A request is classified into one of three lanes before anything is"
+      },
+      {
+        "id": "0025",
+        "path": ".doctrina/decisions/0025-command-modules-render-shared-logic-lives-in-lib.md",
+        "title": "Command modules render; shared logic lives in lib",
+        "status": "accepted",
+        "date": "2026-09-07",
+        "landed": "2026-09-07",
+        "scope": [
+          "cli",
+          "gates"
+        ],
+        "summary": "A module under `src/commands/` is a RENDERER."
+      },
+      {
+        "id": "0026",
+        "path": ".doctrina/decisions/0026-clarify-stays-a-deterministic-smell-test-the-bootstrap-already-runs.md",
+        "title": "Clarify stays: a deterministic smell test the bootstrap already runs",
+        "status": "accepted",
+        "date": "2026-09-07",
+        "scope": [
+          "gates",
+          "authoring"
+        ],
+        "summary": "`clarify` stays, unchanged in behaviour and unchanged on the surface block."
+      },
+      {
+        "id": "0027",
+        "path": ".doctrina/decisions/0027-code-ownership-is-declared-by-the-spec-never-inferred-from-paths.md",
+        "title": "code ownership is declared by the spec never inferred from paths",
+        "status": "accepted",
+        "date": "2026-09-08",
+        "scope": [
+          "gates",
+          "authoring",
+          "insight",
+          "validation"
+        ],
+        "summary": "A capability spec declares the code it owns, in an optional `Source:`"
       }
     ],
     "changes": [],
@@ -820,6 +938,1195 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0032-next-devolve-acoes-executaveis",
+        "title": "next devolve acoes executaveis",
+        "path": ".doctrina/changes/archive/2026-09-07-0032-next-devolve-acoes-executaveis",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0033-o-gate-de-runtime-entra-no-close-e-no-ci",
+        "title": "o gate de runtime entra no close e no CI",
+        "path": ".doctrina/changes/archive/2026-09-07-0033-o-gate-de-runtime-entra-no-close-e-no-ci",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0034-um-unico-mapa-de-gates",
+        "title": "um unico mapa de gates",
+        "path": ".doctrina/changes/archive/2026-09-07-0034-um-unico-mapa-de-gates",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0035-o-pack-de-contexto-nunca-bloqueia",
+        "title": "o pack de contexto nunca bloqueia",
+        "path": ".doctrina/changes/archive/2026-09-07-0035-o-pack-de-contexto-nunca-bloqueia",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0036-implementation-derivado-do-coverage",
+        "title": "Implementation derivado do coverage",
+        "path": ".doctrina/changes/archive/2026-09-07-0036-implementation-derivado-do-coverage",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0037-um-coletor-varias-vistas",
+        "title": "um coletor, varias vistas",
+        "path": ".doctrina/changes/archive/2026-09-07-0037-um-coletor-varias-vistas",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0038-playbooks-sao-templates",
+        "title": "playbooks sao templates",
+        "path": ".doctrina/changes/archive/2026-09-07-0038-playbooks-sao-templates",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0039-signoff-manual-tem-validade",
+        "title": "sign-off manual tem validade",
+        "path": ".doctrina/changes/archive/2026-09-07-0039-signoff-manual-tem-validade",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0040-uma-porta-para-o-git-um-lexico",
+        "title": "uma porta para o git, um lexico",
+        "path": ".doctrina/changes/archive/2026-09-07-0040-uma-porta-para-o-git-um-lexico",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0041-review-entra-no-close",
+        "title": "review entra no close",
+        "path": ".doctrina/changes/archive/2026-09-07-0041-review-entra-no-close",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0042-a-lane-fica-registrada-na-proposta",
+        "title": "a lane fica registrada na proposta",
+        "path": ".doctrina/changes/archive/2026-09-07-0042-a-lane-fica-registrada-na-proposta",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0043-a-gramatica-on-disk-tem-um-dono",
+        "title": "a gramatica on-disk tem um dono",
+        "path": ".doctrina/changes/archive/2026-09-07-0043-a-gramatica-on-disk-tem-um-dono",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0044-o-delta-e-sempre-scaffoldado",
+        "title": "o delta e sempre scaffoldado",
+        "path": ".doctrina/changes/archive/2026-09-07-0044-o-delta-e-sempre-scaffoldado",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0045-doctor-para-de-se-auto-spawnar",
+        "title": "doctor para de se auto-spawnar",
+        "path": ".doctrina/changes/archive/2026-09-07-0045-doctor-para-de-se-auto-spawnar",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0046-o-ledger-vira-fonte-legivel",
+        "title": "o ledger vira fonte legivel",
+        "path": ".doctrina/changes/archive/2026-09-07-0046-o-ledger-vira-fonte-legivel",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0047-uma-superficie-de-configuracao",
+        "title": "uma superficie de configuracao",
+        "path": ".doctrina/changes/archive/2026-09-07-0047-uma-superficie-de-configuracao",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0048-o-changelog-do-agente-e-rascunhado",
+        "title": "o changelog do agente e rascunhado",
+        "path": ".doctrina/changes/archive/2026-09-07-0048-o-changelog-do-agente-e-rascunhado",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0049-encolher-a-superficie-de-comandos",
+        "title": "encolher a superficie de comandos",
+        "path": ".doctrina/changes/archive/2026-09-07-0049-encolher-a-superficie-de-comandos",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0050-metricas-e-uso-realimentam-o-fluxo",
+        "title": "metricas e uso realimentam o fluxo",
+        "path": ".doctrina/changes/archive/2026-09-07-0050-metricas-e-uso-realimentam-o-fluxo",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0051-init-aceita-o-intake",
+        "title": "init aceita o intake",
+        "path": ".doctrina/changes/archive/2026-09-07-0051-init-aceita-o-intake",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0052-o-titulo-da-change-nao-sai-duplicado",
+        "title": "o titulo da change nao sai duplicado",
+        "path": ".doctrina/changes/archive/2026-09-07-0052-o-titulo-da-change-nao-sai-duplicado",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0053-split-gates-into-gates-and-insight",
+        "title": "split gates into gates and insight",
+        "path": ".doctrina/changes/archive/2026-09-07-0053-split-gates-into-gates-and-insight",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "ADDED"
+          }
+        ]
+      },
+      {
+        "id": "0054-split-cli-into-cli-and-authoring",
+        "title": "split cli into cli and authoring",
+        "path": ".doctrina/changes/archive/2026-09-07-0054-split-cli-into-cli-and-authoring",
+        "status": "applied",
+        "applied": "2026-09-07",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "ADDED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0055-comentario-nao-e-conteudo",
+        "title": "comentario nao e conteudo",
+        "path": ".doctrina/changes/archive/2026-09-08-0055-comentario-nao-e-conteudo",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0056-o-resumo-do-contract-check-nao-mente",
+        "title": "o resumo do contract check nao mente",
+        "path": ".doctrina/changes/archive/2026-09-08-0056-o-resumo-do-contract-check-nao-mente",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0057-ausencia-nao-e-aprovacao",
+        "title": "ausencia nao e aprovacao",
+        "path": ".doctrina/changes/archive/2026-09-08-0057-ausencia-nao-e-aprovacao",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0058-a-remediacao-sai-do-projeto-checado",
+        "title": "a remediacao sai do projeto checado",
+        "path": ".doctrina/changes/archive/2026-09-08-0058-a-remediacao-sai-do-projeto-checado",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0059-o-tamanho-da-superficie-tem-um-dono",
+        "title": "o tamanho da superficie tem um dono",
+        "path": ".doctrina/changes/archive/2026-09-08-0059-o-tamanho-da-superficie-tem-um-dono",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0060-uma-resposta-por-pergunta",
+        "title": "uma resposta por pergunta",
+        "path": ".doctrina/changes/archive/2026-09-08-0060-uma-resposta-por-pergunta",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0061-a-depreciacao-chega-a-maquina",
+        "title": "a depreciacao chega a maquina",
+        "path": ".doctrina/changes/archive/2026-09-08-0061-a-depreciacao-chega-a-maquina",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0062-o-texto-alcanca-o-codigo",
+        "title": "o texto alcanca o codigo",
+        "path": ".doctrina/changes/archive/2026-09-08-0062-o-texto-alcanca-o-codigo",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0063-o-gate-de-docs-le-o-contrato",
+        "title": "o gate de docs le o contrato",
+        "path": ".doctrina/changes/archive/2026-09-08-0063-o-gate-de-docs-le-o-contrato",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0064-o-next-le-os-mesmos-sinais",
+        "title": "o next le os mesmos sinais",
+        "path": ".doctrina/changes/archive/2026-09-08-0064-o-next-le-os-mesmos-sinais",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0065-o-molde-nao-passa-por-conteudo",
+        "title": "o molde nao passa por conteudo",
+        "path": ".doctrina/changes/archive/2026-09-08-0065-o-molde-nao-passa-por-conteudo",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0066-a-porta-de-bootstrap-aparece",
+        "title": "a porta de bootstrap aparece",
+        "path": ".doctrina/changes/archive/2026-09-08-0066-a-porta-de-bootstrap-aparece",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0067-uma-contagem-de-caixas",
+        "title": "uma contagem de caixas",
+        "path": ".doctrina/changes/archive/2026-09-08-0067-uma-contagem-de-caixas",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0068-o-contract-check-responde-a-maquina",
+        "title": "o contract check responde a maquina",
+        "path": ".doctrina/changes/archive/2026-09-08-0068-o-contract-check-responde-a-maquina",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0069-non-goals-em-prosa-contam",
+        "title": "non-goals em prosa contam",
+        "path": ".doctrina/changes/archive/2026-09-08-0069-non-goals-em-prosa-contam",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0070-o-titulo-nao-nasce-duplicado",
+        "title": "o titulo nao nasce duplicado",
+        "path": ".doctrina/changes/archive/2026-09-08-0070-o-titulo-nao-nasce-duplicado",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0071-o-intake-aceita-a-prosa-convidada",
+        "title": "o intake aceita a prosa convidada",
+        "path": ".doctrina/changes/archive/2026-09-08-0071-o-intake-aceita-a-prosa-convidada",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0072-o-acoplamento-dos-orcamentos-e-visivel",
+        "title": "o acoplamento dos orcamentos e visivel",
+        "path": ".doctrina/changes/archive/2026-09-08-0072-o-acoplamento-dos-orcamentos-e-visivel",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0073-o-adapter-remove-nao-deixa-rastro",
+        "title": "o adapter remove nao deixa rastro",
+        "path": ".doctrina/changes/archive/2026-09-08-0073-o-adapter-remove-nao-deixa-rastro",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0074-o-ternario-morto-sai",
+        "title": "o ternario morto sai",
+        "path": ".doctrina/changes/archive/2026-09-08-0074-o-ternario-morto-sai",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": []
+      },
+      {
+        "id": "0075-os-adrs-seguem-a-capability",
+        "title": "os adrs seguem a capability",
+        "path": ".doctrina/changes/archive/2026-09-08-0075-os-adrs-seguem-a-capability",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0076-a-lane-entra-no-indice-com-a-change",
+        "title": "a lane entra no indice com a change",
+        "path": ".doctrina/changes/archive/2026-09-08-0076-a-lane-entra-no-indice-com-a-change",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0077-o-review-enxerga-o-codigo-que-revisa",
+        "title": "o review enxerga o codigo que revisa",
+        "path": ".doctrina/changes/archive/2026-09-08-0077-o-review-enxerga-o-codigo-que-revisa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0078-a-recomendacao-sabe-o-que-custa",
+        "title": "a recomendacao sabe o que custa",
+        "path": ".doctrina/changes/archive/2026-09-08-0078-a-recomendacao-sabe-o-que-custa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0079-clarify-nao-confunde-pergunta-com-vagueza",
+        "title": "clarify nao confunde pergunta com vagueza",
+        "path": ".doctrina/changes/archive/2026-09-08-0079-clarify-nao-confunde-pergunta-com-vagueza",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0080-o-report-nomeia-a-causa-certa",
+        "title": "o report nomeia a causa certa",
+        "path": ".doctrina/changes/archive/2026-09-08-0080-o-report-nomeia-a-causa-certa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0081-o-work-nao-deixa-specs-vazio",
+        "title": "o work nao deixa specs vazio",
+        "path": ".doctrina/changes/archive/2026-09-08-0081-o-work-nao-deixa-specs-vazio",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0082-uma-flag-desconhecida-nao-passa",
+        "title": "uma flag desconhecida nao passa",
+        "path": ".doctrina/changes/archive/2026-09-08-0082-uma-flag-desconhecida-nao-passa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0083-o-trace-nao-aprova-o-vazio",
+        "title": "o trace nao aprova o vazio",
+        "path": ".doctrina/changes/archive/2026-09-08-0083-o-trace-nao-aprova-o-vazio",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0084-a-expansao-de-chaves-esta-certa",
+        "title": "a expansao de chaves esta certa",
+        "path": ".doctrina/changes/archive/2026-09-08-0084-a-expansao-de-chaves-esta-certa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0085-o-hub-segue-o-proprio-template",
+        "title": "o hub segue o proprio template",
+        "path": ".doctrina/changes/archive/2026-09-08-0085-o-hub-segue-o-proprio-template",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": []
+      },
+      {
+        "id": "0086-o-envelope-json-nao-mente",
+        "title": "o envelope json nao mente",
+        "path": ".doctrina/changes/archive/2026-09-08-0086-o-envelope-json-nao-mente",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0087-um-artefato-vazio-nao-passa",
+        "title": "um artefato vazio nao passa",
+        "path": ".doctrina/changes/archive/2026-09-08-0087-um-artefato-vazio-nao-passa",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0088-citar-um-comando-nao-e-mexer-nele",
+        "title": "citar um comando nao e mexer nele",
+        "path": ".doctrina/changes/archive/2026-09-08-0088-citar-um-comando-nao-e-mexer-nele",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0089-o-close-so-afirma-o-que-apurou",
+        "title": "o close so afirma o que apurou",
+        "path": ".doctrina/changes/archive/2026-09-08-0089-o-close-so-afirma-o-que-apurou",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0090-um-filtro-que-nao-casa-nada-nao-aprova",
+        "title": "um filtro que nao casa nada nao aprova",
+        "path": ".doctrina/changes/archive/2026-09-08-0090-um-filtro-que-nao-casa-nada-nao-aprova",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0091-uma-spec-ativa-declara-como-provar",
+        "title": "uma spec ativa declara como provar",
+        "path": ".doctrina/changes/archive/2026-09-08-0091-uma-spec-ativa-declara-como-provar",
+        "status": "applied",
+        "applied": "2026-09-08",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0092-o-review-nao-aprova-contra-o-que-nao-existe",
+        "title": "o review nao aprova contra o que nao existe",
+        "path": ".doctrina/changes/archive/2026-09-09-0092-o-review-nao-aprova-contra-o-que-nao-existe",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0093-o-contrato-de-saida-vale-para-todos",
+        "title": "o contrato de saida vale para todos",
+        "path": ".doctrina/changes/archive/2026-09-09-0093-o-contrato-de-saida-vale-para-todos",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0094-change-new-tem-gramatica-de-id",
+        "title": "change new tem gramatica de id",
+        "path": ".doctrina/changes/archive/2026-09-09-0094-change-new-tem-gramatica-de-id",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0095-analyze-roda-o-dry-run-de-ops",
+        "title": "analyze roda o dry-run de ops",
+        "path": ".doctrina/changes/archive/2026-09-09-0095-analyze-roda-o-dry-run-de-ops",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0096-o-ledger-registra-o-que-aconteceu",
+        "title": "o ledger registra o que aconteceu",
+        "path": ".doctrina/changes/archive/2026-09-09-0096-o-ledger-registra-o-que-aconteceu",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0097-um-exemplo-em-fence-nao-e-criterio",
+        "title": "um exemplo em fence nao e criterio",
+        "path": ".doctrina/changes/archive/2026-09-09-0097-um-exemplo-em-fence-nao-e-criterio",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0098-o-bom-nao-apaga-o-titulo-da-spec",
+        "title": "o BOM nao apaga o titulo da spec",
+        "path": ".doctrina/changes/archive/2026-09-09-0098-o-bom-nao-apaga-o-titulo-da-spec",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0099-o-envelope-json-diz-a-verdade",
+        "title": "o envelope JSON diz a verdade",
+        "path": ".doctrina/changes/archive/2026-09-09-0099-o-envelope-json-diz-a-verdade",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0100-search-dobra-acentos",
+        "title": "search dobra acentos",
+        "path": ".doctrina/changes/archive/2026-09-09-0100-search-dobra-acentos",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0101-clarify-inexistente-e-erro-de-uso",
+        "title": "clarify inexistente e erro de uso",
+        "path": ".doctrina/changes/archive/2026-09-09-0101-clarify-inexistente-e-erro-de-uso",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0102-os-cabecalhos-tem-um-enum",
+        "title": "os cabecalhos tem um enum",
+        "path": ".doctrina/changes/archive/2026-09-09-0102-os-cabecalhos-tem-um-enum",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0103-o-close-roda-o-contract-check-inteiro",
+        "title": "o close roda o contract check inteiro",
+        "path": ".doctrina/changes/archive/2026-09-09-0103-o-close-roda-o-contract-check-inteiro",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0104-os-ordinais-do-tick-sao-estaveis",
+        "title": "os ordinais do tick sao estaveis",
+        "path": ".doctrina/changes/archive/2026-09-09-0104-os-ordinais-do-tick-sao-estaveis",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0105-a-marca-unverified-vale",
+        "title": "a marca unverified vale",
+        "path": ".doctrina/changes/archive/2026-09-09-0105-a-marca-unverified-vale",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0106-a-prova-mora-no-projeto",
+        "title": "a prova mora no projeto",
+        "path": ".doctrina/changes/archive/2026-09-09-0106-a-prova-mora-no-projeto",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0107-o-triage-fala-portugues",
+        "title": "o triage fala portugues",
+        "path": ".doctrina/changes/archive/2026-09-09-0107-o-triage-fala-portugues",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0108-uma-referencia-fantasma-e-apontada",
+        "title": "uma referencia fantasma e apontada",
+        "path": ".doctrina/changes/archive/2026-09-09-0108-uma-referencia-fantasma-e-apontada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0109-so-uma-adr-aceita-e-superada",
+        "title": "so uma ADR aceita e superada",
+        "path": ".doctrina/changes/archive/2026-09-09-0109-so-uma-adr-aceita-e-superada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0110-um-nome-de-capability-e-portavel",
+        "title": "um nome de capability e portavel",
+        "path": ".doctrina/changes/archive/2026-09-09-0110-um-nome-de-capability-e-portavel",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0111-um-scaffold-nao-e-um-artefato",
+        "title": "um scaffold nao e um artefato",
+        "path": ".doctrina/changes/archive/2026-09-09-0111-um-scaffold-nao-e-um-artefato",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0112-o-intake-convertido-nao-volta",
+        "title": "o intake convertido nao volta",
+        "path": ".doctrina/changes/archive/2026-09-09-0112-o-intake-convertido-nao-volta",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0113-uma-spec-fora-do-caminho-e-apontada",
+        "title": "uma spec fora do caminho e apontada",
+        "path": ".doctrina/changes/archive/2026-09-09-0113-uma-spec-fora-do-caminho-e-apontada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0114-os-retardatarios-do-contrato-de-saida",
+        "title": "os retardatarios do contrato de saida",
+        "path": ".doctrina/changes/archive/2026-09-09-0114-os-retardatarios-do-contrato-de-saida",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0115-o-doctor-le-o-config-que-existe",
+        "title": "o doctor le o config que existe",
+        "path": ".doctrina/changes/archive/2026-09-09-0115-o-doctor-le-o-config-que-existe",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0116-o-carimbo-nao-regride",
+        "title": "o carimbo nao regride",
+        "path": ".doctrina/changes/archive/2026-09-09-0116-o-carimbo-nao-regride",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0117-a-suite-roda-em-windows",
+        "title": "a suite roda em Windows",
+        "path": ".doctrina/changes/archive/2026-09-09-0117-a-suite-roda-em-windows",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0118-a-gramatica-de-nome-tem-dono",
+        "title": "a gramatica de nome tem dono",
+        "path": ".doctrina/changes/archive/2026-09-09-0118-a-gramatica-de-nome-tem-dono",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0119-a-politica-de-fim-de-linha-fica-registada",
+        "title": "a politica de fim de linha fica registada",
+        "path": ".doctrina/changes/archive/2026-09-09-0119-a-politica-de-fim-de-linha-fica-registada",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": []
+      },
+      {
+        "id": "0120-cortar-a-0-16-0",
+        "title": "cortar a 0.16.0",
+        "path": ".doctrina/changes/archive/2026-09-09-0120-cortar-a-0-16-0",
+        "status": "applied",
+        "applied": "2026-09-09",
+        "specs_affected": []
       }
     ],
     "skills": [
@@ -848,10 +2155,28 @@
         "last_updated": "2026-07-19"
       },
       {
+        "id": "patch-doctrina-files-as-crlf",
+        "path": ".doctrina/skills/patch-doctrina-files-as-crlf.md",
+        "description": "Edit files under .doctrina/ knowing they are CRLF, so a regex or script patch cannot silently match nothing and report success.",
+        "last_updated": "2026-09-07"
+      },
+      {
         "id": "split-an-oversized-spec",
         "path": ".doctrina/skills/split-an-oversized-spec.md",
         "description": "Split a capability spec that crossed the 400-line cap into two coherent capabilities without losing provenance.",
         "last_updated": "2026-07-19"
+      },
+      {
+        "id": "stage-a-change-backlog",
+        "path": ".doctrina/skills/stage-a-change-backlog.md",
+        "description": "Open two or more changes as a planned-but-not-started backlog that still passes analyze, without the context pack overflowing its budget.",
+        "last_updated": "2026-09-07"
+      },
+      {
+        "id": "triage-holds-work-on-the-machinery",
+        "path": ".doctrina/skills/triage-holds-work-on-the-machinery.md",
+        "description": "Recognise when the lane classifier holds an authoring task as RUNTIME because of its nouns, and decide between --force, --chore and an actual diagnosis.",
+        "last_updated": "2026-09-07"
       },
       {
         "id": "write-acceptance-evidence",

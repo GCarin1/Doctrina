@@ -3,6 +3,7 @@
 - **Status:** accepted
 - **Date:** 2026-06-03
 - **Deciders:** project owner
+- **Scope:** cli
 - **Supersedes:** —
 - **Superseded by:** —
 - **Evidence:** `AGENTS.md` — single linear orchestrator rule; no parallel-write tooling ships

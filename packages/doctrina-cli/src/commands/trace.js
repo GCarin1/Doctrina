@@ -8,6 +8,11 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { summarize, collectAnchors, collectAnchorDuplicates, collectSpecs } from "../lib/trace-model.js";
+
+// The provenance arithmetic lives in lib/trace-model.js, which `status`,
+// `review` and the project snapshot read too (audit finding F7).
+export { summarize } from "../lib/trace-model.js";
 
 // Intent-provenance report (ADR 0006). `coverage` proves a criterion has a
 // test; `trace` proves a capability traces to a stated intent. Together they
@@ -48,9 +53,23 @@ export async function run(_positional, flags) {
 
   const anchors = collectAnchors(projectRoot); // [{ id }], in document order
   const specs = collectSpecs(projectRoot); // [{ cap, status, realizes: [id] }]
+  // An id declared twice is two intents under one name (change 0108): the
+  // collector keeps the first, so the second is invisible everywhere unless
+  // named here. A gap, like a dropped anchor — `validate` reports it as an
+  // error as well.
+  const duplicates = collectAnchorDuplicates(projectRoot); // [{ id, lines }]
 
   const anchorIds = new Set(anchors.map((a) => a.id));
-  const anyRealizes = specs.some((s) => s.realizes !== null);
+  // A spec OPTED IN when it cites at least one anchor id. The header alone
+  // is not opting in: `spec new` scaffolds `**Realizes:** n/a — <reason>`,
+  // which parses to an empty id list and used to count as participation.
+  // One scaffolded spec was therefore enough to take a project out of the
+  // never-opted-in branch and into the normal report, where zero anchors
+  // rendered as `ok 0 of 0 intent anchors realized` — a green verdict over
+  // nothing, on the very first read a new project gets about itself, while
+  // `doctor` read the same collection and warned (change 0083). Absence is
+  // not approval — the half change 0057 fixed in `coverage` and not here.
+  const anyRealizes = specs.some((s) => s.realizes !== null && s.realizes.length > 0);
 
   // The feature is unused: do not nag a project that never opted in.
   if (anchors.length === 0 && !anyRealizes) {
@@ -88,8 +107,8 @@ export async function run(_positional, flags) {
 
   if (json) {
     const rows = anchors.map((a) => ({ id: a.id, realizedBy: (realizedBy.get(a.id) ?? []).sort() }));
-    const clean = rows.every((r) => r.realizedBy.length > 0) && dangling.length === 0 && untraceable.length === 0;
-    emitJson("trace", { anchors: rows, dangling, untraceable, summary: summarize(projectRoot) });
+    const clean = rows.every((r) => r.realizedBy.length > 0) && dangling.length === 0 && untraceable.length === 0 && duplicates.length === 0;
+    emitJson("trace", { anchors: rows, dangling, untraceable, duplicates, summary: summarize(projectRoot) });
     return clean ? 0 : strict ? 1 : 0;
   }
 
@@ -107,7 +126,10 @@ export async function run(_positional, flags) {
     }
   }
 
-  if (dangling.length > 0 || untraceable.length > 0) console.log("");
+  if (dangling.length > 0 || untraceable.length > 0 || duplicates.length > 0) console.log("");
+  for (const d of duplicates) {
+    console.log(`  ${c.red("✗")} duplicate anchor [${d.id}] — declared at product.md lines ${d.lines.join(" and ")}; only the first is read, give the second its own id`);
+  }
   for (const d of dangling) {
     console.log(`  ${c.yellow("!")} dangling: spec "${d.cap}" realizes ${d.id} (no such anchor in product.md)`);
   }
@@ -117,10 +139,16 @@ export async function run(_positional, flags) {
 
   const dropped = anchors.length - realized;
   console.log("");
-  const summary =
-    `${realized} of ${anchors.length} intent anchor${anchors.length === 1 ? "" : "s"} realized` +
-    `; ${dropped} dropped, ${dangling.length} dangling, ${untraceable.length} untraceable`;
-  const clean = dropped === 0 && dangling.length === 0 && untraceable.length === 0;
+  const summary = anchors.length === 0
+    ? `no intent anchors declared in product.md` +
+      `; ${dangling.length} dangling, ${untraceable.length} untraceable`
+    : `${realized} of ${anchors.length} intent anchor${anchors.length === 1 ? "" : "s"} realized` +
+      `; ${dropped} dropped, ${dangling.length} dangling, ${untraceable.length} untraceable` +
+      (duplicates.length > 0 ? `, ${duplicates.length} duplicate` : "");
+  // Reaching the report with no anchors at all is never clean: there is
+  // nothing to have realized, and a ratio over zero says nothing true.
+  const clean = anchors.length > 0
+    && dropped === 0 && dangling.length === 0 && untraceable.length === 0 && duplicates.length === 0;
   if (clean) {
     console.log(c.green("ok") + " " + summary);
     return 0;
@@ -130,69 +158,6 @@ export async function run(_positional, flags) {
   return strict ? 1 : 0;
 }
 
-// Pure summary of intent provenance, for other commands (`status`, `review`)
-// that need the numbers without the report output.
-export function summarize(projectRoot) {
-  const anchors = collectAnchors(projectRoot);
-  const specs = collectSpecs(projectRoot);
-  const anchorIds = new Set(anchors.map((a) => a.id));
-  const realizedBy = new Map();
-  let dangling = 0;
-  for (const s of specs) {
-    if (s.realizes === null) continue;
-    for (const id of s.realizes) {
-      if (anchorIds.has(id)) {
-        if (!realizedBy.has(id)) realizedBy.set(id, []);
-        realizedBy.get(id).push(s.cap);
-      } else {
-        dangling += 1;
-      }
-    }
-  }
-  const untraceable = specs.filter((s) => s.realizes === null && s.status === "active").length;
-  let realized = 0;
-  for (const a of anchors) if ((realizedBy.get(a.id) ?? []).length > 0) realized += 1;
-  return {
-    anchors: anchors.length,
-    realized,
-    dropped: anchors.length - realized,
-    dangling,
-    untraceable,
-  };
-}
-
-// Every "[A-Z]+\d+" tag at the head of a bullet in product.md is an intent
-// anchor. Section-agnostic so Success-criteria and In-scope bullets both work.
-function collectAnchors(projectRoot) {
-  const productPath = path.join(projectRoot, ".doctrina", "product.md");
-  if (!isFile(productPath)) return [];
-  const out = [];
-  const seen = new Set();
-  for (const line of read(productPath).split(/\r?\n/)) {
-    const m = line.match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+/);
-    if (m && !seen.has(m[1])) {
-      seen.add(m[1]);
-      out.push({ id: m[1] });
-    }
-  }
-  return out;
-}
-
-function collectSpecs(projectRoot) {
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  if (!isDir(specsDir)) return [];
-  const out = [];
-  for (const cap of readdirSync(specsDir).sort()) {
-    const specPath = path.join(specsDir, cap, "spec.md");
-    if (!isFile(specPath)) continue;
-    const text = read(specPath);
-    const realizesRaw = specHeader(text, "Realizes");
-    const realizes = realizesRaw === null ? null : (realizesRaw.match(ANCHOR_RE) ?? []);
-    const status = (specHeader(text, "Status") ?? "active").trim().toLowerCase();
-    out.push({ cap, status, realizes });
-  }
-  return out;
-}
 
 export const help = `
 Usage: doctrina trace [--strict]

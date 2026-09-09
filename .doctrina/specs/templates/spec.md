@@ -4,8 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
+**Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `.doctrina/templates/**`
 **Last updated:** 2026-08-06
-**Version:** 0.16.0
+**Version:** 0.20.0
 
 ## Purpose
 
@@ -52,6 +53,10 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall hold the generated surface block to a declared line budget, reporting an overrun as a finding rather than growing the block.
 - The contract template shall carry Wiring, Selectors and Budgets tables, and a Values column on Environment, each documenting what the corresponding runtime check verifies.
 - The spec template shall carry an optional `### Pipeline` block documenting that a step may only require what an earlier step produced.
+- The system shall treat the playbooks it prints as templates resolved project-over-bundled per file, so an adopting team can replace the procedure its agent executes.
+- The system shall pre-render every variable part of a playbook into a plain token value, and shall not evaluate conditionals or loops declared inside a template.
+- The system shall resolve every declared size budget from the project's contract, falling back to the shipped default only when the project declares none, so one ceiling is never read from two places.
+- The system shall state what a template recommendation costs against the declared budget it spends from, whenever following that recommendation would write into a file with a declared ceiling.
 
 ### Event-driven
 
@@ -78,6 +83,10 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When a scaffolding command uses a project template rather than the bundled one, the system shall say so.
 - When `doctrina templates list` runs, the system shall label each template with the source it resolved from and mark a project file that shadows a bundled one.
 - When a project is scaffolded or upgraded, the system shall write a marker-delimited agent-facing changelog naming only what alters agent behaviour in the installed version.
+- When a playbook is rendered, the system shall expand its colour markup before substituting tokens, so a token's value cannot introduce markup, and shall remove a line that holds only a token whose value is empty.
+- When `doctrina templates check` runs, the system shall report a playbook that does not resolve, and one whose body is empty, has no numbered first step, or leaves a colour span unclosed.
+- When the agent-facing changelog is drafted, the system shall propose one candidate bullet per archived change in the window that touched a documented surface, newest first, capped at the block's bullet limit, and shall name the window it used and every candidate that did not fit.
+- When an archived change in the window touched no documented surface, the system shall propose no bullet for it and shall say that it proposed none, rather than emitting an empty block.
 
 ### State-driven
 
@@ -86,6 +95,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - While a required token has neither a command-line value nor a defined
   default, the system shall prompt the user and refuse to scaffold
   silently with an empty value.
+- While the generated surface block is written into AGENTS.md, the system shall treat the two size budgets as coupled and report the smaller of their two slacks as the remaining headroom.
 
 ### Unwanted-behavior (must-not)
 
@@ -99,6 +109,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not require a project to vendor the whole template tree in order to override one file.
 - The system shall not place a generated block inside another generated block; a marker comment ends the preceding section just as a heading does.
 - A freshly scaffolded contract shall not fail its own `contract check`: placeholder rows are scaffolding, not declarations.
+- The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
+- If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall not append them, and shall report the shortfall instead of resolving one gate's recommendation by breaching another gate's refusal.
 
 ### Optional
 
@@ -151,6 +163,15 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 16. [verified] Every command declares a purpose, a when-trigger, and a known moment, and the block carries those triggers within its declared budget — verified by `packages/doctrina-cli/test/commands.test.js`.
 17. [verified] The agent-facing changelog is three to six agent-scoped bullets for the running version, written at init and refreshed by upgrade — verified by `packages/doctrina-cli/test/commands.test.js`, `packages/doctrina-cli/test/integration.test.js`.
 18. [verified] A scaffolded contract passes `contract check` and reports its runtime surface as unchecked — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+19. [verified] Every playbook variant — work, chore, pinned capability, thin prompt and bootstrap — renders byte-identically to the pre-migration implementation, colour codes included — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+20. [verified] A playbook placed in the project's template directory overrides the bundled one per file, leaving the others bundled — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+21. [verified] A token's value carrying colour markup is printed literally rather than expanded — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+22. [verified] A missing or malformed playbook is reported by `templates check` with the remedy that clears it — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+23. [verified] A change touching a command, flag or exit code proposes exactly one bullet and one touching none proposes nothing; the draft is newest-first, capped at the block's limit, and states its window and what it truncated — verified by `packages/doctrina-cli/test/agent-changelog.test.js`.
+24. [verified] The headroom left in the two coupled budgets is reported before either is breached, and the overflow warning still fires once one is past — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
+25. [verified] `doctor` and `templates check` quote one size for the surface block, and a ceiling declared in the contract beats the shipped literal for both budgets — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
+26. [verified] With room, the recommendation and its remedy are unchanged and the applied cost equals the estimate; without room, the finding names the cost and the remedy names the cut — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+27. [verified] Without room `templates update --write` stands down leaving the file untouched, and making the room it asks for clears the hold — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
 
 ## Out of scope for this spec
 

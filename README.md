@@ -14,7 +14,7 @@
 
 > Spec-driven, AGENTS.md-native framework for multi-agent AI development.
 
-**Status:** v0.15.1 — released.
+**Status:** v0.16.0 — released.
 **Read this in [Portuguese](./README.pt.md).**
 
 ---
@@ -89,17 +89,20 @@ governs how a body of agents acts.
   the hub, so the hub can never lag the CLI.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 37 commands
-  and 59 operations covering init, intake, adapter, work, prime, spec,
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 38 commands
+  and 61 operations covering init, intake, adapter, work, prime, spec,
   change, decision, contract, skill, intent, analyze, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, constitution, watch, templates, hooks, index, next,
-  metrics, report, completion, and upgrade. The count is checked against
-  the catalog by `scripts/check-docs.js`, so this line cannot drift.
+  metrics, report, completion, and upgrade. Both counts are checked
+  against the catalog by `scripts/check-docs.js` — as is every count
+  stated anywhere in this repository's documentation — so no line here
+  can drift.
 - Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Eight capability specs and the ADRs 0001–0022 that describe the framework
+- Ten capability specs and the ADRs 0001–0027 that describe the framework
+  (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as
   retrieval), plus on-demand skills capturing its own maintenance

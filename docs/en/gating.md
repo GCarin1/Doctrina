@@ -78,6 +78,143 @@ agent and produced wrong action. If nobody hits it, nobody fixes it.
 Doctrina's `validate` does not check doc freshness — humans do, by
 PR review and by the trigger above.
 
+## Where the gate list actually lives
+
+Three surfaces run gates: `doctrina close` (the closing sequence),
+`doctrina doctor` (the diagnostic rows), and the CI action. All three
+read **one declaration** — `SEQUENCES` in
+`packages/doctrina-cli/src/lib/gates.js` — which names each step, how
+hard it bites (blocking, advisory, or forceable), and the command that
+re-runs it alone.
+
+This matters when you are deciding what to gate: adding a gate is a
+one-line edit to that declaration, not four edits that can silently fall
+out of step. `action.yml` is generated from it (`doctrina ci --emit
+github`) and stays committed, so a project consuming the action needs no
+CLI; a drift test fails the build if the committed file and the
+declaration disagree.
+
+## The header you do not maintain: Implementation
+
+`**Implementation:**` (`planned` → `partial` → `implemented` →
+`verified`) used to be kept from memory, and the `work` playbook asked
+for it twice. But `doctrina coverage` already computes, per spec, how
+many acceptance criteria cite proof that resolves — which is the
+definition of `verified`. So the value is **derived**:
+
+| Coverage of the spec's criteria | Derived state |
+|---------------------------------|---------------|
+| all covered, nothing dangling, conditional, unguarded or deferred | `verified` |
+| at least one covered, but not all | `partial` |
+| none covered | `planned` |
+
+Three surfaces read that one derivation, so they cannot give three
+answers: `validate` warns when the written header disagrees with it,
+`doctrina close` prints the `set-header Implementation:` op for the
+capabilities the change touched, and `doctrina spec set <cap>
+--implementation auto` applies it.
+
+Nothing rewrites the header on its own — a gate that edited the claim it
+is checking would be marking its own homework. Two things silence the
+warning, both deliberate:
+
+- **A note after the state word** (`planned — backend deferred, see ADR
+  0007`). That is the same declared-deferral escape hatch the coverage
+  gate honours: prose a human wrote on purpose is not overruled by a
+  count.
+- **`implemented` where the arithmetic supports `verified`.** That rung
+  means "the code is there; I have not certified it", and understating
+  by exactly it is the ladder working.
+
+"Resolves on disk" is the bar, not "was executed": `coverage --run` is
+the opt-in that runs the proof, and making a structural read depend on a
+test run would put a test suite inside `validate`. A criterion whose
+only proof is a skipped suite already counts as `conditional`, so it
+never passes for proof.
+
+## The close reviews itself
+
+`doctrina review` is the richest conformance analysis the project has: it
+reports capabilities whose code moved while their spec stood still,
+dependants a change affects, and acceptance criteria whose proof has gone
+dangling. For two releases no driver invoked it, so it only ever ran when
+somebody remembered to type the command.
+
+It now runs inside `doctrina close`, **before the apply** — the point where
+its findings can still change what gets written into a spec — and it is
+**advisory**: it reports, the close continues, and its exit code cannot move
+the close's.
+
+Advisory on purpose, for now. `review` raises a break for *every* capability
+with touched code and an unchanged spec, and some of those are legitimate: a
+refactor that changes no behaviour should not have to edit a spec to prove
+it. That noise has to be measured across real changes before it is allowed
+to refuse anything — the ledger and the usage log are what will measure it.
+A project that wants CI to block today still has `doctrina review --strict`.
+
+## What the ledger knows
+
+`.doctrina/changes/archive/LEDGER.md` is one append-only line per archived
+change: the date, the id, the title, and the capabilities the change touched
+with the operation performed on each. It is the only record in the tree
+written in **capabilities** rather than files — git can tell you a file
+changed nine times; only the ledger can tell you a capability did.
+
+Three surfaces read it:
+
+- `doctrina report` lists **capability churn** for the period.
+- `doctrina review` notes a touched capability that has landed several
+  changes lately.
+- `doctrina close` lists the **dependents** of the capabilities the change
+  touched, with their coverage.
+
+All three are advisory, and the churn number carries no verdict. A
+capability that moves often may be badly drawn or may simply be where the
+work is, and nothing in the CLI can tell those apart (ADR 0005) — the number
+is context for the person reading, not a finding. The dependent list is
+advisory for a different reason: the close scopes its coverage gate to the
+capabilities the change touched, precisely so one deferred spec elsewhere
+cannot block a change that never went near it. Widening the gate to
+dependents would hand that problem straight back; naming them does not.
+
+The file's own header promises the CLI only appends and invites you to edit
+it. That promise is kept: a line that does not match the grammar is read as
+a note and skipped, never rewritten and never fatal.
+
+## The one gate you do not choose: runtime
+
+Everything above is about *when* to open a change. The runtime gate is
+different: it runs on every `doctrina close` and in the CI action,
+whether or not the work was worth a change, because what it checks is
+not a document — it is whether the declarations a contract makes about
+the running system still hold (RT01-RT05: the variable no workflow
+exports, the default an empty CI value never triggers, the enum nothing
+validates, the selector that matches nothing and still exits 0).
+
+That class of break survives every other gate: the artifacts are
+well-formed, the specs trace, the criteria cite proof, and the pipeline
+is green while the process never sees the variable. So the check sits in
+the sequence rather than in your judgement.
+
+The step is `doctrina contract check`, whole — the structural half too
+(CT01 a port claimed twice, CT02 a variable absent from `.env.example`,
+CT03 a reference to a spec that does not exist). The two halves are one
+collection in the CLI, so what `contract check` fails, the close fails,
+and `doctor` reports the same findings with the same codes.
+
+The cost is bounded by what you declared:
+
+- **No contracts** — one line, exit 0. Nothing changes.
+- **Contracts with no `Wiring`/`Selectors` rows** — reported as
+  **UNCHECKED**, never as passing. Silence is not proof; it is the
+  absence of a declaration to check.
+- **Declared rows** — an error blocks the close, a warning is reported
+  and the close continues.
+
+Which means the gate costs nothing until you declare something, and from
+that moment it holds you to what you declared. That is the trade to make
+deliberately: declare the rows that matter, not every row you could.
+
 ## Anti-pattern: gating everything
 
 The point of Doctrina is to reduce surprises, not to manufacture

@@ -100,42 +100,53 @@ Três mecanismos o limitam (ADR 0022):
 Um pack com escopo carrega os ADRs que governam aquela capability
 mais todos os sem escopo. **Sem escopo significa global**, então
 um projeto que nunca adicionar o header recebe exatamente o pack
-que recebia antes — a adoção é opcional, não uma migração.
+que recebia antes — a adoção é opcional, não uma migração. O
+escopo também decide *ordem*: um ADR que **nomeia** a capability
+supera um que só a alcança por dependência declarada, então sob
+pressão de orçamento a capability fica com as decisões dela e abre
+mão das herdadas. Dividir uma spec é o que faz isso doer — os ADRs
+da nova continuam apontando para a antiga — e por isso o `validate`
+reporta uma spec que cita um ADR cujo escopo não a nomeia.
 
 Ninguém anota à mão uma pasta de documentos imutáveis, então
-`doctrina decision scope` propõe um escopo para cada ADR sem
-escopo a partir do change arquivado que o cita (esse change já
-registra quais specs tocou). Ele imprime sugestões; `--write` as
-aplica. Revise-as: um escopo estreito demais esconde uma decisão
-do pack que precisava dela.
+`doctrina decision scope` propõe um por ADR sem escopo a partir do
+change arquivado que o cita; `--write` aplica. Revise: um escopo
+estreito demais esconde uma decisão do pack que precisava
+dela.
 
 **2. Orçamento.** Um teto sempre se aplica, resolvido nesta ordem:
 
 ```
---budget <n>  >  index.json "config": { "context_budget": <n> }  >  15000
+--budget <n>  >  config.json  >  index.json "config" (legado)  >  15000
 ```
 
-**3. Degradação, não truncamento.** Acima do orçamento, um ADR cai
-para sua decisão em uma frase e uma spec para seu propósito — do
-menos relevante primeiro — antes de qualquer coisa ser descartada.
-Uma decisão reduzida a uma frase ainda carrega a decisão; uma
-omitida não carrega nada. Truncar nas primeiras N linhas
-preservaria a seção Context do ADR, justamente a que menos importa.
+**3. Degradação, não truncamento.** Acima do orçamento, um ADR cai para
+sua decisão em uma frase e uma spec para seu propósito — do menos
+relevante primeiro — antes de qualquer coisa ser descartada. Uma decisão
+reduzida a uma frase ainda carrega a decisão; uma omitida não carrega
+nada.
 
 Toda degradação e omissão é nomeada no relatório:
 
 ```
 within budget ~14511 of 15000 tokens (97%) after assembly:
   14 ADRs reduced to title + summary (least relevant first)
+  18 parked changes reduced to a queue line — name one to read it in full
   scope an ADR to shrink this permanently: doctrina decision scope --write
 ```
 
-O **core** — regras raiz, verdade de produto, a spec da capability
-nomeada, changes abertos — nunca é degradado nem descartado.
-Quando só o core já excede o orçamento, o comando diz isso e sai
-com 1. Isso é um achado real (uma spec grande demais, um change
-aberto parado), e escondê-lo atrás de um pack silenciosamente
-grande demais não ajuda ninguém.
+O **core** — regras raiz, verdade de produto, a spec da capability nomeada
+e a change em foco — nunca é degradado nem descartado. Quando só o core já
+excede o orçamento, o comando diz isso e sai com 1: é um achado real, não
+algo a esconder atrás de um pack grande demais.
+
+**4. Um backlog é uma fila, não um corpus.** Changes abertas eram core por
+inteiro, então o *tamanho da fila* decidia se o read path funcionava —
+vinte changes planejadas puseram todo pack acima do teto. Exatamente uma
+fica **em foco** e permanece inteira; toda outra vira uma linha de fila
+degradável (status, motivo, progresso, specs afetadas). O foco segue a
+capability nomeada e a query do `--for`, e é **singular por construção,
+nunca adivinhado**: se várias casam igualmente, nenhuma fica em foco.
 
 ### Recuperação por tarefa
 
@@ -221,21 +232,17 @@ contexto diretamente:
   mesmo código é "polido" muitas vezes).
 
 O ortogonal que não está nessa lista: **confiar em qualquer
-contexto que o agente gerar sem curadoria.** O resultado do
-ETH Zurich AGENTbench é inequívoco — arquivos de contexto
-escritos por LLM reduziram sucesso da tarefa em 0,5–2% e elevaram
-custo de inferência em 20–23%. A implicação para usuários do
-Doctrina: qualquer artefato que um humano não revisou é passivo,
-não ativo.
+contexto que o agente gerar sem curadoria.** O resultado do ETH
+Zurich AGENTbench é inequívoco — arquivos de contexto escritos por
+LLM reduziram sucesso da tarefa em 0,5–2% e elevaram custo de
+inferência em 20–23%. Qualquer artefato que um humano não revisou
+é passivo, não ativo.
 
 ## Material relacionado
 
-- [Workflow](workflow.md) — o ciclo pelo qual os artefatos se
-  movem.
-- [Adapters](adapters.md) — integração por agente e a seção de
-  AGENTS.md aninhado.
-- [Antipatterns](antipatterns.md) — modos de falha que erros de
-  contexto produzem.
+- [Workflow](workflow.md) — o ciclo pelo qual os artefatos se movem.
+- [Adapters](adapters.md) — integração por agente e AGENTS.md aninhado.
+- [Antipatterns](antipatterns.md) — modos de falha de contexto.
 - [Modelo multi-agente](multi-agent.md) — como orquestração se
   relaciona com forma do contexto.
 - [Validação](validation.md) — medir se o contexto que você

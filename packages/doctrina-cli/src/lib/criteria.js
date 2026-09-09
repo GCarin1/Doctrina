@@ -18,6 +18,13 @@ export function parseAcceptanceCriteria(text) {
   let inSection = false;
   const rows = [];
   let cur = null;
+  // The opening marker while inside a fenced block, else null. A spec that
+  // documents the criterion format writes an EXAMPLE criterion inside a
+  // fence, and without this the example counted: a `[verified]` sample
+  // citing `pkg/x.js` inflated coverage and `show <cap>-C2` answered with
+  // the example instead of the criterion (third audit, finding 4). Content
+  // inside a fence is a picture of a criterion, never one.
+  let fence = null;
   const flush = () => {
     if (cur) {
       cur.proofPaths = backtickPaths(cur.body);
@@ -26,6 +33,22 @@ export function parseAcceptanceCriteria(text) {
     cur = null;
   };
   for (const line of lines) {
+    // Fence state is tracked over the WHOLE file, not just the section: an
+    // earlier fence containing a `## Acceptance criteria` line must not be
+    // mistaken for the section starting.
+    const marker = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fence) {
+      // Closed by the same character, at least as long, alone on the line.
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length
+        && line.trim() === marker[1]) {
+        fence = null;
+      }
+      continue;
+    }
+    if (marker) {
+      fence = marker[1];
+      continue;
+    }
     if (/^##\s+/.test(line)) {
       if (inSection) {
         flush();

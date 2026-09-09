@@ -99,6 +99,44 @@ o que v0.1.0 ainda não tem.
 o script de bench não prevê, ou o protocolo A/B de validação
 traz à tona validate como bottleneck.
 
+## Política de fim de linha (`.gitattributes`)
+
+**Status:** adiado — a falha que causou está corrigida, a
+causa-raiz não.
+
+Este repositório não declara política de fim de linha, então um
+checkout em Windows guarda 519 dos seus 730 arquivos versionados
+em CRLF. Isso não é problema para o CLI, que divide por `/\r?\n/`
+em toda parte; era problema para os TESTES, nove dos quais
+assumiam LF e por isso não corriam na máquina onde o trabalho
+estava a ser feito. A change 0117 tornou esses nove agnósticos, e
+a suíte agora corre nos dois.
+
+**Por que a correção óbvia não é a escolhida.** `* text=auto
+eol=lf` mais um commit de renormalização resolveria numa linha — e
+reescreveria 519 arquivos, enterrando todo `git blame` seguinte e
+colidindo com qualquer trabalho em voo. Esse custo é pago uma vez
+por toda a gente que alguma vez leia a história, para resolver um
+problema que já não morde.
+
+**A abordagem preferida quando isto for revisitado**, mais barata
+e mais estreita que renormalizar:
+
+1. Um lint sobre `test/` que recusa a SUPOSIÇÃO em vez dos bytes —
+   nada de `.split("\n")` cru sobre conteúdo de arquivo, nada de
+   padrão ancorado em `\n` contra arquivo lido do disco. Foi isso
+   que partiu, e previne a próxima instância em vez da última.
+2. `.gitattributes` limitado aos arquivos que algum teste compara
+   byte a byte — `.doctrina/templates/**`, `test/fixtures/**`,
+   `action.yml` — que são umas dezenas, não 519.
+3. Normalização da árvore inteira só se aparecer uma terceira
+   classe de falha que nenhuma das duas cubra.
+
+**Gatilho para revisitar:** uma falha de fim de linha que NÃO seja
+em fixture de teste — o próprio CLI, ou os artefatos de uma equipa
+adotante, a comportar-se de forma diferente por plataforma. Até
+lá, a suposição fica lintada e os bytes ficam quietos.
+
 ## Outros itens adiados ou fora de escopo
 
 - **Comando de quality gate `/checklist`.** A seção

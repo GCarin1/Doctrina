@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { parseLedger } from "../src/lib/ledger.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
@@ -64,6 +65,27 @@ function completeChange(tmp, id) {
     const p = path.join(tmp, ".doctrina", "changes", id, f);
     if (existsSync(p)) writeFileSync(p, readFileSync(p, "utf8").replaceAll("- [ ]", "- [x]"));
   }
+}
+
+
+// An ADR must say something before it can be accepted (change 0065): the
+// framework refuses to turn an untouched template into an immutable standing
+// rule. Tests that only need an ACCEPTED ADR write a one-line body first,
+// exactly as a person would.
+function writeAdrBody(tmp, num = "0001") {
+  const dir = path.join(tmp, ".doctrina", "decisions");
+  const file = readdirSync(dir).find((f) => f.startsWith(`${num}-`));
+  if (!file) return;
+  const p = path.join(dir, file);
+  let text = readFileSync(p, "utf8");
+  for (const [name, body] of [
+    ["Context", "The forces that made this decision necessary."],
+    ["Decision", "The decision, stated in one line."],
+    ["Consequences", "What this costs and what it buys."],
+  ]) {
+    text = text.replace(new RegExp(`(## ${name}\\r?\\n\\r?\\n)`), `$1${body}\n\n`);
+  }
+  writeFileSync(p, text);
 }
 
 test("init with --non-interactive creates AGENTS.md and .doctrina/", () => {
@@ -399,7 +421,11 @@ test("validate warns on orphan spec (file present, not in index)", () => {
     // Hand-create a spec directory bypassing the CLI so the index does not know
     const dir = path.join(tmp, ".doctrina", "specs", "ghost");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(path.join(dir, "spec.md"), "# Spec — ghost\nbody\n");
+    // Draft, so this stub fails only for the orphan reason the test is about
+    // and not for the missing acceptance criteria change 0091 requires of an
+    // ACTIVE spec.
+    writeFileSync(path.join(dir, "spec.md"),
+      "# Spec — ghost\n\n**Status:** draft\n\nbody\n");
     const r = runCli(["validate"], { cwd: tmp });
     assert.equal(r.status, 0);
     assert.match(r.stdout, /orphan spec/);
@@ -705,9 +731,12 @@ test("validate flags a skill missing the description frontmatter", () => {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const dir = path.join(tmp, ".doctrina", "skills");
     mkdirSync(dir, { recursive: true });
+    // Well-formed except for the missing `description`: the H1 is there so
+    // this fixture fails for the ONE reason the test is about, and not for
+    // the empty/untitled-artifact error change 0087 added.
     writeFileSync(
       path.join(dir, "broken.md"),
-      "---\nname: broken\nwhen: never\n---\n\nBody without description frontmatter.\n",
+      "---\nname: broken\nwhen: never\n---\n\n# Skill — broken\n\nBody without description frontmatter.\n",
     );
     const r = runCli(["validate"], { cwd: tmp });
     assert.equal(r.status, 0); // warnings, not errors
@@ -734,6 +763,9 @@ test("decision supersede rewrites old Status and links both ADRs", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Use SQLite for v0"], { cwd: tmp });
+    // Only an accepted decision is superseded (change 0109).
+    writeAdrBody(tmp);
+    assert.equal(runCli(["decision", "accept", "0001"], { cwd: tmp }).status, 0);
     const r = runCli(["decision", "supersede", "0001", "Use Postgres from v1"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
 
@@ -760,6 +792,8 @@ test("decision supersede refuses an already-superseded ADR", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "First take"], { cwd: tmp });
+    writeAdrBody(tmp);
+    assert.equal(runCli(["decision", "accept", "0001"], { cwd: tmp }).status, 0);
     runCli(["decision", "supersede", "0001", "Second take"], { cwd: tmp });
     const r = runCli(["decision", "supersede", "0001", "Third take"], { cwd: tmp });
     assert.equal(r.status, 1);
@@ -875,7 +909,13 @@ test("change apply refuses a MODIFIED ops block with an error and leaves the spe
     planTasks(tmp, "0001-bad");
     const apply = runCli(["change", "apply", "0001-bad"], { cwd: tmp });
     assert.equal(apply.status, 1, apply.stdout);
-    assert.match(apply.stderr, /operation error/);
+    // Since change 0095 the refusal comes from the STRUCTURE gate rather than
+    // from apply's own ops execution: the pre-flight now runs the dry-run, so
+    // an unappliable block is caught before apply starts. The subject of this
+    // test is unchanged — it refuses, and the spec is untouched — so the
+    // assertion accepts either voice and keeps naming the offending op.
+    assert.match(apply.stdout + apply.stderr, /operation error|op errors? \(apply would refuse\)/);
+    assert.match(apply.stdout + apply.stderr, /Nope/);
     // All-or-nothing: the failing op set is refused, the spec is unchanged
     // byte-for-byte, and the proposal does not flip.
     const after = readFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"), "utf8");
@@ -1022,7 +1062,7 @@ test("spec set edits headers, bumps the version, and resyncs the index (G8)", ()
     // No-op guard: spec set with no edit flags is a usage error.
     assert.equal(runCli(["spec", "set", "billing"], { cwd: tmp }).status, 2);
     // Unknown spec: a clear failure, no write.
-    assert.equal(runCli(["spec", "set", "ghost", "--bump", "patch"], { cwd: tmp }).status, 1);
+    assert.equal(runCli(["spec", "set", "ghost", "--bump", "patch"], { cwd: tmp }).status, 2);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1080,12 +1120,15 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // Specced first: an unspecced project is sent to the bootstrap door
+    // (change 0066), which is not what this lifecycle test is about.
+    runCli(["spec", "new", "core"], { cwd: tmp });
+    runCli(["index", "rebuild"], { cwd: tmp });
 
-    // Fresh project: nothing open.
+    // Fresh project: no change open.
     let r = runCli(["next"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
-    assert.match(r.stdout, /no open work/);
-    assert.match(r.stdout, /doctrina change new/);
+    assert.doesNotMatch(r.stdout, /open task|change apply|change archive/, r.stdout);
 
     // Open change with unchecked tasks.
     runCli(["change", "new", "0001-x", "do x"], { cwd: tmp });
@@ -1112,11 +1155,14 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     r = runCli(["next"], { cwd: tmp });
     assert.match(r.stdout, /doctrina change archive 0001-x/);
 
-    // Archived: clear again.
+    // Archived: the change lifecycle is clear again. The tree itself is not —
+    // applying the delta created a spec with no criteria and no build gate, and
+    // `next` reports those too since change 0064. This test is about the
+    // lifecycle, so it asserts the lifecycle actions are gone.
     completeChange(tmp, "0001-x"); // clear the 3.3 verification gate
     runCli(["change", "archive", "0001-x"], { cwd: tmp });
     r = runCli(["next"], { cwd: tmp });
-    assert.match(r.stdout, /no open work/);
+    assert.doesNotMatch(r.stdout, /open task|change apply|change archive/, r.stdout);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1370,6 +1416,7 @@ test("context prints the read-order pack and lists skills on demand", () => {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["spec", "new", "billing"], { cwd: tmp });
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     runCli(["skill", "new", "db-migration"], { cwd: tmp });
 
@@ -1407,7 +1454,7 @@ test("context excludes non-accepted ADRs and --concat prints contents", () => {
   }
 });
 
-test("search finds terms grouped by category and exits 1 on no match", () => {
+test("search finds terms grouped by category and exits 0 on no match", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
@@ -1421,7 +1468,7 @@ test("search finds terms grouped by category and exits 1 on no match", () => {
     assert.match(hit.stdout, /billing\/spec\.md:\d+: The system shall support SAML/);
 
     const miss = runCli(["search", "kerberos"], { cwd: tmp });
-    assert.equal(miss.status, 1);
+    assert.equal(miss.status, 0);
     assert.match(miss.stdout, /no matches/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -1456,12 +1503,16 @@ test("decision accept flips proposed to accepted and refuses anything else", () 
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
 
+    writeAdrBody(tmp);
+
     const r = runCli(["decision", "accept", "0001"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const adr = readFileSync(path.join(tmp, ".doctrina", "decisions", "0001-use-postgres.md"), "utf8");
     assert.match(adr, /\*\*Status:\*\*\s+accepted/);
     const index = JSON.parse(readFileSync(path.join(tmp, ".doctrina", "index.json"), "utf8"));
     assert.equal(index.artifacts.decisions.find((d) => d.id === "0001").status, "accepted");
+
+    writeAdrBody(tmp);
 
     const again = runCli(["decision", "accept", "0001"], { cwd: tmp });
     assert.equal(again.status, 1);
@@ -1629,7 +1680,11 @@ test("contract new scaffolds and indexes, and check passes on a consistent contr
     );
     const chk = runCli(["contract", "check"], { cwd: tmp });
     assert.equal(chk.status, 0, chk.stdout);
-    assert.match(chk.stdout, /1 contract consistent/);
+    // The static half holds. The runtime half was never declared, so the
+    // summary reports it unchecked rather than consistent (change 0056) —
+    // this contract has Ports, Environment and References and no Wiring.
+    assert.match(chk.stdout, /runtime surface is unchecked/, chk.stdout);
+    assert.doesNotMatch(chk.stdout, /1 contract consistent/, chk.stdout);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1692,6 +1747,7 @@ test("validate flags an accepted ADR whose cited evidence is missing (decision d
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Use gRPC for service calls"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const adrPath = path.join(tmp, ".doctrina", "decisions", "0001-use-grpc-for-service-calls.md");
     // Cite a proof artifact that does not exist — the decision drifted from
@@ -1714,6 +1770,7 @@ test("validate nudges an accepted ADR with no evidence, and an explicit n/a note
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt event sourcing"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const adrPath = path.join(tmp, ".doctrina", "decisions", "0001-adopt-event-sourcing.md");
 
@@ -2062,15 +2119,15 @@ test("work derives a sequential id, records the prompt as Why, and prints the pl
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const r = runCli(["work", "add login with email and password"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
-    const id = "0001-add-login-with-email-and-password";
+    const id = "0001-login-email-password";
     const proposalPath = path.join(tmp, ".doctrina", "changes", id, "proposal.md");
     assert.ok(existsSync(proposalPath), "change folder should be scaffolded");
     const proposal = readFileSync(proposalPath, "utf8");
     assert.match(proposal, /## Why\r?\n\r?\nadd login with email and password/);
-    assert.match(r.stdout, /Work playbook — change 0001-add-login/);
+    assert.match(r.stdout, /Work playbook — change 0001-login-email-password/);
     // The close is one attested pass (review item 5), with an ADR checkpoint
     // before it and the ops-block syntax shown in the delta step.
-    assert.match(r.stdout, /doctrina close 0001-add-login/);
+    assert.match(r.stdout, /doctrina close 0001-login-email-password/);
     assert.match(r.stdout, /ADR checkpoint/);
     assert.match(r.stdout, /```ops/);
   } finally {
@@ -2403,6 +2460,7 @@ test("decision land stamps a non-mutating Landed header and indexes it", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp }); // 0001
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     // AGENTS.md exists at the project root — cite it as the proof.
     const r = runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
@@ -2427,6 +2485,7 @@ test("index rebuild stays clean after decision land (no landed drift)", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     runCli(["decision", "land", "0001", "AGENTS.md"], { cwd: tmp });
     const check = runCli(["index", "rebuild", "--check"], { cwd: tmp });
@@ -2454,6 +2513,7 @@ test("validate stops flagging bare evidence once an accepted ADR has landed", ()
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     // Accepted ADR with bare Evidence and bare Landed → validate warns.
     let r = runCli(["validate"], { cwd: tmp });
@@ -2654,7 +2714,10 @@ test("validate warns on an active spec with no Realizes header (provenance nudge
     // Realizes header — the untraced-promise case the nudge targets.
     writeFileSync(
       specPath,
-      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Version:** 0.1.0\n\n## Purpose\n\nBill customers.\n",
+      // Active is the point of this case, so it carries a criterion: the spec
+      // must fail for the missing Realizes header alone, not for the empty
+      // acceptance section change 0091 now catches.
+      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n**Version:** 0.1.0\n\n## Purpose\n\nBill customers.\n\n## Acceptance criteria\n\n1. [unverified] A customer is billed once per cycle — verified by `src/billing.js`.\n",
     );
     runCli(["index", "rebuild"], { cwd: tmp }); // sync index so drift does not mask the warning
     const r = runCli(["validate"], { cwd: tmp });
@@ -2679,6 +2742,7 @@ test("next suggests decision land for an accepted ADR with nothing proving it", 
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     runCli(["decision", "new", "Adopt Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const r = runCli(["next"], { cwd: tmp });
     assert.equal(r.status, 0);
@@ -2825,7 +2889,7 @@ test("why prints a capability's provenance chain", () => {
     assert.match(r.stdout, /Decisions/);
     // Unknown capability is a clear error.
     const bad = runCli(["why", "nope"], { cwd: tmp });
-    assert.equal(bad.status, 1);
+    assert.equal(bad.status, 2);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -2936,8 +3000,17 @@ test("verify manual check is a non-blocking qualitative gate until signed off", 
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
-    const cfg = { checks: [{ name: "quality", type: "manual", rubric: "is it good?" }] };
+    spawnSync("git", ["init", "-q", "."], { cwd: tmp });
+    mkdirSync(path.join(tmp, "src"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "copy.js"), "the error copy\n");
+    // Since change 0039 a signature is held to something: the check declares
+    // the paths it covers, and `verify` records the commit it was signed at.
+    // A check that declares none can still be signed, but is reported as
+    // unverifiable rather than passing — see test/signoff.test.js.
+    const cfg = { checks: [{ name: "quality", type: "manual", rubric: "is it good?", paths: ["src/copy.js"] }] };
     writeFileSync(path.join(tmp, ".doctrina", "verify.json"), JSON.stringify(cfg, null, 2));
+    spawnSync("git", ["add", "-A"], { cwd: tmp });
+    spawnSync("git", ["-c", "user.email=a@b", "-c", "user.name=t", "commit", "-qm", "init"], { cwd: tmp });
 
     // Pending is non-blocking by default…
     const pending = runCli(["verify"], { cwd: tmp });
@@ -2974,6 +3047,7 @@ test("prime prints gates, standing rules, open work, and next steps in one read"
   const tmp = initedProject();
   try {
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     const r = runCli(["prime"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr);
@@ -3059,7 +3133,7 @@ test("show resolves R-refs, C-refs, ADR numbers, and spec headers", () => {
     assert.match(adr.stdout, /Use Stripe/);
 
     const missing = runCli(["show", "billing-R9"], { cwd: tmp });
-    assert.equal(missing.status, 1);
+    assert.equal(missing.status, 2);
     assert.match(missing.stderr, /no requirement R9/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -3583,7 +3657,7 @@ test("work --capability scaffolds a prefilled delta; --quiet suppresses the play
     runCli(["spec", "new", "billing"], { cwd: tmp });
     const r = runCli(["work", "add refunds", "--capability", "billing"], { cwd: tmp });
     assert.equal(r.status, 0, r.stdout + r.stderr);
-    const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-add-refunds", "specs", "billing", "delta.md");
+    const deltaPath = path.join(tmp, ".doctrina", "changes", "0001-refunds", "specs", "billing", "delta.md");
     assert.ok(existsSync(deltaPath), "delta.md must be scaffolded for a pinned capability");
     const delta = readFileSync(deltaPath, "utf8");
     assert.match(delta, /^\*\*Operation:\*\* MODIFIED$/m, "existing spec -> MODIFIED prefilled");
@@ -3592,9 +3666,9 @@ test("work --capability scaffolds a prefilled delta; --quiet suppresses the play
     // No spec yet -> ADDED prefilled; --quiet prints one line, no playbook.
     const q = runCli(["work", "add invoices", "--capability", "invoicing", "--quiet"], { cwd: tmp });
     assert.equal(q.status, 0, q.stdout + q.stderr);
-    const qDelta = readFileSync(path.join(tmp, ".doctrina", "changes", "0002-add-invoices", "specs", "invoicing", "delta.md"), "utf8");
+    const qDelta = readFileSync(path.join(tmp, ".doctrina", "changes", "0002-invoices", "specs", "invoicing", "delta.md"), "utf8");
     assert.match(qDelta, /^\*\*Operation:\*\* ADDED$/m, "missing spec -> ADDED prefilled");
-    assert.match(q.stdout, /opened .*0002-add-invoices/);
+    assert.match(q.stdout, /opened .*0002-invoices/);
     assert.doesNotMatch(q.stdout, /Execute in order/, "--quiet must not print the playbook");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -3672,6 +3746,7 @@ test("close accepts multiple ids and runs the ADR checkpoint and skill-suggest a
     const adrName = readdirSync(path.join(tmp, ".doctrina", "decisions")).find((f) => f.startsWith("0001"));
     const adrFull = path.join(tmp, ".doctrina", "decisions", adrName);
     writeFileSync(adrFull, readFileSync(adrFull, "utf8") + "\nAll billing writes go through the ledger.\n");
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
 
     const mkChange = (id, cap) => {
@@ -3842,8 +3917,12 @@ test("close refuses a change that alters a documented surface with no docs chang
     const forced = runCli(["close", "0001-flagged", "--force"], { cwd: tmp });
     assert.equal(forced.status, 0, forced.stdout + forced.stderr);
     assert.match(forced.stdout, /recorded the docs gap/);
+    // The gap is written in the ledger's own entry grammar (change 0046), so
+    // the record a reader can find is the same record the parser can read.
     const ledger = readFileSync(path.join(tmp, ".doctrina", "changes", "archive", "LEDGER.md"), "utf8");
-    assert.match(ledger, /docs gap: 0001-flagged/);
+    assert.match(ledger, /0001-flagged — docs gap: closed with --force/);
+    const gap = parseLedger(ledger).entries.find((e) => e.kind === "gap");
+    assert.ok(gap && gap.id === "0001-flagged", "the docs gap must parse as a gap entry");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -4331,6 +4410,156 @@ test("an empty .doctrina/templates/ behaves exactly as before", () => {
       assert.doesNotMatch(r.stdout, /project template/);
     }
     assert.equal(runCli(["validate"], { cwd: tmp }).status, 0);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// ── Change 0033: the runtime gate runs in the close and in CI. ──
+//
+// RT01–RT05 lived in lib/runtime.js with no default driver behind them:
+// `close` did not run them, `validate` only under --runtime, and the
+// published action not at all. These pin the two drivers that now do, and
+// the silence that must NOT read as a pass.
+
+// A contract declaring one wiring row, plus the workflow it names. When
+// `exported` is false the workflow has no env: block, so the declaration
+// does not hold (RT01) — the "I set the variable in CI and nothing saw it"
+// case, which every structural gate is blind to.
+function wiringFixture(tmp, { exported }) {
+  mkdirSync(path.join(tmp, ".doctrina", "contracts"), { recursive: true });
+  mkdirSync(path.join(tmp, ".github", "workflows"), { recursive: true });
+  writeFileSync(path.join(tmp, ".doctrina", "contracts", "system.md"),
+    "# Contract — system\n\n**Status:** active\n**Last updated:** 2026-09-07\n\n## Wiring\n\n" +
+    "| Variable     | Origin | Workflow                  | Job/Step | Consumer  |\n" +
+    "|--------------|--------|---------------------------|----------|-----------|\n" +
+    "| AXE_SEVERITY | vars   | .github/workflows/e2e.yml | test     | config.py |\n");
+  writeFileSync(path.join(tmp, ".github", "workflows", "e2e.yml"),
+    "name: e2e\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n" +
+    (exported ? "    env:\n      AXE_SEVERITY: ${{ vars.AXE_SEVERITY }}\n" : "") +
+    "    steps:\n      - run: behave\n");
+  runCli(["index", "rebuild"], { cwd: tmp });
+}
+
+test("close refuses a change whose declared wiring does not hold, and closes once it does", () => {
+  const tmp = initedProject();
+  try {
+    wiringFixture(tmp, { exported: false });
+    runCli(["change", "new", "0001-wired", "wire the severity"], { cwd: tmp });
+    completeChange(tmp, "0001-wired");
+
+    const blocked = runCli(["close", "0001-wired"], { cwd: tmp });
+    assert.equal(blocked.status, 1, blocked.stdout + blocked.stderr);
+    assert.match(blocked.stdout, /runtime/);
+    assert.match(blocked.stdout + blocked.stderr, /RT01/);
+    assert.match(blocked.stdout, /close stopped at "runtime"/);
+    assert.match(blocked.stdout, /doctrina contract check/, "it must name the command that reruns the gate");
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "changes", "0001-wired")),
+      "a refused close must not archive the change");
+
+    // The declaration holds once the workflow exports it — same change, same
+    // command, and now the close runs through.
+    wiringFixture(tmp, { exported: true });
+    const ok = runCli(["close", "0001-wired"], { cwd: tmp });
+    assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+    assert.match(ok.stdout, /1 declared row holds/);
+    assert.match(ok.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("close's runtime gate reports an undeclared surface as unchecked, never as passing", () => {
+  const tmp = initedProject();
+  try {
+    // A contract with no Wiring/Selectors rows: nothing to check is not the
+    // same as nothing wrong, and a green line here would be the exact false
+    // confidence the gate exists to prevent.
+    mkdirSync(path.join(tmp, ".doctrina", "contracts"), { recursive: true });
+    writeFileSync(path.join(tmp, ".doctrina", "contracts", "system.md"),
+      "# Contract — system\n\n**Status:** active\n**Last updated:** 2026-09-07\n\n## Ports\n\n| Service | Port |\n|---|---|\n| api | 8080 |\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+    runCli(["change", "new", "0001-quiet", "no runtime surface"], { cwd: tmp });
+    completeChange(tmp, "0001-quiet");
+
+    const r = runCli(["close", "0001-quiet"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /the runtime surface is unchecked/);
+    assert.match(r.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("a project with no contracts closes unchanged, the runtime gate saying so", () => {
+  const tmp = initedProject();
+  try {
+    runCli(["change", "new", "0001-plain", "no contracts at all"], { cwd: tmp });
+    completeChange(tmp, "0001-plain");
+    const r = runCli(["close", "0001-plain"], { cwd: tmp });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /no contracts — nothing declares a runtime surface/);
+    assert.match(r.stdout, /closed/);
+    const archive = path.join(tmp, ".doctrina", "changes", "archive");
+    assert.ok(readdirSync(archive).some((n) => n.endsWith("0001-plain")));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("the gates action runs the runtime check, and `contract check` exits 1 on a broken declaration", () => {
+  // The CI half of the same gate: the composite action the README tells
+  // projects to use must carry the step, and the command that step runs must
+  // exit non-zero on the case above — otherwise the job is green on a
+  // declaration that does not hold.
+  const action = readFileSync(path.resolve(here, "..", "..", "..", "action.yml"), "utf8");
+  assert.match(action, /doctrina contract check/, "action.yml must run the runtime gate");
+  assert.match(action, /\bcontract check\b/);
+
+  const tmp = initedProject();
+  try {
+    wiringFixture(tmp, { exported: false });
+    const broken = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(broken.status, 1, broken.stdout + broken.stderr);
+    assert.match(broken.stdout, /RT01/);
+
+    wiringFixture(tmp, { exported: true });
+    const fixed = runCli(["contract", "check"], { cwd: tmp });
+    assert.equal(fixed.status, 0, fixed.stdout + fixed.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("the close self-reviews: a spec left still while its code moved is reported, and the close continues", () => {
+  // Change 0041. The review is advisory: it must SAY that billing's code moved
+  // without its spec, and the close must reach the end regardless — an
+  // advisory step that could still move the result would be advisory in name
+  // only.
+  const tmp = initedProject();
+  try {
+    spawnSync("git", ["init", "-q", "."], { cwd: tmp });
+    runCli(["spec", "new", "billing"], { cwd: tmp });
+    writeFileSync(path.join(tmp, ".doctrina", "specs", "billing", "spec.md"),
+      "# Spec — billing\n\n**Capability:** billing\n**Status:** active\n**Implementation:** implemented\n" +
+      "**Realizes:** n/a — internal\n**Version:** 0.1.0\n\n## Purpose\n\nBilling.\n\n" +
+      "## Acceptance criteria\n\n1. [verified] proven — verified by `.doctrina/index.json`.\n");
+    mkdirSync(path.join(tmp, "src", "billing"), { recursive: true });
+    writeFileSync(path.join(tmp, "src", "billing", "invoice.js"), "// code moved, spec did not\n");
+    runCli(["index", "rebuild"], { cwd: tmp });
+
+    runCli(["change", "new", "0001-touch-code", "touch the billing code"], { cwd: tmp });
+    completeChange(tmp, "0001-touch-code");
+    const r = runCli(["close", "0001-touch-code"], { cwd: tmp });
+
+    assert.match(r.stdout, /review \(advisory\)/, "the review must run as a named step");
+    // Compare the numbered step headers, so the assertion survives the
+    // sequence growing another step.
+    const stepAt = (label) => r.stdout.search(new RegExp(`──── \\d+/\\d+ ${label}`));
+    assert.ok(stepAt("review") >= 0 && stepAt("apply") >= 0, r.stdout);
+    assert.ok(stepAt("review") < stepAt("apply"), "the review must run before the apply");
+    assert.equal(r.status, 0, "an advisory review must not change the close's exit code");
+    assert.match(r.stdout, /closed/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

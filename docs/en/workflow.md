@@ -46,10 +46,11 @@ that runs them, while keeping the CLI itself offline and deterministic
   instead of scaffolding each spec by hand.
 - **`doctrina work "<prompt>"`** turns a one-line prompt ("add login")
   into a scaffolded change plus a **work playbook**: it derives the
-  change id, records your prompt as the proposal's `## Why`, hints at the
-  likely capability, and lists the steps from spec delta through
-  `apply` → `verify` (`doctrina verify` + `doctrina coverage`) →
-  `archive` → `validate`.
+  change id, records your prompt as the proposal's `## Why`, names the
+  likely capability — scaffolding that delta with its `**Operation:**`
+  filled in, marked as a guess, when the winner clearly leads — and lists
+  the steps from spec delta through `apply` → `verify` (`doctrina verify`
+  + `doctrina coverage`) → `archive` → `validate`.
 
 The CLI does the deterministic half (scaffold, slug, index, term-match)
 and the agent does the semantic half (write product, specs, deltas,
@@ -57,6 +58,16 @@ code). A playbook is consumed by one agent in one linear pass — the
 single-orchestrator discipline of ADR 0004 is unchanged. If a
 description or prompt is genuinely ambiguous, the agent asks before
 assuming.
+
+**The playbooks are templates, not prose in this page.** Their steps live
+in `.doctrina/templates/playbooks/{work,chore,bootstrap}.md.template` and
+resolve project-over-bundled like every other scaffold (ADR 0019): run
+the command to read the current playbook, and drop your own file in
+`.doctrina/templates/playbooks/` to adapt it to your team's process — an
+extra review step, a different close. This page deliberately does not
+repeat the steps, because a procedure written in two places is a
+procedure that will disagree with itself; `doctrina templates check`
+verifies each playbook still resolves and is well-formed.
 
 In practice the bootstrap is one command: run
 `doctrina init --intake <file>` (the playbook prints inline), then open
@@ -94,13 +105,12 @@ capability used to look, read the archive. If you need to know how it
 looks now, read the spec.
 
 The change folder doubles as a self-contained context package for
-handoffs between phases (and, if you swap agents across phases,
-between agents). This is the same insight BMAD-METHOD's "story
-file" implements: the unit of work carries everything the next
-phase needs to read, so context does not leak through chat
-history or session state. Doctrina's change folder is its
-equivalent — the workflow benefit holds without buying into
-BMAD's role-based agent topology.
+handoffs between phases (and, if you swap agents across phases, between
+agents). This is the same insight BMAD-METHOD's "story file" implements:
+the unit of work carries everything the next phase needs to read, so
+context does not leak through chat history or session state. Doctrina's
+change folder is its equivalent — the workflow benefit holds without
+buying into BMAD's role-based agent topology.
 
 ## Lifecycle of a decision
 
@@ -173,6 +183,52 @@ captures a transient delta; a skill captures a durable
 procedure. Agents pick the relevant skill up at any stage in
 which the trigger fires. See [skills.md](skills.md) for the
 design.
+
+## The lane a change was born in
+
+`doctrina work` classifies every prompt into a lane — PRODUCT (a change of
+behaviour), RUNTIME (an incident in the running system), or CHORE (infra,
+docs, build) — and holds a confidently runtime-shaped prompt before
+scaffolding anything (ADR 0024). That verdict is now **recorded** in the
+proposal header:
+
+```
+- **Lane:** product (confident; signals: add, export)
+```
+
+It is history, not a gate: nothing reads it to decide anything, and a
+nonsense value changes no command's behaviour. Two things follow from
+recording it:
+
+- `doctrina report` can say what kind of work a period actually held, which
+  is a question no report could answer while the verdict was computed,
+  printed and thrown away.
+- The classifier gains a set of right and wrong answers. **Disagreements are
+  recorded too** — `— opened anyway (--force)` when the operator overrode a
+  hold, `— opened as chore` when they chose a different lane. Recording only
+  the agreements would build a calibration set made entirely of the cases
+  that need no calibrating.
+
+A change opened before the field existed, or opened by hand with `change
+new`, simply has no lane. Reports count those as **unknown** rather than
+folding them into a lane they might not belong to.
+
+## Reading the tree: one collector, four views
+
+Four read-only commands answer "where do things stand?" in different
+shapes:
+
+| Command | Shape | Reach for it |
+|---------|-------|--------------|
+| `doctrina status` | one-glance dashboard | a quick health check |
+| `doctrina prime` | ~40-line session primer | the START of every session |
+| `doctrina handoff` | Markdown resume note | before compaction or a handover |
+| `doctrina report --since <days>` | period digest | a standup or a PR description |
+
+They are **one collection of the tree, rendered four ways** — the same
+snapshot, four pure formatters — so they cannot report different numbers
+for the same repository. Each is also reachable as `doctrina status
+--view <name>`, which renders byte-identical output.
 
 ## When you skip the cycle
 

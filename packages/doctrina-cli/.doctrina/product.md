@@ -1,0 +1,48 @@
+# Acme — Product
+
+## Vision
+
+<!-- One short paragraph: what this project exists to do, for whom, why now. -->
+
+## Problem
+
+<!-- The specific user pain or technical gap this project addresses. -->
+
+## Target users
+
+<!-- Who benefits. Be specific; avoid "everyone". -->
+
+## Scope
+
+In scope:
+
+-
+
+Out of scope (deferred or rejected):
+
+-
+
+## Non-goals
+
+<!-- Explicit things this project will NOT try to be. -->
+
+## Success criteria
+
+<!--
+How you will know this project is working. Prefer measurable signals.
+Tag a bullet with a short stable id — "- [SC1] ..." — to make it an intent
+anchor that capability specs cite via "**Realizes:** SC1" (`doctrina trace`;
+ADR 0006). Untagged bullets are fine; anchors are opt-in.
+-->
+
+## Delivery order (walking skeleton)
+
+<!--
+Depth before breadth. Name the ONE end-to-end path that must work and be
+verified before any capability fans out — the walking skeleton (e.g.
+auth -> ingest -> ws -> ui). A spec'd capability with no working slice
+through it is breadth bought on credit: build and `doctrina verify` the
+skeleton first, then spec the next capability.
+-->
+
+1.

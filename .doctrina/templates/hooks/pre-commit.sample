@@ -13,9 +13,13 @@
 #      EARS, ledger/index disagreement, and so on.
 #
 # To gate without auto-repairing (CI-style, fail on any drift), replace the
-# line below with a bare `doctrina validate`.
+# line below with a bare `$DOCTRINA validate`.
 
-doctrina validate --fix || exit 1
+# The CLI that installed this hook, pinned by path (the hook is local to
+# the clone). Set DOCTRINA in the environment to run another one.
+DOCTRINA="${DOCTRINA:-{{DOCTRINA_BIN}}}"
+
+$DOCTRINA validate --fix || exit 1
 
 # Re-stage the index if --fix rewrote it, so the repaired index lands in this
 # commit rather than as a leftover unstaged change. Harmless when unchanged.

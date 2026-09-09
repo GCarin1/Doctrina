@@ -1,5 +1,4 @@
 // @ts-check
-import { getSection } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
@@ -12,10 +11,12 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { wantsJson, emitJson } from "../lib/json-out.js";
 import {
-  parseTable, parseRuntimeDeclaration, checkWiring, checkEmptySemantics,
+  parseRuntimeDeclaration, checkStructure, checkWiring, checkEmptySemantics,
   checkEnums, checkSelectors,
 } from "../lib/runtime.js";
+import { artifactNameError } from "../lib/names.js";
 
 // Contracts are the first-class home for the integration/runtime surface
 // no single capability owns: the port map, the env/dependency contract,
@@ -30,6 +31,10 @@ const SUBCOMMANDS = ["new", "list", "check"];
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
+// `check` builds a real payload; `new` and `list` have nothing but their
+// prose, so they keep the captured envelope (change 0068).
+export const jsonNative = (args) => args[0] === "check";
+
 export const flags = { boolean: ["json", "force"], string: [] };
 
 export async function run(positional, flags) {
@@ -53,8 +58,9 @@ export async function run(positional, flags) {
 
 function contractNew(args, flags) {
   const name = args[0];
-  if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
-    console.error(c.red("error:") + " contract name must be lowercase letters, digits, or hyphens (e.g. \"system\", \"api\").");
+  const nameError = artifactNameError(name, "contract name");
+  if (nameError) {
+    console.error(c.red("error:") + ` ${nameError} (e.g. "system", "api")`);
     return 2;
   }
   const force = flagBool(flags, "force", false);
@@ -114,7 +120,11 @@ function contractList() {
   return 0;
 }
 
-function contractCheck(args, _flags) {
+function contractCheck(args, cmdFlags) {
+  const json = wantsJson(cmdFlags);
+  // `--json` means the payload IS the answer: prose on stdout ahead of it
+  // would corrupt the very output it describes.
+  const say = (...parts) => { if (!json) console.log(...parts); };
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
   const dir = path.join(projectRoot, ".doctrina", "contracts");
@@ -128,68 +138,44 @@ function contractCheck(args, _flags) {
     names = [];
   }
   if (names.length === 0) {
-    console.log(c.gray("no contracts to check in .doctrina/contracts/"));
+    say(c.gray("no contracts to check in .doctrina/contracts/"));
     return 0;
   }
 
-  // The env contract is checked against .env.example when one exists.
-  const envExamplePath = path.join(projectRoot, ".env.example");
-  const envExample = isFile(envExamplePath) ? read(envExamplePath) : null;
-
   let errors = 0;
   let warnings = 0;
+  // The runtime half is counted, not just printed. A contract that declares
+  // no Wiring and no Selectors was not checked — and the summary line is the
+  // one thing the CI log and the close print, so it is the line that has to
+  // say so (change 0029 decided the per-contract line; this is the same
+  // decision applied to the total).
+  let declaredRows = 0;
+  let uncheckedContracts = 0;
+  /** @type {Array<{contract: string, code: string, level: string, message: string, remedy: string}>} */
+  const findings = [];
+  /** @type {string[]} */
+  const unchecked = [];
   for (const name of names) {
     const file = path.join(dir, `${name}.md`);
     if (!isFile(file)) {
-      console.log(c.red("error: ") + `contract "${name}" not found at ${relPath(projectRoot, file)}`);
+      say(c.red("error: ") + `contract "${name}" not found at ${relPath(projectRoot, file)}`);
       errors += 1;
       continue;
     }
     const text = read(file);
-    console.log(c.bold(name) + c.gray(` (${relPath(projectRoot, file)})`));
+    say(c.bold(name) + c.gray(` (${relPath(projectRoot, file)})`));
 
-    // 1. Port collisions — two services must not claim the same port.
-    const ports = parseTable(getSection(text, "Ports"));
-    if (ports) {
-      const portCol = colIndex(ports.headers, "port");
-      const svcCol = colIndex(ports.headers, "service");
-      const seen = new Map();
-      for (const row of ports.rows) {
-        const port = (row[portCol] ?? "").trim();
-        if (!/^\d+$/.test(port)) continue;
-        const svc = (row[svcCol] ?? "?").trim();
-        if (seen.has(port)) {
-          console.log(c.red("  ✗ ") + `port ${port} is claimed by both "${seen.get(port)}" and "${svc}"`);
-          errors += 1;
-        } else {
-          seen.set(port, svc);
-        }
-      }
-    }
-
-    // 2. Environment drift — every declared variable must exist in
-    //    .env.example (when present), so code, example, and infra agree.
-    const env = parseTable(getSection(text, "Environment"));
-    if (env && envExample !== null) {
-      const varCol = colIndex(env.headers, "variable");
-      for (const row of env.rows) {
-        const name2 = (row[varCol] ?? "").trim();
-        if (!/^[A-Z][A-Z0-9_]*$/.test(name2)) continue;
-        const declared = new RegExp(`^\\s*(export\\s+)?${name2}\\s*=`, "m").test(envExample);
-        if (!declared) {
-          console.log(c.yellow("  ! ") + `env var ${name2} is in the contract but absent from .env.example`);
-          warnings += 1;
-        }
-      }
-    }
-
-    // 3. Referenced capability specs must exist.
-    for (const refCap of referencedCapabilities(getSection(text, "References"))) {
-      const specPath = path.join(projectRoot, ".doctrina", "specs", refCap, "spec.md");
-      if (!isFile(specPath)) {
-        console.log(c.red("  ✗ ") + `references spec "${refCap}" but ${relPath(projectRoot, specPath)} does not exist`);
-        errors += 1;
-      }
+    // 1-3. The STRUCTURAL half — port collisions, environment drift against
+    //      .env.example, references to specs that do not exist. One
+    //      collection in lib/runtime.js (change 0103), shared with the
+    //      close's runtime step and `doctor`, so a contract this command
+    //      fails cannot pass the close.
+    for (const f of checkStructure(projectRoot, text)) {
+      const mark = f.level === "error" ? c.red("  ✗ ") : c.yellow("  ! ");
+      say(mark + f.message + c.gray(` [${f.code}]`));
+      findings.push({ contract: name, code: f.code, level: f.level, message: f.message, remedy: f.remedy });
+      if (f.level === "error") errors += 1;
+      else warnings += 1;
     }
 
     // 4. The RUNTIME half: a declaration is only worth what binds it to the
@@ -208,40 +194,74 @@ function contractCheck(args, _flags) {
       ...checkSelectors(projectRoot, decl),
     ]) {
       const mark = f.level === "error" ? c.red("  ✗ ") : c.yellow("  ! ");
-      console.log(mark + f.message + c.gray(` [${f.code}]`));
-      console.log(`      ${c.gray(`fix: ${f.remedy}`)}`);
+      say(mark + f.message + c.gray(` [${f.code}]`));
+      say(`      ${c.gray(`fix: ${f.remedy}`)}`);
+      findings.push({ contract: name, code: f.code, level: f.level, message: f.message, remedy: f.remedy });
       if (f.level === "error") errors += 1;
       else warnings += 1;
     }
 
-    if (decl.wiring.length + decl.selectors.length === 0) {
+    const rows = decl.wiring.length + decl.selectors.length;
+    declaredRows += rows;
+    if (rows === 0) {
       // Silence here is not proof of correctness — it is proof that nothing
       // was declared. Saying so is what stops a green check from being read
       // as "the wiring is verified".
-      console.log(c.gray("  · no Wiring or Selectors declared — the runtime surface is unchecked"));
+      uncheckedContracts += 1;
+      unchecked.push(name);
+      say(c.gray("  · no Wiring or Selectors declared — the runtime surface is unchecked"));
     }
   }
 
-  console.log("");
-  if (errors === 0 && warnings === 0) {
-    console.log(c.green("ok") + ` ${names.length} contract${names.length === 1 ? "" : "s"} consistent`);
-    return 0;
+  say("");
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  // The MACHINE answer, in a field of its own (change 0068). Change 0056 took
+  // the word "consistent" out of the human summary for an undeclared surface;
+  // the envelope kept saying `ok: true`, because the only machine signal was
+  // the exit code — and the exit code is 0 by the deliberate decision of
+  // change 0029 (an undeclared surface is REPORTED, not failed). Right for the
+  // status, wrong as the only signal: a consumer reading only the envelope was
+  // exactly where the human reader stood before 0056. So it branches on
+  // `unchecked`, the same way change 0061 gave deprecation a field of its own.
+  const emit = (verdict, code) => {
+    if (json) {
+      emitJson("contract check", {
+        contracts: names,
+        checked: names.length - unchecked.length,
+        unchecked,
+        declared_rows: declaredRows,
+        findings,
+        verdict,
+      }, { ok: errors === 0, exitCode: code });
+    }
+    return code;
+  };
+
+  if (errors > 0) {
+    say(c.red("fail") + ` ${plural(errors, "error")}, ${plural(warnings, "warning")}`);
+    return emit("failed", 1);
   }
-  const summary = `${errors} error${errors === 1 ? "" : "s"}, ${warnings} warning${warnings === 1 ? "" : "s"}`;
-  console.log((errors === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
-  return errors === 0 ? 0 : 1;
-}
 
-function colIndex(headers, name) {
-  const i = headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
-  return i < 0 ? 0 : i;
-}
+  // "consistent" is a claim about something that was verified. Where nothing
+  // was declared there is nothing to be consistent WITH, so the word does not
+  // appear — the same state `doctor` calls "unchecked" and `triage` calls
+  // "UNCHECKED, not verified" is not allowed to read as approval here just
+  // because this is the copy that runs in CI. It stays exit 0: change 0029
+  // decided an undeclared surface is reported, not failed.
+  if (uncheckedContracts > 0) {
+    const scope = uncheckedContracts === names.length
+      ? `${plural(names.length, "contract")}`
+      : `${uncheckedContracts} of ${plural(names.length, "contract")}`;
+    const verb = uncheckedContracts === 1 && names.length === 1 ? "declares" : "declare";
+    say(c.yellow("warn") + ` ${scope} ${verb} no Wiring/Selectors rows — the runtime surface is unchecked` +
+      (warnings > 0 ? c.gray(`; ${plural(warnings, "warning")} above`) : ""));
+    return emit("unchecked", 0);
+  }
 
-// Capability names referenced as `specs/<cap>` (placeholder <...> ignored).
-function referencedCapabilities(text) {
-  const out = new Set();
-  for (const m of text.matchAll(/specs\/([a-z][a-z0-9-]*)/g)) out.add(m[1]);
-  return [...out];
+  const held = `${plural(names.length, "contract")} consistent, ${plural(declaredRows, "declared row")} ${declaredRows === 1 ? "holds" : "hold"}`;
+  say(c.green("ok") + ` ${held}` + (warnings > 0 ? c.gray(`; ${plural(warnings, "warning")} above`) : ""));
+  return emit("consistent", 0);
 }
 
 function ensureDoctrinaProject(projectRoot) {

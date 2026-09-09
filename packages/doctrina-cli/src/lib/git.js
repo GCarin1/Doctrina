@@ -69,6 +69,23 @@ export function hasCommits(cwd) {
   return git(cwd, ["rev-parse", "--verify", "HEAD"]).state === GIT_STATE.OK;
 }
 
+/**
+ * Does this ref resolve to a commit in this repository?
+ *
+ * Asked directly, because the message heuristic above cannot answer it: git
+ * says "unknown revision or path not in the working tree" both for a
+ * repository with no commits and for a ref that does not exist, so a diff
+ * against a missing ref came back as GIT_STATE.EMPTY and every caller read
+ * it as "nothing changed". `doctrina review --diff main --strict` therefore
+ * passed on a shallow clone with no local `main` (change 0092).
+ *
+ * False when git is absent, this is not a repository, or the ref is unknown —
+ * callers that need to tell those apart ask `historyState` as well.
+ */
+export function refExists(cwd, ref) {
+  return git(cwd, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).state === GIT_STATE.OK;
+}
+
 // The state a command should report before trying to read history:
 // { usable, state, reason } where `reason` is a sentence fit to print.
 export function historyState(cwd) {
@@ -94,4 +111,119 @@ export function gitLines(cwd, args) {
 
 function splitLines(s) {
   return s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+}
+
+// ---------------------------------------------------------------------------
+// The period window the report view describes (change 0037)
+// ---------------------------------------------------------------------------
+//
+// `report` shelled out to git twice with its own spawnSync, which is the one
+// pattern this module exists to end: a caller that reads a non-zero exit as
+// "no commits" rather than "the command refused". Both probes go through
+// `git()` here, so an absent binary, a non-repository and a real failure stay
+// distinguishable — and the view above stays a pure formatter.
+
+/** The ISO date `days` ago — the left edge of a report window. */
+export function windowCutoff(days) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * Commits, fix-shaped share and top-churn files in the window.
+ * Returns null when there is no history to read — outside a repository, with
+ * git absent, or before the first commit — so the caller can say so rather
+ * than print a confident zero.
+ */
+export function gitWindow(cwd, days) {
+  const since = `--since=${days} days ago`;
+  const log = git(cwd, ["log", since, "--pretty=%s"]);
+  if (log.state !== GIT_STATE.OK) return null;
+  const subjects = log.lines.filter((l) => l.trim().length > 0);
+  const fixes = subjects.filter((sub) => /^(fix|bug|hotfix|patch)(\(|:|!)/i.test(sub)).length;
+
+  const files = git(cwd, ["log", since, "--name-only", "--pretty=format:"]);
+  const counts = new Map();
+  if (files.state === GIT_STATE.OK) {
+    for (const line of files.lines) {
+      const f = line.trim();
+      if (!f) continue;
+      counts.set(f, (counts.get(f) ?? 0) + 1);
+    }
+  }
+  const churn = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return { commits: subjects.length, fixes, churn };
+}
+
+// ---------------------------------------------------------------------------
+// Changed files: the one answer, four callers (audit finding F5)
+// ---------------------------------------------------------------------------
+//
+// `work`, `review`, `context` and `docs-impact` each carried their own
+// "which files changed" — four spawnSync helpers, four slightly different
+// answers, and each one reading a non-zero exit as an empty list rather than
+// a refusal. The semantics that genuinely differ between them are OPTIONS
+// here, not separate implementations: `docs-impact` needs the merge-base so a
+// branch's earlier commits count, `context --diff` compares against a named
+// ref, and a review against a ref does not want untracked files mixed in.
+
+/**
+ * The files that changed, as the caller defines "changed".
+ *
+ * @param {string} cwd
+ * @param {object} [opts]
+ * @param {string|null} [opts.since]      Compare against this ref instead of HEAD.
+ * @param {boolean} [opts.untracked]      Include untracked, non-ignored files (default true).
+ * @param {boolean} [opts.mergeBase]      Also include everything since the merge-base with the
+ *                                        default branch, so a branch's earlier commits count.
+ * @param {string[]} [opts.bases]         Which branch names to try as the merge-base target.
+ * @returns {{ ok: boolean, files: string[], state: string }}
+ *   `ok` is false when git could not answer — outside a repository, with git
+ *   absent, or on a real failure. A caller that treats "not ok" as "nothing
+ *   changed" is making the mistake this door exists to prevent, so the state
+ *   is returned rather than folded into an empty list.
+ */
+export function changedFiles(cwd, { since = null, untracked = true, mergeBase = false, bases = ["main", "master"] } = {}) {
+  const out = new Set();
+  const add = (r) => {
+    for (const line of r.lines) {
+      const p = line.trim();
+      if (p) out.add(p.replace(/\\/g, "/"));
+    }
+  };
+
+  const diff = git(cwd, since ? ["diff", "--name-only", since, "--"] : ["diff", "--name-only", "HEAD"]);
+  if (diff.state !== GIT_STATE.OK) return { ok: false, files: [], state: diff.state };
+  add(diff);
+
+  if (untracked) {
+    const others = git(cwd, ["ls-files", "--others", "--exclude-standard"]);
+    if (others.state === GIT_STATE.OK) add(others);
+  }
+
+  if (mergeBase) {
+    for (const base of bases) {
+      const mb = git(cwd, ["merge-base", "HEAD", base]);
+      if (mb.state === GIT_STATE.OK && mb.lines[0]) {
+        const since = git(cwd, ["diff", "--name-only", `${mb.lines[0].trim()}..HEAD`]);
+        if (since.state === GIT_STATE.OK) add(since);
+        break;
+      }
+    }
+  }
+
+  return { ok: true, files: [...out].sort(), state: GIT_STATE.OK };
+}
+
+/**
+ * The date of the most recent tag, as YYYY-MM-DD, or null.
+ *
+ * The left edge of "what has landed since the last release". Null when there
+ * is no tag, no history, or no repository — the caller then has to say which
+ * window it used rather than pretend there was one.
+ */
+export function lastTagDate(cwd) {
+  const tags = gitLines(cwd, ["for-each-ref", "--sort=-creatordate", "--count=1",
+    "--format=%(creatordate:short)", "refs/tags"]);
+  const date = tags[0] ?? "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
 }

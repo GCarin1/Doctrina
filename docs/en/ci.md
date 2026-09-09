@@ -6,8 +6,8 @@ GitHub Action and a plain script for every other CI.
 
 ## GitHub Action (recommended)
 
-The repository root ships a composite action that runs the four
-structural gates — `validate`, `index rebuild --check`,
+The repository root ships a composite action that runs the gate set —
+`validate`, `index rebuild --check`, `contract check`,
 `coverage --strict`, `trace --strict` — in one step:
 
 ```yaml
@@ -45,6 +45,7 @@ The action is four commands; run them anywhere:
 ```bash
 npx --yes doctrina-cli validate
 npx --yes doctrina-cli index rebuild --check
+npx --yes doctrina-cli contract check
 npx --yes doctrina-cli coverage --strict
 npx --yes doctrina-cli trace --strict
 ```
@@ -52,6 +53,24 @@ npx --yes doctrina-cli trace --strict
 Add `doctrina verify` where your pipeline should also run the
 project-declared build gate (tests/typecheck/build) — it is the slow,
 authoritative check and deliberately not part of the structural action.
+
+## The runtime gate in CI
+
+Every other step reads Markdown. `contract check` reads what the
+Markdown *claims about the running system* and holds the implementation
+to it — the RT01-RT05 checks: a variable a contract declares under
+`vars`/`secrets` that no workflow exports, a consumer default that an
+empty CI value never triggers, a declared enum nothing validates, a
+selector that matches zero targets and still exits 0. It is the class of
+break no structural gate can see, because the artifacts are all
+well-formed.
+
+It is **not** gated on `strict`: a declaration that does not hold is an
+error at any adoption stage. A project with no contracts prints one line
+and exits 0, so adding the step to an existing pipeline is a no-op until
+the first `Wiring` or `Selectors` row is declared. The same checks run
+inside `doctrina close` (the `runtime` step), so the break is caught
+before the push as well as in the pipeline.
 
 ## Machine-readable output
 

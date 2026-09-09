@@ -66,6 +66,18 @@ project description and let your AI agent do the conversion (ADR 0005):
 doctrina init --intake description.md --agent claude
 ```
 
+Or inline, with no file to write first:
+
+```
+doctrina init --intake-text "A billing system for small shops. Users create
+invoices, send them by email, and track payment." --agent claude
+```
+
+Either way it is **one command**: scaffolding and intake are one moment of
+onboarding, and the reason they are two commands is architectural — `init`
+refuses to read language (ADR 0005) — which is not a reason to charge you
+two steps for it.
+
 This stores the description verbatim at `.doctrina/intake.md` and prints
 a **bootstrap playbook** — the ordered steps the agent runs to fill
 `product.md`, derive the capability list, and write one EARS spec per
@@ -73,7 +85,9 @@ capability (advancing `Implementation:` honestly, keeping aspiration
 under `## Maturity`). The scaffolded `AGENTS.md` tells any AGENTS.md-aware
 agent to detect the pending intake and run that playbook on its own, so
 from your seat it is "describe once, then open your agent and go."
-(Already initialised? Use `doctrina intake description.md` instead.)
+(Already initialised? `doctrina intake description.md` is the same thing
+for a project that already exists — that is what the separate command is
+for.)
 
 Once the project exists, drive each feature with a one-line prompt:
 

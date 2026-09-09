@@ -73,7 +73,7 @@ own documentation; nothing is invented.
   guided. Both make EARS the recommended grammar.
 - **Constitution / standing principles.** Spec Kit ships a
   hand-written `constitution.md`. Doctrina assembles the same
-  view on demand with `doctrina constitution` — the accepted
+  view on demand with `doctrina prime --rules` — the accepted
   ADRs plus the product non-goals — so the non-negotiables have
   a single read without a second home for the facts. Equivalent
   in intent; Doctrina derives it, Spec Kit authors it.

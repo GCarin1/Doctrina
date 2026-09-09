@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { exists, isFile, mkdirp, read, relPath, remove, write } from "../lib/fs-ops.js";
+import { exists, isFile, mkdirp, pruneEmptyDirs, read, relPath, remove, write } from "../lib/fs-ops.js";
 import {
   ADAPTER_STATES, adapterFiles, describeAdapter, listAdapterNames, renderAdapterFile,
 } from "../lib/adapters.js";
@@ -148,6 +148,10 @@ function adapterRemove(projectRoot, name, cmdFlags) {
   const tokens = { PROJECT_NAME: path.basename(projectRoot), PROJECT_DESCRIPTION: "", DATE: today() };
   let removed = 0;
   let kept = 0;
+  // Directories a removed file lived in, innermost first. Only these are
+  // considered for pruning: a directory the adapter never wrote into is not
+  // this command's to tidy.
+  const vacated = new Set();
   for (const file of spec.files) {
     const dest = path.join(projectRoot, file.relativePath);
     if (!isFile(dest)) continue;
@@ -160,9 +164,28 @@ function adapterRemove(projectRoot, name, cmdFlags) {
     remove(dest);
     console.log(c.green("removed") + ` ${file.relativePath}`);
     removed += 1;
+    vacated.add(path.dirname(dest));
   }
+
+  // `add` calls mkdirp on the way in, so `remove` unmakes what it made on
+  // the way out. Without this the six files went and `.claude/` plus
+  // `.claude/commands/` stayed — and an empty `.claude/` is not neutral: it
+  // is a configuration root the next agent finds and treats as present.
+  // Only EMPTY directories are pruned, walking up and stopping at the first
+  // one that still holds anything, so a kept (edited) file or anything of
+  // the user's keeps its whole directory chain alive.
+  const pruned = [];
+  for (const dir of [...vacated].sort((a, b) => b.length - a.length)) {
+    for (const gone of pruneEmptyDirs(dir, projectRoot)) {
+      pruned.push(relPath(projectRoot, gone).replaceAll("\\", "/"));
+      console.log(c.green("removed") + ` ${relPath(projectRoot, gone).replaceAll("\\", "/")}/ ` +
+        c.gray("(empty)"));
+    }
+  }
+
   console.log("");
   console.log(`${c.bold("Adapter " + name)} — ${removed} file${removed === 1 ? "" : "s"} removed` +
+    (pruned.length > 0 ? `, ${pruned.length} empty director${pruned.length === 1 ? "y" : "ies"} pruned` : "") +
     (kept > 0 ? `, ${kept} kept (edited)` : ""));
   return 0;
 }

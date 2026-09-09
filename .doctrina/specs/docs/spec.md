@@ -4,8 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC5
+**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`
 **Last updated:** 2026-08-06
-**Version:** 0.5.1
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -34,6 +35,7 @@ this spec; humans and agents do.
 - The system shall hold documentation to accuracy as well as shape: `scripts/check-docs.js` shall verify that every documented command resolves to the CLI catalog, that every flag documented in a reference flag table is declared by that command, that every relative link resolves, that every fenced block showing CLI output carries an explicit illustrative marker, and that paired EN and PT pages stay within a declared length ratio.
 - The system shall reject a CLI reference that documents a command absent from the catalog, as well as a catalog command absent from the reference, so drift is caught in both directions.
 - The system shall reject a README whose stated command or operation count differs from the catalog.
+- The system shall check every stated count of the command surface and of the decision set against the catalog and the decisions directory that own them, in the root READMEs and in every Markdown file under `docs/`, in both languages.
 
 ### Event-driven
 
@@ -101,6 +103,7 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
 12. [verified] A README stating the wrong command count fails the docs gate — `scripts/check-docs.js` check 12.
 13. [verified] Every project under `examples/` validates against the installed CLI — the "Examples validate" job in `.github/workflows/ci.yml`.
 14. [verified] An upgrade guide exists in both languages and states what `upgrade` does and does not touch — `docs/en/upgrading.md`, `docs/pt/upgrading.md`.
+15. [verified] A stale operation count, a stale count in a page under `docs/`, and an ADR range that stops short of the highest decision on disk are each reported, and this repository's own counts agree with its catalog — verified by `packages/doctrina-cli/test/check-docs.test.js`.
 
 ## Out of scope for this spec
 

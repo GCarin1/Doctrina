@@ -3,6 +3,7 @@
 - **Status:** accepted
 - **Date:** 2026-06-03
 - **Deciders:** project owner
+- **Scope:** docs
 - **Supersedes:** —
 - **Superseded by:** —
 - **Evidence:** n/a — deferral decision; the deliberate absence of a `memory/` folder is the artifact

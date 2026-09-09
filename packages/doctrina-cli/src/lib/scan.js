@@ -1,11 +1,14 @@
 // @ts-check
-import { getHeader, getSection } from "./doc-model.js";
+import { getHeader, getSection, parseChangeTitle } from "./doc-model.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { today } from "./dates.js";
-import { parseFrontmatter } from "../commands/skill.js";
-import { parseOperation, parseCapabilityFromDelta } from "../commands/change.js";
+import { cliVersion, newestVersion } from "./version.js";
+import { load } from "./index-json.js";
+import { parseFrontmatter } from "./doc-model.js";
+import { parseCapabilityFromDelta } from "./doc-model.js";
+import { parseOperation } from "./doc-model.js";
 
 // Header reading lives in ONE place now (lib/doc-model.js, audit item M3).
 // These two names survive because dozens of call sites use them and the
@@ -23,6 +26,44 @@ export function parseDependsOn(text) {
   const raw = specHeader(text, "Depends on");
   if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
   return raw.match(/[a-z][a-z0-9][a-z0-9-]*/g) ?? [];
+}
+
+/**
+ * The source globs a spec DECLARES as its own, from the optional
+ * `**Source:**` header — comma-separated, `*` inside a segment and `**`
+ * across directories (the same minimal glob the contract's Selectors use).
+ *
+ * Doctrina infers nothing about which code belongs to which capability
+ * (ADR 0027, and the same principle ADR 0023 applies to the runtime
+ * surface). Before this header the only signals were the capability name
+ * appearing as a path segment and the spec happening to cite a filename,
+ * which left 80 of this repository's 92 source files owned by nobody — so
+ * `review`, the gate that asks whether the spec kept up with the code,
+ * could not see the code it was reviewing.
+ *
+ * Returns [] when the header is absent, "n/a", or "—".
+ */
+export function parseSourceGlobs(text) {
+  const raw = specHeader(text, "Source");
+  if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
+  // Split on commas at brace depth ZERO: a comma inside `{a,b}` separates
+  // alternatives of ONE glob, not two globs, and splitting on it blindly
+  // shreds every grouped declaration into fragments that match nothing.
+  const out = [];
+  let cur = "";
+  let depth = 0;
+  for (const ch of raw) {
+    if (ch === "{") depth += 1;
+    else if (ch === "}") depth = Math.max(0, depth - 1);
+    if (ch === "," && depth === 0) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map((g) => g.trim().replace(/^`|`$/g, "").trim()).filter(Boolean);
 }
 
 function dirEntries(dir) {
@@ -93,6 +134,37 @@ export function decisionEntry(text, basename, prev, date) {
   const summary = adrSummary(text);
   if (summary) entry.summary = summary;
   return entry;
+}
+
+/**
+ * The index entry for ONE open change, derived from its proposal. Same
+ * discipline as `decisionEntry` above and for the same reason: `deriveIndex`
+ * builds the whole list from it, and `doctrina work` / `change new` register
+ * a new change THROUGH it instead of assembling a look-alike by hand.
+ *
+ * Two constructors for one record shape is how the `lane` field (change 0042)
+ * — added to the deriver and not to the writer — turned every freshly opened
+ * change into index drift the moment it was written: `doctrina work` followed
+ * by `doctrina validate` errored on a tree nobody had touched.
+ *
+ * @param {string} proposal Text of the change's proposal.md ("" when absent).
+ * @param {string} id       The change id (its directory name).
+ * @param {object|null} prev The entry already in the index, when there is one.
+ * @param {string} date     Fallback for a proposal carrying no Date header.
+ */
+export function changeEntry(proposal, id, prev, date) {
+  const title = parseChangeTitle(proposal);
+  return {
+    id,
+    title: title ?? prev?.title ?? id,
+    path: `.doctrina/changes/${id}`,
+    status: listHeader(proposal, "Status") ?? prev?.status ?? "proposed",
+    opened: listHeader(proposal, "Date") ?? prev?.opened ?? date,
+    // The lane the change was born in (change 0042). Optional: a change
+    // opened before the field existed simply has none, and every consumer
+    // treats its absence as "unknown" rather than as a lane.
+    ...laneOf(proposal, prev),
+  };
 }
 
 
@@ -166,6 +238,10 @@ export function deriveIndex(projectRoot, current) {
     // dependents of a touched capability.
     const depends = specHeader(text, "Depends on") !== null ? parseDependsOn(text) : prev?.depends_on;
     if (depends && depends.length) entry.depends_on = depends;
+    // Source: the code this capability owns (change 0077). Declared, never
+    // inferred — the same discipline ADR 0023 applies to the runtime surface.
+    const source = specHeader(text, "Source") !== null ? parseSourceGlobs(text) : prev?.source;
+    if (source && source.length) entry.source = source;
     out.artifacts.specs.push(entry);
   }
 
@@ -187,14 +263,7 @@ export function deriveIndex(projectRoot, current) {
     const prev = (cur.changes ?? []).find((c) => c.id === id);
     const proposalPath = path.join(changesDir, id, "proposal.md");
     const proposal = isFile(proposalPath) ? read(proposalPath) : "";
-    const titleMatch = proposal.match(/^#\s+Change\s+\S+\s*[—-]\s*(.+)$/m);
-    out.artifacts.changes.push({
-      id,
-      title: titleMatch ? titleMatch[1].trim() : prev?.title ?? id,
-      path: `.doctrina/changes/${id}`,
-      status: listHeader(proposal, "Status") ?? prev?.status ?? "proposed",
-      opened: listHeader(proposal, "Date") ?? prev?.opened ?? date,
-    });
+    out.artifacts.changes.push(changeEntry(proposal, id, prev, date));
   }
 
   // Archived changes — folder name carries the applied date and id.
@@ -205,7 +274,7 @@ export function deriveIndex(projectRoot, current) {
     const prev = (cur.changes_archive ?? []).find((c) => c.path?.endsWith(name));
     const proposalPath = path.join(archiveDir, name, "proposal.md");
     const proposal = isFile(proposalPath) ? read(proposalPath) : "";
-    const titleMatch = proposal.match(/^#\s+Change\s+\S+\s*[—-]\s*(.+)$/m);
+    const title = parseChangeTitle(proposal);
     const specsAffected = [];
     for (const deltaPath of walk(path.join(archiveDir, name, "specs"))) {
       if (!deltaPath.endsWith("delta.md")) continue;
@@ -217,7 +286,7 @@ export function deriveIndex(projectRoot, current) {
     }
     out.artifacts.changes_archive.push({
       id: m[2],
-      title: titleMatch ? titleMatch[1].trim() : prev?.title ?? m[2],
+      title: title ?? prev?.title ?? m[2],
       path: `.doctrina/changes/archive/${name}`,
       status: "applied",
       applied: m[1],
@@ -295,4 +364,126 @@ export function indexesMatch(a, b) {
     return clone;
   };
   return stableStringify(normalize(a)) === stableStringify(normalize(b));
+}
+
+// The lane recorded in a proposal header (change 0042), as an index field —
+// or nothing at all. A change opened before the field existed, or one whose
+// header is still the empty scaffold, has no lane, and "unknown" is the
+// honest answer rather than a default that would poison the mix.
+function laneOf(proposal, prev) {
+  const raw = (listHeader(proposal, "Lane") ?? "").trim();
+  if (!raw) return prev?.lane ? { lane: prev.lane } : {};
+  return { lane: raw };
+}
+
+/**
+ * Is the on-disk index still what the tree derives to, and if not, how does
+ * it differ?
+ *
+ * `index rebuild` renders this (and writes the derived index when asked);
+ * `doctor` reports it as one row. Before this it was the command's private
+ * business, so `doctor` answered "has the index drifted?" by spawning the
+ * CLI again and reading an exit code (audit finding F4).
+ *
+ * The framework stamp is migrated to the running CLI here rather than in the
+ * caller: deriveIndex carries the old value over so `next` does not nag on a
+ * version-only difference, and overriding it lets a stale stamp COUNT as
+ * drift, so `index rebuild` both reports and fixes it instead of
+ * short-circuiting on "nothing to do".
+ *
+ * @param {string} projectRoot
+ * @returns {{ok: boolean, drift: string[], derived: any, current: any, unreadable: string|null}}
+ */
+export function collectIndexDrift(projectRoot) {
+  let current = null;
+  let unreadable = null;
+  try {
+    current = load(projectRoot);
+  } catch (err) {
+    unreadable = err.message;
+  }
+  const derived = deriveIndex(projectRoot, current);
+  // A stamp ahead of this CLI is not drift (change 0116): the tree is
+  // managed by a newer release, and `--check` in CI must not go red because
+  // one teammate's CLI is older than the one that last wrote the index.
+  derived.framework_version = newestVersion(current?.framework_version, cliVersion());
+  if (indexesMatch(derived, current)) {
+    return { ok: true, drift: [], derived, current, unreadable };
+  }
+  return { ok: false, drift: describeDrift(current, derived), derived, current, unreadable };
+}
+
+// Human-readable category-level drift between the on-disk index and the
+// derived one: added / removed / changed entry ids.
+function describeDrift(current, derived) {
+  const lines = [];
+  if (!current) return ["index.json missing or unreadable"];
+  if ((current.framework_version ?? null) !== (derived.framework_version ?? null)) {
+    lines.push(`framework_version: ${current.framework_version ?? "unset"} -> ${derived.framework_version}`);
+  }
+  const categories = ["specs", "decisions", "changes", "changes_archive", "skills"];
+  for (const cat of categories) {
+    const cur = new Map((current.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
+    const der = new Map((derived.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
+    for (const id of der.keys()) {
+      if (!cur.has(id)) lines.push(`${cat}: "${id}" on disk but not in index`);
+      else if (stableStringify(cur.get(id)) !== stableStringify(der.get(id))) {
+        lines.push(`${cat}: "${id}" metadata differs from the files`);
+      }
+    }
+    for (const id of cur.keys()) {
+      if (!der.has(id)) lines.push(`${cat}: "${id}" in index but not on disk`);
+    }
+  }
+  if (stableStringify(current.artifacts?.product ?? null) !== stableStringify(derived.artifacts.product)) {
+    lines.push("product: metadata differs");
+  }
+  if (lines.length === 0) lines.push("structural difference (key order or missing category)");
+  return lines;
+}
+
+/**
+ * The capabilities that actually have a spec on disk.
+ *
+ * The one list every command checks a named capability against. `coverage
+ * --only` refuses a name that is not in it (change 0090); `context <cap>`
+ * refuses the same way, because a scope filter that matches nothing is the
+ * same defect wherever it appears. Kept here rather than in either command
+ * so the two cannot disagree about which capabilities exist.
+ *
+ * @param {string} projectRoot
+ * @returns {string[]} directory names, in readdir order
+ */
+export function knownCapabilities(projectRoot) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (!isDir(specsDir)) return [];
+  return readdirSync(specsDir).filter((e) => isFile(path.join(specsDir, e, "spec.md")));
+}
+
+/**
+ * Which capabilities declare a dependency on any of `caps`.
+ *
+ * The `**Depends on:**` header is the tree's only machine-readable statement
+ * that one capability builds on another, and two commands ask the same
+ * question of it: `review` notes a dependent whose ground moved, and `close`
+ * reports their coverage alongside the change's own. One definition, so they
+ * cannot disagree about who depends on what.
+ *
+ * @param {string} projectRoot
+ * @param {Iterable<string>} caps
+ * @returns {{capability: string, dependsOn: string[]}[]} sorted by capability
+ */
+export function dependentsOf(projectRoot, caps) {
+  const wanted = new Set(caps);
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (wanted.size === 0 || !isDir(specsDir)) return [];
+  const out = [];
+  for (const cap of readdirSync(specsDir).sort()) {
+    if (wanted.has(cap)) continue;
+    const specPath = path.join(specsDir, cap, "spec.md");
+    if (!isFile(specPath)) continue;
+    const deps = parseDependsOn(read(specPath)).filter((d) => wanted.has(d));
+    if (deps.length > 0) out.push({ capability: cap, dependsOn: deps });
+  }
+  return out;
 }

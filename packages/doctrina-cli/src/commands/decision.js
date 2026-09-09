@@ -1,5 +1,5 @@
 // @ts-check
-import { getHeader, setHeader } from "../lib/doc-model.js";
+import { unwrittenSections, getHeader, setHeader } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
 import { exists, read, relPath, write } from "../lib/fs-ops.js";
@@ -9,7 +9,7 @@ import * as idx from "../lib/index-json.js";
 import { today, slugify, padNumber } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { flagBool } from "../lib/args.js";
 import { parseAdrScope, decisionEntry } from "../lib/scan.js";
 
@@ -100,7 +100,7 @@ function decisionSupersede(args) {
   const oldFile = files.find((f) => path.basename(f).startsWith(`${padded}-`));
   if (!oldFile) {
     console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
   const oldText = read(oldFile);
   const oldStatusValue = getHeader(oldText, "Status");
@@ -113,11 +113,26 @@ function decisionSupersede(args) {
     console.error(c.red("error:") + ` ADR ${padded} is already superseded`);
     return 1;
   }
+  // Only a decision that HELD can be superseded (change 0109). A proposed
+  // ADR was never a rule; superseding it builds a chain of decisions that
+  // never applied. A proposal that fell is edited to `rejected`, or deleted.
+  if (oldStatus.trim().toLowerCase() !== "accepted") {
+    console.error(c.red("error:") + ` ADR ${padded} is "${oldStatus.trim()}", not "accepted" — only an accepted decision is superseded`);
+    console.error(c.gray("hint: ") + "a proposal that fell is not superseded: set its Status: to rejected, or delete the file");
+    return 1;
+  }
 
   // Title for new ADR is read from argv after the target number, or prompted.
   const title = args.slice(1).join(" ").trim();
   if (!title) {
     console.error(c.red("error:") + " supply the new ADR title as the second argument");
+    return 2;
+  }
+  // A title that is only digits is the argument order swapped, not a
+  // decision (change 0109): `supersede 0001 0002` made an ADR titled "0002".
+  if (/^\d+$/.test(title)) {
+    console.error(c.red("error:") + ` "${title}" is a number, not a title`);
+    console.error(c.gray("hint: ") + "the grammar is `doctrina decision supersede <number> \"<title>\"` — the target first, then the new ADR's title");
     return 2;
   }
 
@@ -175,7 +190,7 @@ function decisionAccept(args) {
   const file = walk(adrDir).find((f) => path.basename(f).startsWith(`${padded}-`));
   if (!file) {
     console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
   const text = read(file);
   const statusValue = getHeader(text, "Status");
@@ -189,13 +204,38 @@ function decisionAccept(args) {
     return 1;
   }
 
+  // An accepted ADR is IMMUTABLE, becomes a standing rule in `prime --rules`,
+  // and loads into every context pack it is scoped to (ADR 0022). Accepting
+  // one whose body is still the template was accepting a decision nobody had
+  // written down (change 0065). `analyze` has had exactly this guard for a
+  // change proposal since the beginning; the more consequential document was
+  // the one without it.
+  const unwritten = unwrittenSections(text, ["Context", "Decision", "Consequences"], {
+    template: "decision.md.template",
+  });
+  if (unwritten.length > 0) {
+    console.error(c.red("error:") +
+      ` ADR ${padded} still carries the template in ${unwritten.map((x) => `## ${x}`).join(", ")}`);
+    console.error(c.gray("hint: ") +
+      `write the decision before accepting it — an accepted ADR is immutable, becomes a ` +
+      `standing rule, and loads into every pack it governs (${relPath(projectRoot, file)})`);
+    return 1;
+  }
+
   // Mutate ONLY the Status: header; the body stays immutable.
   write(file, setHeader(text, "Status", "accepted") ?? text, { force: true });
   console.log(c.green("accepted") + ` ${relPath(projectRoot, file)}`);
 
   const date = today();
   const index = idx.load(projectRoot);
-  idx.updateDecision(index, padded, () => ({ status: "accepted" }));
+  // Re-derive the whole entry, not just the status. Between `decision new` and
+  // `decision accept` the author writes the body — which is now REQUIRED, so
+  // it is the normal flow, not the exception — and the entry's summary and
+  // scope are derived from that body. Updating only the status left the index
+  // holding the scaffold's summary, and `validate` reported drift the author
+  // had no reason to expect (change 0065).
+  const accepted = decisionEntry(read(file), path.basename(file), null, date);
+  idx.updateDecision(index, padded, () => accepted);
   idx.touch(index, date);
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + ` decision ${padded} -> accepted`);
@@ -223,7 +263,7 @@ function decisionLand(args) {
   const file = walk(adrDir).find((f) => path.basename(f).startsWith(`${padded}-`));
   if (!file) {
     console.error(c.red("error:") + ` no ADR found with number ${padded} in ${relPath(projectRoot, adrDir)}`);
-    return 1;
+    return EXIT.USAGE;
   }
   const text = read(file);
   const statusValue = getHeader(text, "Status");
@@ -372,7 +412,14 @@ function decisionScope(args, cmdFlags) {
   }
 
   if (rows.length === 0) {
-    console.log(c.gray(wanted ? `no ADR ${wanted}` : "no ADRs found in .doctrina/decisions/"));
+    // A number that names no ADR is a wrong invocation, not an empty tree:
+    // reporting it as success was the one place in this family that
+    // APPROVED an unresolvable reference (change 0093).
+    if (wanted) {
+      console.error(c.red("error:") + ` no ADR ${wanted} under .doctrina/decisions/`);
+      return EXIT.USAGE;
+    }
+    console.log(c.gray("no ADRs found in .doctrina/decisions/"));
     return 0;
   }
 

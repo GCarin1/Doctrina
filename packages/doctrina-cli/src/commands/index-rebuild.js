@@ -3,8 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
 import * as idx from "../lib/index-json.js";
-import { deriveIndex, indexesMatch, stableStringify } from "../lib/scan.js";
-import { cliVersion } from "../lib/version.js";
+import { collectIndexDrift } from "../lib/scan.js";
 import { today } from "../lib/dates.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -38,39 +37,30 @@ function rebuild(flags) {
     throw notADoctrinaProject();
   }
 
-  let current = null;
-  try {
-    current = idx.load(projectRoot);
-  } catch (err) {
+  const state = collectIndexDrift(projectRoot);
+  if (state.unreadable) {
     if (check) {
-      console.error(c.red("error:") + ` ${err.message}`);
+      console.error(c.red("error:") + ` ${state.unreadable}`);
       return 1;
     }
-    console.log(c.yellow("warn:") + ` ${err.message} — rebuilding from scratch`);
+    console.log(c.yellow("warn:") + ` ${state.unreadable} — rebuilding from scratch`);
   }
 
-  const derived = deriveIndex(projectRoot, current);
-  // Migrate the framework stamp to the running CLI (3.6). deriveIndex carries
-  // the old value over (so `next` does not nag on a version-only difference);
-  // overriding it here lets a stale stamp count as drift, so `index rebuild`
-  // both reports and fixes it instead of short-circuiting on "nothing to do".
-  derived.framework_version = cliVersion();
-
-  if (indexesMatch(derived, current)) {
+  if (state.ok) {
     console.log(c.green("ok") + " index.json matches the tree (nothing to do)");
     return 0;
   }
 
-  const drift = describeDrift(current, derived);
-  for (const line of drift) console.log((check ? c.yellow("drift: ") : c.gray("sync:  ")) + line);
+  for (const line of state.drift) console.log((check ? c.yellow("drift: ") : c.gray("sync:  ")) + line);
 
   if (check) {
     console.log("");
-    console.log(c.red("fail") + ` index.json has drifted from the tree (${drift.length} difference${drift.length === 1 ? "" : "s"})`);
+    console.log(c.red("fail") + ` index.json has drifted from the tree (${state.drift.length} difference${state.drift.length === 1 ? "" : "s"})`);
     console.log(c.gray("hint: ") + "run `doctrina index rebuild` to regenerate it");
     return 1;
   }
 
+  const derived = state.derived;
   derived.last_updated = today();
   idx.save(projectRoot, derived);
   const a = derived.artifacts;
@@ -78,35 +68,6 @@ function rebuild(flags) {
   console.log(c.green("rebuilt") + ` .doctrina/index.json — ${a.specs.length} specs, ${a.decisions.length} decisions, ` +
     `${a.changes.length} open changes, ${a.changes_archive.length} archived, ${a.skills.length} skills`);
   return 0;
-}
-
-// Human-readable category-level drift between the on-disk index and the
-// derived one: added / removed / changed entry ids.
-function describeDrift(current, derived) {
-  const lines = [];
-  if (!current) return ["index.json missing or unreadable"];
-  if ((current.framework_version ?? null) !== (derived.framework_version ?? null)) {
-    lines.push(`framework_version: ${current.framework_version ?? "unset"} -> ${derived.framework_version}`);
-  }
-  const categories = ["specs", "decisions", "changes", "changes_archive", "skills"];
-  for (const cat of categories) {
-    const cur = new Map((current.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
-    const der = new Map((derived.artifacts?.[cat] ?? []).map((e) => [e.id, e]));
-    for (const id of der.keys()) {
-      if (!cur.has(id)) lines.push(`${cat}: "${id}" on disk but not in index`);
-      else if (stableStringify(cur.get(id)) !== stableStringify(der.get(id))) {
-        lines.push(`${cat}: "${id}" metadata differs from the files`);
-      }
-    }
-    for (const id of cur.keys()) {
-      if (!der.has(id)) lines.push(`${cat}: "${id}" in index but not on disk`);
-    }
-  }
-  if (stableStringify(current.artifacts?.product ?? null) !== stableStringify(derived.artifacts.product)) {
-    lines.push("product: metadata differs");
-  }
-  if (lines.length === 0) lines.push("structural difference (key order or missing category)");
-  return lines;
 }
 
 export const help = `

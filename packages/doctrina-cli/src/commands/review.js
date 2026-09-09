@@ -1,16 +1,17 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { rankCapabilitiesByDiff } from "./work.js";
-import { parseDependsOn } from "../lib/scan.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { summarize as coverageSummary } from "./coverage.js";
-import { summarize as traceSummary } from "./trace.js";
+import { rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { readLedger, churnByCapability } from "../lib/ledger.js";
+import { changedFiles, windowCutoff, historyState, refExists } from "../lib/git.js";
+import { dependentsOf } from "../lib/scan.js";
+import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
+import { summarize as coverageSummary } from "../lib/coverage-model.js";
+import { summarize as traceSummary } from "../lib/trace-model.js";
 
 // Deterministic conformance review (review 2026-06-27 passive-user feature #3).
 // Given the working tree (or a diff against a ref), report STRUCTURAL breaks
@@ -25,6 +26,17 @@ import { summarize as traceSummary } from "./trace.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
+// How far back the churn note looks, and how many landed changes make it
+// worth saying at all. A window rather than "all time": a capability that
+// moved nine times two years ago is history, not news.
+const CHURN_WINDOW_DAYS = 60;
+const CHURN_NOTABLE = 3;
+
+// How many unclaimed files the orphan note names before it summarises the
+// rest. Long enough to act on, short enough that a wide refactor does not
+// bury every other finding under a file listing.
+const ORPHAN_LIST_LIMIT = 5;
+
 export const flags = { boolean: ["json", "strict"], string: ["diff"] };
 
 export async function run(_positional, flags) {
@@ -35,7 +47,20 @@ export async function run(_positional, flags) {
   const strict = flagBool(flags, "strict", false);
   const against = flagString(flags, "diff"); // optional git ref to diff against
 
-  const { all, sourceFiles } = changedFiles(projectRoot, against);
+  // A ref the git cannot resolve is a filter that matches nothing, and the
+  // review used to read it as "nothing changed" — exit 0, `--strict`
+  // included, on a tree where a valid ref reported breaks. A CI job running
+  // `doctrina review --diff main --strict` stayed green forever on a shallow
+  // clone with no local `main` (change 0092). Only asked inside a usable
+  // repository: outside one the command still stays silent rather than
+  // accusing.
+  if (against && historyState(projectRoot).usable && !refExists(projectRoot, against)) {
+    console.error(c.red("error:") + ` --diff names a ref this repository cannot resolve: "${against}"`);
+    console.error(c.gray("hint: ") + "check the branch or commit name — a ref that resolves to nothing is not an empty diff");
+    return EXIT.USAGE;
+  }
+
+  const { all, sourceFiles } = reviewScope(projectRoot, against);
   console.log(c.bold("Review") + c.gray(against ? ` — vs ${against}` : " — working-tree changes"));
   console.log("");
 
@@ -69,23 +94,39 @@ export async function run(_positional, flags) {
   // 1b. Dependents of touched capabilities (the machine-readable
   //     **Depends on:** header): a spec that builds on something you changed
   //     may silently no longer hold. Advisory — a pointer, not a verdict.
-  const specsDir = path.join(projectRoot, ".doctrina", "specs");
-  if (isDir(specsDir) && touched.size > 0) {
-    for (const cap of readdirSync(specsDir).sort()) {
-      if (touched.has(cap)) continue;
-      const specPath = path.join(specsDir, cap, "spec.md");
-      if (!isFile(specPath)) continue;
-      const deps = parseDependsOn(read(specPath)).filter((d) => touched.has(d));
-      if (deps.length > 0) {
-        notes.push(`capability "${cap}" depends on touched ${deps.map((d) => `"${d}"`).join(", ")} — confirm it still holds (\`doctrina why ${cap}\`)`);
-      }
+  for (const dep of dependentsOf(projectRoot, touched)) {
+    notes.push(`capability "${dep.capability}" depends on touched ${dep.dependsOn.map((d) => `"${d}"`).join(", ")} — confirm it still holds (\`doctrina why ${dep.capability}\`)`);
+  }
+
+  // 1c. How often each touched capability has moved lately, from the archive
+  //     ledger (change 0046). Reported as a NUMBER and never as a verdict:
+  //     frequent change can mean a spec that was drawn badly or a spec that
+  //     is simply where the work is, and nothing here can tell those apart
+  //     (ADR 0005). It is context for the human reading the review, not a
+  //     finding — so it goes in the notes even when the count is high.
+  if (touched.size > 0) {
+    const since = windowCutoff(CHURN_WINDOW_DAYS);
+    const churn = churnByCapability(readLedger(projectRoot).entries, { since })
+      .filter((row) => touched.has(row.capability) && row.changes >= CHURN_NOTABLE);
+    for (const row of churn) {
+      notes.push(`capability "${row.capability}" landed ${row.changes} changes in the last ${CHURN_WINDOW_DAYS} days (last ${row.last}) — history, not a verdict: read it as "this area is moving", not "this area is wrong"`);
     }
   }
 
-  // 2. New source files that map to no capability at all — code with no home
-  //    in any spec (a likely new, unspecced capability).
-  if (ranked.length === 0 && sourceFiles.length > 0) {
-    notes.push(`changed code maps to no existing capability spec — if this is a new capability, scaffold it: \`doctrina spec new <capability>\` (or \`doctrina work --from-diff\`)`);
+  // 2. Changed source files that map to no capability at all — code with no
+  //    home in any spec. Reported PER FILE (change 0077): the old form fired
+  //    only when the WHOLE diff matched nothing, so one incidental match —
+  //    any file under `docs/`, which matches the `docs` capability because
+  //    the directory is named after it — silenced the finding for every other
+  //    file in the change. A review of an adapter change reported
+  //    "Capabilities touched: docs" and said nothing about the adapter.
+  const orphans = sourceFiles.filter(
+    (f) => rankCapabilitiesByDiff(projectRoot, [f], { limit: 1 }).length === 0,
+  );
+  if (orphans.length > 0) {
+    const shown = orphans.slice(0, ORPHAN_LIST_LIMIT).map((f) => `\`${f}\``).join(", ");
+    const more = orphans.length > ORPHAN_LIST_LIMIT ? `, and ${orphans.length - ORPHAN_LIST_LIMIT} more` : "";
+    notes.push(`${orphans.length} changed file(s) belong to no capability: ${shown}${more} — claim them with a \`**Source:**\` header on the owning spec, or scaffold the capability they are (\`doctrina spec new <capability>\`)`);
   }
 
   // 3. Coverage — acceptance criteria whose cited proof is missing/skipped.
@@ -133,21 +174,12 @@ export async function run(_positional, flags) {
 }
 
 // Changed paths between a base (a git ref, or HEAD + untracked for the working
-// tree) and now. Returns the full list and the subset outside .doctrina/.
-function changedFiles(projectRoot, against) {
-  const run = (args) => {
-    const r = spawnSync("git", args, { cwd: projectRoot, encoding: "utf8" });
-    if (r.error || r.status !== 0) return [];
-    return r.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  };
-  const set = new Set();
-  if (against) {
-    for (const f of run(["diff", "--name-only", against])) set.add(f);
-  } else {
-    for (const f of run(["diff", "--name-only", "HEAD"])) set.add(f);
-    for (const f of run(["ls-files", "--others", "--exclude-standard"])) set.add(f);
-  }
-  const all = [...set];
+// tree) and now, split into the full list and the subset outside .doctrina/.
+// The git question itself goes through the one door (lib/git.js).
+function reviewScope(projectRoot, against) {
+  // Against a named ref, untracked files are noise: the question is what this
+  // branch changed, not what is lying around uncommitted.
+  const all = changedFiles(projectRoot, { since: against, untracked: !against }).files;
   const sourceFiles = all.filter((f) => !f.replace(/\\/g, "/").startsWith(".doctrina/"));
   return { all, sourceFiles };
 }

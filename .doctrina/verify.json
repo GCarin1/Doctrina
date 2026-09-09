@@ -22,6 +22,10 @@
       "run": "node packages/doctrina-cli/src/index.js index rebuild --check"
     },
     {
+      "name": "contract-check",
+      "run": "node packages/doctrina-cli/src/index.js contract check"
+    },
+    {
       "name": "coverage",
       "run": "node packages/doctrina-cli/src/index.js coverage --strict"
     },

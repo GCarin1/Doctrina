@@ -36,8 +36,20 @@ either spins forever on an unfixable failure or abandons a fixable one.
 refused lifecycle transition. Something you wrote needs changing.
 
 **`2` — the command line.** An unknown command or subcommand, a missing
-required argument, a malformed id. Retrying the same string will fail the
-same way.
+required argument, a malformed id, and **a reference that does not
+resolve** — a capability with no spec, a change id that is not open, an
+ADR number nobody wrote, a requirement or criterion the spec does not
+declare. Retrying the same string will fail the same way, so the fix is
+the string: `show`, `why`, `context`, `change check`, `spec set`,
+`decision accept`, `decision scope`, `analyze` and `coverage --only` all
+answer a name they cannot find with `2`. Naming a capability an open
+change is staging a delta for is **not** an unresolved reference —
+`doctrina context <cap>` is exactly the read for writing that spec.
+
+**Finding nothing is not failing.** A view assembles what is there.
+`search` with no match, and every `list` with nothing to list, print that
+they found nothing and exit `0`. Only a gate reports `1`, and a gate is
+something that measured real work and refused it.
 
 **`3` — the setup.** Running outside a Doctrina project (`doctrina init`),
 `verify` with no `.doctrina/verify.json` (`doctrina verify --init`),

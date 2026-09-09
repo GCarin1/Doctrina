@@ -29,10 +29,45 @@ replace. No conditionals, loops, or includes.
 CLI authors and template authors share this vocabulary. Adding a token
 requires extending the templates spec at `.doctrina/specs/templates/spec.md`.
 
+### Playbook tokens
+
+The playbooks under `playbooks/` carry the variable parts of the procedure
+the agent executes. Each is PRE-RENDERED by the CLI into a plain string, so
+the template stays a document rather than a language with conditionals and
+loops in it.
+
+| Token | Meaning | Default if not supplied |
+|-------|---------|-------------------------|
+| `{{TITLE}}` | "Work playbook" or "Backfill playbook" | required in `work` |
+| `{{PROMPT}}` | The prompt the change was opened from, verbatim | required |
+| `{{FROM_DIFF_NOTE}}` | The code-first note, on `--from-diff` | empty |
+| `{{THIN_WARNING}}` | The thin-prompt clarification block | empty |
+| `{{CAPABILITY_BLOCK}}` | The pinned capability, the ranked hints, or "no match" | required in `work` |
+| `{{DIFF_MATCHES}}` | Capabilities the working tree touched | empty |
+| `{{STEP3_INTRO}}` | The delta step's opening, pinned or not | required in `work` |
+| `{{FROM_DIFF_DELTA_NOTE}}` | The backfill caveat on writing the delta | empty |
+| `{{MISSING_SPECS_WARNING}}` | Warning that `.doctrina/specs/` is absent | empty |
+
+A line holding NOTHING but one token whose value is empty is removed rather
+than left blank, which is what lets the optional blocks above be plain tokens.
+
+Colour is marked inline and expanded before substitution, so a token's value
+can never inject it:
+
+| Markup | Renders as |
+|--------|-----------|
+| `[[c]]...[[/c]]` | cyan — a command to run |
+| `[[g]]...[[/g]]` | gray — commentary |
+| `[[b]]...[[/b]]` | bold — a heading |
+| `[[y]]...[[/y]]` | yellow — a warning |
+
 ## Inventory (v0)
 
 ```
 README.md                                  this file
+playbooks/work.md.template                 the work / backfill playbook
+playbooks/chore.md.template                the spec-less chore playbook
+playbooks/bootstrap.md.template            the intake -> specs playbook
 AGENTS.md.template                         root rules for the target repo
 doctrina/                                  the .doctrina/ skeleton
   product.md.template

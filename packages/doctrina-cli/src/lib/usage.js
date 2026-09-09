@@ -1,10 +1,12 @@
 // @ts-check
 // Audit item M8: instrument the command surface before shrinking it.
 //
-// The surface is 36 commands and 59 operations. The audit's charge is that
-// some of them exist because they were easy to add, not because anybody
-// reaches for them — and the honest way to find out which is to MEASURE,
-// not to guess from the outside. Guessing is how `prime`, `handoff` and
+// How big the surface is, this module does not say: `COMMAND_NAMES` and
+// `OPERATIONS` in lib/commands.js own that number, and a copy of it here
+// would be one more count to rot (change 0059 found four, all disagreeing).
+// The audit's charge is that some of those commands exist because they were
+// easy to add, not because anybody reaches for them — and the honest way to
+// find out which is to MEASURE, not to guess from the outside. Guessing is how `prime`, `handoff` and
 // `doctor` were nearly cut in 0.13.0, right before the operator review
 // found they had gone unused only because AGENTS.md never named them.
 //

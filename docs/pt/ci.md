@@ -9,8 +9,8 @@ prontos: a GitHub Action oficial e um script simples para os demais CIs.
 
 ## GitHub Action (recomendado)
 
-A raiz do repositório publica uma action composta que roda os quatro
-gates estruturais — `validate`, `index rebuild --check`,
+A raiz do repositório publica uma action composta que roda o conjunto de
+gates — `validate`, `index rebuild --check`, `contract check`,
 `coverage --strict`, `trace --strict` — num passo só:
 
 ```yaml
@@ -48,6 +48,7 @@ A action são quatro comandos; rode-os onde quiser:
 ```bash
 npx --yes doctrina-cli validate
 npx --yes doctrina-cli index rebuild --check
+npx --yes doctrina-cli contract check
 npx --yes doctrina-cli coverage --strict
 npx --yes doctrina-cli trace --strict
 ```
@@ -55,6 +56,24 @@ npx --yes doctrina-cli trace --strict
 Adicione `doctrina verify` onde o pipeline também deva rodar o gate de
 build declarado pelo projeto (testes/typecheck/build) — é o check lento
 e autoritativo, deliberadamente fora da action estrutural.
+
+## O gate de runtime no CI
+
+Todos os outros passos leem Markdown. O `contract check` lê o que o
+Markdown *afirma sobre o sistema em execução* e cobra isso da
+implementação — os checks RT01-RT05: uma variável que o contrato declara
+sob `vars`/`secrets` e que nenhum workflow exporta, um default do
+consumidor que um valor vazio do CI nunca dispara, um enum declarado que
+ninguém valida, um seletor que casa com zero alvos e mesmo assim sai 0.
+É a classe de quebra que nenhum gate estrutural enxerga, porque os
+artefatos estão todos bem formados.
+
+Ele **não** depende do `strict`: uma declaração que não vale é erro em
+qualquer estágio de adoção. Um projeto sem contratos imprime uma linha e
+sai 0, então acrescentar o passo a um pipeline existente é um no-op até a
+primeira linha de `Wiring` ou `Selectors` ser declarada. Os mesmos checks
+rodam dentro do `doctrina close` (o passo `runtime`), então a quebra é
+pega antes do push, não só no pipeline.
 
 ## Saída machine-readable
 

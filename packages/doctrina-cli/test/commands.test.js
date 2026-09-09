@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readdirSync, mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -9,7 +9,7 @@ import {
   COMMAND_NAMES, OPERATIONS, surfaceHelp, referencedCommands, surfaceBlock, surfaceMarkdown,
   findSurfaceBlock, COMMAND_META, MOMENTS, SURFACE_LINE_BUDGET,
   agentChangelogMarkdown, agentChangelogBlock, findAgentChangelogBlock,
-  agentChangelogEntries, AGENT_CHANGELOG, AGENT_CHANGELOG_MAX_BULLETS,
+  agentChangelogEntries, AGENT_CHANGELOG, AGENT_CHANGELOG_MAX_BULLETS, DEPRECATED,
 } from "../src/lib/commands.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +32,27 @@ function initProject() {
 // The canonical catalog and the real dispatch table must never drift: every
 // name in COMMAND_NAMES must resolve to a handler that prints help rather than
 // the "unknown command" error. This is what lets `validate` trust the catalog.
+
+// An ADR must say something before it can be accepted (change 0065): the
+// framework refuses to turn an untouched template into an immutable standing
+// rule. Tests that only need an ACCEPTED ADR write a one-line body first,
+// exactly as a person would.
+function writeAdrBody(tmp, num = "0001") {
+  const dir = path.join(tmp, ".doctrina", "decisions");
+  const file = readdirSync(dir).find((f) => f.startsWith(`${num}-`));
+  if (!file) return;
+  const p = path.join(dir, file);
+  let text = readFileSync(p, "utf8");
+  for (const [name, body] of [
+    ["Context", "The forces that made this decision necessary."],
+    ["Decision", "The decision, stated in one line."],
+    ["Consequences", "What this costs and what it buys."],
+  ]) {
+    text = text.replace(new RegExp(`(## ${name}\\r?\\n\\r?\\n)`), `$1${body}\n\n`);
+  }
+  writeFileSync(p, text);
+}
+
 test("every canonical command name resolves to a real handler", () => {
   for (const name of COMMAND_NAMES) {
     const r = runCli([name, "--help"]);
@@ -109,6 +130,7 @@ test("constitution assembles accepted ADRs and product non-goals, read-only", ()
   try {
     // One accepted ADR and one still-proposed: only the accepted is a rule.
     runCli(["decision", "new", "Use Postgres"], { cwd: tmp });
+    writeAdrBody(tmp);
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     runCli(["decision", "new", "Still deciding"], { cwd: tmp });
     // Control product.md's Non-goals section (the scaffold ships an empty one).
@@ -274,10 +296,25 @@ test("the generated surface block carries triggers, names every command, and fit
   const md = surfaceMarkdown();
 
   // Every top-level command reachable, and the block references them in
-  // code context so validate's drift gate is satisfied by construction.
+  // code context so validate's drift gate is satisfied by construction —
+  // every command EXCEPT a deprecated one, which is left out on purpose
+  // (change 0049): the block is the list of commands to reach for, and a
+  // name that warns when used is not one of them.
   const referenced = referencedCommands(surfaceBlock());
   for (const cmd of COMMAND_NAMES) {
+    if (DEPRECATED[cmd]) {
+      assert.ok(!referenced.has(cmd), `deprecated \`doctrina ${cmd}\` must not be on the surface block`);
+      continue;
+    }
     assert.ok(referenced.has(cmd), `surface block does not reference \`doctrina ${cmd}\``);
+  }
+  // A deprecated SUBCOMMAND leaves the parent's invocation list too.
+  for (const op of Object.keys(DEPRECATED)) {
+    const [cmd, sub] = op.split(" ");
+    if (!sub) continue;
+    const line = md.split("\n").find((l) => l.includes(`\`doctrina ${cmd} `));
+    assert.ok(line && !line.includes(`|${sub}`) && !line.includes(`${cmd} ${sub}|`),
+      `deprecated \`${op}\` must not appear in the surface block's invocation for ${cmd}`);
   }
 
   // The triggers are the point of M2: the block must actually carry them.

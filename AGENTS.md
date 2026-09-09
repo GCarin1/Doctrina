@@ -1,34 +1,26 @@
 # AGENTS.md — Doctrina
 
 Operational source of truth for AI coding agents working in this
-repository. Follows the open AGENTS.md standard.
-
-## What this repo is
-
-
-
-This repository uses the Doctrina framework for spec-driven, AGENTS.md
-native multi-agent development. The full framework artifacts live under
-`.doctrina/`.
+repository. Follows the open AGENTS.md standard. This repo BUILDS the
+Doctrina framework and uses it on itself; its artifacts live in `.doctrina/`.
 
 ## Working from intent (you drive; the human stays passive)
 
 You — the AI agent — run the Doctrina commands. The human gives a brief
 prompt and approves; do not make them run the CLI or hand-author artifacts.
 
-- **Bootstrap.** If `.doctrina/intake.md` is `Status: pending`, the specs
-  are not written yet: run `doctrina intake` and execute the printed
-  playbook in one pass (fill `product.md`, derive capabilities, one EARS
-  spec each, `doctrina clarify --all` + `doctrina validate`, then flip the
-  intake to `Status: converted`). After conversion the specs are the only
+- **Bootstrap.** No capability in `.doctrina/specs/`, or an intake still
+  `Status: pending`? The specs are not written: run `doctrina intake --text
+  "<description>"` and execute the printed playbook in one pass (fill
+  `product.md`, derive capabilities, one EARS spec each, `clarify --all` +
+  `validate`, then flip the intake to `converted`). Existing codebase:
+  `doctrina work --from-diff`. After conversion the specs are the only
   source of truth — never edit `intake.md` to change requirements.
 - **Day-to-day.** Start every session with `doctrina prime` (gates, rules,
-  open work in one read). Turn any request into a change with `doctrina
-  work "<prompt>"` and follow the printed playbook (spec delta → tasks →
-  implement → close). Preview a close with `doctrina change check <id>`;
-  close with `doctrina close <id>`. Unsure what's next? `doctrina next`.
-  Before compaction or handover: `doctrina handoff`. Ask the human only on
-  genuine ambiguity.
+  open work in one read). Turn any request into a change with `doctrina work
+  "<prompt>"` and follow the printed playbook. Preview a close with `doctrina
+  change check <id>`; close with `doctrina close <id>`. Unsure what's next?
+  `doctrina next`. Before compaction or handover: `doctrina handoff`.
 
 <!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->
 ## Doctrina command surface (generated — reach for these, don't hand-author)
@@ -40,7 +32,7 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina intake` — store the intent and print the bootstrap playbook. *When:* you have a full project description and no specs yet.
 - `doctrina adapter list|add|remove` — install/remove agent adapters (additive). *When:* adding or removing an agent's pointer files.
 **Orient**
-- `doctrina prime (session start)` — gates, standing rules, and open work in one read. *When:* at the START of every session.
+- `doctrina prime (session start)` — gates, open work and next steps in one read (--rules for the full standing rules). *When:* at the START of every session.
 - `doctrina context [<cap>] --for "<task>" --concat` — the read pack, assembled to fit a token budget. *When:* before working on any task, to load the right files.
 - `doctrina show` — point-read a single artifact by reference. *When:* you need one requirement, criterion, or ADR, not a file.
 - `doctrina search` — search the artifact tree, grouped by category. *When:* you do not know which artifact mentions a term.
@@ -48,12 +40,11 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina next` — the recommended next workflow action. *When:* you finished something and do not know what follows.
 - `doctrina why` — provenance: intent, proof, ADRs, and history. *When:* you need to justify or trace a capability's existence.
 - `doctrina handoff (before compaction/handover)` — a resume note: open work, task state, next command. *When:* BEFORE compaction or handing over to another session.
-- `doctrina constitution` — accepted ADRs and product non-goals. *When:* you need the standing rules before deciding something.
 **Change**
 - `doctrina triage` — classify the lane (product/runtime/chore) and check the declared runtime surface. *When:* a request arrives — BEFORE scaffolding, especially if it smells like an incident.
 - `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* a request arrives that changes behaviour (triage says PRODUCT).
 - `doctrina spec new|list|set` — create, list, and edit capability specs. *When:* a capability needs creating or its headers advancing.
-- `doctrina change new|apply|archive|check|tick|diff|abandon` — new / apply / archive / check / tick / diff / abandon. *When:* driving a change through its lifecycle by hand.
+- `doctrina change new|apply|archive|check|tick|abandon` — new / apply / archive / check (--verbose) / tick / abandon. *When:* driving a change through its lifecycle by hand.
 - `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.
 - `doctrina decision new|accept|land|supersede|list|scope` — record, accept, land, scope, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
 - `doctrina skill new|list|sync|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
@@ -68,40 +59,36 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina verify` — the project's declared typecheck/test/build checks. *When:* the real build gate must run.
 - `doctrina close <id...>` — the whole closing sequence in one attested pass. *When:* a change is implemented and ready to finish.
 - `doctrina doctor` — aggregate diagnostic with per-finding remedies. *When:* something looks wrong and you do not know which gate to ask.
-**Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write`
+**Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list|check|update` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina report` · `doctrina completion` · `doctrina upgrade --write` · `doctrina ci --emit github`
 <!-- doctrina:surface:end -->
 
 <!-- doctrina:changed:begin — CLI-owned. Regenerated by `doctrina upgrade --write`. -->
-## What changed in 0.15.1
+## What changed in 0.16.0
 
-- Exporting a variable under a name that is not its source's is routine — declare it in the Wiring row's Origin cell as `<origin>:<source>` (e.g. `secrets:NPM_TOKEN`) and RT02 stays silent until either side moves.
-- `doctrina triage "<prompt>"` — classify a request as PRODUCT / RUNTIME / CHORE BEFORE scaffolding. `work` now holds a runtime-shaped prompt with exit 3 and points here; `--force` opens the change anyway.
-- `contract check` now holds the declared wiring to the implementation: a `vars`/`secrets` variable no workflow exports, a default an empty CI value never triggers, an unvalidated enum, a selector matching zero targets (RT01-RT05).
-- A `verify` check may declare `expect`, so a run that exits 0 having executed NOTHING fails the gate; an `[orchestration]` acceptance criterion is proven by citing such a guarded check (`verify:<name>`), not by a citation that merely resolves.
-- A spec may declare an ordered `### Pipeline`; `validate` refuses a step that requires what a later step produces. `validate --runtime` adds the runtime gate.
+- A reference or path that does not resolve now answers exit 2 (USAGE) everywhere — `clarify`, `show`, `why`, `analyze`, `context`, `change check`, `spec set`, `decision accept|scope`. Correct the invocation; retrying it unchanged never succeeds.
+- The `--json` envelope names the OPERATION in `command` and carries arguments in `args` — branch on those two, not on a joined string. An undeclared flag now answers with `{ok: false, exit_code: 2}` instead of an empty stdout.
+- `analyze` executes a MODIFIED delta's `ops` block, so `analyze`, `change apply` and `close` all refuse the same unappliable block. Fix the ops before closing; a delta with no ops block is still a legitimate manual merge.
+- `validate` refuses more: an active spec declaring no acceptance criteria, an empty artifact, a scaffold section left unwritten, a reference that resolves to nothing. Write the criteria before flipping a spec to `active`.
+- `change new <id>` requires the `NNNN-slug` shape (lowercase letters, digits, hyphens) and writes nothing otherwise — `doctrina work "<prompt>"` derives one for you.
 <!-- doctrina:changed:end -->
 
-## Stack and tooling
+## Stack
 
-<!-- Replace with the project's actual stack. Keep this section short. -->
-- Runtime:
-- Package manager:
-- Test runner:
-- Linter / formatter:
+Node.js (ESM, zero runtime dependencies), npm workspaces, `node:test`.
 
 ## Commands
 
-<!-- Use exact, copy-pasteable commands. Avoid prose. -->
 ```
-# install
-# build
-# test
-# lint
+npm install
+npm test --workspace=doctrina-cli
+node packages/doctrina-cli/src/index.js verify   # the real build gate
+node scripts/check-docs.js                       # docs shape and accuracy
 ```
 
 ## Repository structure
 
-<!-- Outline the top-level directories an agent needs to know about. -->
+The CLI is `packages/doctrina-cli/` (`src/commands/` render, `src/lib/`
+decides — ADR 0025); docs are `docs/en/` + `docs/pt/`, kept in parity.
 
 ## Conventions and boundaries
 
@@ -113,9 +100,7 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 
 ## Artifact invariants (verbatim — `doctrina validate` enforces these)
 
-Scaffold artifacts with the CLI (`doctrina decision new`, `doctrina work`),
-which writes from the canonical templates. Do NOT hand-author these files
-from memory. If you must write one by hand, match these exactly:
+Scaffold with the CLI; do not hand-author from memory. If you must:
 
 - **Metadata headers come in two forms — do not mix them up:**
   - ADRs, change proposals, and the intake use **list items**:
@@ -145,21 +130,17 @@ before considering work done.
 call, in order: this `AGENTS.md` → `.doctrina/product.md` → the capability
 spec → open `.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
 `Status: accepted`. Run it for ANY task, not only `doctrina work`; it skips
-`changes/archive/` (history — read only when debugging it).
+`changes/archive/` (history). Skills are on demand: read the `description:`
+/ `when:` frontmatter in `.doctrina/skills/` and load a body when it fires.
 
-On demand only: if the task matches a skill in `.doctrina/skills/`, read its
-`description:` / `when:` frontmatter; load the full body when the trigger fires.
-
-Keep this file under 150 lines. Density beats prose. Use exact commands.
+Keep this file under 150 lines; `doctrina doctor` reports what is left,
+and the generated block above grows with the CLI. Use exact commands.
 
 ## Definition of done
 
-A change is done when:
-- All tasks in the change's `tasks.md` are checked.
-- Deltas have been merged into affected spec files.
-- The change folder has been moved to `.doctrina/changes/archive/`.
-- Any architectural decisions are recorded as ADRs with `Status: accepted`.
-- `.doctrina/index.json` has been updated.
+`doctrina close <id>` is the definition: tasks checked, deltas merged into
+specs, gates green, ADRs recorded and accepted, change archived, index
+updated. If close refuses, the change is not done.
 
 ## What never goes in this file
 

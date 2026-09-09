@@ -573,10 +573,77 @@ export function checkSelectors(projectRoot, decl) {
   return findings;
 }
 
-// A minimal glob: `**` spans directories, `*` stays inside one segment.
-// Enough for the "where do my selectors live" declarations, with no
-// dependency and no surprises.
+/**
+ * Expand one level of brace alternation: `a/{x,y}.js` -> [`a/x.js`, `a/y.js`],
+ * recursively, so several groups in one pattern all expand.
+ *
+ * Added for the `**Source:**` declarations (change 0077), where a capability
+ * that owns eleven sibling modules would otherwise need eleven globs on one
+ * header line. Braces have no meaning in a path, so this takes nothing away
+ * from the patterns that were already valid.
+ */
+export function expandBraces(glob) {
+  const text = String(glob);
+  const open = text.indexOf("{");
+  if (open < 0) return [text];
+
+  // The MATCHING close, by depth — `indexOf` finds the first one, which for
+  // `{a,{b,c}}` is the inner brace: the group was split at the wrong place
+  // and expanded to ["a}", "b", "c}"], matching `b`, missing `a` and `c`,
+  // and inventing `a}`. Silent, too, because SOMETHING matched, so
+  // `validate`'s dead-pattern check stayed quiet over a declaration that
+  // covered a third of what it claimed (change 0084).
+  let depth = 0;
+  let close = -1;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "{") depth += 1;
+    else if (text[i] === "}") {
+      depth -= 1;
+      if (depth === 0) { close = i; break; }
+    }
+  }
+  // An unmatched brace expands to itself: the braces then compile as literal
+  // characters, so the pattern matches nothing and `validate` reports it
+  // rather than the caller silently covering less than it declared.
+  if (close < 0) return [text];
+
+  const head = text.slice(0, open);
+  const tail = text.slice(close + 1);
+  const out = [];
+  // Split on commas at depth zero, for the same reason: a comma inside a
+  // nested group separates that group's alternatives, not this one's.
+  const body = text.slice(open + 1, close);
+  let cur = "";
+  depth = 0;
+  const alts = [];
+  for (const ch of body) {
+    if (ch === "{") depth += 1;
+    else if (ch === "}") depth -= 1;
+    if (ch === "," && depth === 0) { alts.push(cur); cur = ""; continue; }
+    cur += ch;
+  }
+  alts.push(cur);
+  for (const alt of alts) out.push(...expandBraces(head + alt.trim() + tail));
+  return out;
+}
+
+// A minimal glob: `**` spans directories, `*` stays inside one segment, and
+// `{a,b}` alternates. Enough for the "where do my selectors live" and "which
+// code is mine" declarations, with no dependency and no surprises.
 export function globToRegExp(glob) {
+  // Always compile the EXPANSION, never the original. Using it only when it
+  // produced more than one alternative left `src/{a}.js` compiling with its
+  // braces as literal characters, so a one-element group matched nothing
+  // (change 0084).
+  const alternatives = expandBraces(glob);
+  if (alternatives.length > 1) {
+    return new RegExp(alternatives.map((g) => compileGlob(g).source).join("|"));
+  }
+  return compileGlob(alternatives[0]);
+}
+
+// One expanded, brace-free glob to a RegExp.
+function compileGlob(glob) {
   const segments = String(glob).split("/");
   const parts = [];
   for (let i = 0; i < segments.length; i++) {
@@ -599,7 +666,14 @@ export function globToRegExp(glob) {
   return new RegExp(`^${parts.join("")}$`);
 }
 
-function filesMatching(projectRoot, glob) {
+/**
+ * Every file under `projectRoot` matching one glob, project-relative.
+ *
+ * Exported since change 0077: `validate` asks the same question of a spec's
+ * `**Source:**` patterns that the selector check asks of a contract's — does
+ * this declaration point at anything that exists?
+ */
+export function filesMatching(projectRoot, glob) {
   const re = globToRegExp(glob);
   // Walk from the deepest literal directory prefix so a narrow glob never
   // costs a full-tree walk.
@@ -629,6 +703,34 @@ export function parseBudgets(decl) {
   return out;
 }
 
+/**
+ * The value this project declares for ONE budget, or `fallback` when it
+ * declares none.
+ *
+ * Every budget in this codebase has had two homes — a literal beside the
+ * check and a row in the contract's Budgets table — and every one of them
+ * drifted (change 0059, then 0072). The contract is the declaration, so it
+ * wins; the literal a caller passes is the shipped default for a project
+ * that declares nothing. A malformed contract is its own finding, never a
+ * reason for the caller to lose its check.
+ *
+ * @param {string} projectRoot
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {{ value: number, declared: boolean }}
+ */
+export function declaredBudget(projectRoot, name, fallback) {
+  try {
+    const row = collectBudgets(projectRoot).get(name);
+    if (row && Number.isFinite(row.value) && row.value > 0) {
+      return { value: row.value, declared: true };
+    }
+  } catch {
+    // fall through to the shipped default
+  }
+  return { value: fallback, declared: false };
+}
+
 /** Every declared budget across every contract, keyed by limit name. */
 export function collectBudgets(projectRoot) {
   const out = new Map();
@@ -643,6 +745,88 @@ export function collectBudgets(projectRoot) {
 // ---------------------------------------------------------------------------
 // The whole runtime verdict, for every contract in the project
 // ---------------------------------------------------------------------------
+
+/**
+ * The STRUCTURAL half of a contract, as findings (change 0103): port
+ * collisions, environment drift against `.env.example`, and references to
+ * capability specs that do not exist. These three lived inline in
+ * `contract check` while RT01-RT05 lived here — so `close`, which drives
+ * this collection, ran the runtime half and skipped the structural one: a
+ * contract with port 8080 claimed twice and a reference to a spec that did
+ * not exist failed `contract check` with 2 errors and passed the close's
+ * runtime step as "2 declared rows hold". One collection, every driver.
+ *
+ * @param {string} projectRoot
+ * @param {string} text  the contract's Markdown
+ * @returns {Finding[]}
+ */
+export function checkStructure(projectRoot, text) {
+  /** @type {Finding[]} */
+  const out = [];
+  const col = (headers, name) => {
+    const i = headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
+    return i < 0 ? 0 : i;
+  };
+
+  // CT01. Port collisions — two services must not claim the same port.
+  const ports = parseTable(getSection(text, "Ports"));
+  if (ports) {
+    const portCol = col(ports.headers, "port");
+    const svcCol = col(ports.headers, "service");
+    const seen = new Map();
+    for (const row of ports.rows) {
+      const port = (row[portCol] ?? "").trim();
+      if (!/^\d+$/.test(port)) continue;
+      const svc = (row[svcCol] ?? "?").trim();
+      if (seen.has(port)) {
+        out.push({
+          code: "CT01", level: "error",
+          message: `port ${port} is claimed by both "${seen.get(port)}" and "${svc}"`,
+          remedy: `give "${svc}" a port of its own in the Ports table, or drop the duplicate row`,
+        });
+      } else {
+        seen.set(port, svc);
+      }
+    }
+  }
+
+  // CT02. Environment drift — every declared variable must exist in
+  //       .env.example (when the project keeps one).
+  const envExamplePath = path.join(projectRoot, ".env.example");
+  const env = parseTable(getSection(text, "Environment"));
+  if (env && isFile(envExamplePath)) {
+    const envExample = read(envExamplePath);
+    const varCol = col(env.headers, "variable");
+    for (const row of env.rows) {
+      const name = (row[varCol] ?? "").trim();
+      if (!/^[A-Z][A-Z0-9_]*$/.test(name)) continue;
+      const declared = new RegExp(`^\\s*(export\\s+)?${name}\\s*=`, "m").test(envExample);
+      if (!declared) {
+        out.push({
+          code: "CT02", level: "warn",
+          message: `env var ${name} is in the contract but absent from .env.example`,
+          remedy: `add "${name}=" to .env.example, or drop the row from the Environment table`,
+          file: ".env.example",
+        });
+      }
+    }
+  }
+
+  // CT03. Referenced capability specs must exist.
+  for (const m of getSection(text, "References").matchAll(/specs\/([a-z][a-z0-9-]*)/g)) {
+    const refCap = m[1];
+    const specRel = `.doctrina/specs/${refCap}/spec.md`;
+    if (isFile(path.join(projectRoot, specRel))) continue;
+    if (out.some((f) => f.code === "CT03" && f.file === specRel)) continue;
+    out.push({
+      code: "CT03", level: "error",
+      message: `references spec "${refCap}" but ${specRel} does not exist`,
+      remedy: `create it with \`doctrina spec new ${refCap}\`, or correct the reference`,
+      file: specRel,
+    });
+  }
+  return out;
+}
 
 export function contractPaths(projectRoot) {
   const dir = path.join(projectRoot, ".doctrina", "contracts");
@@ -660,10 +844,12 @@ export function collectRuntimeFindings(projectRoot) {
   let declared = 0;
   const files = contractPaths(projectRoot);
   for (const file of files) {
-    const decl = parseRuntimeDeclaration(read(file));
+    const text = read(file);
+    const decl = parseRuntimeDeclaration(text);
     declared += decl.wiring.length + decl.selectors.length;
     const where = relPath(projectRoot, file).replaceAll("\\", "/");
     for (const f of [
+      ...checkStructure(projectRoot, text),
       ...checkWiring(projectRoot, decl),
       ...checkEmptySemantics(projectRoot, decl),
       ...checkEnums(projectRoot, decl),

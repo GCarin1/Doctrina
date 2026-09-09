@@ -53,9 +53,11 @@ determinístico (veja o ADR 0005):
 - **`doctrina work "<prompt>"`** transforma um prompt de uma linha
   ("adicionar login") num change montado mais um **playbook de trabalho**:
   ele deriva o id do change, registra seu prompt como o `## Why` do
-  proposal, sugere a capability provável e lista os passos do delta de
-  spec até `apply` → `verify` (`doctrina verify` + `doctrina coverage`) →
-  `archive` → `validate`.
+  proposal, nomeia a capability provável — montando aquele delta com o
+  `**Operation:**` preenchido, marcado como palpite, quando o vencedor
+  lidera com folga — e lista os passos do delta de spec até `apply` →
+  `verify` (`doctrina verify` + `doctrina coverage`) → `archive` →
+  `validate`.
 
 O CLI faz a metade determinística (montar, sluggar, indexar, casar
 termos) e o agente faz a metade semântica (escrever product, specs,
@@ -63,6 +65,16 @@ deltas, código). Um playbook é consumido por um agente num único passe
 linear — a disciplina de orquestrador único do ADR 0004 não muda. Se uma
 descrição ou prompt é genuinamente ambíguo, o agente pergunta antes de
 assumir.
+
+**Os playbooks são templates, não prosa nesta página.** Os passos moram em
+`.doctrina/templates/playbooks/{work,chore,bootstrap}.md.template` e
+resolvem projeto-sobre-bundled como qualquer outro scaffold (ADR 0019):
+rode o comando para ler o playbook atual, e ponha o seu próprio arquivo em
+`.doctrina/templates/playbooks/` para adaptá-lo ao processo do seu time —
+um passo de review a mais, um close diferente. Esta página deliberadamente
+não repete os passos, porque um procedimento escrito em dois lugares é um
+procedimento que vai discordar de si mesmo; o `doctrina templates check`
+verifica que cada playbook ainda resolve e está bem formado.
 
 Na prática o bootstrap é um comando só: rode
 `doctrina init --intake <arquivo>` (o playbook é impresso na hora),
@@ -100,14 +112,13 @@ agente. Se você precisa saber como uma capability **costumava**
 ser, leia o archive. Se você precisa saber como ela **é hoje**,
 leia a spec.
 
-A pasta de change funciona também como pacote de contexto
-autocontido para handoffs entre fases (e, se você troca agentes
-entre fases, entre agentes). É o mesmo insight que o "story
-file" do BMAD-METHOD implementa: a unidade de trabalho carrega
-tudo que a próxima fase precisa ler, então contexto não vaza por
-histórico de chat ou estado de sessão. A pasta de change do
-Doctrina é o equivalente — o benefício de workflow é mantido sem
-comprar a topologia de agentes-por-papel do BMAD.
+A pasta de change funciona também como pacote de contexto autocontido
+para handoffs entre fases (e, se você troca agentes entre fases, entre
+agentes). É o mesmo insight que o "story file" do BMAD-METHOD implementa:
+a unidade de trabalho carrega tudo que a próxima fase precisa ler, então
+contexto não vaza por histórico de chat ou estado de sessão. A pasta de
+change do Doctrina é o equivalente — o benefício de workflow é mantido
+sem comprar a topologia de agentes-por-papel do BMAD.
 
 ## Ciclo de vida de uma decisão
 
@@ -121,10 +132,9 @@ proposed  -> accepted  -> superseded by NNNN
 ```
 
 Editar o corpo de um ADR aceito é a falha operacional canônica de
-frameworks SDD. Doctrina previne isso por convenção e pelo ADR
-0001. O único comando que toca um ADR existente é
-`doctrina decision supersede`, e ele toca somente os dois headers
-mencionados.
+frameworks SDD. Doctrina previne isso por convenção e pelo ADR 0001. O
+único comando que toca um ADR existente é `doctrina decision supersede`,
+e ele toca somente os dois headers mencionados.
 
 ## Como specs e changes interagem
 
@@ -181,6 +191,44 @@ pasta de change captura um delta transitório; uma skill captura
 um procedimento durável. Agentes pegam a skill relevante em
 qualquer estágio onde o trigger dispara. Veja
 [skills.md](skills.md) para o design.
+
+## A lane em que a change nasceu
+
+O `doctrina work` classifica todo prompt numa lane — PRODUCT, RUNTIME ou CHORE
+— e segura um prompt claramente runtime antes de esqueletizar qualquer coisa
+(ADR 0024). Esse veredito agora fica **registrado** no cabeçalho da proposta:
+
+```
+- **Lane:** product (confident; signals: add, export)
+```
+
+É histórico, não gate: nada o lê para decidir, e um valor sem sentido não muda
+comportamento nenhum. Com ele, o `doctrina report` diz que tipo de trabalho um
+período teve — pergunta que nenhum relatório respondia enquanto o veredito era
+calculado, impresso e descartado — e o classificador ganha acertos e erros.
+
+**Os desacordos também são registrados** (`— opened anyway (--force)`, `—
+opened as chore`): registrar só as concordâncias formaria um conjunto de
+calibração feito dos casos que não precisam dela. Uma change sem lane — aberta
+antes do campo, ou à mão — conta como **unknown**, nunca dobrada numa lane à
+qual pode não pertencer.
+
+## Lendo a árvore: um coletor, quatro vistas
+
+Quatro comandos read-only respondem "como estão as coisas?" em formas
+diferentes:
+
+| Comando | Forma | Quando usar |
+|---------|-------|-------------|
+| `doctrina status` | painel num olhar | uma checagem rápida de saúde |
+| `doctrina prime` | primer de sessão (~40 linhas) | no INÍCIO de toda sessão |
+| `doctrina handoff` | nota de retomada em Markdown | antes de compactar ou entregar |
+| `doctrina report --since <dias>` | digest do período | uma daily ou a descrição de um PR |
+
+São **uma coleta da árvore, renderizada de quatro maneiras** — o mesmo
+snapshot, quatro formatadores puros — então não têm como reportar números
+diferentes para o mesmo repositório. Cada uma também é alcançável como
+`doctrina status --view <nome>`, com saída byte a byte idêntica.
 
 ## Quando pular o ciclo
 

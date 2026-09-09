@@ -2,7 +2,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { COMMAND_NAMES } from "./commands.js";
 
 // One catalog of "which flags does command X accept", with two consumers:
 //
@@ -64,12 +63,6 @@ export async function declaredFlags(commandName) {
   ]);
 }
 
-export async function loadAllFlagSpecs() {
-  const out = new Map();
-  for (const name of COMMAND_NAMES) out.set(name, await loadFlagSpec(name));
-  return out;
-}
-
 // Flag names a source file READS, by scanning its call sites:
 //   flagBool(flags, "x")  flagString(flags, "x")  flags.has("x")  flags.get("x")
 // Deterministic text scan, not execution — it sees every branch, including
@@ -90,15 +83,6 @@ export function scanFlagUsage(sourceText) {
 
 export function readCommandSource(commandName) {
   return readFileSync(modulePathFor(commandName), "utf8");
-}
-
-// Flags a command's `help` string documents: every `--flag` token in it.
-// The docs gate compares prose against this too, so help and reference
-// cannot drift apart from the declaration.
-export function scanHelpFlags(helpText) {
-  const out = new Set();
-  for (const m of String(helpText ?? "").matchAll(/--([a-z][a-z0-9-]*)/g)) out.add(m[1]);
-  return out;
 }
 
 function pathToUrl(p) {
