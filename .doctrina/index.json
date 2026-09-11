@@ -2382,6 +2382,14 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0141-fechar-entrada-deferred-sobre",
+        "title": "fechar a entrada de deferred sobre macOS",
+        "path": ".doctrina/changes/archive/2026-09-11-0141-fechar-entrada-deferred-sobre",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [

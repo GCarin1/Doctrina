@@ -151,3 +151,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0139-change-pode-declarar-citou — uma change pode declarar que citou uma superficie sem alterar, em vez de forcar o close (specs: gates MODIFIED)
 - 2026-09-11 — 0138-invariante-onde-ci-roda — o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao (specs: gates MODIFIED)
 - 2026-09-11 — 0140-exemplo-divisao-spec-playbook — o exemplo de divisão de spec no playbook conta as três divisões
+- 2026-09-11 — 0141-fechar-entrada-deferred-sobre — fechar a entrada de deferred sobre macOS

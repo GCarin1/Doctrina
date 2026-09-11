@@ -133,38 +133,31 @@ bytes are left alone.
 
 ## The macOS + Node 20.12 context-pack failure
 
-**Status:** open — narrowed and instrumented, not closed. Needs a
-macOS runner.
+**Status:** resolved — the cause was the CLI truncating its own output,
+fixed in change 0134.
 
-Two tests fail on macOS with Node 20.12 and on no other leg of the
-matrix — not Linux, not Windows, not macOS with Node 22. They have
-been red in CI since at least 2026-08-06, which is long enough that
-the colour stopped being read.
+Four tests failed on macOS with Node 20.12 and on no other leg of the
+matrix, red since at least 2026-08-06. All four were `--concat` runs
+asserting on content near the end of a long output.
 
-Both are about context assembly, and both saw a pack that was
-SMALLER than it should be: one expected `.doctrina/product.md` in
-the `--concat` output and got a pack that ended after `AGENTS.md`;
-the other expected some ADR to be summarised under a fixed budget
-and found nothing degraded, which is what a smaller pack produces.
+**What it was.** The entrypoint ended in `process.exit()`. Node buffers
+writes to a pipe, and `process.exit()` discards whatever has not yet
+reached the operating system — so the tail of a long output was simply
+lost. Pipe buffers differ per platform, which is exactly how the defect
+picked one leg of the matrix and hid on the others.
 
-**What has been ruled out.** A symlinked working directory — the
-obvious suspect, since macOS resolves `/var/folders/...` to
-`/private/var/...` and `os.tmpdir()` sits under it — was reproduced
-on Linux with an explicit symlink and did not reproduce the
-failure.
+It was never about macOS, and never about the context pack. Any consumer
+reading this CLI through a pipe could receive a truncated answer with a
+`0` beside it.
 
-**What was done instead.** Change 0130 removed the second test's
-dependence on a hardcoded budget: it now measures the window
-between the pack's irreducible core and its full size, so a
-smaller pack on any platform no longer breaks it. Change 0133 took
-the first test apart into its five links — init, the file on disk,
-the scoped listing, the concat run, the rendering — each naming
-what it found. The next macOS run reports which link broke
-instead of one missing regex.
+**How it was found.** Change 0130 removed a hardcoded budget and change
+0133 took the opaque assertion apart into its five links. The next macOS
+run then reported the decisive fact: `product.md` was on disk AND in the
+pack listing, and `--concat` had printed exactly one section. Assembly was
+fine; the output was being cut.
 
-**Trigger to revisit:** the next CI run on macOS with Node 20.12.
-The failure now names its own cause; close it from that log. If it
-comes back green, change 0130 was the whole of it.
+**Confirmed green:** the full matrix, nine jobs including macOS on Node
+20.12, on the first run carrying change 0134.
 
 ## Other items deferred or scoped out
 
