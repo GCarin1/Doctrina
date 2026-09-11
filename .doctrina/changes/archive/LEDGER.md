@@ -127,3 +127,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-09 — 0101-clarify-inexistente-e-erro-de-uso — clarify inexistente e erro de uso (specs: gates MODIFIED)
 - 2026-09-09 — 0119-a-politica-de-fim-de-linha-fica-registada — a politica de fim de linha fica registada
 - 2026-09-09 — 0120-cortar-a-0-16-0 — cortar a 0.16.0
+- 2026-09-11 — 0121-regravar-lockfile-versao-workspace — regravar o lockfile para a versao 0.16.0 do workspace doctrina-cli

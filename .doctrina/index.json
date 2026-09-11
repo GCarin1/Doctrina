@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.16.0",
-  "last_updated": "2026-09-09",
+  "last_updated": "2026-09-11",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -2126,6 +2126,14 @@
         "path": ".doctrina/changes/archive/2026-09-09-0120-cortar-a-0-16-0",
         "status": "applied",
         "applied": "2026-09-09",
+        "specs_affected": []
+      },
+      {
+        "id": "0121-regravar-lockfile-versao-workspace",
+        "title": "regravar o lockfile para a versao 0.16.0 do workspace doctrina-cli",
+        "path": ".doctrina/changes/archive/2026-09-11-0121-regravar-lockfile-versao-workspace",
+        "status": "applied",
+        "applied": "2026-09-11",
         "specs_affected": []
       }
     ],
