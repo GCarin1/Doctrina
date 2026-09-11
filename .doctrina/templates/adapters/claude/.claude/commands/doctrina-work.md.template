@@ -10,8 +10,10 @@ Drive the Doctrina spec-driven workflow for **{{PROJECT_NAME}}**.
 2. Execute the printed playbook in order: read the pack with
    `doctrina context <capability> --concat`, write the spec delta, fill
    `tasks.md`, implement, then `doctrina analyze <id>` → `doctrina change apply <id>`.
-3. Close it: `doctrina close <id>` (verify → coverage → archive → validate) and
-   resolve every `error:` before reporting the work done.
+3. Close it: `doctrina close <id>` — one attested pass over every gate. The
+   sequence is declared in one place and printed by `doctrina close --help`;
+   read it there rather than from a copy. Resolve every `error:` before
+   reporting the work done.
 
 Reach for the CLI instead of hand-authoring artifacts. Ask the human only on
 genuine ambiguity.

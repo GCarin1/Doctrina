@@ -1732,8 +1732,9 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
 texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
-**review** (consultivo) → `change apply` → **runtime** → verify → `coverage --strict` → trace →
-**docs** → `change archive` → validate → **skill suggest** (advisory:
+**review** (consultivo) → `change apply` → **runtime** → implementation
+(consultivo) → verify → `coverage --strict` → trace → **docs** →
+`change archive` → **index drift** → validate → **skill suggest** (advisory:
 lições fix-shaped ainda não capturadas, sugeridas enquanto estão
 frescas), parando na primeira falha com o comando exato para reexecutar.
 O gate de coverage é **escopado às capabilities que os deltas da change

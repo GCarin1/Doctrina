@@ -11,7 +11,7 @@ import { docsRemedy, checkDocsImpact, checkChangelogImpact } from "../lib/docs-i
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
 import { specHeader, dependentsOf } from "../lib/scan.js";
-import { sequence, stepRerun } from "../lib/gates.js";
+import { sequence, sequenceLabels, stepRerun } from "../lib/gates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
@@ -491,15 +491,35 @@ function touchedCapabilities(projectRoot, id) {
   return [...caps].sort();
 }
 
+// The sequence is DECLARED once, in lib/gates.js, and rendered here. It used
+// to be typed out in this string, which is how the help came to name ten
+// steps of thirteen — review, implementation, docs and the index-drift check
+// were added over time and the paragraph was not.
+const SEQUENCE = wrapArrows(sequenceLabels("close"), 70, "  ");
+
+function wrapArrows(labels, width, indent) {
+  const lines = [];
+  let line = "";
+  for (const label of labels) {
+    const piece = line === "" ? label : `${line} → ${label}`;
+    if (piece.length + indent.length > width && line !== "") {
+      lines.push(indent + line + " →");
+      line = label;
+    } else line = piece;
+  }
+  if (line !== "") lines.push(indent + line);
+  return lines.join("\n");
+}
+
 export const help = `
 Usage: doctrina close <id...> [--force]
 
 Run the whole closing sequence for a change in one pass, stopping at the
 first failure with the exact command to rerun:
 
-  analyze → ADR checkpoint (advisory) → change apply → runtime → verify →
-  coverage --strict (scoped to the change's touched capabilities) → trace →
-  change archive → validate → skill suggest (advisory)
+${SEQUENCE}
+
+then a closing skill-suggest listing (advisory).
 
 The coverage gate is scoped to the capabilities the change's deltas touch,
 so a deliberately deferred spec elsewhere cannot block an unrelated close;
@@ -513,7 +533,7 @@ trace, the ADR checkpoint
 (accepted ADRs citing the touched capabilities — amend via \`decision
 supersede\`, not silence), and the closing skill-suggest listing are
 advisory (reports, never blockers). This is a driver over the existing
-commands so the agent makes one call instead of nine and the human
+commands so the agent makes one call instead of thirteen and the human
 approves once.
 
 Multiple ids close in sequence, each independently; the exit code is the

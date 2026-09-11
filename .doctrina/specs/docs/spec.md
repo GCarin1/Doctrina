@@ -6,7 +6,7 @@
 **Realizes:** SC3, SC5
 **Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
 **Last updated:** 2026-09-11
-**Version:** 0.6.1
+**Version:** 0.6.2
 
 ## Purpose
 
@@ -104,6 +104,7 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
 13. [verified] Every project under `examples/` validates against the installed CLI — the "Examples validate" job in `.github/workflows/ci.yml`.
 14. [verified] An upgrade guide exists in both languages and states what `upgrade` does and does not touch — `docs/en/upgrading.md`, `docs/pt/upgrading.md`.
 15. [verified] A stale operation count, a stale count in a page under `docs/`, and an ADR range that stops short of the highest decision on disk are each reported, and this repository's own counts agree with its catalog — verified by `packages/doctrina-cli/test/check-docs.test.js`.
+16. [verified] No page in `docs/en/` or `docs/pt/` describes the closing sequence as fewer steps than the CLI declares — verified by `packages/doctrina-cli/test/a-sequencia-tem-um-autor-so.test.js`.
 
 ## Out of scope for this spec
 

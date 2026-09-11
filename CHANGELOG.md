@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The closing sequence has one author, and the surfaces render it.** It was
+  typed out by hand in four places and all four had drifted to a different
+  list: `close --help` named ten steps of thirteen, the flow page eleven, and
+  the two adapter command files four — "verify → coverage → archive →
+  validate", which is not even the order the close runs. `review`,
+  `implementation`, `docs` and the index-drift check were added over three
+  changes and no copy moved. The help now renders the declaration, the adapter
+  files point at the command that prints it, and a test holds any prose that
+  still spells the chain out to the whole of it — which is how the two
+  `cli-reference` pages turned out to be stale as well. (0150)
+
 - **The packaging chain that carries the templates is held, and 0149 is
   undone.** `packages/doctrina-cli/templates/` is not a second authored copy:
   it is gitignored, absent from a fresh checkout, and written by the `prepack`

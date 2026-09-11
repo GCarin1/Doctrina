@@ -280,6 +280,31 @@ export function sequence(name) {
 }
 
 /**
+ * The sequence as a reader sees it: each step's label, in order, with the
+ * forceable ones marked the way the advisory ones already are in their own
+ * labels.
+ *
+ * Every surface that SHOWS the sequence renders it from here. Four copies of
+ * the close sequence were written out by hand — `close --help`, two adapter
+ * command files, and the flow page in both languages — and all four had gone
+ * stale, each to a different list: one named four steps of thirteen, another
+ * eleven. A sequence a reader can count is a sequence a reader will trust, so
+ * it has exactly one author.
+ */
+export function sequenceLabels(name) {
+  // The marker comes from `level`, never from the label text: labels had
+  // already drifted among themselves — `trace` is advisory and did not say so
+  // while `ADR checkpoint` did — so any marker already written in is stripped
+  // and re-derived. One rule, applied to every step.
+  return sequence(name).map((s) => {
+    const base = s.label.replace(/\s*\((?:advisory|forceable)\)\s*$/, "");
+    if (s.level === "advisory") return `${base} (advisory)`;
+    if (s.level === "forceable") return `${base} (forceable)`;
+    return base;
+  });
+}
+
+/**
  * The command that runs one step on its own — what a surface prints when it
  * tells the operator how to clear the gate. Derived from `argv` so the
  * declaration cannot disagree with itself; `rerun` covers the steps that are
