@@ -1192,10 +1192,20 @@ migrated) rather than reported — the shipped pre-commit hook runs this.
 enums and selectors checked against the workflows and code meant to
 honour them (the same checks as `contract check`), so one call covers
 both halves of the truth. It is opt-in because it reads files outside
-`.doctrina/`. `--json` emits `{ ok, errors, warnings }` for agents and CI
-pipelines.
+`.doctrina/`. `--json` emits `{ ok, errors, warnings, strict }` for agents
+and CI pipelines.
 
-Exits 0 on no errors, 1 otherwise. Warnings do not fail validation.
+`--strict` counts warnings against the exit code, the way `coverage
+--strict` and `trace --strict` already do. The default stays lenient on
+purpose: a warning is advice, and advice that blocks a commit stops being
+read. But a caller that must be able to *reprove* needs a verdict, not
+advice — the CI step that validates the shipped examples ran plain
+`validate`, both examples drifted to warnings, and the step reported green
+for weeks while an EARS defect sat in the example that exists to teach
+against it. Pass `--strict` wherever a warning is a defect.
+
+Exits 0 on no errors, 1 otherwise. Warnings do not fail validation unless
+`--strict` is given.
 
 ## `doctrina coverage`
 

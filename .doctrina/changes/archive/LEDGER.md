@@ -132,3 +132,5 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0123-harness-e2e-aborta-primeira — o harness e2e aborta na primeira falha em vez de seguir com estado inválido
 - 2026-09-11 — 0124-security-md-descreve-subprocessos — SECURITY.md descreve os subprocessos que o CLI realmente executa
 - 2026-09-11 — 0125-recuperar-stamps-ears-exemplos — recuperar os stamps e o EARS dos exemplos publicados
+- 2026-09-11 — 0126-validate-ganha-modo-estrito — abandoned — capacidade errada: a superficie de comando do validate pertence a gates
+- 2026-09-11 — 0126-validate-ganha-modo-estrito — validate ganha um modo estrito que trata warning como erro, para o passo de CI dos exemplos poder reprovar (specs: gates MODIFIED)

@@ -61,13 +61,20 @@ jobs:
       # by 0.10.0, and an EARS state-driven requirement in the retrofit
       # example that stated its invariant as a fact instead of a `shall`,
       # which is precisely the mistake the example exists to teach against.
-      - name: Examples validate against the installed CLI
+      #
+      # `--strict` because that EARS defect came BACK, and this step watched
+      # it happen: plain `validate` exits 0 on warnings, both examples had
+      # drifted to warnings, and the step reported green through every run
+      # for weeks. A gate that cannot reprove is a gate in name only. An
+      # example is the first tree a reader copies, so here a warning is a
+      # defect.
+      - name: Examples validate against the installed CLI (strict)
         shell: bash
         run: |
           for dir in examples/*/; do
             [ -d "$dir/.doctrina" ] || continue
             echo "──── $dir"
-            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate )
+            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate --strict )
           done
 
       # The context budget is a gate, not a report (ADR 0022). It fails when

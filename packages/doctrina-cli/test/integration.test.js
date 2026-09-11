@@ -4564,3 +4564,69 @@ test("the close self-reviews: a spec left still while its code moved is reported
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// A gate must be able to REPROVE. `validate` exits 0 on warnings by design —
+// a warning is advice, and advice that blocks a commit stops being read — but
+// that left the CI step which validates the shipped examples unable to say no:
+// both examples drifted to warnings and the step reported green for weeks,
+// with the EARS defect sitting in the example that teaches against it. The
+// verdict is the caller's to ask for.
+//
+// The fixture is a freshly scaffolded spec: its placeholder acceptance
+// criterion is a WARNING and nothing here is an error, which is exactly the
+// shape the examples had rotted into.
+function projectWithOneWarning() {
+  const tmp = makeTempProject();
+  runCli(["init", "--non-interactive", "--project-name", "Acme",
+    "--project-description", "A fixture project"], { cwd: tmp });
+  runCli(["spec", "new", "billing"], { cwd: tmp });
+  return tmp;
+}
+
+test("--strict makes a warning fail validate, and changes nothing without it", () => {
+  const tmp = projectWithOneWarning();
+  try {
+    const lenient = runCli(["validate"], { cwd: tmp });
+    assert.match(lenient.stdout, /warn:/, "the fixture must actually produce a warning");
+    assert.doesNotMatch(lenient.stdout, /error:/, "the fixture must produce NO error");
+    assert.match(lenient.stdout, /^ok /m, "without --strict a warning still reads as ok");
+    assert.equal(lenient.status, 0, "warnings must not fail the default run");
+
+    const strict = runCli(["validate", "--strict"], { cwd: tmp });
+    assert.equal(strict.status, 1, "--strict must fail on a warning");
+    assert.match(strict.stdout, /^fail /m, "--strict must say fail, not ok");
+    assert.match(strict.stdout, /--strict: warnings count against the exit code/,
+      "a run with zero errors that fails must say why");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("--strict invents no failure: a tree with nothing to say still passes", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme",
+      "--project-description", "A fixture project"], { cwd: tmp });
+    const clean = runCli(["validate", "--strict"], { cwd: tmp });
+    assert.doesNotMatch(clean.stdout, /warn:|error:/, clean.stdout);
+    assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("--strict rides along with --json and is reported in the payload", () => {
+  const tmp = projectWithOneWarning();
+  try {
+    const r = runCli(["validate", "--strict", "--json"], { cwd: tmp });
+    const payload = JSON.parse(r.stdout);
+    assert.equal(payload.strict, true, r.stdout);
+    assert.ok(payload.warnings.length > 0, r.stdout);
+    assert.equal(r.status, 1, "--json must carry the same verdict as the text output");
+
+    const lenient = JSON.parse(runCli(["validate", "--json"], { cwd: tmp }).stdout);
+    assert.equal(lenient.strict, false, "the payload must report the mode it ran in");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});

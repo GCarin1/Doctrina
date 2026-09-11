@@ -1227,11 +1227,21 @@ instalado roda isso. `--runtime` roda adicionalmente o gate de runtime — a
 fiação, os enums e os seletores declarados checados contra os workflows e
 o código que deveriam honrá-los (os mesmos checks do `contract check`),
 para que uma chamada cubra as duas metades da verdade. É opt-in porque lê
-arquivos fora de `.doctrina/`. `--json` emite `{ ok, errors, warnings }`
-para agentes e pipelines de CI.
+arquivos fora de `.doctrina/`. `--json` emite
+`{ ok, errors, warnings, strict }` para agentes e pipelines de CI.
 
-Sai 0 sem erros, 1 caso contrário. Warnings não falham a
-validação.
+`--strict` faz warnings contarem contra o código de saída, como
+`coverage --strict` e `trace --strict` já fazem. O padrão continua
+leniente de propósito: um warning é conselho, e conselho que bloqueia
+commit deixa de ser lido. Mas quem precisa poder *reprovar* quer um
+veredito, não conselho — o passo de CI que valida os exemplos publicados
+rodava `validate` puro, os dois exemplos derivaram para warnings, e o
+passo reportou verde por semanas enquanto um defeito de EARS morava
+justamente no exemplo que existe para ensinar a evitá-lo. Passe
+`--strict` onde um warning for um defeito.
+
+Sai 0 sem erros, 1 caso contrário. Warnings não falham a validação, a
+menos que `--strict` seja passado.
 
 ## `doctrina coverage`
 

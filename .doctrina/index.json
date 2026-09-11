@@ -76,8 +76,8 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.27.1",
-        "last_updated": "2026-08-06",
+        "version": "1.28.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
@@ -2167,6 +2167,19 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0126-validate-ganha-modo-estrito",
+        "title": "validate ganha um modo estrito que trata warning como erro, para o passo de CI dos exemplos poder reprovar",
+        "path": ".doctrina/changes/archive/2026-09-11-0126-validate-ganha-modo-estrito",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

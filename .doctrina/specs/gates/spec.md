@@ -5,8 +5,8 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
-**Last updated:** 2026-08-06
-**Version:** 1.27.1
+**Last updated:** 2026-09-11
+**Version:** 1.28.0
 
 ## Purpose
 
@@ -282,6 +282,7 @@ codes, zero-deps, no-network).
 - When `.doctrina/config.json` carries a key the CLI does not know, the system shall report a warning in `validate` and in `doctor` naming the key and the keys it accepts.
 - When a change is analyzed, the system shall execute each MODIFIED delta's ops block against its target spec in memory and report an op that would fail at apply time, so the pre-flight refuses exactly what the apply refuses.
 - When a gate command is given a path that does not exist, the system shall report a usage error rather than a gate failure, so a consumer does not retry an invocation that cannot succeed unchanged.
+- When `doctrina validate` runs with `--strict`, the system shall count every warning as a failure and exit 1, and shall name `--strict` as the cause when it found no error.
 
 ### State-driven
 
@@ -421,6 +422,7 @@ The gate surface is spec-compliant when:
 76. [verified] The refusal reaches `apply` through the structure gate, not only through `analyze`'s own rendering — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
 77. [verified] A MODIFIED delta with no ops block still passes, and an applied change still archives — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
 78. [verified] `clarify` refuses a missing path with the usage class while still gating a real file, and every command taking a path answers a missing one identically — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
+79. [verified] `validate --strict` exits 1 on a tree whose only finding is a warning, exits 0 on a tree with nothing to say, and reports the mode it ran in under `--json` — verified by `packages/doctrina-cli/test/integration.test.js`.
 
 ## Out of scope for this spec
 
