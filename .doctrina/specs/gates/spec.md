@@ -202,11 +202,6 @@ codes, zero-deps, no-network).
   without running). This build gate is distinct from `validate` and never
   runs in the pre-commit hook.
 - When a `verify.json` check declares `"type": "manual"`, the system shall not run a command for it but treat it as a qualitative gate whose sign-off records the commit it was made at and the paths the check declares it covers; it passes only while none of those paths has changed since, and is otherwise reported as pending, expired, or unverifiable — non-blocking by default, failing under `--strict`. `doctrina verify --signoff "<name>=<note>"` shall record such a sign-off for a declared manual check and exit (review 2026-06-27).
-  not run a command for it but treat it as a qualitative gate: it passes
-  when signed off (recorded in `.doctrina/verify.signoffs.json`) and is
-  otherwise reported as pending — non-blocking by default, failing only
-  under `--strict`. `doctrina verify --signoff "<name>=<note>"` shall record
-  today's sign-off for a declared manual check and exit (review 2026-06-27).
 - When `doctrina verify --clean` runs, the system shall not execute the
   configured checks but instead lint the project's `package.json` files
   for reproducibility footguns — an entry point under a build-output dir
@@ -222,16 +217,7 @@ codes, zero-deps, no-network).
   exiting 0 as a report and 1 under `--strict` when any hard break exists;
   it never judges semantic fidelity (review 2026-06-27).
 - When `doctrina close <id>` runs, the system shall drive the closing sequence in one pass — analyze → review (advisory) → change apply → runtime → verify (skipped with a note when no `verify.json`) → coverage `--strict` → trace (advisory) → change archive → validate — stopping at the first failure with the exact command to rerun, and exit non-zero on that failure (review 2026-06-27).
-  sequence in one pass — analyze → change apply → verify (skipped with a
-  note when no `verify.json`) → coverage `--strict` → trace (advisory) →
-  change archive → validate — stopping at the first failure with the exact
-  command to rerun, and exit non-zero on that failure (review 2026-06-27).
 - When `doctrina doctor` runs, the system shall drive the diagnostic set — the structural checks, the index drift check, the coverage/trace ratios, the clean-checkout lint, the template shape, the runtime surface, and the verify-config presence — by reading each as a collection IN THE SAME PROCESS, reporting each area with its exact remediation command, adding no checks of its own, and exiting 1 when any area fails (advisory findings stay exit 0).
-  set — `validate` (machine-read), the index drift check, the
-  coverage/trace ratios, `verify --clean`, `templates check`, and the
-  verify-config presence — reporting each area with its exact
-  remediation command, adding no checks of its own, and exit 1 when
-  any area fails (advisory findings stay exit 0).
 - When `doctrina status`, `validate`, `coverage`, or `trace` runs with
   `--json`, the system shall emit the same data the human rendering
   shows as JSON with a stable shape, while preserving the command's

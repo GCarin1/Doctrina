@@ -15,8 +15,8 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.15.0",
-        "last_updated": "2026-09-07",
+        "version": "0.15.1",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
           "cli"
@@ -2222,6 +2222,19 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0131-replace-requirement-substitui-bullet-inteiro",
+        "title": "replace-requirement substitui o bullet inteiro, nao so a primeira linha, e a prosa orfa que ele deixou sai das specs",
+        "path": ".doctrina/changes/archive/2026-09-11-0131-replace-requirement-substitui-bullet-inteiro",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

@@ -481,8 +481,24 @@ export function replaceRequirement(text, section, n, value) {
   if (n > real.length) {
     return { error: `replace-requirement: section "${section}" has ${real.length} requirement${real.length === 1 ? "" : "s"}, no #${n}` };
   }
-  const indent = loc.lines[real[n - 1]].match(/^(\s*)/)[1];
-  loc.lines[real[n - 1]] = `${indent}- ${value}`;
+  // REPLACE THE WHOLE ITEM, continuation lines included.
+  //
+  // Writing only the first line leaves the old bullet's wrapped prose sitting
+  // under the new one, indented, reading as part of it. That is not cosmetic:
+  // the orphan is the PREVIOUS version of the requirement, so the spec ends up
+  // stating a contract and then contradicting it two lines later, and a spec
+  // is the one artifact this framework asks everyone to trust.
+  //
+  // It had already happened four times in this repository's own tree before
+  // anyone noticed — twice in `gates` (a closing sequence missing its review
+  // and runtime steps, a doctor set missing its runtime row) and once in
+  // `insight`, all three describing older behaviour beside the current one.
+  //
+  // `append-requirement` learned this in 0.13.0 and got `endOfItem`; this verb
+  // was written afterwards and never picked it up.
+  const start = real[n - 1];
+  const indent = loc.lines[start].match(/^(\s*)/)[1];
+  loc.lines.splice(start, endOfItem(loc.lines, start) - start + 1, `${indent}- ${value}`);
   return { text: loc.lines.join("\n"), summary: `replace-requirement ${section} ${n}` };
 }
 

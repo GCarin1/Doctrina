@@ -55,10 +55,6 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   those capabilities — read-only, erroring with the known anchors when
   the anchor does not exist.
 - When `doctrina prime --rules` runs — or the deprecated `doctrina constitution`, which prints the same lines — the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them.
-  standing rules in one read — the accepted ADRs (immutable governing
-  decisions, oldest first) and the `## Non-goals` of `product.md` — assembled
-  read-only from artifacts those files already own (no new fact home); it
-  never writes and always exits 0.
 - When `doctrina context [<capability>]` runs, the system shall
   print the context pack in the documented read order — AGENTS.md,
   `product.md`, the capability spec when given (or every active spec

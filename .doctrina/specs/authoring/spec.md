@@ -6,8 +6,8 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js`
-**Last updated:** 2026-09-07
-**Version:** 0.15.0
+**Last updated:** 2026-09-11
+**Version:** 0.15.1
 
 ## Purpose
 
@@ -283,6 +283,7 @@ keep the checks and the read path.
 - When `doctrina change new <id>` runs with an id that is not lowercase letters, digits and hyphens opening on a letter or a digit, the system shall report a usage error and create nothing.
 - When `change tick` names a box that is already ticked, the system shall leave it as is and say so; when it names something that is not a box number, the system shall refuse with the usage class and name the argument.
 - When a lifecycle transition is forced past its gates, the system shall record the waived blockers in the change ledger only after that transition has actually taken effect.
+- When an ops block replaces an EARS requirement that wraps over continuation lines, the system shall replace the whole item, so no line of the previous requirement survives beside the new one.
 
 ### Unwanted-behavior (must-not)
 
@@ -346,6 +347,7 @@ The authoring commands are v0 spec-compliant when:
 28. [verified] A forced apply that fails claims nothing in the ledger, and the target spec and proposal prove nothing happened — verified by `packages/doctrina-cli/test/the-ledger-records-what-happened.test.js`.
 29. [verified] A forced apply that succeeds is still recorded, naming the gate it waived, and a forced archive is recorded only once the folder has moved — verified by `packages/doctrina-cli/test/the-ledger-records-what-happened.test.js`.
 30. [verified] Recording follows the outcome across every gated transition, not the override — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
+31. [verified] Replacing a wrapped requirement removes its continuation lines, leaves the bullets around it intact, and still numbers by bullet rather than by line — verified by `packages/doctrina-cli/test/spec-ops.test.js`.
 
 ## Out of scope for this spec
 

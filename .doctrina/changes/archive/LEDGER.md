@@ -138,3 +138,6 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0128-ci-dispara-tambem-pull — o CI dispara também em pull request para develop
 - 2026-09-11 — 0129-coverage-so-cobra-como — coverage so cobra como prova os caminhos citados na clausula de evidencia, nao os nomeados na prosa do criterio (specs: gates MODIFIED)
 - 2026-09-11 — 0130-teste-degradacao-mede-orcamento — o teste de degradação mede o orçamento em vez de fixar 13000
+- 2026-09-11 — 0131-dividir-spec-gates-drivers — abandoned — achado maior primeiro: replace-requirement deixa prosa orfa, e isso corrompeu quatro requisitos em specs ativas
+- 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — replace-requirement substitui o bullet inteiro, nao so a primeira linha, e a prosa orfa que ele deixou sai das specs (specs: authoring MODIFIED)
+  - 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — docs gap: closed with --force; declared surface: verify; flags: --force, --rules, --signoff documented nowhere
