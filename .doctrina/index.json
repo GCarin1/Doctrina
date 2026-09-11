@@ -80,8 +80,8 @@
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
-          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js",
+          "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js",
           "scripts/bench.js"
         ]
       },
@@ -121,6 +121,18 @@
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/skill.js"
+        ]
+      },
+      {
+        "id": "structure",
+        "path": ".doctrina/specs/structure/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-09-11",
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/validate.js",
+          "packages/doctrina-cli/src/lib/{ears,pipeline}.js"
         ]
       },
       {
@@ -242,6 +254,7 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/verify.js`",
         "scope": [
           "gates",
+          "structure",
           "validation"
         ],
         "summary": "Make both gates honest about their own limits, with cheap static checks:"
@@ -255,6 +268,7 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/spec.js`",
         "scope": [
           "gates",
+          "structure",
           "validation"
         ],
         "summary": "Make `validate` the single place that says whether the project is OK, by"
@@ -270,7 +284,8 @@
           "cli",
           "docs",
           "authoring",
-          "gates"
+          "gates",
+          "structure"
         ],
         "summary": "Add four targeted ergonomics, all opt-in, all deterministic:"
       },
@@ -325,6 +340,7 @@
         "scope": [
           "cli",
           "gates",
+          "structure",
           "templates",
           "authoring",
           "scaffolding"
@@ -502,6 +518,18 @@
           "validation"
         ],
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
+      },
+      {
+        "id": "0028",
+        "path": ".doctrina/decisions/0028-um-gate-de-forma-e-um-gate-de-prova-validate-sai-de-gates-para-structure.md",
+        "title": "Um gate de forma e um gate de prova: validate sai de gates para structure",
+        "status": "accepted",
+        "date": "2026-09-11",
+        "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para",
+        "scope": [
+          "gates",
+          "structure"
+        ]
       }
     ],
     "changes": [],
@@ -2232,6 +2260,23 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0132-drivers-sequenciam-gates-viram",
+        "title": "os drivers que sequenciam os gates viram a capacidade closing, tirando a spec gates do teto de 400 linhas",
+        "path": ".doctrina/changes/archive/2026-09-11-0132-drivers-sequenciam-gates-viram",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
             "operation": "MODIFIED"
           }
         ]

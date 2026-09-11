@@ -94,7 +94,7 @@ como um corpo de agentes age.
 - Adapters para 12 agentes AGENTS.md-aware (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Dez specs de capability e os ADRs 0001–0027 que descrevem o framework
+- Onze specs de capability e os ADRs 0001–0028 que descrevem o framework
   (incluindo o ADR 0006, proveniência de intenção, e o ADR 0015, o bloco
   de superfície do AGENTS.md), mais skills on-demand capturando seus
   próprios procedimentos de manutenção.

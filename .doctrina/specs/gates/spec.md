@@ -4,17 +4,22 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
+**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-09-11
 **Version:** 1.30.0
 
 ## Purpose
 
-Define the semantics of the GATE commands: the checks that decide whether
-the artifact tree is honest (`validate`, `coverage`, `trace`, `review`,
-`verify`, `analyze`, `clarify`), and the drivers that sequence them
-(`close`, `doctor`, the emitted CI pipeline). A gate reads the tree in
-order to refuse.
+Define the semantics of the GATE commands that judge EVIDENCE — whether
+the tree is proven, conformant and reproducible (`coverage`, `trace`,
+`review`, `verify`, `analyze`, `clarify`) — and the drivers that sequence
+them (`close`, `doctor`, the emitted CI pipeline). A gate reads the tree
+in order to refuse.
+
+Whether the tree is well-FORMED is asked first and asked elsewhere:
+`doctrina validate` and the `.doctrina/` grammar it enforces moved to the
+`structure` spec. A requirement that constrains `validate` together with
+one of the gates above stays here, with the cross-cutting claim.
 
 Split out of the `cli` spec when that spec crossed its own 400-line cap,
 and split again when this one did: the read-only half — context assembly
@@ -97,94 +102,6 @@ codes, zero-deps, no-network).
   the capabilities the change's deltas touch (falling back to the whole
   tree for a delta-less change), so a declared deferral elsewhere cannot
   block an unrelated close (ADR 0014).
-- When `doctrina validate` runs and `.doctrina/rules.json` exists, the
-  system shall enforce each rule — a forbid-regex over glob-scoped paths —
-  as an error carrying the rule's own message, capped per rule to keep a
-  mass violation readable; an invalid rules file shall be a single error
-  (ADR 0014).
-- When `doctrina validate` runs, the system shall print every error and
-  warning it finds and exit 0 only when zero errors are present.
-- When `doctrina validate` runs, the system shall emit a warning for
-  each capability spec over 400 lines and for each ADR over 300
-  lines (soft caps; warnings only).
-- When `doctrina validate` runs, the system shall walk
-  `.doctrina/specs/` and `.doctrina/decisions/` and emit a warning
-  for any file present on disk but not referenced in
-  `.doctrina/index.json` (orphan detection; warnings only).
-- When `doctrina validate` runs, the system shall warn for any known
-  metadata key in a spec's header block (`Capability`, `Status`,
-  `Implementation`, `Version`, `Last updated`, `Realizes`) not written in
-  the canonical `**Key:** value` form — the silent non-parse footgun
-  (warnings only; ADR 0010).
-- When `doctrina validate` runs, the system shall error when two ADR files
-  share the same `NNNN` number (a merge-time allocation collision; the
-  index keys decisions by number).
-- When `doctrina validate` runs, the system shall warn when
-  `.doctrina/index.json` records a `framework_version` absent or behind the
-  running CLI (stamp divergence; warnings only).
-- When `doctrina validate` runs against a capability spec whose `Status` is
-  `active` and which is on the implementation axis (has an `Implementation`
-  header) but declares no `Realizes:` header, the system shall warn that the
-  capability traces to no product intent — silenced by any `Realizes:` value,
-  including a deliberate `n/a — <why>` (provenance-adoption nudge; warnings
-  only).
-- When `doctrina validate` runs, the system shall parse each
-  capability spec and ADR for Markdown link targets, and shall
-  emit a warning for any path token that looks like a
-  repository-relative file path and does not exist on disk.
-  URLs, anchors, wildcards, placeholder patterns, folder-style
-  paths (ending with `/`), and backtick spans are excluded.
-- When `doctrina validate` runs, the system shall regenerate the index
-  from the tree and emit an error for any artifact present in both the
-  index and the tree (specs, decisions, changes, changes_archive,
-  contracts) whose recorded metadata no longer matches its file — so a
-  green `validate` cannot hide the drift `index rebuild --check` would
-  catch (G5). Presence drift (orphan / missing file), the
-  `framework_version` stamp, and skill descriptions stay advisory
-  (warnings / `skill sync`). With `--fix` the system shall rebuild the
-  index from the tree before validating instead of erroring (ADR 0009).
-- When `doctrina validate` runs, the system shall compare each
-  skill's frontmatter `description:` against the description
-  recorded in `.doctrina/index.json` and emit a warning on
-  mismatch, pointing at `doctrina skill sync` (warnings only).
-- When `doctrina validate` runs against a capability spec that
-  declares a `## Requirements (EARS)` section, the system shall
-  emit a warning for each requirement whose shape does not match
-  its section's EARS grammar: Ubiquitous requirements carry
-  "shall" and no When/While/Where prefix, Event-driven start with
-  "When", State-driven start with "While", Unwanted-behavior
-  carry "shall" plus a negation, Optional start with "Where" and
-  use "may". Bug-shape and free-form specs are skipped
-  (warnings only).
-- When `doctrina validate` runs, the system shall apply the
-  AGENTS.md size caps (warning over 150 lines, error over 200)
-  to every nested AGENTS.md found below the project root,
-  skipping dependency, build, and VCS directories.
-- When `doctrina validate` runs, the system shall walk
-  `.doctrina/skills/` and emit a warning for any skill missing
-  one or more of the required frontmatter fields (`name`,
-  `description`, `when`), any skill over the 200-line cap, and
-  any skill whose `name:` field does not match its filename
-  slug.
-- When `doctrina validate` runs, the system shall additionally warn when
-  a capability spec is `Status: active` with `Implementation: planned` and
-  no note; when an ADR's `Evidence:` cites a missing path or an accepted
-  ADR cites none; and when a contract file is absent from the index; and
-  shall fail when `LEDGER.md` and `index.json.changes_archive` disagree.
-- When `doctrina validate` runs, the system shall compare the doctrina
-  commands documented in `AGENTS.md` against the real CLI surface and warn
-  when AGENTS.md references a command that does not exist, and — for an
-  AGENTS.md that documents a command catalog and does not defer to
-  `doctrina --help` — when it omits commands the CLI ships (hub-freshness;
-  warnings only).
-- When `doctrina validate` runs against an acceptance criterion marked
-  `[verified]` that cites no proof path (read across continuation lines so a
-  proof on a later line still counts), the system shall warn that the
-  criterion is self-certified (honest gates, ADR 0008; warnings only).
-- When `doctrina validate` runs in a project holding both `docs/en/` and
-  `docs/pt/`, the system shall warn for any Markdown file present in one
-  language tree and missing from the other (translation parity, both
-  directions; warnings only — projects without both trees are exempt).
 - When `doctrina coverage` runs, the system shall report per spec how
   many `## Acceptance criteria` cite an evidence path (a backtick file
   token) that exists, marking each covered, conditional (the only
@@ -268,12 +185,10 @@ codes, zero-deps, no-network).
 - When `.doctrina/config.json` carries a key the CLI does not know, the system shall report a warning in `validate` and in `doctor` naming the key and the keys it accepts.
 - When a change is analyzed, the system shall execute each MODIFIED delta's ops block against its target spec in memory and report an op that would fail at apply time, so the pre-flight refuses exactly what the apply refuses.
 - When a gate command is given a path that does not exist, the system shall report a usage error rather than a gate failure, so a consumer does not retry an invocation that cannot succeed unchanged.
-- When `doctrina validate` runs with `--strict`, the system shall count every warning as a failure and exit 1, and shall name `--strict` as the cause when it found no error.
 - When the project publishes a release, the system shall run every gate a pull request already runs, and shall not publish while any of them fails.
 - When a criterion cites its proof after a citation marker, the system shall read only the paths in that citation as claims of evidence, and shall treat the paths named before it as the scenario the criterion describes.
 
 ### State-driven
-
 
 - While a MODIFIED delta carries no ops block, the system shall report it as a manual merge rather than a failure, since apply writes nothing and prints a merge pointer for it.
 ### Unwanted-behavior (must-not)
@@ -312,8 +227,6 @@ codes, zero-deps, no-network).
 - If a scope filter names a capability that has no spec, the system shall not report a verdict; it shall report a usage error naming the value and the capabilities that exist, because a gate that measured nothing must not be indistinguishable from a gate that passed.
 - If a review is asked to diff against a ref the repository cannot resolve, the system shall not report an empty diff; it shall report a usage error naming the ref, because a filter that matches nothing is not a tree with no changes.
 - The system shall not close a change while a contract carries a structural error that `contract check` reports, and shall not report a contract with a structural error as "unchecked" because it declares no Wiring or Selectors rows.
-- The system shall not propose or write `verified` for a spec on the strength of a criterion whose author marked it `[unverified]`, whether the proposal comes from `validate` or the write from `spec set --implementation auto`.
-- The system shall not write a `framework_version` stamp lower than the one the index already carries; an older CLI that rebuilds the index keeps the newer stamp, `validate` reports a stamp ahead of the running CLI as a reason to upgrade the CLI rather than to rebuild, and `index rebuild --check` does not count a stamp ahead as index drift.
 - The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
 
 ### Optional
@@ -327,95 +240,87 @@ The gate surface is spec-compliant when:
 1. [verified] Every gate command listed under "Event-driven" runs and
    produces the documented effect — proven by
    `packages/doctrina-cli/test/integration.test.js`.
-2. [verified] `doctrina validate` exits 0 against this repository's own
-   `.doctrina/` tree (self-check) — implemented in
-   `packages/doctrina-cli/src/commands/validate.js`.
-3. [verified] `doctrina coverage --strict` and `doctrina trace --strict`
+2. [verified] `doctrina coverage --strict` and `doctrina trace --strict`
    exit 0 against this repository — the gates hold on the framework
    itself; see `packages/doctrina-cli/src/commands/coverage.js` and
    `packages/doctrina-cli/src/commands/trace.js`.
-4. [verified] The hub-drift and self-certified-criterion gates are
+3. [verified] The hub-drift and self-certified-criterion gates are
    regression-tested — `packages/doctrina-cli/test/commands.test.js`.
-5. [verified] A change altering a documented surface with no accompanying documentation is refused by `doctrina close`, closes under `--force`, and the gap is written to the ledger — verified by `packages/doctrina-cli/test/integration.test.js`.
-6. [verified] Scaffold boilerplate raises no documentation signal, so the gate stays quiet on a change that touches no documented surface — verified by `packages/doctrina-cli/test/docs-impact.test.js`, `packages/doctrina-cli/test/integration.test.js`.
-7. [verified] An adapter-pointer finding is reported by `doctor` with the remedy that resolves it, and is not labelled a missing section — verified by `packages/doctrina-cli/test/remedies.test.js`.
-8. [verified] Every lifecycle transition is guarded identically regardless of which command drives it, enumerated by a table-driven suite — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
-9. [verified] A refused transition mutates nothing, and a forced one records the waived blockers in the ledger — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
-10. [verified] A freshly scaffolded change fails analyze naming each unwritten section, and passes once they carry prose — `packages/doctrina-cli/test/integration.test.js`.
-11. [verified] The test suite passes on a checkout with no node_modules, skipping the typecheck rather than fetching a compiler — `packages/doctrina-cli/test/typecheck.test.js`.
-12. [verified] No workflow or verification check invokes a gate tool through `npx` — `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.doctrina/verify.json`.
-13. [verified] A declared wiring row whose workflow exports nothing fails `contract check` with RT01, and passes once the env: line exists — verified by `packages/doctrina-cli/test/runtime.test.js`.
-14. [verified] A consumer default that an empty CI value never triggers is reported (RT03), while an empty-safe form is not — verified by `packages/doctrina-cli/test/runtime.test.js`.
-15. [verified] A selector matching zero targets fails with RT05 and names the separator near-miss — verified by `packages/doctrina-cli/test/runtime.test.js`.
-16. [verified] A verify check that exits 0 having printed "0 scenarios" fails the gate, and passes once the run is real — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
-17. [verified] An orchestration criterion citing a check with no expect guard is reported unguarded and fails `coverage --strict` — verified by `packages/doctrina-cli/test/orchestration.test.js`.
-18. [verified] `analyze` refuses a change that raises a declared output ceiling and stays silent on an input ceiling — verified by `packages/doctrina-cli/test/orchestration.test.js`.
-19. [verified] `doctor --env` reports enum membership without the offending value appearing in its output — verified by `packages/doctrina-cli/test/runtime.test.js`.
-20. [verified] A wiring row declaring `<origin>:<source>` silences the name-mismatch warning while the workflow agrees, and warns again when either side moves — verified by `packages/doctrina-cli/test/runtime.test.js`.
-21. [verified] Declaring a source does not switch off the empty-vs-unset check for that row — verified by `packages/doctrina-cli/test/runtime.test.js`.
-22. [verified] A check with an output expectation emits its output progressively rather than in one block at the end — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
-23. [verified] A change whose contract declares wiring the named workflow does not export is refused by `doctrina close` at the runtime gate, and the same change closes once the export exists — verified by `packages/doctrina-cli/test/integration.test.js`.
-24. [verified] A project with no contracts, and one whose contracts declare no rows, close unchanged — the second reported as unchecked rather than passing — verified by `packages/doctrina-cli/test/integration.test.js`.
-25. [verified] The shipped CI action carries the runtime step, and the command it runs exits 1 on the same broken declaration — verified by `packages/doctrina-cli/test/integration.test.js`, `action.yml`.
-26. [verified] The close sequence, the doctor rows, and the emitted CI pipeline all derive from the single declaration, and a surface that starts carrying its own copy fails the suite — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
-27. [verified] A step added to the declaration reaches the CI surface with no further edit, in declared order — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
-28. [verified] `doctrina ci --emit github` reproduces the versioned `action.yml` byte for byte, so a stale file fails the build instead of shipping — verified by `packages/doctrina-cli/test/gate-sequences.test.js`, `action.yml`.
-29. [verified] The three bands of the derivation, the uncertified-rung exemption, and the explanatory-note escape hatch each behave as declared — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
-30. [verified] A fully proven spec still marked planned is warned about by `validate`, and a half-proven spec claiming verified is warned about in the other direction — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
-31. [verified] `spec set --implementation auto` writes the derived state, refuses a spec with nothing to derive from, and leaves that spec untouched — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
-32. [verified] The close proposes the header op and the spec it reports on is byte-identical afterwards — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
-33. [verified] A signature records what it covers and the commit it covers it at, expires when a covered path changes by commit or by an uncommitted edit, and survives a change elsewhere — verified by `packages/doctrina-cli/test/signoff.test.js`.
-34. [verified] A sign-off with no recorded commit, no declared paths, or made outside a repository is reported unverifiable rather than passing, and warned about at signing time — verified by `packages/doctrina-cli/test/signoff.test.js`.
-35. [verified] Every non-fresh state is non-blocking by default and fails `--strict`, each manual check falls into exactly one state, and every read-only view and `doctor` report signed proof separately from executed proof — verified by `packages/doctrina-cli/test/signoff.test.js`.
-36. [verified] The review runs before the apply, reports a capability whose code moved while its spec stood still, and leaves the close's exit code untouched — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/gate-sequences.test.js`.
-37. [verified] A whole `doctor` run is one CLI invocation — proved by the usage log, which recorded four before this — and its rows agree with the commands that render the same collections — verified by `packages/doctrina-cli/test/doctor-in-process.test.js`.
-38. [verified] The ledger of this repository parses in full — abandonments and waived-gate lines included — a hand-written line is skipped rather than fatal, and churn counts only the changes that landed — verified by `packages/doctrina-cli/test/ledger.test.js`.
-39. [verified] `report` shows capability churn for the period, `review` reports it as history, and `close` names the dependents of the touched capabilities without gating on them — verified by `packages/doctrina-cli/test/ledger.test.js`.
-40. [verified] A change scaffolded on the default path, whose guessed delta names `doctrina work` inside its guess comment, produces no command signal, while a command the author wrote outside a comment still does — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
-41. [verified] A scaffolded contract produces a summary that names the unchecked runtime surface and never the word "consistent"; a contract whose declared wiring holds produces both the consistency and the row count; and `contract check`, `doctor` and `triage` describe the same undeclared state the same way — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
-42. [verified] A project whose specs declare no criterion reports "no criteria declared" in `status`, `prime`, `report`, `handoff`, `coverage` and its JSON (`pct: null`), never 100%, while one declared criterion still reports a real ratio — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
-43. [verified] An active spec still carrying the scaffold's `Realizes:` placeholder warns, and a deliberate `n/a — <why>` or a real anchor stays silent — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
-44. [verified] A project with no documentation is pointed at a README rather than at `docs/en` and `docs/pt`, a project with one documentation directory is pointed at that one, and in this repository both languages are still named — verified by `packages/doctrina-cli/test/portable-remediation.test.js`.
-45. [verified] Every step the close declares has a runner, the close starts no subprocess of its own binary, and close and doctor describe a runnerless step the same way — verified by `packages/doctrina-cli/test/export-drift.test.js`.
-46. [verified] No export under `src/lib/` is referenced by nothing at all, a seam reached only by tests is reported apart from dead surface rather than failed, and a newly orphaned export is caught — verified by `packages/doctrina-cli/test/export-drift.test.js`.
-47. [verified] A command, an environment variable and a configuration key an adopting project declares each produce a signal; an endpoint and a variable being added produce one by shape; a purely internal change produces none; and a project with no contract behaves exactly as before — verified by `packages/doctrina-cli/test/docs-gate-reads-the-contract.test.js`.
-48. [verified] An undeclared surface reports `verdict: unchecked` at exit 0, a declared one that holds reports its row count, a declaration that does not hold carries its findings with code, level, message and remedy, the payload parses as the whole of stdout, and the other contract subcommands keep the captured envelope — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
-49. [verified] A declared glob claims its file and outranks every inference, and every tracked source file in this repository has an owning capability — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
-50. [verified] The orphan note fires per file even when another changed file matched, and `validate` reports a pattern that matches nothing — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
-51. [verified] "how many" passes while a bare quantifier still smells, across a line break included, and a number after the quantifier still exempts it — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
-52. [verified] The preceding line is read as context and never as content: its own smell is reported once, on its own line — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
-53. [verified] A scaffolded spec does not turn zero anchors into a green verdict, and `trace` and `doctor` read the empty tree the same way — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
-54. [verified] A cited anchor with none declared is a gap that fails `--strict`, a declared and realized anchor is still green, and a project that declared nothing is still not nagged — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
-55. [verified] A one-element group and a nested group each match exactly the files they name, and an unmatched brace matches nothing — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
-56. [verified] A nested `**Source:**` declaration claims every file it names and is not reported as a dead pattern, and the `*`, `**` and `?` patterns behave exactly as before — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
-57. [verified] A chore that cites commands produces no surface signal and closes without `--force`, and the verification section leaks none — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
-58. [verified] A product change naming a command in its What still signals, and the archived product changes keep their signals — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
-59. [verified] A close whose verify step was skipped does not report the change as verified and names the skip, while a close that runs every gate still claims all three — verified by `packages/doctrina-cli/test/the-close-claims-only-what-it-ran.test.js`.
-60. [verified] A step with nothing to check reports the absence, and a step with something to check reports how much it checked — verified by `packages/doctrina-cli/test/the-close-claims-only-what-it-ran.test.js`.
-61. [verified] A filter naming no capability is refused with the usage class and prints no verdict, a near miss is named, and one bad name in a list is enough to refuse — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
-62. [verified] A filter naming a real capability still reports, and an empty tree and an empty capability say different things — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
-63. [verified] A ref the repository cannot resolve is refused with the usage class while a valid ref reports exactly what it reported, and a valid ref with no difference is still an empty diff — verified by `packages/doctrina-cli/test/a-ref-that-resolves-to-nothing.test.js`.
-64. [verified] Outside a git repository the command stays silent, and the ref probe tells a missing ref apart from a repository with no commits, which git words identically — verified by `packages/doctrina-cli/test/a-ref-that-resolves-to-nothing.test.js`.
-65. [verified] A path outside the project, an absolute path and a directory leave a criterion dangling with the reason named; a criterion citing one resolving file and one missing file is covered with the missing one named; a directory next to a real proof is silent — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
-66. [verified] A hand-written `Status: bogus` and a `[banana]` mark are reported by `validate` as errors naming the legal values, while `planned — deferred` passes — verified by `packages/doctrina-cli/test/a-header-has-a-domain.test.js`.
-67. [verified] A contract with a duplicated port and a reference to a missing spec fails `contract check`, stops the close at the runtime step and fails the doctor's runtime row with the same CT codes, while a contract with no defect and no rows stays unchecked at exit 0 — verified by `packages/doctrina-cli/test/the-close-runs-the-whole-contract-check.test.js`.
-68. [verified] With one covered criterion still marked [unverified], validate proposes "implemented" naming the count, `spec set --implementation auto` writes `implemented`, coverage lists the criterion with the op that flips the mark, and flipping it lets the same doors read `verified` — verified by `packages/doctrina-cli/test/the-mark-is-the-authors.test.js`.
-69. [verified] A spec carrying an English and a Portuguese vague term reports both under per-file detection and only the forced language's under `--lang` — verified by `packages/doctrina-cli/test/the-triage-speaks-portuguese.test.js`.
-70. [verified] `Depends on: fantasma` is a validate error, `Affects specs: fantasma` without an ADDED delta is a warning and with one is silent, and a duplicated `[SC1]` is a validate error named by trace — verified by `packages/doctrina-cli/test/a-ghost-reference-is-named.test.js`.
-71. [verified] A freshly scaffolded contract and a freshly scaffolded skill each draw one validate warning naming the placeholder, and the warnings go silent once the rows and the frontmatter are written — verified by `packages/doctrina-cli/test/a-scaffold-is-not-an-artifact.test.js`.
-72. [verified] A loose `specs/legacy.md`, a `specs/orfao/` without `spec.md` and a `specs/carteira/spec-old.md` each draw one validate warning with the canonical path, while a `notes.md` beside a `spec.md` is silent — verified by `packages/doctrina-cli/test/a-spec-off-the-path-is-named.test.js`.
-73. [verified] An invalid config fails the doctor's config row naming the error, a misspelled key draws a warning from validate and from doctor naming the valid keys, and a valid config is silent — verified by `packages/doctrina-cli/test/the-doctor-reads-the-config-that-exists.test.js`.
-74. [verified] A stamp ahead of the running CLI survives `validate --fix` and `index rebuild`, is named by validate as "upgrade the CLI", and `index rebuild --check` exits 0 over it, while a stamp behind is still migrated — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
-75. [verified] `analyze` refuses an ops block that `apply` would refuse, and names the offending op — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
-76. [verified] The refusal reaches `apply` through the structure gate, not only through `analyze`'s own rendering — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
-77. [verified] A MODIFIED delta with no ops block still passes, and an applied change still archives — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
-78. [verified] `clarify` refuses a missing path with the usage class while still gating a real file, and every command taking a path answers a missing one identically — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
-79. [verified] `validate --strict` exits 1 on a tree whose only finding is a warning, exits 0 on a tree with nothing to say, and reports the mode it ran in under `--json` — verified by `packages/doctrina-cli/test/integration.test.js`.
-80. [verified] The release job runs `verify`, the packed-install harness and the strict example check, and publishes with `--provenance`; removing any of the four fails the suite — verified by `packages/doctrina-cli/test/the-release-gate-is-not-weaker.test.js`.
-81. [verified] A path named before `verified by` draws no unresolved-evidence note, a second path cited after it still does, and a criterion with no marker keeps every cited path as a claim — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
+4. [verified] A change altering a documented surface with no accompanying documentation is refused by `doctrina close`, closes under `--force`, and the gap is written to the ledger — verified by `packages/doctrina-cli/test/integration.test.js`.
+5. [verified] Scaffold boilerplate raises no documentation signal, so the gate stays quiet on a change that touches no documented surface — verified by `packages/doctrina-cli/test/docs-impact.test.js`, `packages/doctrina-cli/test/integration.test.js`.
+6. [verified] An adapter-pointer finding is reported by `doctor` with the remedy that resolves it, and is not labelled a missing section — verified by `packages/doctrina-cli/test/remedies.test.js`.
+7. [verified] Every lifecycle transition is guarded identically regardless of which command drives it, enumerated by a table-driven suite — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
+8. [verified] A refused transition mutates nothing, and a forced one records the waived blockers in the ledger — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
+9. [verified] A freshly scaffolded change fails analyze naming each unwritten section, and passes once they carry prose — `packages/doctrina-cli/test/integration.test.js`.
+10. [verified] The test suite passes on a checkout with no node_modules, skipping the typecheck rather than fetching a compiler — `packages/doctrina-cli/test/typecheck.test.js`.
+11. [verified] No workflow or verification check invokes a gate tool through `npx` — `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `.doctrina/verify.json`.
+12. [verified] A declared wiring row whose workflow exports nothing fails `contract check` with RT01, and passes once the env: line exists — verified by `packages/doctrina-cli/test/runtime.test.js`.
+13. [verified] A consumer default that an empty CI value never triggers is reported (RT03), while an empty-safe form is not — verified by `packages/doctrina-cli/test/runtime.test.js`.
+14. [verified] A selector matching zero targets fails with RT05 and names the separator near-miss — verified by `packages/doctrina-cli/test/runtime.test.js`.
+15. [verified] A verify check that exits 0 having printed "0 scenarios" fails the gate, and passes once the run is real — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+16. [verified] An orchestration criterion citing a check with no expect guard is reported unguarded and fails `coverage --strict` — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+17. [verified] `analyze` refuses a change that raises a declared output ceiling and stays silent on an input ceiling — verified by `packages/doctrina-cli/test/orchestration.test.js`.
+18. [verified] `doctor --env` reports enum membership without the offending value appearing in its output — verified by `packages/doctrina-cli/test/runtime.test.js`.
+19. [verified] A wiring row declaring `<origin>:<source>` silences the name-mismatch warning while the workflow agrees, and warns again when either side moves — verified by `packages/doctrina-cli/test/runtime.test.js`.
+20. [verified] Declaring a source does not switch off the empty-vs-unset check for that row — verified by `packages/doctrina-cli/test/runtime.test.js`.
+21. [verified] A check with an output expectation emits its output progressively rather than in one block at the end — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+22. [verified] A change whose contract declares wiring the named workflow does not export is refused by `doctrina close` at the runtime gate, and the same change closes once the export exists — verified by `packages/doctrina-cli/test/integration.test.js`.
+23. [verified] A project with no contracts, and one whose contracts declare no rows, close unchanged — the second reported as unchecked rather than passing — verified by `packages/doctrina-cli/test/integration.test.js`.
+24. [verified] The shipped CI action carries the runtime step, and the command it runs exits 1 on the same broken declaration — verified by `packages/doctrina-cli/test/integration.test.js`, `action.yml`.
+25. [verified] The close sequence, the doctor rows, and the emitted CI pipeline all derive from the single declaration, and a surface that starts carrying its own copy fails the suite — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
+26. [verified] A step added to the declaration reaches the CI surface with no further edit, in declared order — verified by `packages/doctrina-cli/test/gate-sequences.test.js`.
+27. [verified] `doctrina ci --emit github` reproduces the versioned `action.yml` byte for byte, so a stale file fails the build instead of shipping — verified by `packages/doctrina-cli/test/gate-sequences.test.js`, `action.yml`.
+28. [verified] The three bands of the derivation, the uncertified-rung exemption, and the explanatory-note escape hatch each behave as declared — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
+29. [verified] `spec set --implementation auto` writes the derived state, refuses a spec with nothing to derive from, and leaves that spec untouched — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
+30. [verified] The close proposes the header op and the spec it reports on is byte-identical afterwards — verified by `packages/doctrina-cli/test/implementation-derived.test.js`.
+31. [verified] A signature records what it covers and the commit it covers it at, expires when a covered path changes by commit or by an uncommitted edit, and survives a change elsewhere — verified by `packages/doctrina-cli/test/signoff.test.js`.
+32. [verified] A sign-off with no recorded commit, no declared paths, or made outside a repository is reported unverifiable rather than passing, and warned about at signing time — verified by `packages/doctrina-cli/test/signoff.test.js`.
+33. [verified] Every non-fresh state is non-blocking by default and fails `--strict`, each manual check falls into exactly one state, and every read-only view and `doctor` report signed proof separately from executed proof — verified by `packages/doctrina-cli/test/signoff.test.js`.
+34. [verified] The review runs before the apply, reports a capability whose code moved while its spec stood still, and leaves the close's exit code untouched — verified by `packages/doctrina-cli/test/integration.test.js`, `packages/doctrina-cli/test/gate-sequences.test.js`.
+35. [verified] A whole `doctor` run is one CLI invocation — proved by the usage log, which recorded four before this — and its rows agree with the commands that render the same collections — verified by `packages/doctrina-cli/test/doctor-in-process.test.js`.
+36. [verified] The ledger of this repository parses in full — abandonments and waived-gate lines included — a hand-written line is skipped rather than fatal, and churn counts only the changes that landed — verified by `packages/doctrina-cli/test/ledger.test.js`.
+37. [verified] `report` shows capability churn for the period, `review` reports it as history, and `close` names the dependents of the touched capabilities without gating on them — verified by `packages/doctrina-cli/test/ledger.test.js`.
+38. [verified] A change scaffolded on the default path, whose guessed delta names `doctrina work` inside its guess comment, produces no command signal, while a command the author wrote outside a comment still does — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
+39. [verified] A scaffolded contract produces a summary that names the unchecked runtime surface and never the word "consistent"; a contract whose declared wiring holds produces both the consistency and the row count; and `contract check`, `doctor` and `triage` describe the same undeclared state the same way — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+40. [verified] A project whose specs declare no criterion reports "no criteria declared" in `status`, `prime`, `report`, `handoff`, `coverage` and its JSON (`pct: null`), never 100%, while one declared criterion still reports a real ratio — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
+41. [verified] An active spec still carrying the scaffold's `Realizes:` placeholder warns, and a deliberate `n/a — <why>` or a real anchor stays silent — verified by `packages/doctrina-cli/test/absence-is-not-approval.test.js`.
+42. [verified] A project with no documentation is pointed at a README rather than at `docs/en` and `docs/pt`, a project with one documentation directory is pointed at that one, and in this repository both languages are still named — verified by `packages/doctrina-cli/test/portable-remediation.test.js`.
+43. [verified] Every step the close declares has a runner, the close starts no subprocess of its own binary, and close and doctor describe a runnerless step the same way — verified by `packages/doctrina-cli/test/export-drift.test.js`.
+44. [verified] No export under `src/lib/` is referenced by nothing at all, a seam reached only by tests is reported apart from dead surface rather than failed, and a newly orphaned export is caught — verified by `packages/doctrina-cli/test/export-drift.test.js`.
+45. [verified] A command, an environment variable and a configuration key an adopting project declares each produce a signal; an endpoint and a variable being added produce one by shape; a purely internal change produces none; and a project with no contract behaves exactly as before — verified by `packages/doctrina-cli/test/docs-gate-reads-the-contract.test.js`.
+46. [verified] An undeclared surface reports `verdict: unchecked` at exit 0, a declared one that holds reports its row count, a declaration that does not hold carries its findings with code, level, message and remedy, the payload parses as the whole of stdout, and the other contract subcommands keep the captured envelope — verified by `packages/doctrina-cli/test/runtime-commands.test.js`.
+47. [verified] A declared glob claims its file and outranks every inference, and every tracked source file in this repository has an owning capability — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
+48. [verified] "how many" passes while a bare quantifier still smells, across a line break included, and a number after the quantifier still exempts it — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
+49. [verified] The preceding line is read as context and never as content: its own smell is reported once, on its own line — verified by `packages/doctrina-cli/test/a-question-is-not-vagueness.test.js`.
+50. [verified] A scaffolded spec does not turn zero anchors into a green verdict, and `trace` and `doctor` read the empty tree the same way — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
+51. [verified] A cited anchor with none declared is a gap that fails `--strict`, a declared and realized anchor is still green, and a project that declared nothing is still not nagged — verified by `packages/doctrina-cli/test/trace-does-not-approve-nothing.test.js`.
+52. [verified] A one-element group and a nested group each match exactly the files they name, and an unmatched brace matches nothing — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
+53. [verified] A nested `**Source:**` declaration claims every file it names and is not reported as a dead pattern, and the `*`, `**` and `?` patterns behave exactly as before — verified by `packages/doctrina-cli/test/brace-expansion-is-exact.test.js`.
+54. [verified] A chore that cites commands produces no surface signal and closes without `--force`, and the verification section leaks none — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
+55. [verified] A product change naming a command in its What still signals, and the archived product changes keep their signals — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
+56. [verified] A close whose verify step was skipped does not report the change as verified and names the skip, while a close that runs every gate still claims all three — verified by `packages/doctrina-cli/test/the-close-claims-only-what-it-ran.test.js`.
+57. [verified] A step with nothing to check reports the absence, and a step with something to check reports how much it checked — verified by `packages/doctrina-cli/test/the-close-claims-only-what-it-ran.test.js`.
+58. [verified] A filter naming no capability is refused with the usage class and prints no verdict, a near miss is named, and one bad name in a list is enough to refuse — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
+59. [verified] A filter naming a real capability still reports, and an empty tree and an empty capability say different things — verified by `packages/doctrina-cli/test/a-filter-that-matches-nothing.test.js`.
+60. [verified] A ref the repository cannot resolve is refused with the usage class while a valid ref reports exactly what it reported, and a valid ref with no difference is still an empty diff — verified by `packages/doctrina-cli/test/a-ref-that-resolves-to-nothing.test.js`.
+61. [verified] Outside a git repository the command stays silent, and the ref probe tells a missing ref apart from a repository with no commits, which git words identically — verified by `packages/doctrina-cli/test/a-ref-that-resolves-to-nothing.test.js`.
+62. [verified] A path outside the project, an absolute path and a directory leave a criterion dangling with the reason named; a criterion citing one resolving file and one missing file is covered with the missing one named; a directory next to a real proof is silent — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
+63. [verified] A contract with a duplicated port and a reference to a missing spec fails `contract check`, stops the close at the runtime step and fails the doctor's runtime row with the same CT codes, while a contract with no defect and no rows stays unchecked at exit 0 — verified by `packages/doctrina-cli/test/the-close-runs-the-whole-contract-check.test.js`.
+64. [verified] With one covered criterion still marked [unverified], validate proposes "implemented" naming the count, `spec set --implementation auto` writes `implemented`, coverage lists the criterion with the op that flips the mark, and flipping it lets the same doors read `verified` — verified by `packages/doctrina-cli/test/the-mark-is-the-authors.test.js`.
+65. [verified] A spec carrying an English and a Portuguese vague term reports both under per-file detection and only the forced language's under `--lang` — verified by `packages/doctrina-cli/test/the-triage-speaks-portuguese.test.js`.
+66. [verified] `Depends on: fantasma` is a validate error, `Affects specs: fantasma` without an ADDED delta is a warning and with one is silent, and a duplicated `[SC1]` is a validate error named by trace — verified by `packages/doctrina-cli/test/a-ghost-reference-is-named.test.js`.
+67. [verified] An invalid config fails the doctor's config row naming the error, a misspelled key draws a warning from validate and from doctor naming the valid keys, and a valid config is silent — verified by `packages/doctrina-cli/test/the-doctor-reads-the-config-that-exists.test.js`.
+68. [verified] `analyze` refuses an ops block that `apply` would refuse, and names the offending op — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
+69. [verified] The refusal reaches `apply` through the structure gate, not only through `analyze`'s own rendering — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
+70. [verified] A MODIFIED delta with no ops block still passes, and an applied change still archives — verified by `packages/doctrina-cli/test/the-preflight-runs-the-ops.test.js`.
+71. [verified] `clarify` refuses a missing path with the usage class while still gating a real file, and every command taking a path answers a missing one identically — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
+72. [verified] The release job runs `verify`, the packed-install harness and the strict example check, and publishes with `--provenance`; removing any of the four fails the suite — verified by `packages/doctrina-cli/test/the-release-gate-is-not-weaker.test.js`.
+73. [verified] A path named before `verified by` draws no unresolved-evidence note, a second path cited after it still does, and a criterion with no marker keeps every cited path as a claim — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
 
 ## Out of scope for this spec
 
+- The structural gate: what `doctrina validate` refuses, and the grammar
+  of the `.doctrina/` tree it enforces (covered by the `structure` spec).
 - Context assembly and the read-only commands that render project state —
   `context`, `search`, `show`, `status`, `prime`, `handoff`, `report`,
   `why`, `constitution` (covered by the `insight` spec).
