@@ -137,3 +137,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0127-declarar-gate-release-pode — declarar que o gate de release nao pode ser mais fraco que o gate de PR e faze-lo rodar verify e o harness empacotado (specs: gates MODIFIED)
 - 2026-09-11 — 0128-ci-dispara-tambem-pull — o CI dispara também em pull request para develop
 - 2026-09-11 — 0129-coverage-so-cobra-como — coverage so cobra como prova os caminhos citados na clausula de evidencia, nao os nomeados na prosa do criterio (specs: gates MODIFIED)
+- 2026-09-11 — 0130-teste-degradacao-mede-orcamento — o teste de degradação mede o orçamento em vez de fixar 13000

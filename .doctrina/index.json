@@ -2214,6 +2214,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0130-teste-degradacao-mede-orcamento",
+        "title": "o teste de degradação mede o orçamento em vez de fixar 13000",
+        "path": ".doctrina/changes/archive/2026-09-11-0130-teste-degradacao-mede-orcamento",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [
