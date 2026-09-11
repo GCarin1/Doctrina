@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.34.0
+**Version:** 1.35.0
 
 ## Purpose
 
@@ -191,6 +191,7 @@ codes, zero-deps, no-network).
 - When `doctrina close` runs on a change that alters a documented surface, the system shall refuse the close unless the same work also records the change in the project's changelog, shall stay silent for a project that keeps none, and `--force` shall close anyway and record the gap in the archive ledger.
 - When a change's proposal declares `Documented surface: n/a — <why>`, the system shall read the names in that change's prose as mentions and report no surface signal, and shall ignore the declaration when it carries no reason.
 - When `doctrina close` finishes writing — after the archive step, which is the last step that rewrites the index — the system shall compare the index against a rebuild and refuse the close when the two disagree.
+- When the docs gate refuses a change, the system shall name both remedies — documenting the surface, and declaring on the record that the names are only mentioned — before offering to force the close.
 
 ### State-driven
 
@@ -232,6 +233,7 @@ codes, zero-deps, no-network).
 - If a review is asked to diff against a ref the repository cannot resolve, the system shall not report an empty diff; it shall report a usage error naming the ref, because a filter that matches nothing is not a tree with no changes.
 - The system shall not close a change while a contract carries a structural error that `contract check` reports, and shall not report a contract with a structural error as "unchecked" because it declares no Wiring or Selectors rows.
 - The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
+- The system shall not accept a `Documented surface` declaration that lies inside an HTML comment, because annotation is not something a person wrote.
 
 ### Optional
 
@@ -324,6 +326,7 @@ The gate surface is spec-compliant when:
 75. [verified] The declared triggers name every branch work lands on, and removing one fails the suite — verified by `packages/doctrina-cli/test/the-ci-gate-runs-where-work-lands.test.js`.
 76. [verified] A declared, explained non-change reports no signal, `none` reads as `n/a`, a bare one silences nothing, and an undeclared change keeps the gate exactly as sensitive — verified by `packages/doctrina-cli/test/a-mention-is-not-a-change.test.js`.
 77. [verified] The drift step is declared after the archive, a close refuses on an index whose order disagrees with a rebuild even though `validate` passes it, and a clean close leaves an index a rebuild agrees with — verified by `packages/doctrina-cli/test/the-close-checks-what-it-wrote.test.js`.
+78. [verified] The declaration inside a comment does not silence the gate, and a change scaffolded from the shipped proposal template with a real surface change is still caught — verified by `packages/doctrina-cli/test/a-mention-is-not-a-change.test.js`.
 
 ## Out of scope for this spec
 

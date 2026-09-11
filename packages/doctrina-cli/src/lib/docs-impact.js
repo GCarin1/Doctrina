@@ -179,7 +179,13 @@ export function documentedSurfaceSignals(changeDir, projectRoot = null) {
     // author declares it, in the grammar the tree already uses for exactly
     // this — `Realizes: n/a — <why>`: a bare `n/a` is an assertion nobody
     // wrote, and only `n/a` WITH a reason is a decision.
-    const declaredNone = listHeader(text, "Documented surface");
+    // Read it from AUTHORED text only. An HTML comment is annotation — the
+    // rule this module already applies everywhere else, and the one this
+    // header shipped without: a `Documented surface:` line inside a comment
+    // counted, so the example in the proposal template silenced the gate for
+    // every change scaffolded from it. A declaration nobody wrote is not a
+    // declaration, exactly as a bare `n/a` is not one.
+    const declaredNone = listHeader(maskComments(text), "Documented surface");
     if (declaredNone !== null) {
       // The separator is punctuation, not a reason: "n/a —" says no more than
       // "n/a". Strip the word, then the dash, and require words to remain.

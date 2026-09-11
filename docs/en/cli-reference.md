@@ -1758,9 +1758,25 @@ so, on the record, in the grammar the tree already uses for `Realizes:`:
 
 `none` reads the same as `n/a`. A **bare** `n/a` does not silence
 anything: a reason is required, exactly as it is for `Realizes: n/a —
-<why>` and for the deferral `coverage` honours. The header is a
-declaration in the proposal, visible in the diff and in `review` — not a
-switch that turns the gate off.
+<why>` and for the deferral `coverage` honours. Nor does a declaration
+inside an **HTML comment** — annotation is not something a person wrote,
+which is the same rule the gate applies to everything else it reads, and
+what lets the proposal template carry a commented example of the header
+without disarming itself. The header is a declaration in the proposal,
+visible in the diff and in `review` — not a switch that turns the gate off.
+
+The refusal names both remedies, so neither has to be remembered:
+
+<!-- illustrative -->
+
+```
+error: this change alters a documented surface but no docs/ or README change accompanies it:
+  - commands: coverage
+hint: document it in docs/en/, docs/pt/ — whichever this change belongs in.
+      if the names above are only MENTIONED, say so on the record: add
+      `- **Documented surface:** n/a — <why>` to the proposal.
+      or pass --force to close anyway (records the gap).
+```
 
 **What counts as surface is yours to declare.** The gate reads the names
 your `.doctrina/contracts/` state — the Ports, Environment, Wiring and

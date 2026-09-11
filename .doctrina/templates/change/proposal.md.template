@@ -6,6 +6,21 @@
 - **Lane:**
 - **Affects specs:**
 
+<!--
+Optional, and usually absent. The closing docs gate reads COMMAND and FLAG
+names out of the prose below and asks for documentation when it finds any.
+It cannot tell a change from a mention: explaining an effect, or writing a
+Scope boundaries line about what this deliberately does NOT touch, names
+things just as loudly as changing them would.
+
+When that happens, say so on the record instead of forcing the close:
+
+- **Documented surface:** n/a — names two commands to explain an effect; alters neither
+
+`none` reads the same as `n/a`, and a BARE one silences nothing — the
+reason is the declaration.
+-->
+
 ## Why
 
 <!-- The user-visible or technical reason this change exists. -->

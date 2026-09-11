@@ -2,9 +2,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { documentedSurfaceSignals } from "../src/lib/docs-impact.js";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 // NAMING A COMMAND IS NOT CHANGING IT.
 //
@@ -115,6 +118,62 @@ test("a declaration cannot hide a surface the change really alters", () => {
   try {
     const signals = documentedSurfaceSignals(dir, tmp);
     assert.ok(signals.length > 0, "an undeclared reason leaves the gate exactly as sensitive");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// A DECLARATION NOBODY WROTE IS NOT A DECLARATION.
+//
+// An HTML comment is annotation — the rule this module applies everywhere
+// else, and the one the header shipped without. The proposal template now
+// carries a commented EXAMPLE of the declaration, right where an author
+// hitting the gate would look for it; read from raw text, that example
+// silenced the gate for every change scaffolded from the template.
+//
+// Same principle as the bare `n/a`: the reason has to be written, by a person,
+// outside a comment.
+test("the declaration is ignored inside an HTML comment", () => {
+  const { tmp, dir } = proposal([
+    "",
+    "<!--",
+    "When the names below are only mentioned, say so:",
+    "- **Documented surface:** n/a — names a command to explain an effect",
+    "-->",
+    "",
+    "## What",
+    "",
+    "`doctrina validate` gains a `--strict` flag.",
+  ]);
+  try {
+    const signals = documentedSurfaceSignals(dir, tmp);
+    assert.ok(signals.length > 0,
+      `an example in a comment must not silence the gate; got ${JSON.stringify(signals)}`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// And the template that ships this example must prove it on itself: a change
+// scaffolded from it, with a real surface change written in, is still caught.
+test("a change scaffolded from the shipped template is still gated", () => {
+  const templatePath = path.resolve(here, "..", "..", "..",
+    ".doctrina", "templates", "change", "proposal.md.template");
+  const template = readFileSync(templatePath, "utf8");
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "doctrina-tpl-"));
+  try {
+    const dir = path.join(tmp, ".doctrina", "changes", "0001-a-change");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "proposal.md"), template
+      .replace("{{CHANGE_ID}}", "0001-a-change")
+      .replace("{{CHANGE_TITLE}}", "a change")
+      .replace("{{DATE}}", "2026-09-11")
+      .replace("- **Lane:**", "- **Lane:** product")
+      .replace("<!-- The user-visible or technical reason this change exists. -->",
+        "`doctrina validate` gains a `--strict` flag."));
+    const signals = documentedSurfaceSignals(dir, tmp);
+    assert.ok(signals.length > 0,
+      `the template's own example must not disarm the gate; got ${JSON.stringify(signals)}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

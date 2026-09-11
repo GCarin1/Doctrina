@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The mention declaration is named where it is needed, and ignored where it
+  is not.** `Documented surface: n/a — <why>` existed in the code and the CLI
+  reference and nowhere an author would look: not in the proposal template,
+  and not in the refusal itself, which offered only `--force` — the worse of
+  the two exits. Both now name it. It is also read from authored text only: a
+  declaration inside an HTML comment counted, so the template's own example
+  would have disarmed the gate for every change scaffolded from it. (0144)
 - **`close` checks the index it just wrote.** The drift check ran inside
   `verify`, five steps before `archive` — and `archive` is the last step that
   rewrites the index, so the close certified something that had not been

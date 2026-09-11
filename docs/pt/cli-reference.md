@@ -1812,9 +1812,25 @@ escreve declara, no registro, na gramática que a árvore já usa para o
 
 `none` se lê igual a `n/a`. Um `n/a` **pelado** não silencia nada: a razão
 é obrigatória, exatamente como em `Realizes: n/a — <porquê>` e como no
-adiamento que o `coverage` honra. O cabeçalho é uma declaração na
-proposta, visível no diff e no `review` — não um interruptor que desliga o
-gate.
+adiamento que o `coverage` honra. Nem silencia uma declaração dentro de
+**comentário HTML** — anotação não é coisa que alguém escreveu, que é a
+mesma regra que o gate aplica a tudo o mais que lê, e é o que permite ao
+template de proposta carregar um exemplo comentado do cabeçalho sem se
+desarmar. O cabeçalho é uma declaração na proposta, visível no diff e no
+`review` — não um interruptor que desliga o gate.
+
+A recusa nomeia os dois remédios, para que nenhum precise ser lembrado:
+
+<!-- illustrative -->
+
+```
+error: this change alters a documented surface but no docs/ or README change accompanies it:
+  - commands: coverage
+hint: document it in docs/en/, docs/pt/ — whichever this change belongs in.
+      if the names above are only MENTIONED, say so on the record: add
+      `- **Documented surface:** n/a — <why>` to the proposal.
+      or pass --force to close anyway (records the gap).
+```
 
 **O que conta como superfície é você quem declara.** O gate lê os nomes que
 os seus `.doctrina/contracts/` afirmam — as tabelas Ports, Environment,

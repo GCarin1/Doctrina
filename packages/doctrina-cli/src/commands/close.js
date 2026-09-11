@@ -283,8 +283,21 @@ async function closeOne(projectRoot, id, flags) {
         // Doctrina's own repository (change 0058): an adopting project with
         // no `docs/` was being told to write English AND Portuguese and to
         // read a skill it does not have.
-        console.error(c.gray("hint: ") + docsRemedy(projectRoot) +
-          ", or pass --force to close anyway (records the gap)");
+        console.error(c.gray("hint: ") + docsRemedy(projectRoot) + ".");
+        // THE SECOND ANSWER, NAMED WHERE IT IS NEEDED.
+        //
+        // The gate reads names, and a name is all it can see: a change that
+        // explains an effect, or a Scope boundaries line saying what it does
+        // NOT touch, reads exactly like one that alters the command. When the
+        // only remedy on offer was `--force`, an author looking at a false
+        // positive took the worst of the two exits — the ledger fills with
+        // gaps that were never gaps, and a real one stops standing out.
+        //
+        // The declaration exists for precisely this (change 0139) and was
+        // named nowhere the author would be looking.
+        console.error(c.gray("      ") + "if the names above are only MENTIONED, say so on the record: " +
+          "add `- **Documented surface:** n/a — <why>` to the proposal.");
+        console.error(c.gray("      ") + "or pass --force to close anyway (records the gap).");
         docsGap = r;
         return 1;
       },
