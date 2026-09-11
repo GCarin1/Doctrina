@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.29.0",
+        "version": "1.30.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -2201,6 +2201,19 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0129-coverage-so-cobra-como",
+        "title": "coverage so cobra como prova os caminhos citados na clausula de evidencia, nao os nomeados na prosa do criterio",
+        "path": ".doctrina/changes/archive/2026-09-11-0129-coverage-so-cobra-como",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

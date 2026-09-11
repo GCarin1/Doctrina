@@ -1245,6 +1245,23 @@ mention and stays silent. A criterion that cites one path that resolves
 and one that does not is covered, and the report names the one that
 does not.
 
+**Describing is not citing.** A criterion has two halves — the observable
+signal, then the proof — and the grammar separates them with `verified
+by` (`proven by`, `evidenced by`, `demonstrated by` and the Portuguese
+`verificado por` count too). Only paths **after** that marker are read as
+claims of evidence. A path named before it is the scenario the criterion
+describes, not a second proof it offered:
+
+```
+1. [verified] A loose `specs/legacy.md` draws one warning
+   — verified by `test/a-spec-off-the-path-is-named.test.js`.
+```
+
+`specs/legacy.md` exists only inside that test, and the report stays
+quiet about it. Cite two paths after the marker and a broken one is still
+named. A criterion with no marker keeps the older rule, where every cited
+path is a claim — so a project not using this grammar loses nothing.
+
 ### Orchestration criteria
 
 Citation is the right proof for "this function behaves" and the wrong one

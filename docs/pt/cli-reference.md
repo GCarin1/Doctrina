@@ -1282,6 +1282,25 @@ real é menção em prosa e fica em silêncio. Um critério que cita um
 caminho que resolve e um que não resolve está coberto, e o relatório
 nomeia o que não resolve.
 
+**Descrever não é citar.** Um critério tem duas metades — o sinal
+observável e depois a prova — e a gramática separa as duas com
+`verified by` (também valem `proven by`, `evidenced by`,
+`demonstrated by` e o português `verificado por`). Só os caminhos
+**depois** dessa marca são lidos como reivindicação de evidência. Um
+caminho nomeado antes dela é o cenário que o critério descreve, não uma
+segunda prova que ele ofereceu:
+
+```
+1. [verified] Um `specs/legacy.md` solto tira um warning
+   — verified by `test/a-spec-off-the-path-is-named.test.js`.
+```
+
+`specs/legacy.md` só existe dentro daquele teste, e o relatório fica
+quieto sobre ele. Cite dois caminhos depois da marca e um quebrado
+continua sendo apontado. Um critério sem marca mantém a regra anterior,
+em que todo caminho citado é reivindicação — então um projeto que não usa
+esta gramática não perde nada.
+
 ### Critérios de orquestração
 
 Citação é a prova certa para "esta função se comporta" e a errada para "o

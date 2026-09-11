@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-09-11
-**Version:** 1.29.0
+**Version:** 1.30.0
 
 ## Purpose
 
@@ -284,6 +284,7 @@ codes, zero-deps, no-network).
 - When a gate command is given a path that does not exist, the system shall report a usage error rather than a gate failure, so a consumer does not retry an invocation that cannot succeed unchanged.
 - When `doctrina validate` runs with `--strict`, the system shall count every warning as a failure and exit 1, and shall name `--strict` as the cause when it found no error.
 - When the project publishes a release, the system shall run every gate a pull request already runs, and shall not publish while any of them fails.
+- When a criterion cites its proof after a citation marker, the system shall read only the paths in that citation as claims of evidence, and shall treat the paths named before it as the scenario the criterion describes.
 
 ### State-driven
 
@@ -425,6 +426,7 @@ The gate surface is spec-compliant when:
 78. [verified] `clarify` refuses a missing path with the usage class while still gating a real file, and every command taking a path answers a missing one identically — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
 79. [verified] `validate --strict` exits 1 on a tree whose only finding is a warning, exits 0 on a tree with nothing to say, and reports the mode it ran in under `--json` — verified by `packages/doctrina-cli/test/integration.test.js`.
 80. [verified] The release job runs `verify`, the packed-install harness and the strict example check, and publishes with `--provenance`; removing any of the four fails the suite — verified by `packages/doctrina-cli/test/the-release-gate-is-not-weaker.test.js`.
+81. [verified] A path named before `verified by` draws no unresolved-evidence note, a second path cited after it still does, and a criterion with no marker keeps every cited path as a claim — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
 
 ## Out of scope for this spec
 

@@ -82,3 +82,48 @@ test("one citation resolving does not make the other one true, and it is named",
   assert.match(res.stdout, /#1  also cites evidence that does not resolve: `tests\/nope\.py`/);
   assert.doesNotMatch(res.stdout, /#2 /, "a directory next to a real proof is a prose mention");
 });
+
+// A criterion has two halves and they mean opposite things: what it DESCRIBES,
+// and what it CITES. The grammar separates them with "verified by".
+//
+// Criterion 72 of the gates spec describes the scenario by name — "a loose
+// `specs/legacy.md` ... draws one validate warning" — and those files exist
+// only inside the test that builds them. Coverage read the scenario as a
+// second evidence claim and printed "also cites evidence that does not
+// resolve" on every run, forever. A complaint that never changes trains its
+// reader to skip the line it appears on, which costs more than the check is
+// worth.
+test("a path NAMED before the citation is scenario, not a second claim", () => {
+  const dir = project([
+    "1. [verified] A loose `specs/legacy.md` and a `specs/carteira/spec-old.md` each draw "
+      + "one warning — verified by `tests/test_carteira.py`.",
+  ]);
+  const res = run(dir, ["coverage", "--strict"]);
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+  assert.match(res.stdout, /carteira\s+1\/1 criteria/);
+  assert.doesNotMatch(res.stdout, /also cites evidence that does not resolve/,
+    "the subject a criterion describes is not proof it offered");
+});
+
+// The narrowing must not become a way to hide a broken citation: everything
+// after the marker is still a claim, however many there are.
+test("an unresolvable path AFTER the citation is still named", () => {
+  const dir = project([
+    "1. [verified] A loose `specs/legacy.md` draws one warning — verified by "
+      + "`tests/nope.py` and `tests/test_carteira.py`.",
+  ]);
+  const res = run(dir, ["coverage", "--strict"]);
+  assert.match(res.stdout, /#1  also cites evidence that does not resolve: `tests\/nope\.py`/);
+  assert.doesNotMatch(res.stdout, /legacy\.md/,
+    "only the citation half is read as a claim");
+});
+
+// A project that does not write "verified by" loses nothing: with no marker to
+// split on, every backtick path stays a claim, exactly as before.
+test("with no citation marker, every cited path is still a claim", () => {
+  const dir = project([
+    "1. [verified] two cites, no marker: `tests/nope.py` and `tests/test_carteira.py`.",
+  ]);
+  const res = run(dir, ["coverage", "--strict"]);
+  assert.match(res.stdout, /#1  also cites evidence that does not resolve: `tests\/nope\.py`/);
+});
