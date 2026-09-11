@@ -177,3 +177,37 @@ Abra um `doctrina change new` cujo proposal nomeie o item deste
 registro, o gatilho que disparou e o escopo da remoção. A pasta
 de change ship o trabalho; este doc é atualizado para registrar o
 novo status.
+
+## A falha do pacote de contexto em macOS com Node 20.12
+
+**Status:** aberta — estreitada e instrumentada, não fechada.
+Precisa de um runner macOS.
+
+Dois testes falham em macOS com Node 20.12 e em nenhuma outra perna
+da matriz — nem Linux, nem Windows, nem macOS com Node 22. Estão
+vermelhos no CI desde pelo menos 2026-08-06, tempo suficiente para
+a cor deixar de ser lida.
+
+Os dois são sobre montagem de contexto, e os dois viram um pacote
+MENOR do que deveria: um esperava `.doctrina/product.md` na saída
+`--concat` e recebeu um pacote que terminava depois do `AGENTS.md`;
+o outro esperava algum ADR resumido sob um orçamento fixo e não
+encontrou nada degradado, que é o que um pacote menor produz.
+
+**O que foi descartado.** Um diretório de trabalho por symlink — o
+suspeito óbvio, já que o macOS resolve `/var/folders/...` para
+`/private/var/...` e o `os.tmpdir()` mora ali — foi reproduzido no
+Linux com um symlink explícito e não reproduziu a falha.
+
+**O que foi feito no lugar.** A change 0130 tirou do segundo teste
+a dependência de um orçamento fixo: ele agora mede a janela entre o
+núcleo irredutível do pacote e seu tamanho cheio, então um pacote
+menor em qualquer plataforma não o quebra mais. A change 0133
+desmontou o primeiro teste nos seus cinco elos — init, o arquivo em
+disco, a listagem escopada, a execução com concat, a renderização —
+cada um dizendo o que encontrou. A próxima execução em macOS
+reporta qual elo quebrou, em vez de um regex ausente.
+
+**Gatilho para revisitar:** a próxima execução de CI em macOS com
+Node 20.12. A falha agora nomeia a própria causa; feche a partir
+daquele log. Se voltar verde, a change 0130 era tudo.

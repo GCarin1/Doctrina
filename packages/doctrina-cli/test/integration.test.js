@@ -1436,19 +1436,54 @@ test("context prints the read-order pack and lists skills on demand", () => {
   }
 });
 
+// THIS TEST FAILS ON macOS WITH NODE 20.12 AND NOWHERE ELSE.
+//
+// Not on Linux, not on Windows, not on macOS with Node 22 — only that one
+// intersection, and it has been red in CI since at least 2026-08-06. What the
+// log showed was a pack that ended after AGENTS.md, with no `.doctrina/
+// product.md` section, and a one-line assertion failure that could not say
+// which of five possible links had broken: init, the file on disk, the scoped
+// run, the concat run, or the rendering.
+//
+// A symlinked working directory — the obvious suspect, since macOS resolves
+// `/var/folders/...` to `/private/var/...` — was reproduced on Linux and did
+// NOT reproduce the failure, so that hypothesis is ruled out.
+//
+// Without a macOS runner the cause cannot be settled here. What CAN be done is
+// make the next macOS run name it: every link is checked in order, and the
+// first broken one says what it is and what it found. The assertions below are
+// the same promise as before, taken apart.
 test("context excludes non-accepted ADRs and --concat prints contents", () => {
   const tmp = makeTempProject();
   try {
-    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const init = runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    assert.equal(init.status, 0, `init failed: ${init.stdout}${init.stderr}`);
+
+    // Link 1: the pack cannot carry what was never written.
+    const productPath = path.join(tmp, ".doctrina", "product.md");
+    assert.ok(existsSync(productPath),
+      `init wrote no .doctrina/product.md; the tree is: ${readdirSync(path.join(tmp, ".doctrina")).join(", ")}`);
+
     runCli(["decision", "new", "Still proposed"], { cwd: tmp });
     const r = runCli(["context"], { cwd: tmp });
-    assert.equal(r.status, 0);
+    assert.equal(r.status, 0, r.stderr || r.stdout);
     assert.ok(!r.stdout.includes("still-proposed"), "proposed ADRs stay out of the pack");
 
+    // Link 2: the scoped listing must already name product.md. If it does not,
+    // the fault is in ASSEMBLY and --concat is downstream of it.
+    assert.match(r.stdout, /product\.md/,
+      `the pack listing omits product.md entirely:\n${r.stdout}`);
+
     const concat = runCli(["context", "--concat"], { cwd: tmp });
-    assert.equal(concat.status, 0);
-    assert.match(concat.stdout, /===== AGENTS\.md \(root rules\) =====/);
-    assert.match(concat.stdout, /===== \.doctrina\/product\.md/);
+    assert.equal(concat.status, 0, concat.stderr || concat.stdout);
+
+    // Link 3: rendering. Compare the section headers the pack actually printed,
+    // so a failure shows the list instead of one missing regex.
+    const headers = concat.stdout.split("\n").filter((l) => l.startsWith("====="));
+    assert.match(concat.stdout, /===== AGENTS\.md \(root rules\) =====/,
+      `sections printed: ${JSON.stringify(headers)}`);
+    assert.match(concat.stdout, /===== \.doctrina\/product\.md/,
+      `product.md is on disk and in the listing, but --concat printed: ${JSON.stringify(headers)}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -142,3 +142,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — replace-requirement substitui o bullet inteiro, nao so a primeira linha, e a prosa orfa que ele deixou sai das specs (specs: authoring MODIFIED)
   - 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — docs gap: closed with --force; declared surface: verify; flags: --force, --rules, --signoff documented nowhere
 - 2026-09-11 — 0132-drivers-sequenciam-gates-viram — os drivers que sequenciam os gates viram a capacidade closing, tirando a spec gates do teto de 400 linhas (specs: gates MODIFIED, structure MODIFIED)
+- 2026-09-11 — 0133-teste-pacote-contexto-diz — o teste do pacote de contexto diz qual elo quebrou

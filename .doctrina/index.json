@@ -525,11 +525,11 @@
         "title": "Um gate de forma e um gate de prova: validate sai de gates para structure",
         "status": "accepted",
         "date": "2026-09-11",
-        "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para",
         "scope": [
           "gates",
           "structure"
-        ]
+        ],
+        "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
     "changes": [],
@@ -2280,6 +2280,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0133-teste-pacote-contexto-diz",
+        "title": "o teste do pacote de contexto diz qual elo quebrou",
+        "path": ".doctrina/changes/archive/2026-09-11-0133-teste-pacote-contexto-diz",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [

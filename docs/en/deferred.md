@@ -131,6 +131,41 @@ fixture — the CLI itself, or an adopting team's artifacts, behaving
 differently by platform. Until then the assumption is linted and the
 bytes are left alone.
 
+## The macOS + Node 20.12 context-pack failure
+
+**Status:** open — narrowed and instrumented, not closed. Needs a
+macOS runner.
+
+Two tests fail on macOS with Node 20.12 and on no other leg of the
+matrix — not Linux, not Windows, not macOS with Node 22. They have
+been red in CI since at least 2026-08-06, which is long enough that
+the colour stopped being read.
+
+Both are about context assembly, and both saw a pack that was
+SMALLER than it should be: one expected `.doctrina/product.md` in
+the `--concat` output and got a pack that ended after `AGENTS.md`;
+the other expected some ADR to be summarised under a fixed budget
+and found nothing degraded, which is what a smaller pack produces.
+
+**What has been ruled out.** A symlinked working directory — the
+obvious suspect, since macOS resolves `/var/folders/...` to
+`/private/var/...` and `os.tmpdir()` sits under it — was reproduced
+on Linux with an explicit symlink and did not reproduce the
+failure.
+
+**What was done instead.** Change 0130 removed the second test's
+dependence on a hardcoded budget: it now measures the window
+between the pack's irreducible core and its full size, so a
+smaller pack on any platform no longer breaks it. Change 0133 took
+the first test apart into its five links — init, the file on disk,
+the scoped listing, the concat run, the rendering — each naming
+what it found. The next macOS run reports which link broke
+instead of one missing regex.
+
+**Trigger to revisit:** the next CI run on macOS with Node 20.12.
+The failure now names its own cause; close it from that log. If it
+comes back green, change 0130 was the whole of it.
+
 ## Other items deferred or scoped out
 
 - **`/checklist` quality-gate command.** The spec template's
