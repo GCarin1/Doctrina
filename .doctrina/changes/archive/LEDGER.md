@@ -163,3 +163,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0154-desfazer-a-premissa-falsa-da-0149 — desfazer a premissa falsa da 0149 (specs: templates MODIFIED)
 - 2026-09-11 — 0150-sequencia-de-close-repetida-de-copia-velha — sequencia de close repetida de copia velha (specs: docs MODIFIED, gates MODIFIED)
 - 2026-09-11 — 0151-gate-de-pr-cobre-toda-checagem-declarada — gate de pr cobre toda checagem declarada (specs: gates MODIFIED)
+- 2026-09-11 — 0152-insight-descreve-saidas-que-o-cli-nao-tem — insight descreve saidas que o cli nao tem (specs: insight MODIFIED)

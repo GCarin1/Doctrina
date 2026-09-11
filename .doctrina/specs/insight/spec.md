@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.7.0
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -77,20 +77,8 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   (including untracked files), while open changes remain always
   included; a missing repository or unresolvable ref shall produce a
   clear error and exit 1.
-- When `doctrina search <term> [...]` runs, the system shall report
-  lines where every term matches case-insensitively, grouped by artifact
-  category (specs, decisions, changes, skills, product, AGENTS.md) and
-  ranked best-first within each category (heading, metadata-header,
-  full-phrase, and filename matches score higher), excluding the change
-  archive unless `--archive` is supplied, and shall exit 0 when matches
-  exist and 1 otherwise. The command is strictly read-only.
-- When `doctrina show <ref>` runs, the system shall resolve
-  `<cap>-R<n>` to the nth requirement bullet of that spec (file order,
-  printed with its EARS section name), `<cap>-C<n>` to the acceptance
-  criterion carrying that explicit number (with its cited evidence), a
-  four-digit number to the matching ADR, and a bare capability name to
-  the spec's header block plus Purpose — read-only, exiting 1 for an
-  unresolvable reference and 2 for a malformed one.
+- When `doctrina search <term> [...]` runs, the system shall report lines where every term matches case-insensitively, grouped by artifact category (specs, decisions, changes, skills, product, AGENTS.md) and ranked best-first within each category (heading, metadata-header, full-phrase, and filename matches score higher), excluding the change archive unless `--archive` is supplied. Finding nothing is not failing: a search with no match says so and exits successfully, like every other view. The command is strictly read-only.
+- When `doctrina show <ref>` runs, the system shall resolve `<cap>-R<n>` to the nth requirement bullet of that spec (file order, printed with its EARS section name), `<cap>-C<n>` to the acceptance criterion carrying that explicit number (with its cited evidence), a four-digit number to the matching ADR, and a bare capability name to the spec's header block plus Purpose — read-only, answering a reference it cannot resolve with the usage class, as every command that takes a reference does.
 - When `doctrina prime` runs, the system shall print the session
   primer — the gate digest, artifact counts, accepted ADR titles with
   the non-goal count, open changes with task progress, and the top
@@ -150,6 +138,7 @@ The read path is spec-compliant when:
 16. [verified] A repository with no commits, a directory that is not a repository, and a repository with history each produce their own sentence, and `report` and `metrics` agree about the same tree — verified by `packages/doctrina-cli/test/one-state-one-sentence.test.js`.
 17. [verified] A query with and without accents finds the same accented text, and folding does not make an absent term match — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
 18. [verified] No heading in the `handoff` or `report` document is glued to the preceding line, with open changes and with none — verified by `packages/doctrina-cli/test/o-handoff-e-markdown-valido.test.js`.
+19. [verified] A search with no match and a reference that does not resolve each cost the class the CLI-wide contract gives them, so this spec and the `cli` spec cannot describe two different commands — verified by `packages/doctrina-cli/test/a-spec-descreve-o-cli-que-existe.test.js`.
 
 ## Out of scope for this spec
 

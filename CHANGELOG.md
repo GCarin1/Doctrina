@@ -19,6 +19,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The `insight` spec describes the CLI that exists.** Split out of `gates`
+  with its requirement text carried over, it kept two sentences the CLI had
+  already moved past: `search` "shall exit 0 when matches exist and 1
+  otherwise", and `show` "exiting 1 for an unresolvable reference". The CLI
+  exits 0 and 2, and the `cli` spec says so in its own words — so the tree held
+  two specs contradicting each other about the same command with every gate
+  green, because coverage asks whether a criterion cites evidence, never
+  whether a requirement is true. No behaviour changed; the spec did. (0152)
+
 - **Every declared check runs before integration, not after it.**
   `.doctrina/verify.json` declares eight checks; the release job ran all eight
   through `doctrina verify`, while every pull request ran a hand-copied subset
