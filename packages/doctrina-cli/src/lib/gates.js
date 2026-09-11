@@ -179,6 +179,20 @@ export const SEQUENCES = {
     { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
     { id: "docs", label: "docs", level: "forceable", argv: null, rerun: "document the change, then rerun" },
     { id: "archive", label: "archive", level: "blocking", argv: ["change", "archive", "<id>"] },
+    // AFTER the archive, because the archive is the last step that WRITES the
+    // index, and a gate placed before the step it guards cannot guard it.
+    //
+    // The drift check already ran, inside `verify` — and that is exactly why
+    // it missed: `verify` is five steps earlier, so it certified an index the
+    // archive had not yet rewritten. Change 0138 closed green on a tree whose
+    // index had drifted, the commit shipped, and all six test legs of CI went
+    // red on the next push. The close was not wrong about what it checked; it
+    // checked before the damage.
+    //
+    // `validate` cannot stand in for it: drift of that kind is only visible by
+    // rebuilding the index and comparing, which validate deliberately does not
+    // do.
+    { id: "index-drift", label: "index drift", level: "blocking", argv: ["index", "rebuild", "--check"] },
     { id: "validate", label: "validate", level: "blocking", argv: ["validate"] },
   ],
 

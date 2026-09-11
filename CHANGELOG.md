@@ -19,6 +19,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`close` checks the index it just wrote.** The drift check ran inside
+  `verify`, five steps before `archive` — and `archive` is the last step that
+  rewrites the index, so the close certified something that had not been
+  written yet. A gate placed before the step it guards cannot guard it; the
+  check now runs after the archive, where `validate` cannot stand in for it.
+  (0143)
 - **The index is written the same way twice.** Commands that create an
   artifact appended it to `index.json`, while `index rebuild` writes what the
   directory walk finds, in sorted order — so the two disagreed whenever a new

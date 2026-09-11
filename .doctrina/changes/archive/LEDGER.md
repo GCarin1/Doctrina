@@ -153,3 +153,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0140-exemplo-divisao-spec-playbook — o exemplo de divisão de spec no playbook conta as três divisões
 - 2026-09-11 — 0141-fechar-entrada-deferred-sobre — fechar a entrada de deferred sobre macOS
 - 2026-09-11 — 0142-indice-guarda-cada-categoria — o indice guarda cada categoria na mesma ordem que o rebuild produz, em vez de acrescentar no fim (specs: scaffolding MODIFIED)
+- 2026-09-11 — 0143-close-checa-deriva-indice — o close checa a deriva de indice depois do passo que a escreve, nao antes (specs: gates MODIFIED)

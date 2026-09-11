@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.33.0
+**Version:** 1.34.0
 
 ## Purpose
 
@@ -190,6 +190,7 @@ codes, zero-deps, no-network).
 - When a criterion cites its proof after a citation marker, the system shall read only the paths in that citation as claims of evidence, and shall treat the paths named before it as the scenario the criterion describes.
 - When `doctrina close` runs on a change that alters a documented surface, the system shall refuse the close unless the same work also records the change in the project's changelog, shall stay silent for a project that keeps none, and `--force` shall close anyway and record the gap in the archive ledger.
 - When a change's proposal declares `Documented surface: n/a — <why>`, the system shall read the names in that change's prose as mentions and report no surface signal, and shall ignore the declaration when it carries no reason.
+- When `doctrina close` finishes writing — after the archive step, which is the last step that rewrites the index — the system shall compare the index against a rebuild and refuse the close when the two disagree.
 
 ### State-driven
 
@@ -322,6 +323,7 @@ The gate surface is spec-compliant when:
 74. [verified] A surface change with an untouched changelog is refused naming what it saw change, touching the changelog satisfies it, a change touching no documented surface is never asked, and a project with no changelog is never given one to keep — verified by `packages/doctrina-cli/test/the-changelog-is-a-gate.test.js`.
 75. [verified] The declared triggers name every branch work lands on, and removing one fails the suite — verified by `packages/doctrina-cli/test/the-ci-gate-runs-where-work-lands.test.js`.
 76. [verified] A declared, explained non-change reports no signal, `none` reads as `n/a`, a bare one silences nothing, and an undeclared change keeps the gate exactly as sensitive — verified by `packages/doctrina-cli/test/a-mention-is-not-a-change.test.js`.
+77. [verified] The drift step is declared after the archive, a close refuses on an index whose order disagrees with a rebuild even though `validate` passes it, and a clean close leaves an index a rebuild agrees with — verified by `packages/doctrina-cli/test/the-close-checks-what-it-wrote.test.js`.
 
 ## Out of scope for this spec
 

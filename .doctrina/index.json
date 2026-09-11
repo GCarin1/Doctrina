@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.33.0",
+        "version": "1.34.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -2400,6 +2400,19 @@
         "specs_affected": [
           {
             "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0143-close-checa-deriva-indice",
+        "title": "o close checa a deriva de indice depois do passo que a escreve, nao antes",
+        "path": ".doctrina/changes/archive/2026-09-11-0143-close-checa-deriva-indice",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

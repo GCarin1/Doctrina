@@ -19,6 +19,7 @@ import * as verify from "./verify.js";
 import * as coverage from "./coverage.js";
 import * as trace from "./trace.js";
 import * as validate from "./validate.js";
+import * as indexRebuild from "./index-rebuild.js";
 import { appendLedgerLine, docsGapLine, ledgerPath as ledgerFile } from "../lib/ledger.js";
 import * as review from "./review.js";
 import * as skill from "./skill.js";
@@ -293,6 +294,10 @@ async function closeOne(projectRoot, id, flags) {
       rerun: `doctrina change archive ${id}${force ? " --force" : ""}`,
       run: () => change.run(["archive", id], archiveFlags),
     },
+
+    // In-process, like every other runner here: the close starts no subprocess
+    // of its own binary, and a criterion holds it to that.
+    "index-drift": { run: () => indexRebuild.run(["rebuild"], new Map([["check", true]])) },
 
     validate: { run: () => validate.run([], new Map()) },
   };
