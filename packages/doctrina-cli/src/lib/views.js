@@ -222,6 +222,9 @@ export function handoff(s) {
     out.push("## Open work");
     out.push("");
     out.push("- none — the tree is at rest; start with `doctrina work \"<prompt>\"`");
+    // The note is pasted into another session, so the section has to END like
+    // the loop below ends: a heading glued to a list item is not a heading.
+    out.push("");
   } else {
     for (const ch of s.openChanges) {
       out.push(`## Open change \`${ch.id}\`${ch.title ? ` — ${ch.title}` : ""}`);

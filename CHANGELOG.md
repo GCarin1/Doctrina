@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The handoff note is valid Markdown in both states of the tree.** With an
+  open change the section ended in a blank line; with none, `- none — the tree
+  is at rest` ran straight into `## Next actions`, which a parser then reads as
+  more list text rather than a heading. A note written on a tree at rest is
+  exactly the note nobody proofreads before pasting it into the next session.
+  The shape is now checked over the whole document — every heading of every
+  Markdown view, with work open and with none. (0148)
+
 - **A skill name folds the accent instead of deleting the letter.** The
   skills module named its files by stripping everything outside `[a-z0-9-]`
   from raw text — a class that does not normalise but destroys: capitals
