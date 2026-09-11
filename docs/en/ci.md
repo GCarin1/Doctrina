@@ -121,3 +121,39 @@ its own project and checks each.
 run against the commit before the fixes, it reproduces the defects it now
 guards. CI runs it on Linux and Windows, because path handling is a
 plausible failure the in-repo suite cannot see.
+
+## The release gate
+
+A release is the last moment a defect is cheap, so the publish job runs
+**every gate a pull request already runs** — never a subset of it.
+
+This repository's own `release.yml` fires on a `v*` tag and, before
+`npm publish`, runs:
+
+```
+npm ci
+node packages/doctrina-cli/src/index.js verify     # the eight declared checks
+node scripts/e2e-packed.mjs                        # what the tarball really does
+# then, per example: doctrina validate --strict
+```
+
+Three things are worth copying into your own release workflow.
+
+**Run `verify`, not a hand-written list.** `verify` executes the checks
+declared in `.doctrina/verify.json` — the same list the gates action runs.
+One declaration, so the release gate cannot quietly drift away from the PR
+gate.
+
+**Exercise the artifact you are about to publish**, not the checkout you
+built it from. Three defects here were invisible from a source tree and
+obvious from a packed install, and a publish is where that class stops
+landing on you and starts landing on the people who install it.
+
+**Publish with `--provenance`.** The job already requests
+`id-token: write`; without the flag that permission is granted and spent on
+nothing. With it, npm records a signed attestation tying the tarball to the
+workflow run and the commit that produced it.
+
+The requirement is enforced, not merely written down:
+`test/the-release-gate-is-not-weaker.test.js` reads both workflows and
+fails when a gate the PR job runs has no counterpart in the release job.

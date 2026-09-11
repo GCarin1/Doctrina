@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.28.0",
+        "version": "1.29.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -2172,6 +2172,19 @@
         "id": "0126-validate-ganha-modo-estrito",
         "title": "validate ganha um modo estrito que trata warning como erro, para o passo de CI dos exemplos poder reprovar",
         "path": ".doctrina/changes/archive/2026-09-11-0126-validate-ganha-modo-estrito",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0127-declarar-gate-release-pode",
+        "title": "declarar que o gate de release nao pode ser mais fraco que o gate de PR e faze-lo rodar verify e o harness empacotado",
+        "path": ".doctrina/changes/archive/2026-09-11-0127-declarar-gate-release-pode",
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": [

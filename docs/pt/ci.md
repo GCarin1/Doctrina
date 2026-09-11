@@ -125,3 +125,42 @@ O `--repo <caminho>` o aponta para outro checkout, que foi como ele se
 provou: rodado contra o commit anterior às correções, ele reproduz os
 defeitos que agora guarda. O CI o executa em Linux e Windows, porque
 tratamento de caminhos é uma falha plausível que a suíte in-repo não vê.
+
+## O gate de release
+
+Um release é o último momento em que um defeito ainda é barato, então o
+job de publicação roda **todo gate que um pull request já roda** — nunca
+um subconjunto dele.
+
+O `release.yml` deste repositório dispara numa tag `v*` e, antes do
+`npm publish`, roda:
+
+```
+npm ci
+node packages/doctrina-cli/src/index.js verify     # os oito checks declarados
+node scripts/e2e-packed.mjs                        # o que o tarball faz de fato
+# depois, por exemplo: doctrina validate --strict
+```
+
+Três coisas valem copiar para o seu próprio workflow de release.
+
+**Rode `verify`, não uma lista escrita à mão.** O `verify` executa os
+checks declarados em `.doctrina/verify.json` — a mesma lista que a action
+de gates usa. Uma declaração só, então o gate de release não tem como
+derivar em silêncio do gate de PR.
+
+**Exercite o artefato que você está prestes a publicar**, não o checkout a
+partir do qual ele foi construído. Três defeitos aqui foram invisíveis a
+partir da árvore de fontes e óbvios a partir de uma instalação
+empacotada, e o publish é onde essa classe deixa de cair sobre você e
+passa a cair sobre quem instala.
+
+**Publique com `--provenance`.** O job já pede `id-token: write`; sem a
+flag, essa permissão é concedida e gasta em nada. Com ela, o npm registra
+uma atestação assinada que liga o tarball à execução do workflow e ao
+commit que o produziu.
+
+O requisito é cobrado, não apenas escrito:
+`test/the-release-gate-is-not-weaker.test.js` lê os dois workflows e
+reprova quando um gate que o job de PR roda não tem contrapartida no job
+de release.
