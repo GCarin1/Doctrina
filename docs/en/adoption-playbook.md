@@ -125,10 +125,15 @@ it.
    to work on it. A parked spec becomes a lie.
 2. **Keep the two axes honest.** Backfilling everything as `[verified]` is
    the anti-pattern — let `coverage` / `trace` show the debt.
-3. **Right-size your specs (review item 3.7).** Doctrina's own `cli` spec
-   once grew past the 400-line cap and had to be split into `cli` +
-   `gates` — a live example of over-spec'ing and of the fix. Keep yours
-   small and split by capability.
+3. **Right-size your specs (review item 3.7).** Doctrina's own specs have
+   crossed the 400-line cap three times: `cli` split into `cli` + `gates`,
+   then `gates` gave up its read-only half to `insight`, then `validate`
+   left `gates` for `structure` (ADR 0028). Three is the lesson — a spec
+   that outgrows the cap once will do it again, so split by responsibility
+   rather than trimming prose to fit. The third split measured three
+   candidate seams against the tree first: the most tempting one returned
+   only 20 lines and would have left the spec over the cap with one more
+   capability to maintain. Keep yours small and split by capability.
 4. **Retroactive ADRs are discoveries, not authorship.** When you find a
    past decision in the code, write the ADR dated today with a "discovered,
    not authored on this date" note (see [Brownfield adoption](brownfield.md)).

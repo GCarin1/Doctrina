@@ -2350,6 +2350,19 @@
         ]
       },
       {
+        "id": "0138-invariante-onde-ci-roda",
+        "title": "o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao",
+        "path": ".doctrina/changes/archive/2026-09-11-0138-invariante-onde-ci-roda",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
         "id": "0139-change-pode-declarar-citou",
         "title": "uma change pode declarar que citou uma superficie sem alterar, em vez de forcar o close",
         "path": ".doctrina/changes/archive/2026-09-11-0139-change-pode-declarar-citou",
@@ -2363,17 +2376,12 @@
         ]
       },
       {
-        "id": "0138-invariante-onde-ci-roda",
-        "title": "o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao",
-        "path": ".doctrina/changes/archive/2026-09-11-0138-invariante-onde-ci-roda",
+        "id": "0140-exemplo-divisao-spec-playbook",
+        "title": "o exemplo de divisão de spec no playbook conta as três divisões",
+        "path": ".doctrina/changes/archive/2026-09-11-0140-exemplo-divisao-spec-playbook",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": [
-          {
-            "capability": "gates",
-            "operation": "MODIFIED"
-          }
-        ]
+        "specs_affected": []
       }
     ],
     "skills": [

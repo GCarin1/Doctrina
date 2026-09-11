@@ -133,10 +133,16 @@ spec, documente-a.
 2. **Mantenha os dois eixos honestos.** Fazer backfill com tudo
    `[verified]` é o anti-padrão — deixe `coverage` / `trace` mostrarem a
    dívida.
-3. **Right-size suas specs (item 3.7 do review).** A própria spec `cli` da
-   Doctrina chegou a estourar o teto de 400 linhas e precisou ser dividida
-   em `cli` + `gates` — exemplo vivo de over-spec e da correção. Mantenha
-   as suas pequenas e divididas por capability.
+3. **Right-size suas specs (item 3.7 do review).** As specs da própria
+   Doctrina estouraram o teto de 400 linhas três vezes: a `cli` se dividiu
+   em `cli` + `gates`, depois a `gates` entregou sua metade somente-leitura
+   para `insight`, e depois o `validate` saiu de `gates` para `structure`
+   (ADR 0028). O três é a lição — uma spec que estoura o teto uma vez
+   estoura de novo, então divida por responsabilidade em vez de aparar
+   prosa para caber. A terceira divisão mediu três eixos candidatos contra
+   a árvore antes de escolher: o mais tentador devolvia só 20 linhas e
+   deixaria a spec acima do teto com uma capacidade a mais para manter.
+   Mantenha as suas pequenas e divididas por capability.
 4. **ADRs retroativos são descobertas, não autoria.** Quando achar uma
    decisão passada no código, escreva o ADR com a data de hoje e uma nota
    "descoberto, não autorado nesta data" (veja
