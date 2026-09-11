@@ -36,9 +36,9 @@ Enforce a per-API-key request quota inside a rolling time window.
 
 ### State-driven
 
-- While the process is running, all counters are held in memory.
-  Restarting the process clears all counters; this is documented
-  in ADR 0002.
+- While the process is running, the system shall hold all counters
+  in memory. Restarting the process clears all counters; this is
+  documented in ADR 0002.
 
 ### Unwanted-behavior (must-not)
 

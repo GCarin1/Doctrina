@@ -2159,6 +2159,14 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0125-recuperar-stamps-ears-exemplos",
+        "title": "recuperar os stamps e o EARS dos exemplos publicados",
+        "path": ".doctrina/changes/archive/2026-09-11-0125-recuperar-stamps-ears-exemplos",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [
