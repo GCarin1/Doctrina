@@ -30,8 +30,8 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.48.0",
-        "last_updated": "2026-08-06",
+        "version": "0.49.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/index.js",
@@ -2288,6 +2288,19 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0134-cli-pode-sair-antes",
+        "title": "o CLI nao pode sair antes de ter escrito o que imprimiu, senao a saida trunca em pipe",
+        "path": ".doctrina/changes/archive/2026-09-11-0134-cli-pode-sair-antes",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

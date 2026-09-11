@@ -82,3 +82,28 @@ registra o gap em `.doctrina/changes/archive/LEDGER.md`, então um `0`
 obtido por força continua visível na história.
 
 Veja o ADR 0018 para o raciocínio e as alternativas consideradas.
+
+## A saída faz parte do contrato
+
+Um código de saída diz o que aconteceu. A saída diz o que foi encontrado
+— e um comando que imprime só terminou quando cada byte que ele imprimiu
+de fato deixou o processo.
+
+Isso é uma garantia real, não uma obviedade. O Node bufferiza escritas
+para pipe, então um CLI que termina com `process.exit()` pode entregar
+uma resposta truncada com um `0` ao lado: o código está certo, a saída
+está curta, e nada em lugar nenhum reporta falha. O tamanho do buffer de
+pipe varia por plataforma, então o mesmo comando pode vir inteiro no
+Linux e cortado no macOS.
+
+O Doctrina define o código de saída e deixa o Node terminar, e escoar o
+stdout faz parte de terminar. Então:
+
+```
+doctrina context --concat | sua-ferramenta   # chega inteiro
+doctrina context --concat > pack.txt         # os mesmos bytes
+```
+
+Para um agente vale dizer sem rodeio: **se o código de saída é 0, a saída
+que você recebeu é a saída inteira.** Nunca é preciso adivinhar se um
+pacote acabou porque acabou ou porque o pipe acabou.

@@ -5,8 +5,8 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`
-**Last updated:** 2026-08-06
-**Version:** 0.48.0
+**Last updated:** 2026-09-11
+**Version:** 0.49.0
 
 ## Purpose
 
@@ -177,6 +177,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not write a JSON envelope before the command's exit code is known, because a call site that emits ahead of its own return can only guess the verdict.
 - The system shall not report a reference that does not resolve with the class reserved for a failed gate, and shall not report it as success.
 - The system shall not refuse a view that found nothing; a listing or a search with no result shall say so and exit successfully.
+- The system shall not end a run in a way that discards output it has already printed; a command's bytes shall reach stdout before the process exits, whether stdout is a terminal, a file, or a pipe.
 
 ### Optional
 
@@ -252,6 +253,7 @@ The CLI is v0 spec-compliant when:
 38. [verified] `close 0099` exits 2 without sequencing a step; `verify --json` with a check that writes to stderr yields pure JSON on stdout and an envelope carrying those lines without `\r`; `change tick <id> abc` names the argument — verified by `packages/doctrina-cli/test/the-stragglers-of-the-exit-contract.test.js`.
 39. [verified] An argument lands in `args` and never in `command`, and a sub-operation stays whole with no `args` key — verified by `packages/doctrina-cli/test/the-envelope-names-the-operation.test.js`.
 40. [verified] An unknown flag with the JSON flag emits an envelope carrying `ok: false`, the usage exit code and what it refused — verified by `packages/doctrina-cli/test/the-envelope-names-the-operation.test.js`.
+41. [verified] A long `--concat` pack arrives whole through a pipe, byte for byte identical to the same pack written to a file, and the entrypoint sets an exit code rather than calling `process.exit` — verified by `packages/doctrina-cli/test/the-output-survives-the-exit.test.js`.
 
 ## Out of scope for this spec
 

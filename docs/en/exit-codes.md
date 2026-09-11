@@ -76,3 +76,28 @@ the gap in `.doctrina/changes/archive/LEDGER.md`, so a `0` obtained by
 forcing is still visible in the history.
 
 See ADR 0018 for the reasoning and the alternatives considered.
+
+## The output is part of the contract
+
+An exit code says what happened. The output says what was found — and a
+command that prints is only finished once every byte it printed has
+actually left the process.
+
+That is a real guarantee, not an obvious one. Node buffers writes to a
+pipe, so a CLI that ends with `process.exit()` can hand you a truncated
+answer and a `0` beside it: the code is right, the output is short, and
+nothing anywhere reports a failure. Pipe buffer sizes differ per
+platform, so the same command can be whole on Linux and cut on macOS.
+
+Doctrina sets an exit code and lets Node finish, which includes flushing
+stdout. So:
+
+```
+doctrina context --concat | your-tool     # arrives whole
+doctrina context --concat > pack.txt      # identical bytes
+```
+
+For an agent the consequence is worth stating plainly: **if the exit code
+is 0, the output you received is the whole output.** You never have to
+guess whether a pack ended because the pack ended or because the pipe
+did.

@@ -265,5 +265,24 @@ main(process.argv.slice(2)).then((code) => {
     code,
     new Set(OPERATIONS.map((o) => o[0])),
   );
-  process.exit(code ?? 0);
+  // SET THE CODE; DO NOT CALL process.exit().
+  //
+  // When stdout is a PIPE — every `doctrina ... | less`, every agent reading
+  // this CLI, every `spawnSync` in the suite — Node may not have handed the
+  // bytes to the OS yet when this callback runs. `process.exit()` tears the
+  // process down immediately and whatever is still buffered is simply lost.
+  // Setting `exitCode` lets Node exit on its own once the work is done, and
+  // flushing stdout is part of that work.
+  //
+  // This is not theoretical. Four tests failed on macOS with Node 20.12 and
+  // on no other leg of the matrix, all of them `--concat` runs looking for
+  // content near the END of a long output. The decisive one printed exactly
+  // one section: `product.md` was on disk and in the pack listing, and the
+  // concat output stopped before reaching it. Pipe buffer sizes differ per
+  // platform, which is precisely why a truncation bug picks one and hides on
+  // the others.
+  //
+  // `--concat` even carries the comment "Keep the pack pipeable". Losing the
+  // tail of a pipe is the one way to break that promise.
+  process.exitCode = code ?? 0;
 });

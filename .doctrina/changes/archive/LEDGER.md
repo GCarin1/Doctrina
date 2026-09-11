@@ -143,3 +143,4 @@ One line per archived change, newest last. Appended by
   - 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — docs gap: closed with --force; declared surface: verify; flags: --force, --rules, --signoff documented nowhere
 - 2026-09-11 — 0132-drivers-sequenciam-gates-viram — os drivers que sequenciam os gates viram a capacidade closing, tirando a spec gates do teto de 400 linhas (specs: gates MODIFIED, structure MODIFIED)
 - 2026-09-11 — 0133-teste-pacote-contexto-diz — o teste do pacote de contexto diz qual elo quebrou
+- 2026-09-11 — 0134-cli-pode-sair-antes — o CLI nao pode sair antes de ter escrito o que imprimiu, senao a saida trunca em pipe (specs: cli MODIFIED)
