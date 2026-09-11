@@ -2151,6 +2151,14 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0124-security-md-descreve-subprocessos",
+        "title": "SECURITY.md descreve os subprocessos que o CLI realmente executa",
+        "path": ".doctrina/changes/archive/2026-09-11-0124-security-md-descreve-subprocessos",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [
