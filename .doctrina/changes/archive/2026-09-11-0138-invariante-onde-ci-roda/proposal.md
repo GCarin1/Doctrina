@@ -6,6 +6,7 @@
 - **Owner:**
 - **Lane:** product (uncertain; signals: criterio)
 - **Affects specs:** gates
+- **Documented surface:** n/a — nomeia `coverage` e `review` para explicar por que a prova estava órfã; não altera nenhum dos dois
 
 ## Why
 
