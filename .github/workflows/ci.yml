@@ -139,3 +139,15 @@ jobs:
         with:
           strict: "true"
           run-prefix: node packages/doctrina-cli/src/index.js
+
+      # The composite action is generic — it runs the gates any project has.
+      # This repository declares three more in .doctrina/verify.json, and
+      # `docs-shape` ran in NO job: the release executed `doctrina verify`
+      # (all eight) while every pull request executed a hand-copied subset
+      # that had lost one. A docs defect therefore first showed up after it
+      # had been integrated, which is the one place a gate cannot help.
+      #
+      # Here rather than in the matrix job: it reads Markdown, so the
+      # operating system and the Node version cannot change its answer.
+      - name: Docs shape and accuracy (the eighth declared check)
+        run: node scripts/check-docs.js

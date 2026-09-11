@@ -19,6 +19,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Every declared check runs before integration, not after it.**
+  `.doctrina/verify.json` declares eight checks; the release job ran all eight
+  through `doctrina verify`, while every pull request ran a hand-copied subset
+  that had lost `docs-shape` — so a docs defect was first measured on a
+  release, after it had already been integrated. The file's own comment
+  claimed the two sets matched; nothing asked. The missing step is in the
+  workflow, the comment says what is true, and a test now reads the
+  declaration against both workflow files. (0151)
+
 - **The closing sequence has one author, and the surfaces render it.** It was
   typed out by hand in four places and all four had drifted to a different
   list: `close --help` named ten steps of thirteen, the flow page eleven, and

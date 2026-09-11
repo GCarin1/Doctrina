@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.36.0
+**Version:** 1.37.0
 
 ## Purpose
 
@@ -58,6 +58,7 @@ codes, zero-deps, no-network).
 - The system shall derive the Implementation state no higher than `implemented` while any covered acceptance criterion is still marked `[unverified]`, and shall say, in `validate` and in `coverage`, which criteria are waiting for their mark to be flipped.
 - The system's own pipeline shall run its gates on every branch that receives merged work, not only on the branch that publishes.
 - The system shall render a gate sequence it shows from the one declaration that runs it, deriving each step's advisory or forceable marker from the step's declared level rather than from the label's text.
+- The system shall run every check the project declares in its verify configuration on every pull request, so that no declared check first reports after the work has been integrated.
 
 ### Event-driven
 
@@ -329,6 +330,7 @@ The gate surface is spec-compliant when:
 77. [verified] The drift step is declared after the archive, a close refuses on an index whose order disagrees with a rebuild even though `validate` passes it, and a clean close leaves an index a rebuild agrees with — verified by `packages/doctrina-cli/test/the-close-checks-what-it-wrote.test.js`.
 78. [verified] The declaration inside a comment does not silence the gate, and a change scaffolded from the shipped proposal template with a real surface change is still caught — verified by `packages/doctrina-cli/test/a-mention-is-not-a-change.test.js`.
 79. [verified] The close command's help names every declared step, in the order the close runs them, and any governed prose that spells the closing sequence out names all of it — verified by `packages/doctrina-cli/test/a-sequencia-tem-um-autor-so.test.js`.
+80. [verified] Every check declared in this repository's verify configuration appears in the pull-request workflow or in the gates action it invokes — verified by `packages/doctrina-cli/test/toda-checagem-declarada-roda-no-ci.test.js`.
 
 ## Out of scope for this spec
 

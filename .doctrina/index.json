@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.36.0",
+        "version": "1.37.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -539,14 +539,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0151-gate-de-pr-cobre-toda-checagem-declarada",
-        "title": "gate de pr cobre toda checagem declarada",
-        "path": ".doctrina/changes/0151-gate-de-pr-cobre-toda-checagem-declarada",
-        "status": "proposed",
-        "opened": "2026-09-11",
-        "lane": "product (confident; signals: requisito)"
-      },
       {
         "id": "0152-insight-descreve-saidas-que-o-cli-nao-tem",
         "title": "insight descreve saidas que o cli nao tem",
@@ -2532,6 +2524,19 @@
             "capability": "docs",
             "operation": "MODIFIED"
           },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0151-gate-de-pr-cobre-toda-checagem-declarada",
+        "title": "gate de pr cobre toda checagem declarada",
+        "path": ".doctrina/changes/archive/2026-09-11-0151-gate-de-pr-cobre-toda-checagem-declarada",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
           {
             "capability": "gates",
             "operation": "MODIFIED"
