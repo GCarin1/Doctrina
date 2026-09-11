@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.37.1",
+        "version": "1.38.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -2566,6 +2566,19 @@
         "specs_affected": [
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0155-sentinela-do-gate-de-docs-mede-conteudo-vivo",
+        "title": "sentinela do gate de docs mede conteudo vivo",
+        "path": ".doctrina/changes/archive/2026-09-11-0155-sentinela-do-gate-de-docs-mede-conteudo-vivo",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

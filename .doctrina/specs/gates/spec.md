@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.37.1
+**Version:** 1.38.0
 
 ## Purpose
 
@@ -59,6 +59,7 @@ codes, zero-deps, no-network).
 - The system's own pipeline shall run its gates on every branch that receives merged work, not only on the branch that publishes.
 - The system shall render a gate sequence it shows from the one declaration that runs it, deriving each step's advisory or forceable marker from the step's declared level rather than from the label's text.
 - The system shall run every check the project declares in its verify configuration on every pull request, so that no declared check first reports after the work has been integrated.
+- The system shall measure a gate's sensitivity against a fixed sample of the project's own history, excluding the artifacts that silence the gate by declaration, so that ordinary new work cannot move the measurement and only a weakened check can.
 
 ### Event-driven
 
@@ -331,6 +332,7 @@ The gate surface is spec-compliant when:
 78. [verified] The declaration inside a comment does not silence the gate, and a change scaffolded from the shipped proposal template with a real surface change is still caught — verified by `packages/doctrina-cli/test/a-mention-is-not-a-change.test.js`.
 79. [verified] The close command's help names every declared step, in the order the close runs them, and any governed prose that spells the closing sequence out names all of it — verified by `packages/doctrina-cli/test/a-sequencia-tem-um-autor-so.test.js`.
 80. [verified] Every check declared in this repository's verify configuration appears in the pull-request workflow or in the gates action it invokes — verified by `packages/doctrina-cli/test/toda-checagem-declarada-roda-no-ci.test.js`.
+81. [verified] The docs gate's sensitivity sentinel reads a chronological prefix of the archive and skips proposals carrying a documented-surface declaration, so closing a change does not change what it measures — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
 
 ## Out of scope for this spec
 

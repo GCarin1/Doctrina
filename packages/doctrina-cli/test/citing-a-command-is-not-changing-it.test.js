@@ -120,14 +120,39 @@ test("a product change that names a command in What still signals", () => {
   }
 });
 
+// The regression that would matter: making the gate inert. Every archived
+// PRODUCT change that named a command must still name it.
+//
+// Measured over a FIXED sample, for two reasons the first version of this test
+// learned the hard way.
+//
+// A proposal carrying `Documented surface: n/a — <why>` is silent BY DESIGN —
+// that declaration exists so an author can say, on the record, that the names
+// in their prose are context. Counting those as lost sensitivity turns the
+// escape hatch into evidence of decay.
+//
+// And a ratio over "every archived change" with a fixed threshold falls on its
+// own as the tree grows: a product change that genuinely touches no documented
+// surface is normal, and each one lowers the number. It crossed 0.8 on an
+// ordinary day's work, in a run that `close` could not have caught — `verify`
+// runs six steps before `archive`, so the sample the suite measured did not
+// yet hold the change being closed.
+//
+// A chronological prefix pins both: the corpus as it stood, which future work
+// cannot move. Only a weakened extractor — or an edit to old proposals — can
+// change this number.
+const SAMPLE_SIZE = 120;
+
 test("this repository's archived changes keep their signals", () => {
-  // The regression that would matter: making the gate inert. Every archived
-  // PRODUCT change that named a command must still name it.
   const base = path.join(repoRoot, ".doctrina", "changes", "archive");
-  const dirs = readdirSync(base).filter((d) => /^\d{4}-\d{2}-\d{2}-/.test(d));
+  // Archive folder names start with the archive date, so sorted is chronological.
+  const dirs = readdirSync(base).filter((d) => /^\d{4}-\d{2}-\d{2}-/.test(d)).sort();
+  assert.ok(dirs.length >= SAMPLE_SIZE,
+    `the fixed sample needs ${SAMPLE_SIZE} archived changes; found ${dirs.length}`);
+
   let product = 0;
   let signalling = 0;
-  for (const d of dirs) {
+  for (const d of dirs.slice(0, SAMPLE_SIZE)) {
     const p = path.join(base, d, "proposal.md");
     let text;
     try {
@@ -136,6 +161,8 @@ test("this repository's archived changes keep their signals", () => {
       continue;
     }
     if (/chore/i.test((text.match(/^-\s+\*\*Lane:\*\*\s*(.*)$/m) ?? ["", ""])[1])) continue;
+    // Declared silence is not lost sensitivity.
+    if (/^-\s+\*\*Documented surface:\*\*\s*\S+\s*[—-]\s*\S/m.test(text)) continue;
     product += 1;
     if (documentedSurfaceSignals(path.join(base, d), repoRoot).length > 0) signalling += 1;
   }

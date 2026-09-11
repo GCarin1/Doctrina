@@ -165,3 +165,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0151-gate-de-pr-cobre-toda-checagem-declarada — gate de pr cobre toda checagem declarada (specs: gates MODIFIED)
 - 2026-09-11 — 0152-insight-descreve-saidas-que-o-cli-nao-tem — insight descreve saidas que o cli nao tem (specs: insight MODIFIED)
 - 2026-09-11 — 0153-names-js-sem-dono-declarado — names.js sem dono declarado (specs: authoring MODIFIED, gates MODIFIED)
+- 2026-09-11 — 0155-sentinela-do-gate-de-docs-mede-conteudo-vivo — sentinela do gate de docs mede conteudo vivo (specs: gates MODIFIED)

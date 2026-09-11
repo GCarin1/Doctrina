@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The docs gate's sensitivity sentinel measures a fixed sample.** It took a
+  ratio over every archived change with a fixed threshold, so it fell on its
+  own as the tree grew: a proposal carrying `Documented surface: n/a — <why>`
+  is silent BY DESIGN, and counting the escape hatch as lost sensitivity, plus
+  the ordinary product changes that touch no documented surface, walked the
+  number down to exactly the threshold. `close` could not have caught it
+  either — `verify` runs six steps before `archive`, so the sample the suite
+  measures never includes the change being closed. It now reads a chronological
+  prefix of the archive and skips declared proposals, so only a weakened
+  extractor can move it. (0155)
+
 - **The ownership gate asks about the declaration, not about any owner.** The
   test meant to enforce ADR 0027 asked `rankCapabilitiesByDiff` whether a file
   had "an owning capability" — and that function falls back to inferences on
