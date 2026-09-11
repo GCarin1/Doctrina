@@ -144,11 +144,12 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.21.0",
+        "version": "0.22.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js",
+          "packages/doctrina-cli/templates/**",
           ".doctrina/templates/**"
         ]
       },
@@ -537,7 +538,40 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0150-sequencia-de-close-repetida-de-copia-velha",
+        "title": "sequencia de close repetida de copia velha",
+        "path": ".doctrina/changes/0150-sequencia-de-close-repetida-de-copia-velha",
+        "status": "proposed",
+        "opened": "2026-09-11",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0151-gate-de-pr-cobre-toda-checagem-declarada",
+        "title": "gate de pr cobre toda checagem declarada",
+        "path": ".doctrina/changes/0151-gate-de-pr-cobre-toda-checagem-declarada",
+        "status": "proposed",
+        "opened": "2026-09-11",
+        "lane": "product (confident; signals: requisito)"
+      },
+      {
+        "id": "0152-insight-descreve-saidas-que-o-cli-nao-tem",
+        "title": "insight descreve saidas que o cli nao tem",
+        "path": ".doctrina/changes/0152-insight-descreve-saidas-que-o-cli-nao-tem",
+        "status": "proposed",
+        "opened": "2026-09-11",
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0153-names-js-sem-dono-declarado",
+        "title": "names.js sem dono declarado",
+        "path": ".doctrina/changes/0153-names-js-sem-dono-declarado",
+        "status": "proposed",
+        "opened": "2026-09-11",
+        "lane": "product (uncertain; signals: spec)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2478,6 +2512,19 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0149-declaracao-so-existe-na-copia-do-repo",
+        "title": "declaracao so existe na copia do repo",
+        "path": ".doctrina/changes/archive/2026-09-11-0149-declaracao-so-existe-na-copia-do-repo",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

@@ -159,3 +159,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0145-playbooks-skill-comando-avisam — os playbooks e a skill de comando avisam do changelog antes do close cobrar (specs: templates MODIFIED)
 - 2026-09-11 — 0147-modulo-skills-normaliza-nomes — o slug de skill dobra o acento em vez de apagá-lo (specs: skills MODIFIED)
 - 2026-09-11 — 0148-handoff-com-cabecalho-colado — handoff com cabecalho colado (specs: insight MODIFIED)
+- 2026-09-11 — 0149-declaracao-so-existe-na-copia-do-repo — declaracao so existe na copia do repo (specs: templates MODIFIED)

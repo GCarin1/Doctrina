@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `.doctrina/templates/**`
+**Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/templates/**`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.21.0
+**Version:** 0.22.0
 
 ## Purpose
 
@@ -57,6 +57,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall pre-render every variable part of a playbook into a plain token value, and shall not evaluate conditionals or loops declared inside a template.
 - The system shall resolve every declared size budget from the project's contract, falling back to the shipped default only when the project declares none, so one ceiling is never read from two places.
 - The system shall state what a template recommendation costs against the declared budget it spends from, whenever following that recommendation would write into a file with a declared ceiling.
+- The system shall carry a template's guidance in the tree it ships, so that a project scaffolding from the package reads the same guidance the framework's own repository reads from its override.
 
 ### Event-driven
 
@@ -175,6 +176,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 26. [verified] With room, the recommendation and its remedy are unchanged and the applied cost equals the estimate; without room, the finding names the cost and the remedy names the cut — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
 27. [verified] Without room `templates update --write` stands down leaving the file untouched, and making the room it asks for clears the hold — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
 28. [verified] The work playbook names the writing gates and no longer restates the closing sequence, and every playbook variant still renders byte for byte against its golden — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+29. [verified] The shipped template tree and this repository's override hold the same files with the same bytes, and a change scaffolded from the shipped proposal template still trips the documented-surface gate — verified by `packages/doctrina-cli/test/o-template-que-envia-e-o-que-vale.test.js`.
 
 ## Out of scope for this spec
 

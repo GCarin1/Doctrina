@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The template that ships carries the guidance the framework dogfoods.** The
+  `Documented surface: n/a — <why>` block went into this repository's template
+  override and not into the packaged tree, so the escape hatch for the gate
+  that refuses an adopter existed only in the repository that wrote it — and
+  every test read the override, which is why nothing noticed. The packaged tree
+  is now declared by the capability that owns it, the two trees are compared
+  whole, and the shipped template is held to the same behaviour. (0149)
+
 - **The handoff note is valid Markdown in both states of the tree.** With an
   open change the section ended in a blank line; with none, `- none — the tree
   is at rest` ran straight into `## Next actions`, which a parser then reads as
