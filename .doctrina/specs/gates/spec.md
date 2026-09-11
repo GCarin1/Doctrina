@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.31.1
+**Version:** 1.33.0
 
 ## Purpose
 
@@ -56,6 +56,7 @@ codes, zero-deps, no-network).
 - The system shall accept as evidence for an acceptance criterion only a cited path that resolves to a file inside the project root; a path that resolves outside the root, or to a directory, shall be reported as not resolving, with the reason.
 - The system shall collect a contract's structural findings — a port claimed by two services (CT01), a declared environment variable absent from `.env.example` (CT02), a reference to a capability spec that does not exist (CT03) — in the same collection as the runtime findings RT01-RT05, so that `contract check`, the close's runtime step, `validate --runtime` and `doctor` render one verdict.
 - The system shall derive the Implementation state no higher than `implemented` while any covered acceptance criterion is still marked `[unverified]`, and shall say, in `validate` and in `coverage`, which criteria are waiting for their mark to be flipped.
+- The system's own pipeline shall run its gates on every branch that receives merged work, not only on the branch that publishes.
 
 ### Event-driven
 
@@ -188,6 +189,7 @@ codes, zero-deps, no-network).
 - When the project publishes a release, the system shall run every gate a pull request already runs, and shall not publish while any of them fails.
 - When a criterion cites its proof after a citation marker, the system shall read only the paths in that citation as claims of evidence, and shall treat the paths named before it as the scenario the criterion describes.
 - When `doctrina close` runs on a change that alters a documented surface, the system shall refuse the close unless the same work also records the change in the project's changelog, shall stay silent for a project that keeps none, and `--force` shall close anyway and record the gap in the archive ledger.
+- When a change's proposal declares `Documented surface: n/a — <why>`, the system shall read the names in that change's prose as mentions and report no surface signal, and shall ignore the declaration when it carries no reason.
 
 ### State-driven
 
@@ -318,6 +320,8 @@ The gate surface is spec-compliant when:
 72. [verified] The release job runs `verify`, the packed-install harness and the strict example check, and publishes with `--provenance`; removing any of the four fails the suite — verified by `packages/doctrina-cli/test/the-release-gate-is-not-weaker.test.js`.
 73. [verified] A path named before `verified by` draws no unresolved-evidence note, a second path cited after it still does, and a criterion with no marker keeps every cited path as a claim — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
 74. [verified] A surface change with an untouched changelog is refused naming what it saw change, touching the changelog satisfies it, a change touching no documented surface is never asked, and a project with no changelog is never given one to keep — verified by `packages/doctrina-cli/test/the-changelog-is-a-gate.test.js`.
+75. [verified] The declared triggers name every branch work lands on, and removing one fails the suite — verified by `packages/doctrina-cli/test/the-ci-gate-runs-where-work-lands.test.js`.
+76. [verified] A declared, explained non-change reports no signal, `none` reads as `n/a`, a bare one silences nothing, and an undeclared change keeps the gate exactly as sensitive — verified by `packages/doctrina-cli/test/a-mention-is-not-a-change.test.js`.
 
 ## Out of scope for this spec
 

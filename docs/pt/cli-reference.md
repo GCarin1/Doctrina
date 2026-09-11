@@ -1792,6 +1792,30 @@ subtraída. Sem isso, uma change que só reorganizava cabeçalhos foi recusada
 pelos dois comandos que a própria proposta citava para descrever o achado, e
 teve de fechar com `--force`.
 
+Essas duas cobrem os casos comuns, não o geral. Uma proposta explica, e
+explicar nomeia coisas: «o `coverage` não sabe que este teste existe»
+descreve um efeito, e uma linha de `## Scope boundaries` dizendo «não toca
+`verify`» descreve uma *ausência* — e as duas se leem, para o gate,
+exatamente como uma change que altera o comando. Três closes numa mesma
+sessão foram forçados por isso, e um gate que se força com frequência
+deixa de ser gate: o ledger enche de gaps que nunca foram gaps, e um gap
+de verdade para de saltar aos olhos.
+
+Nenhuma extração mais esperta resolve, porque a diferença é semântica e o
+ADR 0005 mantém semântica fora de um gate determinístico. Então quem
+escreve declara, no registro, na gramática que a árvore já usa para o
+`Realizes:`:
+
+```
+- **Documented surface:** n/a — nomeia dois comandos para explicar um efeito; não altera nenhum
+```
+
+`none` se lê igual a `n/a`. Um `n/a` **pelado** não silencia nada: a razão
+é obrigatória, exatamente como em `Realizes: n/a — <porquê>` e como no
+adiamento que o `coverage` honra. O cabeçalho é uma declaração na
+proposta, visível no diff e no `review` — não um interruptor que desliga o
+gate.
+
 **O que conta como superfície é você quem declara.** O gate lê os nomes que
 os seus `.doctrina/contracts/` afirmam — as tabelas Ports, Environment,
 Wiring e Selectors e a seção `Interfaces` — então um comando, um endpoint,

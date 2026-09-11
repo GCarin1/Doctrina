@@ -148,3 +148,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0136-registrar-changelog-changes-fecharam — registrar no changelog as changes que fecharam antes do gate existir
 - 2026-09-11 — 0137-declarar-qual-capacidade-possui — declarar qual capacidade possui os arquivos de raiz que hoje nao pertencem a nenhuma (specs: cli MODIFIED, docs MODIFIED, gates MODIFIED)
   - 2026-09-11 — 0137-declarar-qual-capacidade-possui — docs gap: closed with --force; commands: ci, review; declared surface: action.yml, coverage, trace, verify; flags: --emit, --force documented nowhere
+- 2026-09-11 — 0139-change-pode-declarar-citou — uma change pode declarar que citou uma superficie sem alterar, em vez de forcar o close (specs: gates MODIFIED)

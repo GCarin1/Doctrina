@@ -51,6 +51,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **A change can declare that it only *mentions* a surface.**
+  `Documented surface: n/a — <why>` in a proposal tells the docs gate that the
+  command names in its prose are context, not a change — the same grammar as
+  `Realizes: n/a — <why>`, and a bare `n/a` silences nothing. Three closes in
+  one session had been forced over names that appeared only in an explanation
+  or in a Scope boundaries line, and a gate that is routinely forced stops
+  being a gate. (0139)
 - **`validate --strict`** treats warnings as failures, the way `coverage
   --strict` and `trace --strict` already do. The default stays lenient,
   because a warning is advice; a gate wants a verdict. The CI step that

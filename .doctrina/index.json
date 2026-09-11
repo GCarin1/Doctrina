@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.31.1",
+        "version": "1.33.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -537,7 +537,16 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0138-invariante-onde-ci-roda",
+        "title": "o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao",
+        "path": ".doctrina/changes/0138-invariante-onde-ci-roda",
+        "status": "applied",
+        "opened": "2026-09-11",
+        "lane": "product (uncertain; signals: criterio)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2343,6 +2352,19 @@
             "capability": "docs",
             "operation": "MODIFIED"
           },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0139-change-pode-declarar-citou",
+        "title": "uma change pode declarar que citou uma superficie sem alterar, em vez de forcar o close",
+        "path": ".doctrina/changes/archive/2026-09-11-0139-change-pode-declarar-citou",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
           {
             "capability": "gates",
             "operation": "MODIFIED"

@@ -1739,6 +1739,29 @@ checklist was already subtracted. Without these, a change that only
 reorganised headings was refused for the two commands its proposal cited
 to describe the finding, and had to close with `--force`.
 
+Those two cover the common cases and not the general one. A proposal
+explains, and explaining names things: "`coverage` no longer knows this
+test exists" describes an effect, and a `## Scope boundaries` line saying
+"does not touch `verify`" describes an *absence* — both read to the gate
+exactly like a change that alters the command. Three closes in one session
+were forced for that reason, and a gate that is routinely forced stops
+being a gate: the ledger fills with gaps that were never gaps, and a real
+one stops standing out.
+
+No smarter extraction settles it, because the difference is semantic and
+ADR 0005 keeps semantics out of a deterministic gate. So the author says
+so, on the record, in the grammar the tree already uses for `Realizes:`:
+
+```
+- **Documented surface:** n/a — names two commands to explain an effect; alters neither
+```
+
+`none` reads the same as `n/a`. A **bare** `n/a` does not silence
+anything: a reason is required, exactly as it is for `Realizes: n/a —
+<why>` and for the deferral `coverage` honours. The header is a
+declaration in the proposal, visible in the diff and in `review` — not a
+switch that turns the gate off.
+
 **What counts as surface is yours to declare.** The gate reads the names
 your `.doctrina/contracts/` state — the Ports, Environment, Wiring and
 Selectors tables and the `Interfaces` section — so a command, an endpoint,

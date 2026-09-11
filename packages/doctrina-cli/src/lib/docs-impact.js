@@ -163,6 +163,34 @@ export function documentedSurfaceSignals(changeDir, projectRoot = null) {
     // the finding — and had to close with --force (change 0088).
     if (/chore/i.test(listHeader(text, "Lane") ?? "")) return signals;
 
+    // THE AUTHOR MAY DECLARE THAT A NAME IS A MENTION, NOT A CHANGE.
+    //
+    // Everything below reads NAMES out of the authored text, and a name is
+    // all it can see: a change that says "coverage no longer knows this
+    // test exists" is describing an effect, and one whose Scope boundaries
+    // say "does not touch `verify`" is describing an absence, but both read
+    // to this gate exactly like a change that alters the command. Three
+    // closes in one session were forced for that reason, and a gate that is
+    // routinely forced stops being a gate — the ledger fills with gaps that
+    // were never gaps, and a real one stops standing out.
+    //
+    // No smarter extraction settles it, because the difference is semantic
+    // and ADR 0005 puts semantics outside a deterministic gate. So the
+    // author declares it, in the grammar the tree already uses for exactly
+    // this — `Realizes: n/a — <why>`: a bare `n/a` is an assertion nobody
+    // wrote, and only `n/a` WITH a reason is a decision.
+    const declaredNone = listHeader(text, "Documented surface");
+    if (declaredNone !== null) {
+      // The separator is punctuation, not a reason: "n/a —" says no more than
+      // "n/a". Strip the word, then the dash, and require words to remain.
+      const rest = declaredNone.trim()
+        .replace(/^(n\/a|none)\b/i, (m) => (m ? "" : m))
+        .replace(/^\s*[—–-]+\s*/, "")
+        .trim();
+      const word = declaredNone.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+      if ((word === "n/a" || word === "none") && rest.length > 0) return signals;
+    }
+
     sources.push(authored(withoutVerification(text)));
   }
   for (const p of walk(path.join(changeDir, "specs"))) {
