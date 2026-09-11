@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The index is written the same way twice.** Commands that create an
+  artifact appended it to `index.json`, while `index rebuild` writes what the
+  directory walk finds, in sorted order — so the two disagreed whenever a new
+  entry did not sort last. `doctrina spec new alpha` after `spec new zebra` was
+  enough, and so was closing change 0138 after 0139: that one shipped, and all
+  six test legs of CI went red on a tree whose own `close` had just reported
+  green. `validate` cannot see this class of drift, which is why it stayed
+  invisible from the inside. (0142)
 - **The CLI no longer exits before it has finished printing.** The entrypoint
   ended in `process.exit()`, which discards whatever stdout has not yet handed
   to the operating system — so any consumer reading through a pipe could get a

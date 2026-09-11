@@ -106,8 +106,8 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.7.0",
-        "last_updated": "2026-08-06",
+        "version": "0.8.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
           "cli"
@@ -2390,6 +2390,19 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0142-indice-guarda-cada-categoria",
+        "title": "o indice guarda cada categoria na mesma ordem que o rebuild produz, em vez de acrescentar no fim",
+        "path": ".doctrina/changes/archive/2026-09-11-0142-indice-guarda-cada-categoria",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

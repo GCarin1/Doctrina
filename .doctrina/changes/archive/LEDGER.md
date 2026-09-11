@@ -152,3 +152,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0138-invariante-onde-ci-roda — o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao (specs: gates MODIFIED)
 - 2026-09-11 — 0140-exemplo-divisao-spec-playbook — o exemplo de divisão de spec no playbook conta as três divisões
 - 2026-09-11 — 0141-fechar-entrada-deferred-sobre — fechar a entrada de deferred sobre macOS
+- 2026-09-11 — 0142-indice-guarda-cada-categoria — o indice guarda cada categoria na mesma ordem que o rebuild produz, em vez de acrescentar no fim (specs: scaffolding MODIFIED)
