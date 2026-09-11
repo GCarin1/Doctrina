@@ -30,13 +30,14 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.49.0",
+        "version": "0.49.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/index.js",
           "packages/doctrina-cli/src/commands/next.js",
-          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js"
+          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js",
+          "tsconfig.json"
         ]
       },
       {
@@ -58,8 +59,8 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.6.0",
-        "last_updated": "2026-08-06",
+        "version": "0.6.1",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
           "SC3",
@@ -69,20 +70,24 @@
           "docs/**",
           "scripts/check-docs.js",
           "CHANGELOG.md",
-          "README*.md"
+          "README*.md",
+          "SECURITY.md",
+          "CONTRIBUTING.md",
+          "CONVENTIONS.md"
         ]
       },
       {
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.31.0",
+        "version": "1.31.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
           "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js",
-          "scripts/bench.js"
+          "scripts/bench.js",
+          "action.yml"
         ]
       },
       {
@@ -2322,6 +2327,27 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0137-declarar-qual-capacidade-possui",
+        "title": "declarar qual capacidade possui os arquivos de raiz que hoje nao pertencem a nenhuma",
+        "path": ".doctrina/changes/archive/2026-09-11-0137-declarar-qual-capacidade-possui",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

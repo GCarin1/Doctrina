@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC5
-**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`
-**Last updated:** 2026-08-06
-**Version:** 0.6.0
+**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
+**Last updated:** 2026-09-11
+**Version:** 0.6.1
 
 ## Purpose
 

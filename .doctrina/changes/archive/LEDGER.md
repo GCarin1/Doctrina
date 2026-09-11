@@ -146,3 +146,5 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0134-cli-pode-sair-antes — o CLI nao pode sair antes de ter escrito o que imprimiu, senao a saida trunca em pipe (specs: cli MODIFIED)
 - 2026-09-11 — 0135-close-cobra-mudanca-superficie — o close cobra que uma mudanca de superficie chegue ao changelog, nao so a documentacao (specs: gates MODIFIED)
 - 2026-09-11 — 0136-registrar-changelog-changes-fecharam — registrar no changelog as changes que fecharam antes do gate existir
+- 2026-09-11 — 0137-declarar-qual-capacidade-possui — declarar qual capacidade possui os arquivos de raiz que hoje nao pertencem a nenhuma (specs: cli MODIFIED, docs MODIFIED, gates MODIFIED)
+  - 2026-09-11 — 0137-declarar-qual-capacidade-possui — docs gap: closed with --force; commands: ci, review; declared surface: action.yml, coverage, trace, verify; flags: --emit, --force documented nowhere
