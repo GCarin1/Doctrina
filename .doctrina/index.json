@@ -537,16 +537,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0145-playbooks-skill-comando-avisam",
-        "title": "os playbooks e a skill de comando avisam do changelog antes do close cobrar",
-        "path": ".doctrina/changes/0145-playbooks-skill-comando-avisam",
-        "status": "applied",
-        "opened": "2026-09-11",
-        "lane": "chore (confident; signals: changelog)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2435,6 +2426,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0145-playbooks-skill-comando-avisam",
+        "title": "os playbooks e a skill de comando avisam do changelog antes do close cobrar",
+        "path": ".doctrina/changes/archive/2026-09-11-0145-playbooks-skill-comando-avisam",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

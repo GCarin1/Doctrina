@@ -156,3 +156,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0143-close-checa-deriva-indice — o close checa a deriva de indice depois do passo que a escreve, nao antes (specs: gates MODIFIED)
 - 2026-09-11 — 0144-declaracao-superficie-citada-aparece — a declaracao de superficie citada aparece onde o autor escreve e onde o gate recusa (specs: gates MODIFIED)
 - 2026-09-11 — 0146-modelo-documento-le-cabecalho — o modelo de documento nao le cabecalho dentro de comentario (specs: validation MODIFIED)
+- 2026-09-11 — 0145-playbooks-skill-comando-avisam — os playbooks e a skill de comando avisam do changelog antes do close cobrar (specs: templates MODIFIED)
