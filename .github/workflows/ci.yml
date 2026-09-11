@@ -1,10 +1,15 @@
 name: CI
 
+# `develop` is the integration branch: feature work lands there first and
+# reaches `main` through a single release pull request. Listing only `main`
+# meant a pull request INTO `develop` ran no gate at all — PR #15 merged that
+# way — so the first time anything was checked was after it had already been
+# integrated, which is the one place a gate cannot help you.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read

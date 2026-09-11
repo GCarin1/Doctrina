@@ -135,3 +135,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0126-validate-ganha-modo-estrito — abandoned — capacidade errada: a superficie de comando do validate pertence a gates
 - 2026-09-11 — 0126-validate-ganha-modo-estrito — validate ganha um modo estrito que trata warning como erro, para o passo de CI dos exemplos poder reprovar (specs: gates MODIFIED)
 - 2026-09-11 — 0127-declarar-gate-release-pode — declarar que o gate de release nao pode ser mais fraco que o gate de PR e faze-lo rodar verify e o harness empacotado (specs: gates MODIFIED)
+- 2026-09-11 — 0128-ci-dispara-tambem-pull — o CI dispara também em pull request para develop
