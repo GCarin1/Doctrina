@@ -5,9 +5,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
-**Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js`
+**Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.15.1
+**Version:** 0.15.2
 
 ## Purpose
 
@@ -348,6 +348,7 @@ The authoring commands are v0 spec-compliant when:
 29. [verified] A forced apply that succeeds is still recorded, naming the gate it waived, and a forced archive is recorded only once the folder has moved — verified by `packages/doctrina-cli/test/the-ledger-records-what-happened.test.js`.
 30. [verified] Recording follows the outcome across every gated transition, not the override — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
 31. [verified] Replacing a wrapped requirement removes its continuation lines, leaves the bullets around it intact, and still numbers by bullet rather than by line — verified by `packages/doctrina-cli/test/spec-ops.test.js`.
+32. [verified] Every tracked source file in this repository is claimed by a capability's declared `Source:` header, and a file a spec merely mentions does not read as declared — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
 
 ## Out of scope for this spec
 

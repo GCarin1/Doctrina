@@ -19,6 +19,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The ownership gate asks about the declaration, not about any owner.** The
+  test meant to enforce ADR 0027 asked `rankCapabilitiesByDiff` whether a file
+  had "an owning capability" — and that function falls back to inferences on
+  purpose, so a project that has declared nothing still gets a hint. A file no
+  spec named therefore came back owned, scored 5 instead of 10, and the test
+  could not tell the two apart. Asked properly, two files turned out to be
+  undeclared: `lib/names.js`, the name grammar behind `spec new`, `contract
+  new` and `skill new`, and the packed-install harness. Both are declared now,
+  and a mention no longer reads as a declaration. (0153)
+
 - **The `insight` spec describes the CLI that exists.** Split out of `gates`
   with its requirement text carried over, it kept two sentences the CLI had
   already moved past: `search` "shall exit 0 when matches exist and 1

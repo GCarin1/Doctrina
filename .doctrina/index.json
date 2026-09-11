@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.15.1",
+        "version": "0.15.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -23,7 +23,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js"
+          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
@@ -80,13 +80,14 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.37.0",
+        "version": "1.37.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
           "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js",
           "scripts/bench.js",
+          "scripts/e2e-packed.mjs",
           "action.yml"
         ]
       },
@@ -538,16 +539,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0153-names-js-sem-dono-declarado",
-        "title": "names.js sem dono declarado",
-        "path": ".doctrina/changes/0153-names-js-sem-dono-declarado",
-        "status": "proposed",
-        "opened": "2026-09-11",
-        "lane": "product (uncertain; signals: spec)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2544,6 +2536,23 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0153-names-js-sem-dono-declarado",
+        "title": "names.js sem dono declarado",
+        "path": ".doctrina/changes/archive/2026-09-11-0153-names-js-sem-dono-declarado",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]
