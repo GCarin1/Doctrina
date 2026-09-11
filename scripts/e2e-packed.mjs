@@ -24,7 +24,7 @@
 //   node scripts/e2e-packed.mjs --quick    # skip the per-adapter sweep
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import process from "node:process";
@@ -63,6 +63,17 @@ function fail(what, detail) {
 function assert(cond, what, detail) {
   if (cond) ok(what);
   else fail(what, detail);
+}
+
+// The change ids currently open in a project, sorted. `archive/` holds closed
+// history and the dotfiles are git's, so neither is an open change.
+function openChangeIds(projectDir) {
+  const dir = path.join(projectDir, ".doctrina", "changes");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && e.name !== "archive" && !e.name.startsWith("."))
+    .map((e) => e.name)
+    .sort();
 }
 
 function run(cmd, args, cwd, opts = {}) {
@@ -147,7 +158,17 @@ assert(doctrina(["spec", "new", "billing"], proj).status === 0, "spec new billin
 const work = doctrina(["work", "add refunds", "--capability", "billing", "--quiet"], proj);
 assert(work.status === 0, "work --capability --quiet", work.out);
 
-const changeId = "0001-add-refunds";
+// The id is DISCOVERED, never spelled out here. `work` derives the slug from
+// the prompt, and that derivation is the CLI's to change: change 0070 taught
+// it to drop stopwords, so "add refunds" started yielding `0001-refunds` and
+// a hardcoded "0001-add-refunds" in this file kept the whole pipeline red for
+// weeks over a rule the CLI was right to adopt. Asking the tree which change
+// `work` just opened tests the thing that matters — that exactly one was —
+// and survives the next slug rule without a second outage.
+const changeId = openChangeIds(proj)[0];
+assert(openChangeIds(proj).length === 1 && Boolean(changeId),
+  "work opened exactly one change", `found: ${JSON.stringify(openChangeIds(proj))}`);
+
 const deltaPath = path.join(proj, ".doctrina", "changes", changeId, "specs", "billing", "delta.md");
 assert(existsSync(deltaPath), "work scaffolded a prefilled delta");
 assert(/\*\*Operation:\*\* MODIFIED/.test(readFileSync(deltaPath, "utf8")),

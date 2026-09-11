@@ -2135,6 +2135,14 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0122-harness-e2e-descobre-id",
+        "title": "o harness e2e descobre o id da change em vez de fixar um literal",
+        "path": ".doctrina/changes/archive/2026-09-11-0122-harness-e2e-descobre-id",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [
