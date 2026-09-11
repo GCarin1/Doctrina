@@ -19,6 +19,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A skill name folds the accent instead of deleting the letter.** The
+  skills module named its files by stripping everything outside `[a-z0-9-]`
+  from raw text — a class that does not normalise but destroys: capitals
+  vanish and each accented letter becomes a hyphen, so "Corrigir A Validação"
+  came out `orrigir-alida-o`. Its own noise list gave it away, listing `nao`,
+  a token the pipeline could not produce. Slug, seed tokens and keyword
+  extraction now go through the one shared fold, and the generated slug
+  finally matches the `[a-z][a-z0-9-]*` shape the skills spec has always
+  required — the change id's digits name the change, not the lesson. (0147)
+
 - **The document model never reads a header out of a comment.** It owns that
   rule for the whole tree and did not apply it to its own readers, so an
   EXAMPLE header in a template's guidance counted as one the author wrote —

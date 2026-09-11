@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/skill.js`
 **Last updated:** 2026-07-02
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -32,6 +32,7 @@ replacing it.
 - The system shall reference skills from `.doctrina/index.json`
   under `artifacts.skills` as an array parallel to `specs`.
 - A skill's `when:` trigger shall name something a task can be matched against — a keyword, path, command, or error string — because context ranks skills by that trigger.
+- The system shall fold a generated skill slug — stripping diacritics and lowercasing — before reducing it to slug characters, so that an accented or capitalised source name survives as letters rather than as hyphens.
 
 ### Event-driven
 
@@ -115,6 +116,7 @@ A `.doctrina/skills/` directory is spec-compliant when:
 6. [verified] A trigger drafted from an error satisfies validate's detectable-trigger check — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 7. [verified] Skills matching a `--for` query are ranked above the rest and marked — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 8. [verified] A scaffolded skill's `when:` is not a detectable trigger and `skill sync` names it as scaffold; once filled, sync indexes it — verified by `packages/doctrina-cli/test/a-scaffold-is-not-an-artifact.test.js`.
+9. [verified] A generated slug folds accents and capitals instead of deleting them, and matches the `[a-z][a-z0-9-]*` shape this spec requires of a skill filename — verified by `packages/doctrina-cli/test/o-acento-nao-e-ruido.test.js`.
 
 ## Out of scope for this spec
 

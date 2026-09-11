@@ -2960,7 +2960,11 @@ test("skill suggest surfaces fix-shaped lessons and --write scaffolds them", () 
 
     const written = runCli(["skill", "suggest", "--write"], { cwd: tmp });
     assert.equal(written.status, 0, written.stderr || written.stdout);
-    assert.ok(existsSync(path.join(tmp, ".doctrina", "skills", "0003-fix-parsing.md")));
+    // The candidate keeps the change id it came from; the FILENAME drops the
+    // numeric prefix, because the skills spec requires a slug matching
+    // `[a-z][a-z0-9-]*` and the digits identify the change, not the lesson.
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "skills", "fix-parsing.md")),
+      `expected .doctrina/skills/fix-parsing.md; got ${readdirSync(path.join(tmp, ".doctrina", "skills")).join(", ")}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

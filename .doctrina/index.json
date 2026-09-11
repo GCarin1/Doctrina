@@ -121,7 +121,7 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
@@ -537,7 +537,16 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0148-handoff-com-cabecalho-colado",
+        "title": "handoff com cabecalho colado",
+        "path": ".doctrina/changes/0148-handoff-com-cabecalho-colado",
+        "status": "proposed",
+        "opened": "2026-09-11",
+        "lane": "product (uncertain)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2452,6 +2461,19 @@
         "specs_affected": [
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0147-modulo-skills-normaliza-nomes",
+        "title": "o slug de skill dobra o acento em vez de apagá-lo",
+        "path": ".doctrina/changes/archive/2026-09-11-0147-modulo-skills-normaliza-nomes",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "skills",
             "operation": "MODIFIED"
           }
         ]

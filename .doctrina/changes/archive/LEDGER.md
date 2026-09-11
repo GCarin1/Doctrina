@@ -157,3 +157,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0144-declaracao-superficie-citada-aparece — a declaracao de superficie citada aparece onde o autor escreve e onde o gate recusa (specs: gates MODIFIED)
 - 2026-09-11 — 0146-modelo-documento-le-cabecalho — o modelo de documento nao le cabecalho dentro de comentario (specs: validation MODIFIED)
 - 2026-09-11 — 0145-playbooks-skill-comando-avisam — os playbooks e a skill de comando avisam do changelog antes do close cobrar (specs: templates MODIFIED)
+- 2026-09-11 — 0147-modulo-skills-normaliza-nomes — o slug de skill dobra o acento em vez de apagá-lo (specs: skills MODIFIED)
