@@ -265,6 +265,46 @@ export function isGitRepo(projectRoot) {
   return isRepo(projectRoot);
 }
 
+// A CHANGELOG IS A DIFFERENT OBLIGATION FROM DOCUMENTATION.
+//
+// The docs gate asks "can a reader learn how this works". The changelog asks
+// "can a reader learn that it changed" — and the second is not answered by
+// the first, because prose describing the new behaviour reads exactly like
+// prose that always described it.
+//
+// Nothing asked for it, so it drifted immediately: thirteen changes landed in
+// one session, every one of them through `close`, and `## [Unreleased]` was
+// still empty at the end of it. The file's own first line says every notable
+// change is recorded there.
+//
+// Silent for a project that keeps no CHANGELOG.md — this gate reports a
+// promise the project made, and never invents one it did not.
+export function checkChangelogImpact(projectRoot, changeDir) {
+  const signals = documentedSurfaceSignals(changeDir, projectRoot);
+  if (signals.length === 0) {
+    return { ok: true, signals, touched: [], reason: "touches no documented surface" };
+  }
+  if (!isFile(path.join(projectRoot, CHANGELOG))) {
+    return { ok: true, signals, touched: [], reason: `no ${CHANGELOG} in this project` };
+  }
+  if (!isRepo(projectRoot)) {
+    return { ok: true, signals, touched: [], reason: "not a git repository — cannot tell what moved" };
+  }
+  const touched = changedFiles(projectRoot, { mergeBase: true })
+    .files.filter((f) => f === CHANGELOG);
+  if (touched.length > 0) {
+    return { ok: true, signals, touched, reason: `recorded in ${CHANGELOG}` };
+  }
+  return {
+    ok: false,
+    signals,
+    touched,
+    reason: `alters a documented surface but ${CHANGELOG} does not say so`,
+  };
+}
+
+const CHANGELOG = "CHANGELOG.md";
+
 // Where THIS project keeps its documentation, read off its own tree.
 //
 // The gate is portable; the instruction it printed was not. It named

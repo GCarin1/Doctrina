@@ -76,7 +76,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.30.0",
+        "version": "1.31.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -2298,6 +2298,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0135-close-cobra-mudanca-superficie",
+        "title": "o close cobra que uma mudanca de superficie chegue ao changelog, nao so a documentacao",
+        "path": ".doctrina/changes/archive/2026-09-11-0135-close-cobra-mudanca-superficie",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

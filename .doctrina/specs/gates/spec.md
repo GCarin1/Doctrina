@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`
 **Last updated:** 2026-09-11
-**Version:** 1.30.0
+**Version:** 1.31.0
 
 ## Purpose
 
@@ -187,6 +187,7 @@ codes, zero-deps, no-network).
 - When a gate command is given a path that does not exist, the system shall report a usage error rather than a gate failure, so a consumer does not retry an invocation that cannot succeed unchanged.
 - When the project publishes a release, the system shall run every gate a pull request already runs, and shall not publish while any of them fails.
 - When a criterion cites its proof after a citation marker, the system shall read only the paths in that citation as claims of evidence, and shall treat the paths named before it as the scenario the criterion describes.
+- When `doctrina close` runs on a change that alters a documented surface, the system shall refuse the close unless the same work also records the change in the project's changelog, shall stay silent for a project that keeps none, and `--force` shall close anyway and record the gap in the archive ledger.
 
 ### State-driven
 
@@ -316,6 +317,7 @@ The gate surface is spec-compliant when:
 71. [verified] `clarify` refuses a missing path with the usage class while still gating a real file, and every command taking a path answers a missing one identically — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
 72. [verified] The release job runs `verify`, the packed-install harness and the strict example check, and publishes with `--provenance`; removing any of the four fails the suite — verified by `packages/doctrina-cli/test/the-release-gate-is-not-weaker.test.js`.
 73. [verified] A path named before `verified by` draws no unresolved-evidence note, a second path cited after it still does, and a criterion with no marker keeps every cited path as a claim — verified by `packages/doctrina-cli/test/proof-lives-in-the-project.test.js`.
+74. [verified] A surface change with an untouched changelog is refused naming what it saw change, touching the changelog satisfies it, a change touching no documented surface is never asked, and a project with no changelog is never given one to keep — verified by `packages/doctrina-cli/test/the-changelog-is-a-gate.test.js`.
 
 ## Out of scope for this spec
 

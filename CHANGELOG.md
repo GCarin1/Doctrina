@@ -17,6 +17,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`close` asks the changelog, not only the docs.** A change that alters a
+  documented surface now has to record that it changed, as well as describe
+  how it works — two obligations, because prose about new behaviour reads
+  exactly like prose that always described it. Blocking, with `--force` and a
+  ledger line like every other gate, and silent for a project that keeps no
+  `CHANGELOG.md`.
+
 ## [0.16.0] — 2026-09-09
 
 ### Fixed

@@ -7,7 +7,7 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint, acceptedDecisionCount } from "../lib/adr-guard.js";
-import { docsRemedy, checkDocsImpact } from "../lib/docs-impact.js";
+import { docsRemedy, checkDocsImpact, checkChangelogImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
 import { specHeader, dependentsOf } from "../lib/scan.js";
@@ -257,10 +257,24 @@ async function closeOne(projectRoot, id, flags) {
     // escape hatch archive offers, and records the gap in the ledger.
     docs: {
       run: async () => {
-        const r = checkDocsImpact(projectRoot, path.join(projectRoot, ".doctrina", "changes", id));
+        const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+        const r = checkDocsImpact(projectRoot, changeDir);
         if (r.ok) {
           console.log(c.green("ok") + ` ${r.reason}`);
-          return 0;
+          // Documentation says how it works; the changelog says that it
+          // changed. Asking only the first is how thirteen changes closed in
+          // one session with an empty `## [Unreleased]` behind them.
+          const log = checkChangelogImpact(projectRoot, changeDir);
+          if (log.ok) {
+            console.log(c.green("ok") + ` ${log.reason}`);
+            return 0;
+          }
+          console.error(c.red("error:") + ` this change ${log.reason}:`);
+          for (const s of log.signals) console.error(`  - ${s}`);
+          console.error(c.gray("hint: ") + "add an entry under the changelog's unreleased heading" +
+            ", or pass --force to close anyway (records the gap)");
+          docsGap = log;
+          return 1;
         }
         console.error(c.red("error:") + ` this change ${r.reason}:`);
         for (const s of r.signals) console.error(`  - ${s}`);
