@@ -5,8 +5,8 @@
 **Implementation:** implemented
 **Realizes:** SC1, SC2, SC3
 **Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
-**Last updated:** 2026-08-06
-**Version:** 0.14.1
+**Last updated:** 2026-09-11
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -101,6 +101,7 @@ treatment cohorts using the same definition in each cohort.
 - If a capability spec is active and declares no acceptance criterion, the system shall not report the tree as structurally sound, because a capability that states what the system must do and nothing about how anyone would know it does cannot be proven.
 - The system's tests shall not assert against a fixture transformation without first establishing that the transformation occurred, so a pattern that matches nothing fails rather than passing quietly.
 - The system shall not read a numbered item inside a fenced code block as an acceptance criterion, nor its citations as that criterion's proof.
+- The system shall not read a metadata header out of an HTML comment, in any reader or writer of the document model, because annotation is not something the author wrote.
 
 ### Optional
 
@@ -188,6 +189,7 @@ The validation capability is delivered when:
 27. [verified] A heading inside a fence does not open the criteria section, and fence tracking follows the CommonMark closing rule — verified by `packages/doctrina-cli/test/an-example-is-not-a-criterion.test.js`.
 28. [verified] A spec, and an index.json, saved with a byte-order mark are read exactly as the same files without one — verified by `packages/doctrina-cli/test/a-byte-order-mark-is-not-content.test.js`.
 29. [verified] Marking every always-read artifact in a tree changes no gate's verdict, and a mark in the middle of a file is left alone — verified by `packages/doctrina-cli/test/a-byte-order-mark-is-not-content.test.js`.
+30. [verified] A header inside a comment is collected by neither reader and written over by neither writer, and a real header beside a commented example is the one both return — verified by `packages/doctrina-cli/test/doc-model.test.js`.
 
 ## Out of scope for this spec
 

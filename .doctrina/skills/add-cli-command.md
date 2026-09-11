@@ -41,7 +41,11 @@ or gate-checked from it. Touch the steps in this order:
    ("27 commands, NN operations") and the surface list in
    `.doctrina/specs/cli/spec.md` (gate semantics belong in
    `.doctrina/specs/gates/spec.md`). Then `doctrina spec set cli --bump minor`.
-7. Gates: `node --test` inside `packages/doctrina-cli/`, then
+7. Write the CHANGELOG entry. A new or renamed command IS a documented
+   surface change, so `close` refuses without one — and it asks a different
+   question from the docs: the reference says how the command works, the
+   changelog says that it appeared. Add it under the unreleased heading.
+8. Gates: `node --test` inside `packages/doctrina-cli/`, then
    `doctrina validate` (AGENTS.md drift gate) at the repo root.
 
 ## Anti-patterns
@@ -49,7 +53,9 @@ or gate-checked from it. Touch the steps in this order:
 - Shipping a working subcommand that `--help` never mentions. It
   happened: `spec set` and `change abandon` were implemented, spec'd,
   and invisible in help/AGENTS.md/docs for multiple releases — nobody
-  discovers them.
+  discovers them. It happened again with the `Documented surface:`
+  declaration, which shipped into the code and the CLI reference and into
+  neither the proposal template nor the refusal that needed it.
 - Documenting a command in a diagram (`docs/en/flow.md`) but giving it
   no cli-reference section: readers see it exists but cannot learn it.
 - Updating the EN docs and leaving PT for "later".

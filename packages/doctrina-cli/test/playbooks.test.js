@@ -33,6 +33,14 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 //     `work-ansi.txt` is shorter. The prose around it is untouched.
 // The goldens were re-captured for each, and every line around the change is
 // still the original.
+//
+// One thing in them is PROSE that was deliberately rewritten, and says so
+// here so the next reader does not mistake it for drift. Change 0145 removed
+// the closing sequence that step 7 spelled out — a second copy of a list
+// `gates.js` declares and the close itself prints, and one that had already
+// gone stale by four steps — and put in its place the two gates that ask for
+// WRITING: documentation and a changelog entry, plus the declaration that
+// answers a name the prose only mentions. The goldens carry the new lines.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

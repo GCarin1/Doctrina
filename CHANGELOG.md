@@ -19,6 +19,21 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The document model never reads a header out of a comment.** It owns that
+  rule for the whole tree and did not apply it to its own readers, so an
+  EXAMPLE header in a template's guidance counted as one the author wrote —
+  and the two readers disagreed about it, because one scans the document and
+  the other the preamble. A round-trip test over the real tree caught it the
+  moment the proposal template gained such an example. `setHeader` now writes
+  by offset, so it can never overwrite the example instead of the header.
+  (0146)
+- **The playbooks name the gates that ask you to write something.** `close`
+  has required a changelog entry since 0135 and offered the mention
+  declaration since 0139, and neither appeared in the work playbook an agent
+  executes, nor in the `add-cli-command` skill — so the rule existed only at
+  the moment of refusal. The same step also restated the closing sequence
+  from a copy that had gone stale by four steps; it now points at the command
+  that prints the declared one. (0145)
 - **The mention declaration is named where it is needed, and ignored where it
   is not.** `Documented surface: n/a — <why>` existed in the code and the CLI
   reference and nowhere an author would look: not in the proposal template,

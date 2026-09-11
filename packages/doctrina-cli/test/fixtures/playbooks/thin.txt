@@ -72,9 +72,16 @@ Execute in order, in a single linear pass:
    It self-reviews on the way through: the close runs `doctrina review`
    before the apply, where its findings can still change what gets
    written. Advisory — it reports and the close continues.
-   (equivalent, step by step: analyze → change apply → verify → coverage → trace → change archive → validate)
+   The sequence is declared in one place and printed by the close itself,
+   so read it there rather than from a copy that goes stale.
    Before it: check the proposal's ## Verification boxes and every task,
    closing steps included, and bump Implementation to verified.
+   Two gates ask for WRITING, and both refuse late if you leave them:
+   a change that alters a documented surface needs the documentation to
+   move with it, AND an entry in the project's changelog — one says how it
+   works, the other says that it changed. If the command and flag names in
+   your prose are only MENTIONED, declare it instead of forcing:
+   - **Documented surface:** n/a — <why> in the proposal.
 
 8. doctrina next for the follow-up.
    If this change taught a reusable lesson (a fix you'd hate to relearn,

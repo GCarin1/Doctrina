@@ -93,7 +93,12 @@ function headerPattern(name) {
  *             line: number, conforming: boolean } | null}
  */
 export function readHeader(text, name) {
-  const m = headerPattern(name).exec(String(text));
+  // Match against the MASKED text so a header written inside an HTML comment
+  // — a template's example of the form, say — is never mistaken for one the
+  // author wrote. Masking replaces comment content with spaces and keeps
+  // every line terminator, so offsets and line numbers are the document's own
+  // and `raw` below is still the real line.
+  const m = headerPattern(name).exec(maskComments(String(text)));
   if (!m) return null;
   const [raw, indent, dash, value] = m;
   const style = dash ? HEADER_STYLE.LIST : HEADER_STYLE.BARE;
@@ -133,7 +138,13 @@ export function setHeader(text, name, value, opts = {}) {
   const useStyle = style ?? existing.style;
   const prefix = useStyle === HEADER_STYLE.LIST ? "- " : "";
   const replacement = `${existing.indent}${prefix}**${name}:** ${value}`.replace(/\s+$/, "");
-  return String(text).replace(headerPattern(name), replacement);
+  // Write over the line `readHeader` actually found, by OFFSET. Replacing on
+  // a pattern would find the first textual match, which — now that reading
+  // skips annotation — may be an example inside a comment sitting above the
+  // real header. Masking preserves offsets, so the index is the real one.
+  const at = maskComments(String(text)).search(headerPattern(name));
+  if (at < 0) return null;
+  return String(text).slice(0, at) + String(text).slice(at).replace(headerPattern(name), replacement);
 }
 
 // The PREAMBLE: everything before the first `## ` section. Metadata headers
@@ -150,7 +161,22 @@ export function preamble(text) {
 // Every header in the document's preamble, in order, with conformance
 // recorded.
 export function readAllHeaders(fullText) {
-  const text = preamble(fullText);
+  // AN HTML COMMENT IS ANNOTATION, NOT A HEADER.
+  //
+  // This module is the one owner of that rule — every other reader in the
+  // tree defers to it — and this function did not apply it. The preamble is
+  // exactly where a template puts its guidance, so an EXAMPLE header written
+  // to show an author the form counted as a header the author wrote.
+  //
+  // It showed as a disagreement rather than a wrong answer: `readHeader`
+  // takes the first match in the whole document, this one collects every
+  // match in the preamble, and a commented example made the two return
+  // different sets. A round-trip test on the real tree caught it the moment
+  // the proposal template gained such an example.
+  //
+  // Masking preserves line terminators, so the reported line numbers are the
+  // document's own either way.
+  const text = preamble(maskComments(fullText));
   const out = [];
   const re = /^([ \t]*)(-[ \t]+)?\*\*([A-Za-z][A-Za-z .-]*?)[ \t]*(?::\*\*|\*\*[ \t]*:)[ \t]*(.*?)[ \t]*$/gm;
   let m;

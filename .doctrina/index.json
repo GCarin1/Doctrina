@@ -144,8 +144,8 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.20.0",
-        "last_updated": "2026-08-06",
+        "version": "0.21.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js",
@@ -156,8 +156,8 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.14.1",
-        "last_updated": "2026-08-06",
+        "version": "0.15.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
           "SC1",
@@ -537,7 +537,16 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0145-playbooks-skill-comando-avisam",
+        "title": "os playbooks e a skill de comando avisam do changelog antes do close cobrar",
+        "path": ".doctrina/changes/0145-playbooks-skill-comando-avisam",
+        "status": "applied",
+        "opened": "2026-09-11",
+        "lane": "chore (confident; signals: changelog)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2426,6 +2435,19 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0146-modelo-documento-le-cabecalho",
+        "title": "o modelo de documento nao le cabecalho dentro de comentario",
+        "path": ".doctrina/changes/archive/2026-09-11-0146-modelo-documento-le-cabecalho",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "validation",
             "operation": "MODIFIED"
           }
         ]
