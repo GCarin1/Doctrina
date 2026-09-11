@@ -2314,6 +2314,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0136-registrar-changelog-changes-fecharam",
+        "title": "registrar no changelog as changes que fecharam antes do gate existir",
+        "path": ".doctrina/changes/archive/2026-09-11-0136-registrar-changelog-changes-fecharam",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [

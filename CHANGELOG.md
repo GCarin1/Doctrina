@@ -17,14 +17,75 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The CLI no longer exits before it has finished printing.** The entrypoint
+  ended in `process.exit()`, which discards whatever stdout has not yet handed
+  to the operating system — so any consumer reading through a pipe could get a
+  truncated answer with a `0` beside it. Pipe buffers differ per platform,
+  which is how this stayed invisible everywhere except macOS on Node 20.12,
+  where four `--concat` tests had been red for five weeks. (0134)
+- **`replace-requirement` replaces the whole requirement.** It wrote only the
+  bullet's first line, leaving the previous version's wrapped prose underneath
+  the new one — so a spec stated a contract and contradicted it two lines
+  down. Four requirements in this repository's own tree had rotted that way:
+  a closing sequence missing its review and runtime steps, a doctor set
+  missing its runtime row, a manual verify gate missing its commit record, and
+  a `prime --rules` in an older shape. All four are corrected. (0131)
+- **`coverage` reads a criterion's citation, not its prose.** Any backticked
+  path counted as a claim of evidence, so a criterion that names bad input by
+  name — "a loose `specs/legacy.md` draws one warning" — was reported as
+  citing proof that does not resolve, on every run forever. Only paths after
+  the citation marker are claims now. (0129)
+- **The packed-install harness stops at the first failure**, and discovers the
+  change id instead of hardcoding it. A hardcoded `0001-add-refunds` went
+  stale when slug derivation learned to drop stopwords, and the soft assertion
+  let execution run on until an unrelated `ENOENT` buried the real message.
+  (0122, 0123)
+- The shipped examples validate cleanly again: both index stamps were two
+  releases behind, and the retrofit example carried the exact EARS mistake it
+  exists to teach against. (0125)
+- `package-lock.json` records the CLI at its real version, so `npm install`
+  no longer dirties the tree and `review` no longer reports nine false
+  breaks. (0121)
+
 ### Added
 
+- **`validate --strict`** treats warnings as failures, the way `coverage
+  --strict` and `trace --strict` already do. The default stays lenient,
+  because a warning is advice; a gate wants a verdict. The CI step that
+  validates the shipped examples uses it — it had reported green for weeks
+  over an example defect it had no way to reprove. (0126)
+- **The release gate is no longer weaker than the pull-request gate.**
+  Publishing now runs `verify`, the packed-install harness and the strict
+  example check, and publishes with `--provenance` — which is what the
+  `id-token: write` permission it already requested was for. (0127)
+- **CI runs on `develop`,** the branch feature work actually lands on. It
+  triggered only on `main`, so a pull request into `develop` ran no gate at
+  all. (0128)
 - **`close` asks the changelog, not only the docs.** A change that alters a
   documented surface now has to record that it changed, as well as describe
   how it works — two obligations, because prose about new behaviour reads
   exactly like prose that always described it. Blocking, with `--force` and a
   ledger line like every other gate, and silent for a project that keeps no
   `CHANGELOG.md`.
+
+### Changed
+
+- **`validate` moved out of the `gates` spec into a new `structure`
+  capability** (ADR 0028). `gates` had crossed its 400-line cap a second
+  time; three split axes were measured against the tree and only this one
+  resolved it, taking the spec from 427 lines to 331. The split follows a
+  real seam: `validate` answers whether the tree is well-formed, asked before
+  anything answers whether it is proven. (0132)
+- `SECURITY.md` describes the subprocesses the CLI actually runs. It claimed
+  none beyond the pre-commit hook, while eleven modules query `git` and
+  `verify` runs shell commands a project declares — so it described a
+  narrower trust boundary than the real one, which is the one documentation
+  error with a security consequence. (0124)
+- The context-degradation test measures its budget instead of hardcoding one,
+  and the context-pack test reports which link broke rather than one missing
+  regex. (0130, 0133)
 
 ## [0.16.0] — 2026-09-09
 
