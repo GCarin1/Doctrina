@@ -129,3 +129,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-09 — 0120-cortar-a-0-16-0 — cortar a 0.16.0
 - 2026-09-11 — 0121-regravar-lockfile-versao-workspace — regravar o lockfile para a versao 0.16.0 do workspace doctrina-cli
 - 2026-09-11 — 0122-harness-e2e-descobre-id — o harness e2e descobre o id da change em vez de fixar um literal
+- 2026-09-11 — 0123-harness-e2e-aborta-primeira — o harness e2e aborta na primeira falha em vez de seguir com estado inválido

@@ -2143,6 +2143,14 @@
         "status": "applied",
         "applied": "2026-09-11",
         "specs_affected": []
+      },
+      {
+        "id": "0123-harness-e2e-aborta-primeira",
+        "title": "o harness e2e aborta na primeira falha em vez de seguir com estado inválido",
+        "path": ".doctrina/changes/archive/2026-09-11-0123-harness-e2e-aborta-primeira",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
       }
     ],
     "skills": [
