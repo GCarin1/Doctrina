@@ -19,6 +19,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **What a driver runs is held to its declaration, in prose too.** Change 0150
+  fixed the close sequence after four copies had drifted to four lists; the
+  same shape was one driver over. Eleven passages said the pre-commit hook
+  runs `validate --fix` — since 0156 it runs that and `index rebuild --check
+  --staged`, and the docs gate was satisfied by the unrelated page that
+  shipped with it, because it asks whether docs moved, not whether the right
+  one did. The `system` contract's Interfaces section, which is what an
+  external consumer integrates against, named five of the composite action's
+  six steps. Both now match their declaration — the shipped hook template and
+  the declared CI sequence — and a test matches on the whole invocation, so a
+  passage that merely says "install the hook" stays free. (0159)
+
 - **A smell test does not change its answer with the language.** `clarify`
   carries one lexicon per language, and the Portuguese one flagged the quality
   adjectives that name no threshold — `robusto`, `escalavel`, `adequado` —

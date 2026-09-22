@@ -30,7 +30,7 @@ thin adapters for every supported agent:
 ```sh
 cd my-project
 npx doctrina-cli init --agent all
-npx doctrina-cli hooks install        # pre-commit: validate --fix on every commit (self-heals index drift)
+npx doctrina-cli hooks install        # pre-commit: validate --fix, then index rebuild --check --staged
 ```
 
 **2. Describe a capability** — the spec is the current truth of what the

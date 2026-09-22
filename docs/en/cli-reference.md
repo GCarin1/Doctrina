@@ -1020,12 +1020,16 @@ clone, so it names that CLI's entrypoint by absolute path and reads
 PATH may be an older release, and an older release rebuilding the index
 used to rewrite the `framework_version` stamp backwards on every commit.
 
-The hook runs `doctrina validate --fix`: it regenerates
+The hook runs two checks. `doctrina validate --fix` regenerates
 `index.json` from the tree (healing the most common gate failure —
 a hand-edited header that drifted the index — and re-staging the
 repaired index) and still blocks the commit on errors a rebuild
-cannot heal. The CLI refuses to run outside a git repository and
-refuses to overwrite an existing hook unless `--force` is supplied.
+cannot heal. Then `doctrina index rebuild --check --staged` asks
+whether the index this commit carries describes *this commit*: the
+step above reads the working tree, where a partially staged
+`.doctrina/` still looks whole. The CLI refuses to install outside a
+git repository and refuses to overwrite an existing hook unless
+`--force` is supplied.
 The installed hook is a short POSIX shell script; edit it freely
 after install (the CLI will not overwrite without `--force`), e.g.
 swap the line for a bare `doctrina validate` to gate without

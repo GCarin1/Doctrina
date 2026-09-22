@@ -88,7 +88,7 @@ shared by all three agents. See [Skills](skills.md).
 ## Phase 4 — Turn on the ratchet
 
 ```bash
-doctrina hooks install     # pre-commit runs validate --fix (heals index drift, blocks on real errors)
+doctrina hooks install     # pre-commit: validate --fix, then index rebuild --check --staged
 doctrina verify --init     # declare your typecheck / test / build commands
 doctrina verify --clean    # static lint for clean-checkout footguns (unbuilt dist, ungenerated Prisma client)
 ```

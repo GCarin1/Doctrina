@@ -88,7 +88,8 @@ doctrina coverage --json | jq '.summary.pct'
 
 ## Ratchet local vs gate de CI
 
-O hook de pre-commit (`doctrina hooks install`) roda `validate --fix` —
+O hook de pre-commit (`doctrina hooks install`) roda `validate --fix` e
+`index rebuild --check --staged` —
 ele *cura* drift de index localmente. O CI roda os checks read-only e
 *falha* no drift: o que chega ao remoto já precisa estar limpo. Os dois
 são complementares, não redundantes.

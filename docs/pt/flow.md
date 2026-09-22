@@ -86,7 +86,7 @@ flowchart TD
     subgraph OPS["Manutenção / setup"]
         direction TB
         doctor["doctrina doctor<br/>diagnóstico agregado + correções"]
-        hooks["doctrina hooks install<br/>pre-commit = validate --fix"]
+        hooks["doctrina hooks install<br/>pre-commit = validate --fix + index rebuild --check --staged"]
         indexrebuild["doctrina index rebuild"]
         templates["doctrina templates list/check/update"]
         upgradecmd["doctrina upgrade<br/>atualiza o projeto após um npm update"]
@@ -192,7 +192,8 @@ flowchart TD
 
 **Manutenção / setup.**
 - `doctrina doctor` — diagnóstico agregado com correção por achado.
-  `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
+  `doctrina hooks install` — pre-commit = `validate --fix` e depois `index
+  rebuild --check --staged`. `doctrina index
   rebuild` — regenera o índice a partir da árvore. `doctrina templates
   list|check|update` — inspeciona/atualiza os templates distribuídos.
   `doctrina upgrade` (`--write`) — traz um projeto existente para o CLI

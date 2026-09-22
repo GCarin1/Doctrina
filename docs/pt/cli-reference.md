@@ -1045,12 +1045,15 @@ ambiente como override. Um `doctrina` solto no PATH pode ser uma release
 mais velha, e uma release mais velha reconstruindo o índice reescrevia o
 carimbo `framework_version` para trás a cada commit.
 
-O hook roda `doctrina validate --fix`: ele regenera o `index.json`
-a partir da árvore (curando a falha de gate mais comum — um header
-editado à mão que dessincronizou o índice — e re-stageando o índice
-reparado) e ainda bloqueia o commit em erros que um rebuild não cura.
-O CLI recusa rodar fora de um repositório git e recusa sobrescrever
-um hook existente sem `--force`. O hook instalado é um shell script
+O hook roda duas checagens. O `doctrina validate --fix` regenera o
+`index.json` a partir da árvore (curando a falha de gate mais comum —
+um header editado à mão que dessincronizou o índice — e re-stageando o
+índice reparado) e ainda bloqueia o commit em erros que um rebuild não
+cura. Depois o `doctrina index rebuild --check --staged` pergunta se o
+índice que este commit carrega descreve *este commit*: o passo acima lê
+a árvore de trabalho, onde um `.doctrina/` staged pela metade continua
+parecendo inteiro. O CLI recusa instalar fora de um repositório git e
+recusa sobrescrever um hook existente sem `--force`. O hook instalado é um shell script
 POSIX curto; edite à vontade depois da instalação (o CLI não
 sobrescreve sem `--force`) — por exemplo, troque a linha por um
 `doctrina validate` puro para gatekeep sem auto-reparo (estilo CI,
