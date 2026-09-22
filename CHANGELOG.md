@@ -19,6 +19,20 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **One condition, one sentence, one class.** Walked in full — every command,
+  outside a project — `not a Doctrina project (no .doctrina/ in cwd)` came back
+  with three different exit codes. One cause: the multi-id driver behind
+  `change apply|archive|check` caught every thrown error and flattened it to 1,
+  losing the class the error carries and its `hint:` line, so the same refusal
+  `change new` reported as a precondition read as a failed gate one switch arm
+  away — and an agent told to "fix your work and retry" retries something that
+  never clears. A typed error now crosses the driver intact. `templates
+  check|update` carried the last two hand-written copies of that message,
+  `change.js` a seventh private copy of the shared helper, `analyze` asked for
+  the reference before the project, and `hooks install` answered 1 with no hint
+  where the git repository it needs did not exist. The spec's rule also named
+  three exceptions where the CLI has seven. (0157)
+
 - **The index is checked against the commit, not only against the disk.**
   `index.json` is derived from the whole tree, so it cannot describe a subset
   of one: stage part of `.doctrina/` and the index riding along names folders

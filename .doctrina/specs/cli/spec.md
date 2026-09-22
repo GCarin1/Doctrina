@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.49.1
+**Version:** 0.50.0
 
 ## Purpose
 
@@ -144,9 +144,7 @@ command shares (git, the lexicon, the usage log).
 - While a destination file already exists, the system shall refuse to
   overwrite it unless `--force` is supplied.
 
-- While the current working directory does not contain `.doctrina/`,
-  every command except `init`, `--help`, and `--version` shall exit
-  with a clear error.
+- While the current working directory does not contain `.doctrina/`, every command shall exit with the precondition class and the same message, except those that answer from the CLI itself rather than from a tree — `init`, which creates one, `next`, which names the door, `completion` and `ci --emit`, which render from their own declarations, and `templates list`, which shows what would be resolved — along with `--help` and `--version`, which are not commands.
 
 ### Unwanted-behavior (must-not)
 
@@ -254,6 +252,7 @@ The CLI is v0 spec-compliant when:
 39. [verified] An argument lands in `args` and never in `command`, and a sub-operation stays whole with no `args` key — verified by `packages/doctrina-cli/test/the-envelope-names-the-operation.test.js`.
 40. [verified] An unknown flag with the JSON flag emits an envelope carrying `ok: false`, the usage exit code and what it refused — verified by `packages/doctrina-cli/test/the-envelope-names-the-operation.test.js`.
 41. [verified] A long `--concat` pack arrives whole through a pipe, byte for byte identical to the same pack written to a file, and the entrypoint sets an exit code rather than calling `process.exit` — verified by `packages/doctrina-cli/test/the-output-survives-the-exit.test.js`.
+42. [verified] Every command answers the precondition class with one message outside a project, the declared exceptions answer with their own output instead, and a typed error crossing a multi-id driver keeps its class — verified by `packages/doctrina-cli/test/a-fronteira-da-precondicao.test.js`.
 
 ## Out of scope for this spec
 

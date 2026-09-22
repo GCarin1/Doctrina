@@ -17,7 +17,7 @@ import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js"
 import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { ensureDoctrinaProject } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew } from "../lib/change-ops.js";
 
@@ -108,6 +108,14 @@ async function forEachId(ids, name, one) {
     try {
       code = await one(id);
     } catch (err) {
+      // A TYPED error is a condition of the RUN, not a verdict on this id:
+      // "not a Doctrina project" is equally true of every id, and the class
+      // it carries is the whole point of the contract. Flattening it to 1
+      // here made `change apply|archive|check` answer "fix your work and
+      // retry" where `change new`, one switch arm away, answered "run the
+      // setup command first" — same condition, same sentence, two codes.
+      // The entrypoint owns the mapping and prints the remedy; let it.
+      if (err && typeof err.exitCode === "number") throw err;
       console.error(c.red("error:") + ` ${err.message}`);
       code = 1;
     }
@@ -780,12 +788,6 @@ function collectArchiveBlockers(changeDir) {
     if (n > 0) blockers.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
   }
   return blockers;
-}
-
-function ensureDoctrinaProject(projectRoot) {
-  if (!exists(path.join(projectRoot, ".doctrina"))) {
-    throw notADoctrinaProject();
-  }
 }
 
 export const help = `

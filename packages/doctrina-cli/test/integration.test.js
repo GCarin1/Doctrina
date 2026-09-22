@@ -376,8 +376,11 @@ test("hooks install fails outside a git repository", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const r = runCli(["hooks", "install"], { cwd: tmp });
-    assert.equal(r.status, 1);
+    // A PRECONDITION, not a gate: the place to put the hook does not exist
+    // yet. Class 1 told an agent to fix its work and retry the same command.
+    assert.equal(r.status, 3);
     assert.match(r.stderr, /not a git repository/);
+    assert.match(r.stderr, /hint:.*git init/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

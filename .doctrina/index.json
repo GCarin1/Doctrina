@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.49.1",
+        "version": "0.50.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -539,16 +539,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0157-duas-saidas-fora-do-contrato-de-classe",
-        "title": "duas saidas fora do contrato de classe",
-        "path": ".doctrina/changes/0157-duas-saidas-fora-do-contrato-de-classe",
-        "status": "proposed",
-        "opened": "2026-09-22",
-        "lane": "product (uncertain; signals: spec)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2601,6 +2592,19 @@
         "specs_affected": [
           {
             "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0157-duas-saidas-fora-do-contrato-de-classe",
+        "title": "duas saidas fora do contrato de classe",
+        "path": ".doctrina/changes/archive/2026-09-22-0157-duas-saidas-fora-do-contrato-de-classe",
+        "status": "applied",
+        "applied": "2026-09-22",
+        "specs_affected": [
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ]
