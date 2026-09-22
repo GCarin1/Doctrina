@@ -1536,7 +1536,7 @@ Exits 1 on errors, 0 on warnings only.
 Regenerate `.doctrina/index.json` from the artifacts on disk.
 
 ```
-doctrina index rebuild [--check]
+doctrina index rebuild [--check] [--staged]
 ```
 
 The files are the source of truth; the index is a derived artifact.
@@ -1549,6 +1549,16 @@ over from the existing index.
 With `--check` the command writes nothing, prints a drift summary
 per artifact category, and exits 1 when the index no longer
 matches the tree. Wire it into CI next to `validate`.
+
+`--check --staged` asks the same question of the **commit** instead of
+the disk: every artifact the staged index names must be in the commit,
+and every staged artifact must be in the index. The index is derived
+from the whole tree, so it cannot describe a subset of one — stage part
+of `.doctrina/` and the index riding along names folders the commit does
+not carry, while every other gate reads the working tree, where those
+folders are still present. The installed pre-commit hook runs it. It
+writes nothing (without `--check` it is a usage error) and exits 0 when
+nothing relevant is staged, or outside a git repository.
 
 ## `doctrina next`
 

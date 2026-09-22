@@ -1584,7 +1584,7 @@ Sai 1 em erros, 0 só com warnings.
 Regenera `.doctrina/index.json` a partir dos artefatos em disco.
 
 ```
-doctrina index rebuild [--check]
+doctrina index rebuild [--check] [--staged]
 ```
 
 Os arquivos são a fonte de verdade; o index é artefato derivado.
@@ -1597,6 +1597,16 @@ metadata do product — são preservados do index existente.
 Com `--check` o comando não escreve nada, imprime um resumo do
 drift por categoria de artefato e sai 1 quando o index não bate
 mais com a árvore. Conecte ao CI ao lado do `validate`.
+
+`--check --staged` faz a mesma pergunta ao **commit** em vez de ao
+disco: todo artefato que o index staged nomeia tem de estar no commit,
+e todo artefato staged tem de estar no index. O index é derivado da
+árvore inteira, então não consegue descrever um pedaço dela — stage
+parte de `.doctrina/` e o index que vai junto nomeia pastas que o
+commit não carrega, enquanto todo outro gate lê a árvore de trabalho,
+onde essas pastas continuam lá. O hook de pre-commit instalado roda
+isso. Não escreve nada (sem `--check` é erro de invocação) e sai 0
+quando nada relevante está staged, ou fora de um repositório git.
 
 ## `doctrina next`
 

@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The index is checked against the commit, not only against the disk.**
+  `index.json` is derived from the whole tree, so it cannot describe a subset
+  of one: stage part of `.doctrina/` and the index riding along names folders
+  the commit does not carry. Every gate that could catch it reads the working
+  tree, where those folders are still present — so `validate`, `index rebuild
+  --check` and the whole close all pass, and the checkout fails with
+  "index.json references missing artifact". Four consecutive commits of this
+  repository shipped that way. `index rebuild --check --staged` asks the
+  question of the commit, and the pre-commit hook runs it right after the step
+  that stages the index. (0156)
+
 - **The docs gate's sensitivity sentinel measures a fixed sample.** It took a
   ratio over every archived change with a fixed threshold, so it fell on its
   own as the tree grew: a proposal carrying `Documented surface: n/a — <why>`
