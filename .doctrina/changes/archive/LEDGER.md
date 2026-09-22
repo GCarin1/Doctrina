@@ -168,3 +168,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-11 — 0155-sentinela-do-gate-de-docs-mede-conteudo-vivo — sentinela do gate de docs mede conteudo vivo (specs: gates MODIFIED)
 - 2026-09-22 — 0156-o-indice-e-conferido-contra-o-disco-nao-o-commit — o indice e conferido contra o disco nao o commit (specs: scaffolding MODIFIED)
 - 2026-09-22 — 0157-duas-saidas-fora-do-contrato-de-classe — duas saidas fora do contrato de classe (specs: cli MODIFIED)
+- 2026-09-22 — 0158-os-dois-lexicons-do-clarify-divergem — os dois lexicons do clarify divergem (specs: gates MODIFIED)

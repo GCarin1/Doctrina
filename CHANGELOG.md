@@ -19,6 +19,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A smell test does not change its answer with the language.** `clarify`
+  carries one lexicon per language, and the Portuguese one flagged the quality
+  adjectives that name no threshold — `robusto`, `escalavel`, `adequado` —
+  while the English one had no counterpart at all. The same sentence,
+  translated, came back with three smells on one side and none on the other,
+  in a project that keeps every page in both and gates on this command. The
+  categories now match on both sides, and a test holds them there; the
+  divergences that are deliberate — bare `TODO` is the Portuguese pronoun,
+  `may` is EARS Optional grammar — keep their reason beside them. (0158)
+
 - **One condition, one sentence, one class.** Walked in full — every command,
   outside a project — `not a Doctrina project (no .doctrina/ in cwd)` came back
   with three different exit codes. One cause: the multi-id driver behind

@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.38.0",
+        "version": "1.39.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -539,7 +539,16 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas",
+        "title": "enumeracoes do que um driver roda ficaram velhas",
+        "path": ".doctrina/changes/0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas",
+        "status": "proposed",
+        "opened": "2026-09-22",
+        "lane": "product (uncertain; signals: change)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2605,6 +2614,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0158-os-dois-lexicons-do-clarify-divergem",
+        "title": "os dois lexicons do clarify divergem",
+        "path": ".doctrina/changes/archive/2026-09-22-0158-os-dois-lexicons-do-clarify-divergem",
+        "status": "applied",
+        "applied": "2026-09-22",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]
