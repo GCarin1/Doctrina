@@ -177,3 +177,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-23 — 0164-gatilho-de-skill-so-enxerga-vagueza-em-ingles — gatilho de skill so enxerga vagueza em ingles (specs: structure MODIFIED)
 - 2026-09-23 — 0165-supersede-descarta-o-escopo-da-adr — supersede descarta o escopo da adr (specs: authoring MODIFIED)
 - 2026-09-23 — 0166-intent-add-aceita-a-mesma-intencao-duas-vezes — intent add aceita a mesma intencao duas vezes (specs: authoring MODIFIED, gates MODIFIED)
+- 2026-09-23 — 0167-teste-adr-substituta-falha — o teste da ADR substituta falha no Windows

@@ -32,10 +32,11 @@ function adrPath(dir, number) {
 }
 
 // Write real sections (accept refuses a template body), optionally a Scope.
+// A Windows checkout gives the template CRLF line endings; match either.
 function author(file, scope) {
   let t = readFileSync(file, "utf8");
   for (const sec of ["Context", "Decision", "Consequences"]) {
-    t = t.replace(new RegExp(`(## ${sec}\\n)([\\s\\S]*?)(?=\\n## |$)`), `$1\nReal ${sec} text.\n`);
+    t = t.replace(new RegExp(`(## ${sec}\\r?\\n)([\\s\\S]*?)(?=\\r?\\n## |$)`), `$1\nReal ${sec} text.\n`);
   }
   if (scope) t = t.replace("- **Deciders:**", `- **Scope:** ${scope}\n- **Deciders:**`);
   writeFileSync(file, t);
@@ -65,7 +66,7 @@ test("a successor inherits its predecessor's scope", () => {
     acceptedScoped(dir, "alfa");
     const r = runCli(["decision", "supersede", "0001", "usar sqlite"], dir);
     assert.equal(r.status, 0, r.stderr || r.stdout);
-    assert.match(readFileSync(adrPath(dir, "0002"), "utf8"), /^- \*\*Scope:\*\* alfa$/m);
+    assert.match(readFileSync(adrPath(dir, "0002"), "utf8"), /^- \*\*Scope:\*\* alfa\r?$/m);
     assert.match(r.stdout, /scope: inherited from 0001 — alfa/,
       "the inheritance is said out loud, where the author can see it and change it");
   } finally {
