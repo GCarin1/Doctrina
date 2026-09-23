@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.40.1
+**Version:** 1.41.0
 
 ## Purpose
 
@@ -197,6 +197,7 @@ codes, zero-deps, no-network).
 - When a change's proposal declares `Documented surface: n/a — <why>`, the system shall read the names in that change's prose as mentions and report no surface signal, and shall ignore the declaration when it carries no reason.
 - When `doctrina close` finishes writing — after the archive step, which is the last step that rewrites the index — the system shall compare the index against a rebuild and refuse the close when the two disagree.
 - When the docs gate refuses a change, the system shall name both remedies — documenting the surface, and declaring on the record that the names are only mentioned — before offering to force the close.
+- When `product.md` declares two intent anchors that state the same intent under different ids, the system shall report a warning naming both lines and the remedy, because realizing one leaves the other dropped and `trace --strict` fails on a gap no spec can close.
 
 ### State-driven
 
@@ -337,6 +338,7 @@ The gate surface is spec-compliant when:
 81. [verified] The docs gate's sensitivity sentinel reads a chronological prefix of the archive and skips proposals carrying a documented-surface declaration, so closing a change does not change what it measures — verified by `packages/doctrina-cli/test/citing-a-command-is-not-changing-it.test.js`.
 82. [verified] The same claim written in English and in Portuguese produces the same smells, and both lexicons declare the same rule names — verified by `packages/doctrina-cli/test/um-smell-test-nao-muda-de-lingua.test.js`.
 83. [verified] The contract's description of the composite action names every step of the declared CI sequence — verified by `packages/doctrina-cli/test/o-que-um-driver-roda-tem-um-autor.test.js`.
+84. [verified] A hand-written twin anchor in `product.md` makes `validate` warn, naming the twin and the first anchor's line — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
 
 ## Out of scope for this spec
 

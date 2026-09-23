@@ -749,10 +749,25 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
     const productPath = path.join(projectRoot, ".doctrina", "product.md");
     if (isFile(productPath)) {
       const seen = new Map();
+      // The mirror case: ONE intent under TWO ids. Realize either and the
+      // other stays "dropped" forever, so `trace --strict` — a CI gate —
+      // fails on a gap nobody can close. Compared folded, so case, accents
+      // and spacing do not hide a twin.
+      const seenText = new Map();
       const lines = read(productPath).split(/\r?\n/);
       for (let i = 0; i < lines.length; i++) {
-        const m = lines[i].match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+/);
+        const m = lines[i].match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+(.*)$/);
         if (!m) continue;
+        const key = intentKey(m[2]);
+        if (key && seenText.has(key) && seenText.get(key).id !== m[1]) {
+          const first = seenText.get(key);
+          warnings.push(
+            `.doctrina/product.md:${i + 1} intent [${m[1]}] states the same intent as [${first.id}] (line ${first.line}) — ` +
+              `realizing one leaves the other dropped, so \`trace --strict\` fails on a gap nobody can close; delete the twin`,
+          );
+        } else if (key && !seenText.has(key)) {
+          seenText.set(key, { id: m[1], line: i + 1 });
+        }
         if (seen.has(m[1])) {
           errors.push(
             `.doctrina/product.md:${i + 1} intent anchor [${m[1]}] is declared twice (first at line ${seen.get(m[1])}) — ` +
@@ -1080,6 +1095,11 @@ function looksVague(text) {
 /** A value still wrapped in the template's angle brackets: `<one-sentence …>`. */
 export function isScaffoldValue(value) {
   return /^<[^<>]*>$/.test(String(value ?? "").trim());
+}
+
+/** An intent's text, folded for comparison: case, accents and spacing ignored. */
+export function intentKey(text) {
+  return fold(String(text ?? "")).replace(/\s+/g, " ").replace(/[.;:!\s]+$/, "").trim();
 }
 
 export function hasDetectableTrigger(when) {

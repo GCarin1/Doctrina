@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`intent add` refuses an intent that is already anchored.** It refused
+  only a colliding pinned id, so the same sentence added twice became two
+  anchors for one goal: once a spec realized one, the twin stayed `dropped`
+  and `trace --strict` failed on a gap no spec could close. The text is now
+  compared folded (case, accents, spacing, trailing punctuation), the
+  refusal names the anchor that already states it, and `validate` warns on
+  a twin written by hand. (0166)
 - **A superseding ADR inherits its predecessor's scope.** `decision
   supersede` built the successor from the bare template and injected only
   `Supersedes:`, so the successor had no `Scope:` — and an unscoped ADR is
