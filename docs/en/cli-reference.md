@@ -1917,7 +1917,7 @@ doctrina metrics [--since <days|date>] [--save]
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `--since <n\|date>` | `90` | Window: a day count or any git-parseable date (`2026-01-01`, `"3 months ago"`). |
+| `--since <n\|date>` | `90` | Window: a day count, a calendar date (`2026-01-01`) or `"<n> <unit>s ago"` (`"3 months ago"`). Anything else exits `2`: git reads any text as a date (`abc` as now), so a typo would measure the wrong window. |
 | `--save` | off | Write `.doctrina/metrics/YYYY-MM-DD.json` and print deltas against the most recent prior snapshot. |
 
 Reports commit count, revert count and rate, Conventional-Commit

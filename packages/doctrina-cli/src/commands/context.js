@@ -7,7 +7,7 @@ import { listHeader, parseDependsOn, parseAdrScope, adrSummary, knownCapabilitie
 import { suggest } from "../lib/suggest.js";
 import { checklistProgress, getTitle, getSectionParagraph } from "../lib/doc-model.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
-import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
+import { flagBool, flagString, flagGivenWithoutValue, parsePositiveInt } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { loadConfig, DEFAULTS } from "../lib/config.js";
 import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
@@ -474,8 +474,7 @@ function estimateTokens(text) {
 // malformed --budget so the caller can report a usage error.
 function resolveBudget(projectRoot, budgetRaw) {
   if (budgetRaw !== undefined) {
-    const n = Number.parseInt(budgetRaw, 10);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    return parsePositiveInt(budgetRaw);
   }
   // One configuration reader (lib/config.js, change 0047): `.doctrina/
   // config.json` is the declared home and index.json's `config` block is

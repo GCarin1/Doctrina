@@ -74,7 +74,21 @@ export function parseArgs(argv, opts = {}) {
 function isNextTokenFlag(token) {
   if (token === undefined) return true;
   if (typeof token !== "string") return true;
+  // `--budget -5` is a value, not a flag named "5": no flag name starts with
+  // a digit, and reading it as one answered "unknown flag --5, did you mean
+  // --h?" instead of letting the command say the number is out of range.
+  if (/^-\d/.test(token)) return false;
   return token.startsWith("-");
+}
+
+// A count read off a flag: digits only, above zero, or null. `parseInt`
+// reads "7x" as 7 and "1.5" as 1, so a typo became a different request that
+// ran without a word.
+export function parsePositiveInt(raw) {
+  const s = String(raw ?? "").trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
 }
 
 export function flagString(flags, name, fallback = undefined) {

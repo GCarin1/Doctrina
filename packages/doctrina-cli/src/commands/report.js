@@ -2,7 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
-import { flagBool, flagString } from "../lib/args.js";
+import { flagBool, flagString, parsePositiveInt } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectSnapshot } from "../lib/snapshot.js";
@@ -33,8 +33,8 @@ export async function run(_positional, flags) {
   }
 
   const sinceRaw = flagString(flags, "since");
-  const days = Number.parseInt(sinceRaw ?? "7", 10);
-  if (!Number.isFinite(days) || days <= 0) {
+  const days = parsePositiveInt(sinceRaw ?? "7");
+  if (days === null) {
     console.error(c.red("error:") + ` --since expects a positive day count, got "${sinceRaw}"`);
     return 2;
   }

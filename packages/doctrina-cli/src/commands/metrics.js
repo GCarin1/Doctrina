@@ -11,7 +11,7 @@ import { GIT_STATE, historyState, git } from "../lib/git.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
-import { REEDIT_WINDOW_DAYS, computeSnapshot, parseLog, readSeries, latestSnapshot, trend, round } from "../lib/metrics-model.js";
+import { REEDIT_WINDOW_DAYS, sinceWindow, computeSnapshot, parseLog, readSeries, latestSnapshot, trend, round } from "../lib/metrics-model.js";
 
 // Local-only adoption metrics derived from git history. No network calls,
 // no telemetry: the numbers stay in the repository, versioned like any
@@ -37,6 +37,14 @@ export async function run(_positional, flags) {
   // recent one (audit finding F15) — a year of measurement answering one
   // question. Reading the series is what makes the saving worth doing.
   if (flagBool(flags, "trend", false)) return printTrend(projectRoot);
+  // The window is the invocation's: refused the same with or without history.
+  const sinceRaw = flagString(flags, "since", "90");
+  const since = sinceWindow(sinceRaw);
+  if (since === null) {
+    console.error(c.red("error:") + ` --since expects a day count, a date (YYYY-MM-DD) or "<n> <unit>s ago", got "${sinceRaw}"`);
+    console.error(c.gray("hint: ") + "examples: --since 30 · --since 2026-01-01 · --since \"3 months ago\"");
+    return EXIT.USAGE;
+  }
   const probe = git(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
   // "No history yet" is a VALID state, not a failure — a brand-new project
   // is the most common state in which someone explores this command, and it
@@ -55,8 +63,6 @@ export async function run(_positional, flags) {
     return EXIT.OK;
   }
 
-  const sinceRaw = flagString(flags, "since", "90");
-  const since = /^\d+$/.test(sinceRaw) ? `${sinceRaw} days ago` : sinceRaw;
   const save = flagBool(flags, "save", false);
 
   const log = git(projectRoot, [
@@ -218,8 +224,10 @@ Flags:
                      opt-in usage log. Recording is OFF unless DOCTRINA_USAGE_LOG
                      names a file; only the operation is recorded, never
                      arguments, and nothing leaves the machine.
-  --since <n|date>   Window: a day count (default 90) or any git-parseable
-                     date ("2026-01-01", "3 months ago").
+  --since <n|date>   Window: a day count (default 90), a calendar date
+                     ("2026-01-01") or "<n> <unit>s ago" ("3 months ago").
+                     Anything else is refused: git reads any text as a
+                     date, so a typo would measure the wrong window.
   --save             Write .doctrina/metrics/YYYY-MM-DD.json and print the
                      deltas against the most recent prior snapshot.
   --trend            Read the saved snapshots instead of git: every snapshot

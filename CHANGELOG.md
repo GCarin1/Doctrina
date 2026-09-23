@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A malformed flag value is refused instead of reinterpreted.**
+  `metrics --since` handed free text to git, which reads anything as a
+  date: `abc` became *now* ("nothing to measure", exit 0) and `2026-13-45`
+  another day. `report --since`, `status --view report --since` and
+  `context --budget` read `7x` as 7 and `1.5` as 1, and `--budget -5` was
+  parsed as a flag named `5`. Each now exits `2` naming the value;
+  `metrics --since` takes a day count, a calendar date or
+  `"<n> <unit>s ago"`. (0169)
 - **`spec set` answers USAGE to an error in the invocation.** Every
   operation error answered `1` (GATE, "fix the work and retry"), including
   `--status banana`, `--criterion 9=verified` and a criterion the spec does

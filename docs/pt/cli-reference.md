@@ -1971,7 +1971,7 @@ doctrina metrics [--since <dias|data>] [--save]
 
 | Flag | Default | Função |
 |------|---------|--------|
-| `--since <n\|data>` | `90` | Janela: contagem de dias ou qualquer data que o git parseie (`2026-01-01`, `"3 months ago"`). |
+| `--since <n\|data>` | `90` | Janela: contagem de dias, data de calendário (`2026-01-01`) ou `"<n> <unit>s ago"` (`"3 months ago"`). Qualquer outra coisa sai com `2`: o git lê qualquer texto como data (`abc` vira agora), então um erro de digitação mediria a janela errada. |
 | `--save` | off | Escreve `.doctrina/metrics/YYYY-MM-DD.json` e imprime os deltas contra o snapshot anterior mais recente. |
 
 Reporta contagem de commits, reverts e taxa, share de `fix`

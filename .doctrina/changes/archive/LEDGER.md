@@ -179,3 +179,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-23 — 0166-intent-add-aceita-a-mesma-intencao-duas-vezes — intent add aceita a mesma intencao duas vezes (specs: authoring MODIFIED, gates MODIFIED)
 - 2026-09-23 — 0167-teste-adr-substituta-falha — o teste da ADR substituta falha no Windows
 - 2026-09-23 — 0168-spec-set-responde-gate-a-erro-de-invocacao — spec set responde GATE a erro de invocacao (specs: authoring MODIFIED)
+- 2026-09-23 — 0169-valor-de-flag-malformado-reinterpretado — valor de flag malformado reinterpretado (specs: cli MODIFIED)

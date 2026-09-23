@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.50.0
+**Version:** 0.51.0
 
 ## Purpose
 
@@ -176,6 +176,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not report a reference that does not resolve with the class reserved for a failed gate, and shall not report it as success.
 - The system shall not refuse a view that found nothing; a listing or a search with no result shall say so and exit successfully.
 - The system shall not end a run in a way that discards output it has already printed; a command's bytes shall reach stdout before the process exits, whether stdout is a terminal, a file, or a pipe.
+- The system shall not reinterpret a malformed flag value as a different request: a count that is not digits above zero, a `metrics --since` window that is not a day count, a real calendar date or "<n> <unit>s ago", and a negative number given to a value-taking flag are refused with the usage class, naming the value, because git reads any text as a date and a truncated number runs as a request nobody made.
 
 ### Optional
 
@@ -253,6 +254,7 @@ The CLI is v0 spec-compliant when:
 40. [verified] An unknown flag with the JSON flag emits an envelope carrying `ok: false`, the usage exit code and what it refused — verified by `packages/doctrina-cli/test/the-envelope-names-the-operation.test.js`.
 41. [verified] A long `--concat` pack arrives whole through a pipe, byte for byte identical to the same pack written to a file, and the entrypoint sets an exit code rather than calling `process.exit` — verified by `packages/doctrina-cli/test/the-output-survives-the-exit.test.js`.
 42. [verified] Every command answers the precondition class with one message outside a project, the declared exceptions answer with their own output instead, and a typed error crossing a multi-id driver keeps its class — verified by `packages/doctrina-cli/test/a-fronteira-da-precondicao.test.js`.
+43. [verified] A window git would misread, a count with trailing text or a fraction, and a negative number after a value-taking flag each answer the usage class naming the value, while the documented forms still run — verified by `packages/doctrina-cli/test/um-valor-malformado-e-recusado.test.js`.
 
 ## Out of scope for this spec
 

@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.50.0",
+        "version": "0.51.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -540,14 +540,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0169-valor-de-flag-malformado-reinterpretado",
-        "title": "valor de flag malformado reinterpretado",
-        "path": ".doctrina/changes/0169-valor-de-flag-malformado-reinterpretado",
-        "status": "proposed",
-        "opened": "2026-09-23",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0170-estimativa-de-tokens-conta-o-cr",
         "title": "estimativa de tokens conta o CR",
@@ -2780,6 +2772,19 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0169-valor-de-flag-malformado-reinterpretado",
+        "title": "valor de flag malformado reinterpretado",
+        "path": ".doctrina/changes/archive/2026-09-23-0169-valor-de-flag-malformado-reinterpretado",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ]
