@@ -1207,8 +1207,11 @@ Checagens:
     nada concreto — nenhuma palavra-chave, path, comando ou string de erro
     — gera warning. O `context` ranqueia skills casando a tarefa contra
     esse gatilho, então um gatilho escrito em prosa pura ("sempre que
-    parecer relevante") nunca dispara, e a skill só é carregada por quem já
-    sabia que ela existia.
+    parecer relevante", "whenever it seems relevant") nunca dispara, e a
+    skill só é carregada por quem já sabia que ela existia. As listas de
+    frases são espelhadas por língua e casadas com o texto dobrado, e as
+    palavras de conteúdo são contadas pelo léxico compartilhado, então um
+    gatilho recebe a mesma leitura em qualquer das duas.
 
 30. **Referências fantasmas.** Um `Depends on:` de spec que nomeia uma
     capability sem spec é erro (o pack, o grafo e o review leem esse

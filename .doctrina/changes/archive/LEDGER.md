@@ -174,3 +174,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-23 — 0161-o-adapter-nomeia-o-diretorio-nao-o-projeto — o adapter nomeia o diretorio nao o projeto (specs: scaffolding MODIFIED)
 - 2026-09-23 — 0162-o-status-do-intake-nao-tem-dono-nem-gate — o status do intake nao tem dono nem gate (specs: authoring MODIFIED, structure MODIFIED)
 - 2026-09-23 — 0163-regra-de-projeto-com-glob-morto-e-silenciosa — regra de projeto com glob morto e silenciosa (specs: structure MODIFIED)
+- 2026-09-23 — 0164-gatilho-de-skill-so-enxerga-vagueza-em-ingles — gatilho de skill so enxerga vagueza em ingles (specs: structure MODIFIED)

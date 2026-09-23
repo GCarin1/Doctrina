@@ -16,6 +16,7 @@
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./fs-ops.js";
+import { fold, terms } from "./lexicon.js";
 import { intakeStatusError } from "./intake-model.js";
 import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
@@ -1061,7 +1062,20 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
 // something concrete — a path or glob, a command, a quoted error string, a
 // file extension, an ALL_CAPS identifier, or simply enough distinctive
 // keywords to match on.
-const VAGUE_TRIGGER = /^(?:when(?:ever)?\s+)?(?:it|this|you|the agent)?\s*(?:is\s+)?(?:seems?|feels?|looks?)?\s*(?:relevant|appropriate|needed|necessary|useful|applicable|as needed|if needed)\.?$/i;
+// One list per language, because this framework runs on Portuguese projects
+// too — and the vagueness it exists to catch is written in the project's own
+// language. Change 0158 found the same split in `clarify`'s lexicons; this is
+// the same asymmetry one module over. Matched against the FOLDED text, so
+// "necessário" and "necessario" are one phrase.
+const VAGUE_TRIGGER_EN = /^(?:when(?:ever)?\s+)?(?:it|this|you|the agent)?\s*(?:is\s+)?(?:seems?|feels?|looks?|makes?)?\s*(?:relevant|appropriate|needed|necessary|useful|applicable|sense|right|as needed|if needed)\.?$/i;
+const VAGUE_TRIGGER_PT =
+  /^(?:(?:sempre\s+)?que|quando|se)?\s*(?:isso|isto|voce|o agente)?\s*(?:for|foi|parecer|fizer|achar|julgar)?\s*(?:relevante|apropriad[oa]|necessari[oa]|util|aplicavel|preciso|sentido|cert[oa])\.?$/i;
+
+function looksVague(text) {
+  const folded = fold(text).trim();
+  if (folded === "") return true;
+  return VAGUE_TRIGGER_EN.test(folded) || VAGUE_TRIGGER_PT.test(folded);
+}
 
 /** A value still wrapped in the template's angle brackets: `<one-sentence …>`. */
 export function isScaffoldValue(value) {
@@ -1070,18 +1084,19 @@ export function isScaffoldValue(value) {
 
 export function hasDetectableTrigger(when) {
   const text = String(when ?? "").trim();
-  if (text === "" || VAGUE_TRIGGER.test(text)) return false;
+  if (looksVague(text)) return false;
   // The scaffold's own placeholder has enough words to rank on and names
   // nothing (change 0111): a trigger nobody wrote fires for nobody.
   if (isScaffoldValue(text)) return false;
   // Anything structural is inherently matchable.
-  if (/[\/\]|\*|`|"|'|\.\w{2,4}|[A-Z][A-Z0-9_]{2,}/.test(text)) return true;
-  // Otherwise: enough distinctive words to rank on. Stopwords do not count.
-  const STOP = new Set(["when", "whenever", "the", "a", "an", "is", "are", "you", "your",
-    "it", "its", "this", "that", "and", "or", "to", "of", "in", "on", "for", "with",
-    "any", "some", "need", "needs", "needed", "should", "must", "at", "as", "by", "be"]);
-  const words = text.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) ?? [];
-  return words.filter((w) => !STOP.has(w)).length >= 2;
+  if (/[\/\]|\*|`|"|'|\.\w{2,4}|[A-Z][A-Z0-9_]{2,}/.test(text)) return true;
+  // Otherwise: enough distinctive words to rank on — counted by the SHARED
+  // lexicon, which folds and carries the connective tissue of both languages.
+  // The private stop list here was English-only, so every Portuguese function
+  // word ("quando", "que", "para") counted as distinctive and a two-word
+  // Portuguese phrase cleared the bar on grammar alone. One lexicon, the way
+  // `work` and `context` already read text (audit findings F5/F6).
+  return terms(text).length >= 2;
 }
 
 // Enforce the project's rules — permanent constraints as forbid-regexes over

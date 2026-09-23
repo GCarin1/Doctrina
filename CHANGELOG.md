@@ -19,6 +19,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A vague skill trigger is vague in both languages.** `context` ranks skills
+  by matching a task against the `when:` trigger, so a trigger naming nothing
+  concrete can never fire — and the check for that saw English only: one
+  hardcoded phrase list, plus a private stop list of English function words.
+  In a Portuguese project, which this framework supports and detects per file,
+  "quando fizer sentido" and "sempre que parecer útil" sailed through as
+  concrete triggers, and grammar words like "quando" and "que" counted as
+  distinctive, so a two-word Portuguese phrase cleared the rankability bar on
+  function words alone. The phrase lists are mirrored per language and matched
+  folded, and the content words are counted by the shared lexicon that already
+  carried both. Change 0158 found the same split in `clarify`; this is it one
+  module over. (0164)
+
 - **A project rule that reaches no file says so.** Point a rule's `paths` at
   a directory that does not exist and it never ran: `validate` exited 0 and
   `doctor` went on counting it among the configured options, so the project

@@ -1174,8 +1174,11 @@ Checks performed:
 29. **Skill triggers.** A skill whose frontmatter `when:` names nothing
     concrete — no keyword, path, command or error string — warns. `context`
     ranks skills by matching a task against that trigger, so a trigger
-    written as pure prose ("whenever it seems relevant") can never fire,
-    and the skill is loaded only by someone who already knew it existed.
+    written as pure prose ("whenever it seems relevant", "quando fizer
+    sentido") can never fire, and the skill is loaded only by someone who
+    already knew it existed. The phrase lists are mirrored per language and
+    matched folded, and the content words are counted by the shared lexicon,
+    so a trigger reads the same in either language.
 
 30. **Ghost references.** A spec's `Depends on:` naming a capability with
     no spec is an error (the pack, the graph and the review all read that

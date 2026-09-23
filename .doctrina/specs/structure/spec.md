@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -32,6 +32,7 @@ those stays there, with the cross-cutting claim it belongs to.
 ### Ubiquitous
 
 - The system shall read an unwanted-behavior requirement's negation from the modal it governs — "shall not", "shall never", or the object the verb negates directly — and shall not accept a negation word found elsewhere in the sentence as one, because an ordinary determiner then stands in for a prohibition.
+- The system shall judge a skill's trigger by the same standard in every language it supports — mirrored phrase lists matched against folded text, and content words counted by the shared lexicon — and shall not decide vagueness from a list that carries one language only.
 
 ### Event-driven
 
@@ -147,6 +148,7 @@ those stays there, with the cross-cutting claim it belongs to.
 9. [verified] A requirement that merely contains "no" is reported under must-not while every form that negates the modal passes, and every must-not requirement in this repository forbids something — verified by `packages/doctrina-cli/test/uma-proibicao-nega-o-proprio-modal.test.js`.
 10. [verified] Only the two declared words pass validate on an intake, and an empty or mistyped value is reported rather than read as pending — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
 11. [verified] A rule scoped to a path that matches nothing is reported while a rule that reaches files, one that finds a violation, one that declares no scope, and one suppressed by its own hit cap each keep their answer — verified by `packages/doctrina-cli/test/uma-regra-que-nao-alcanca-nada.test.js`.
+12. [verified] The same vague trigger is reported in English and in Portuguese, an accent does not change the answer, a concrete trigger passes in either language, and the module counts content words through the shared lexicon — verified by `packages/doctrina-cli/test/um-gatilho-vago-e-vago-nas-duas-linguas.test.js`.
 
 ## Out of scope for this spec
 
