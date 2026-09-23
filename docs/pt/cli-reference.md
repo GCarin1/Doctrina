@@ -626,6 +626,12 @@ alvo `proposed` é recusado com o estado nomeado (uma proposta que caiu vira
 `rejected` ou é apagada), e um título só de dígitos é recusado como a
 ordem dos argumentos trocada.
 
+O novo ADR herda o `Scope:` do antigo — um substituto decide o mesmo
+assunto, então começa com o mesmo alcance. Sem isso o sucessor saía sem
+escopo, e um ADR sem escopo é global: aceitar o refinamento de uma decisão
+que governava uma capability o carregava em todo pack. O comando avisa
+quando carregou um escopo; edite o header para ampliá-lo de propósito.
+
 ## `doctrina decision accept <number>`
 
 Vira um ADR `proposed` para `accepted`.

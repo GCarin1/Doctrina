@@ -608,6 +608,13 @@ superseded: a proposed target is refused naming its state (a proposal that
 fell is set to `rejected` or deleted), and a title that is only digits is
 refused as the argument order swapped.
 
+The new ADR inherits the old one's `Scope:` — a replacement decides the
+same subject, so it starts with the same reach. Without it the successor
+was unscoped, and an unscoped ADR is global: accepting the refinement of a
+decision that governed one capability loaded it into every pack. The
+command says when it carried a scope; edit the header to widen it on
+purpose.
+
 ## `doctrina decision accept <number>`
 
 Flip a `proposed` ADR to `accepted`.

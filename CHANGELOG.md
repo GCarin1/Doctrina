@@ -19,6 +19,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A superseding ADR inherits its predecessor's scope.** `decision
+  supersede` built the successor from the bare template and injected only
+  `Supersedes:`, so the successor had no `Scope:` — and an unscoped ADR is
+  global. Refining a decision that governed one capability, then accepting the
+  refinement, loaded it into every capability's context pack, including ones
+  the original never governed, with nothing saying so. The successor now
+  carries the predecessor's scope, and the command says when it did; a global
+  predecessor still yields a global successor. (0165)
+
 - **A vague skill trigger is vague in both languages.** `context` ranks skills
   by matching a task against the `when:` trigger, so a trigger naming nothing
   concrete can never fire — and the check for that saw English only: one
