@@ -19,6 +19,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A project rule that reaches no file says so.** Point a rule's `paths` at
+  a directory that does not exist and it never ran: `validate` exited 0 and
+  `doctor` went on counting it among the configured options, so the project
+  believed a permanent constraint was enforced on every run while nothing
+  enforced it. This framework had already ruled on that question twice, with
+  the reasoning written into the code both times — a `**Source:**` glob
+  matching no file and an RT05 selector matching no target each "read as
+  coverage and provide none". The rule is the strongest of the three and was
+  the one that said nothing. It now warns, at the same severity, counting its
+  reach before the per-rule hit cap so a suppressed rule is never mistaken for
+  a dead one. Omitting `paths` is not a dead scope. (0163)
+
 - **The intake's Status is a control value, so it gets an owner and a gate.**
   `next` branches on it to decide whether the bootstrap is finished, and the
   playbook told an agent to flip it BY HAND — the one metadata header in this

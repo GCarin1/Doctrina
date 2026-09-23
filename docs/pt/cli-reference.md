@@ -1173,6 +1173,13 @@ Checagens:
                    "message": "produto white-label; use placeholder genérico" } ] }
     ```
 
+    Uma regra cujo `paths` não alcança arquivo nenhum **avisa**: a restrição
+    fica declarada e nunca é aplicada, que é o mesmo achado que o `validate`
+    já faz sobre um glob `**Source:**` e o `contract check` sobre um seletor
+    — uma declaração que não casa com nada lê como cobertura e não entrega
+    nenhuma. Omitir `paths` não é escopo morto; a regra simplesmente cobre a
+    árvore.
+
 28. **Requisitos de pipeline ordenados.** Uma spec pode declarar um bloco
     opcional `### Pipeline`: passos numerados e o artefato que cada um
     entrega adiante. O EARS declara cada requisito event-driven de forma

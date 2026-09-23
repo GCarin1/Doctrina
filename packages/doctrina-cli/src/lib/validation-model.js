@@ -1028,7 +1028,9 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   // rule is a forbid-regex over glob-scoped paths; a match is an ERROR with
   // the rule's own message. Deterministic, zero-deps, and the instruction
   // survives sessions because it is an artifact, not a memory.
-  for (const line of checkProjectRules(projectRoot)) errors.push(line);
+  const ruleFindings = checkProjectRules(projectRoot);
+  for (const line of ruleFindings.errors) errors.push(line);
+  for (const line of ruleFindings.warnings) warnings.push(line);
   for (const key of loadConfig(projectRoot).unknown) {
     warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules (a typo here is a setting that never applied)`);
   }
@@ -1089,9 +1091,16 @@ export function hasDetectableTrigger(when) {
 //                  "message": "white-label product; use a generic placeholder" } ] }
 // Declared in .doctrina/config.json; still read from the legacy
 // .doctrina/rules.json when that is where a project put them (change 0047).
-// Returns error strings (one per offending file+rule, capped per rule so a
-// mass violation stays readable). No rules → nothing to enforce; a malformed
-// file is reported once, by the reader. Binary-ish and vendored dirs are
+// Returns { errors, warnings }: an error per offending file+rule (capped per
+// rule so a mass violation stays readable), and a warning for a rule that
+// reached no file at all. No rules → nothing to enforce; a malformed file is
+// reported once, by the reader.
+//
+// The dead-scope warning is the same finding 8h makes about a `**Source:**`
+// glob and RT05 makes about a selector: a declaration that matches nothing
+// reads as coverage and provides none. A rule is the strongest of the three
+// — a permanent constraint the project believes is enforced — and it was the
+// one that said nothing, while `doctor` went on counting it as configured. Binary-ish and vendored dirs are
 // skipped by the same bounded walk validate already uses elsewhere.
 const RULES_SKIP_DIRS = new Set([
   ".git", "node_modules", "vendor", "dist", "build", "out", "target",
@@ -1102,6 +1111,7 @@ const RULES_MAX_HITS_PER_RULE = 10;
 function checkProjectRules(projectRoot) {
   const cfg = loadConfig(projectRoot);
   const out = [...cfg.errors];
+  const warn = [];
   const where = cfg.sources.rules === SOURCES.config ? CONFIG_REL : RULES_REL;
   const compiled = [];
   for (const r of cfg.rules) {
@@ -1116,10 +1126,16 @@ function checkProjectRules(projectRoot) {
       out.push(`${where}: rule "${r.id ?? r.forbid}" has an invalid regex: ${err.message}`);
       continue;
     }
-    const paths = Array.isArray(r.paths) && r.paths.length ? r.paths : ["**"];
-    compiled.push({ id: r.id ?? r.forbid, re, matchers: paths.map(globToRegExp), message: r.message ?? "", hits: 0 });
+    const declared = Array.isArray(r.paths) && r.paths.length ? r.paths : null;
+    const paths = declared ?? ["**"];
+    compiled.push({
+      id: r.id ?? r.forbid, re, matchers: paths.map(globToRegExp),
+      message: r.message ?? "", hits: 0,
+      // Only a DECLARED scope can be dead; the implicit `**` is not a claim.
+      declared, scanned: 0,
+    });
   }
-  if (compiled.length === 0) return out;
+  if (compiled.length === 0) return { errors: out, warnings: warn };
 
   // One bounded walk; each text file is read at most once.
   const stack = [projectRoot];
@@ -1139,7 +1155,11 @@ function checkProjectRules(projectRoot) {
       }
       const rel = relPath(projectRoot, full).replace(/\\/g, "/");
       if (rel === ".doctrina/rules.json") continue; // the rule text itself always matches
-      const applicable = compiled.filter((cr) => cr.hits < RULES_MAX_HITS_PER_RULE && cr.matchers.some((m) => m.test(rel)));
+      // Count the reach BEFORE the hit cap: a rule that stopped reporting
+      // because it hit the cap has plainly reached files.
+      const inScope = compiled.filter((cr) => cr.matchers.some((m) => m.test(rel)));
+      for (const cr of inScope) cr.scanned += 1;
+      const applicable = inScope.filter((cr) => cr.hits < RULES_MAX_HITS_PER_RULE);
       if (applicable.length === 0) continue;
       let text;
       try {
@@ -1161,8 +1181,15 @@ function checkProjectRules(projectRoot) {
     if (cr.hits >= RULES_MAX_HITS_PER_RULE) {
       out.push(`rule "${cr.id}": more matches suppressed after ${RULES_MAX_HITS_PER_RULE} files`);
     }
+    if (cr.declared && cr.scanned === 0) {
+      warn.push(
+        `${where}: rule "${cr.id}" scopes to ${cr.declared.map((g) => `\`${g}\``).join(", ")}, ` +
+          "which matches no file — the constraint is declared and never enforced; " +
+          "correct the paths or drop the rule",
+      );
+    }
   }
-  return out;
+  return { errors: out, warnings: warn };
 }
 
 // Minimal glob → RegExp: ** crosses directories, * stays within a segment.

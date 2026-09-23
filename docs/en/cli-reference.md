@@ -1143,6 +1143,13 @@ Checks performed:
                    "message": "white-label product; use a generic placeholder" } ] }
     ```
 
+    A rule whose `paths` reach no file at all **warns**: the constraint is
+    declared and never enforced, which is the same finding `validate`
+    already makes about a `**Source:**` glob and `contract check` about a
+    selector — a declaration that matches nothing reads as coverage and
+    provides none. Omitting `paths` is not a dead scope; the rule simply
+    covers the tree.
+
 28. **Ordered pipeline requirements.** A spec may declare an optional
     `### Pipeline` block: numbered steps and the artifact each hands on.
     EARS states every event-driven requirement independently and says
