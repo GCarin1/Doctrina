@@ -2,6 +2,7 @@
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
+import { projectName } from "./project.js";
 import * as idx from "./index-json.js";
 import { deriveIndex, indexesMatch, specHeader, listHeader } from "./scan.js";
 import { cliVersion } from "./version.js";
@@ -57,7 +58,7 @@ export function collectSnapshot(projectRoot, { actions = true } = {}) {
   const verify = readVerifyConfig(projectRoot);
 
   return {
-    project: index?.project ?? path.basename(projectRoot),
+    project: projectName(projectRoot, index),
     stamp: index?.framework_version ?? null,
     cli: cliVersion(),
     indexState,

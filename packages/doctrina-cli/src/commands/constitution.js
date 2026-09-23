@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
+import { projectName } from "../lib/project.js";
 import { listHeader } from "../lib/scan.js";
 import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
@@ -42,14 +43,6 @@ export async function run(_positional, _flags) {
   return 0;
 }
 
-function projectName(projectRoot) {
-  try {
-    return JSON.parse(read(path.join(projectRoot, ".doctrina", "index.json"))).project
-      ?? path.basename(projectRoot);
-  } catch {
-    return path.basename(projectRoot);
-  }
-}
 
 
 export const help = `

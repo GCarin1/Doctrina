@@ -1,5 +1,6 @@
 // @ts-check
 import { getHeader, getSection, parseChangeTitle } from "./doc-model.js";
+import { projectName } from "./project.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
@@ -179,7 +180,7 @@ export function deriveIndex(projectRoot, current) {
 
   const out = {
     $schema_version: current?.$schema_version ?? "0.1.0",
-    project: current?.project ?? path.basename(projectRoot),
+    project: projectName(projectRoot, current),
     framework_version: current?.framework_version ?? "0.0.0",
     last_updated: current?.last_updated ?? date,
     // Project settings, carried over verbatim. `deriveIndex` rebuilds the

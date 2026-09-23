@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A project has one name, and every surface reads it from the same place.**
+  `doctrina adapter add` substituted the WORKING DIRECTORY's name into every
+  file it installed, never the name recorded at `init` — so
+  `init --project-name "Minha Carteira" --agent claude` greeted the agent
+  correctly while `adapter add cursor`, the command the listing tells you to
+  run to add a second agent, wrote the folder's name instead. Same templates,
+  same tokens, two callers, two answers; and the adapter files are an
+  adopter's first contact with the framework. Four modules asked the question
+  privately — one of them a function literally named `projectName` inside
+  `constitution` — and they now read it from `lib/project.js`. (0161)
+
 - **A prohibition negates its own modal.** The must-not grammar check asked
   whether "not", "no" or "never" appeared anywhere in the requirement — and
   "no" is an ordinary determiner, so a positive obligation carrying it passed

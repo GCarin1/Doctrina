@@ -2,6 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isFile, read, relPath, write } from "../lib/fs-ops.js";
+import { projectName } from "../lib/project.js";
 import { listHeader } from "../lib/scan.js";
 import { assessBrief } from "../lib/clarity.js";
 import * as idx from "../lib/index-json.js";
@@ -102,8 +103,8 @@ export async function run(positional, flags) {
     return EXIT.PRECONDITION;
   }
 
-  const projectName = idx.load(projectRoot).project ?? path.basename(projectRoot);
-  writeIntakeFile(projectRoot, { body, source, projectName, date: today(), force });
+  const name = projectName(projectRoot);
+  writeIntakeFile(projectRoot, { body, source, projectName: name, date: today(), force });
   console.log(c.green("created") + ` ${relPath(projectRoot, intakePath)}`);
   console.log("");
   warnIfThinIntake(body);

@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.9.0
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -32,6 +32,7 @@ authoring commands, and the conventions every command shares.
 - The system shall read every project configuration option — the language, the context budget, and the project rules — through one reader, resolving each option from `.doctrina/config.json` first, then from the legacy location for that option, then from the built-in default, and shall report which of the three each effective value came from.
 - The system shall write the pre-commit hook so that it invokes the CLI that installed it, by absolute path, and shall honour a `DOCTRINA` environment variable as the override, because `.git/hooks/` is local to the clone and a `doctrina` found on the PATH may be an older release.
 - The system shall write an artifact into the index in the position a full rebuild would give it, comparing the way the directory walk compares, so that the incremental write and the rebuild never disagree.
+- The system shall substitute a project's recorded name into every file it scaffolds for an agent, falling back to the working directory's name only for a tree that recorded none, so that two commands writing from the same templates cannot introduce two different projects.
 
 ### Event-driven
 
@@ -222,6 +223,7 @@ Project scaffolding is spec-compliant when:
 12. [verified] The installed hook names the installing CLI's entrypoint and reads `DOCTRINA` first — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
 13. [verified] A spec, a skill and an archived change that sort before an existing entry each land in walk order and leave `index rebuild --check` clean, punctuation included — verified by `packages/doctrina-cli/test/the-index-is-written-once.test.js`.
 14. [verified] A partial commit of `.doctrina/` is refused by name while a whole-tree commit passes, and the installed pre-commit hook asks that question after the step that stages the index — verified by `packages/doctrina-cli/test/o-indice-descreve-o-commit.test.js`.
+15. [verified] Adding an adapter after `init` writes the recorded name rather than the directory's, both installation paths agree, and no module resolves the name on its own — verified by `packages/doctrina-cli/test/o-projeto-tem-um-nome-so.test.js`.
 
 ## Out of scope for this spec
 

@@ -107,7 +107,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.9.0",
+        "version": "0.10.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -2656,6 +2656,19 @@
           },
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0161-o-adapter-nomeia-o-diretorio-nao-o-projeto",
+        "title": "o adapter nomeia o diretorio nao o projeto",
+        "path": ".doctrina/changes/archive/2026-09-23-0161-o-adapter-nomeia-o-diretorio-nao-o-projeto",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
             "operation": "MODIFIED"
           }
         ]

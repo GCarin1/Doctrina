@@ -2,6 +2,7 @@
 import path from "node:path";
 import { exists } from "./fs-ops.js";
 import { notADoctrinaProject } from "./exit-codes.js";
+import { load } from "./index-json.js";
 
 // The one precondition every command shares: this is a Doctrina project.
 // Six command modules carried an identical private copy of it; a lib
@@ -10,6 +11,31 @@ import { notADoctrinaProject } from "./exit-codes.js";
 export function ensureDoctrinaProject(projectRoot) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
+  }
+}
+
+/**
+ * What this project is CALLED — the name it recorded at `init`, with the
+ * directory as the fallback for a tree that has none.
+ *
+ * Four modules asked this privately and one of them answered differently:
+ * `adapter` read the directory and never the record, so every adapter file
+ * installed after `doctrina init --project-name "Minha Carteira"` greeted the
+ * agent with the folder's name instead. `init --agent`, holding the name it
+ * had just been given, got it right — the same templates, two callers, two
+ * answers.
+ *
+ * Pass `index` when you already hold it; the helper then reads nothing.
+ *
+ * @param {string} projectRoot
+ * @param {any} [index] an already-loaded index.json, when the caller has one
+ */
+export function projectName(projectRoot, index) {
+  if (index !== undefined) return index?.project ?? path.basename(projectRoot);
+  try {
+    return load(projectRoot)?.project ?? path.basename(projectRoot);
+  } catch {
+    return path.basename(projectRoot);
   }
 }
 
