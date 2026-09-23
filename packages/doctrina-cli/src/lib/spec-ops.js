@@ -256,7 +256,10 @@ export function setHeader(text, name, value) {
   // has a lifecycle of its own (proposed -> applied, accepted, superseded).
   const listForm = /^\s*-/.test(text.match(re)?.[1] ?? "");
   const domain = listForm ? null : headerValueError(name, value);
-  if (domain) return { error: `set-header: ${domain}` };
+  // `cause: "argument"` marks an error about the value supplied, not about
+  // the document: `spec set` answers it as USAGE, a delta as a defect of
+  // the work (ADR 0018).
+  if (domain) return { error: `set-header: ${domain}`, cause: "argument" };
   const next = text.replace(re, (_m, prefix) => `${prefix} ${value}`.replace(/\s+$/, ""));
   return { text: next, summary: `set ${name}: ${value}` };
 }
@@ -309,10 +312,10 @@ export function setCriterionMark(text, n, markRaw) {
   const loc = locateCriteria(text);
   if (!loc) return { error: "set-criterion: spec has no '## Acceptance criteria' section" };
   const item = loc.items.find((it) => it.n === n);
-  if (!item) return { error: `set-criterion: no criterion #${n} found` };
+  if (!item) return { error: `set-criterion: no criterion #${n} found`, cause: "argument" };
   const mark = markRaw.replace(/^\[|\]$/g, "").trim();
   const domain = criterionMarkError(mark);
-  if (domain) return { error: `set-criterion: ${domain}` };
+  if (domain) return { error: `set-criterion: ${domain}`, cause: "argument" };
   const line = loc.lines[item.lineIndex];
   let next;
   if (/\[[^\]]*\]/.test(line)) {

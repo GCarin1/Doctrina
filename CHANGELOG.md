@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`spec set` answers USAGE to an error in the invocation.** Every
+  operation error answered `1` (GATE, "fix the work and retry"), including
+  `--status banana`, `--criterion 9=verified` and a criterion the spec does
+  not declare — cases no edit to the spec can make pass, and ones the
+  exit-code guide already promised as `2`. The command now answers `2` when
+  any error lies in the invocation and `1` only when the spec itself lacks
+  what the operation needs. (0168)
 - **`intent add` refuses an intent that is already anchored.** It refused
   only a colliding pinned id, so the same sentence added twice became two
   anchors for one goal: once a spec realized one, the twin stayed `dropped`

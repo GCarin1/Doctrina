@@ -41,13 +41,17 @@ qualquer transição de ciclo de vida recusada. Algo que você escreveu
 precisa mudar.
 
 **`2` — a linha de comando.** Comando ou subcomando desconhecido,
-argumento obrigatório ausente, id malformado e **uma referência que não
+argumento obrigatório ausente, id malformado, valor de flag fora do seu
+domínio (`spec set --status banana`) e **uma referência que não
 resolve** — uma capability sem spec, um id de change que não está aberto,
 um número de ADR que ninguém escreveu, um requisito ou critério que a spec
 não declara. Repetir a mesma string vai falhar do mesmo jeito, então o que
 se corrige é a string: `show`, `why`, `context`, `change check`,
 `spec set`, `decision accept`, `decision scope`, `analyze` e
-`coverage --only` respondem `2` a um nome que não encontram. Nomear uma
+`coverage --only` respondem `2` a um nome que não encontram. Quando o
+`spec set` recusa por um motivo na própria spec — falta um cabeçalho ou
+uma seção de que a operação precisa —, ele responde `1`, porque corrigir a
+spec faz o mesmo comando passar. Nomear uma
 capability que uma change aberta está preparando com um delta **não** é
 uma referência que não resolve — `doctrina context <cap>` é exatamente a
 leitura para escrever essa spec.

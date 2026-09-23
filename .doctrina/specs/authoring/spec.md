@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.18.0
+**Version:** 0.19.0
 
 ## Purpose
 
@@ -287,6 +287,7 @@ keep the checks and the read path.
 - When `doctrina intake --converted` runs, the system shall write the stored intake's Status header itself, so the bootstrap is closed through the CLI rather than by hand-authoring a metadata header, and shall answer the precondition class when there is no intake to mark.
 - When `doctrina decision supersede` creates a successor ADR, the system shall carry the superseded ADR's Scope into it and say so, because an unscoped ADR is global and the refinement of a decision that governed one capability would otherwise load into every context pack.
 - When `doctrina intent add` is given a text that an existing anchor already states — compared with case, accents, spacing and trailing punctuation folded away, pinned id or not — the system shall refuse without writing, naming the anchor that states it, because the twin would stay dropped once a spec realizes the first and `trace --strict` would fail on a gap no spec can close.
+- When `doctrina spec set` refuses an operation, the system shall answer the usage class if any error lies in the invocation — a value outside the header's or the mark's domain, a malformed flag, a criterion the spec does not declare — and the gate class only when every error lies in the spec itself, because retrying an invocation error unchanged never succeeds.
 
 ### Unwanted-behavior (must-not)
 
@@ -355,6 +356,7 @@ The authoring commands are v0 spec-compliant when:
 33. [verified] The command closes the bootstrap and `next` stops asking for it, marking one that never started costs the precondition class, and the bootstrap playbook names the command instead of the file — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
 34. [verified] A successor inherits its predecessor's scope and, once accepted, stays out of the packs its predecessor stayed out of, while an unscoped predecessor yields an unscoped successor — verified by `packages/doctrina-cli/test/uma-adr-substituta-herda-o-escopo.test.js`.
 35. [verified] The same intent added twice, in any casing, accenting, spacing or with a pinned id, is refused naming the existing anchor and writes nothing, while a different intent is still added — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
+36. [verified] An out-of-domain value, a malformed flag and a missing criterion answer the usage class and leave the spec untouched, a spec lacking the header the operation needs answers the gate class and passes once repaired, and both at once answer the usage class — verified by `packages/doctrina-cli/test/spec-set-diz-o-que-corrigir.test.js`.
 
 ## Out of scope for this spec
 
