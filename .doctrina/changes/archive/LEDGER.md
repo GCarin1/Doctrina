@@ -172,3 +172,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-22 — 0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas — enumeracoes do que um driver roda ficaram velhas (specs: docs MODIFIED, gates MODIFIED)
 - 2026-09-23 — 0160-a-negacao-do-must-not-e-procurada-na-frase-toda — a negacao do must-not e procurada na frase toda (specs: gates MODIFIED, structure MODIFIED, validation MODIFIED)
 - 2026-09-23 — 0161-o-adapter-nomeia-o-diretorio-nao-o-projeto — o adapter nomeia o diretorio nao o projeto (specs: scaffolding MODIFIED)
+- 2026-09-23 — 0162-o-status-do-intake-nao-tem-dono-nem-gate — o status do intake nao tem dono nem gate (specs: authoring MODIFIED, structure MODIFIED)

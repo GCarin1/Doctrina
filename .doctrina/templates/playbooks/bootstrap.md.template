@@ -35,8 +35,11 @@ Execute in order, in a single linear pass:
    If something in the intake is genuinely ambiguous, ask the user
    before assuming.
 
-7. Mark the intake consumed: in .doctrina/intake.md flip
-   "- **Status:** pending" to "- **Status:** converted".
+7. Mark the intake consumed — through the CLI, not by hand:
+       [[c]]doctrina intake --converted[[/c]]
+[[g]]   `next` branches on that header and `validate` refuses any other[[/g]]
+[[g]]   value, because every word but the two declared ones used to read[[/g]]
+[[g]]   as pending in silence.[[/g]]
 
 8. [[c]]doctrina next[[/c]] — follow the recommendation. Implementation then
    flows through [[c]]doctrina work "<brief prompt>"[[/c]], one change at a time.

@@ -41,6 +41,13 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // gone stale by four steps — and put in its place the two gates that ask for
 // WRITING: documentation and a changelog entry, plus the declaration that
 // answers a name the prose only mentions. The goldens carry the new lines.
+//
+// And change 0162 rewrote step 7 of the BOOTSTRAP playbook for the same
+// reason one step further: it told the agent to edit `.doctrina/intake.md`
+// and flip a metadata header by hand — the only such instruction in the
+// framework, against its own rule, and the header `next` branches on. It now
+// names `doctrina intake --converted`, the command that writes it. The
+// bootstrap golden was re-captured; every other line in it is the original.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

@@ -16,6 +16,7 @@
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./fs-ops.js";
+import { intakeStatusError } from "./intake-model.js";
 import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
 import { cliVersion, newestVersion } from "./version.js";
@@ -143,6 +144,21 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   // 2. product.md
   const productMd = path.join(projectRoot, ".doctrina", "product.md");
   if (!isFile(productMd)) errors.push(".doctrina/product.md missing");
+
+  // 2b. intake.md's status, when there is one.
+  //
+  // `next` branches on this value to decide whether the bootstrap is done,
+  // and the playbook has the agent write it BY HAND — so it is the one
+  // control value in the tree that nothing read back. Anything but the two
+  // declared words meant "pending" in silence: "convertido" typed in a
+  // Portuguese project, or an empty value left by a botched edit, both left
+  // `next` asking forever for a bootstrap that had already happened.
+  // A spec's Status gets an enum and an error; so does this one.
+  const intakeMd = path.join(projectRoot, ".doctrina", "intake.md");
+  if (isFile(intakeMd)) {
+    const badStatus = intakeStatusError(read(intakeMd));
+    if (badStatus) errors.push(`.doctrina/intake.md: ${badStatus}`);
+  }
 
   // Header repair (M3). One grammar means a non-canonical header can be
   // REWRITTEN, not just reported: `- **Status**: x` becomes

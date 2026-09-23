@@ -130,6 +130,7 @@ natural; a inteligência mora no agente executor (ver ADR 0005).
 doctrina intake descricao.md
 doctrina intake --text "Uma loja com login, catálogo e checkout"
 doctrina intake                       # reimprime o playbook de um intake pendente
+doctrina intake --converted           # encerra o bootstrap
 ```
 
 | Flag | Função |
@@ -148,10 +149,11 @@ continua sendo erro. O `doctrina init --intake` segue a mesma regra, com o
 Os passos do playbook: ler o intake, preencher cada seção de
 `product.md`, derivar a lista de capabilities e rodar `spec new` +
 escrever EARS por capability, registrar quaisquer ADRs forçados, rodar
-`clarify --all` e `validate`, e então virar o cabeçalho do intake para
-`Status: converted`. Após a conversão as specs são a única fonte de
-verdade — o intake nunca é editado para mudar requisitos. Sai com 1
-quando nenhuma fonte é dada e nenhum intake existe.
+`clarify --all` e `validate`, e então encerrar o bootstrap com
+`doctrina intake --converted`. O `next` decide por esse cabeçalho, então
+quem o escreve é o CLI e não a mão. Após a conversão as specs são a única
+fonte de verdade — o intake nunca é editado para mudar requisitos. Sai
+com `3` quando nenhuma fonte é dada e nenhum intake existe.
 
 ## `doctrina triage ["<prompt>"]`
 

@@ -2,14 +2,14 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isFile, read, relPath, write } from "../lib/fs-ops.js";
-import { projectName } from "../lib/project.js";
+import { ensureDoctrinaProject, projectName } from "../lib/project.js";
 import { listHeader } from "../lib/scan.js";
 import { assessBrief } from "../lib/clarity.js";
 import * as idx from "../lib/index-json.js";
 import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { looksLikePath, warnIfThinIntake, writeIntakeFile, printBootstrapPlaybook } from "../lib/intake-model.js";
+import { looksLikePath, markIntakeConverted, printBootstrapPlaybook, warnIfThinIntake, writeIntakeFile } from "../lib/intake-model.js";
 
 // `init --intake` performs the same operations; they live in
 // lib/intake-model.js so neither command imports out of the other (F7).
@@ -25,10 +25,31 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "force"], string: ["text"] };
+export const flags = { boolean: ["json", "force", "converted"], string: ["text"] };
 
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
+
+  // Close the bootstrap through the CLI, not by hand.
+  //
+  // Step 7 of the playbook used to read "flip Status to converted in
+  // .doctrina/intake.md" — the one place this framework told an agent to
+  // hand-author a metadata header, against its own standing rule, and the one
+  // header nothing read back. A mistyped word left `next` asking forever for
+  // a bootstrap that was already done.
+  if (flagBool(flags, "converted", false)) {
+    ensureDoctrinaProject(projectRoot);
+    const written = markIntakeConverted(projectRoot);
+    if (!written) {
+      console.error(c.red("error:") + " no intake to mark converted at .doctrina/intake.md");
+      console.error(c.gray("hint: ") + 'store one first: `doctrina intake --text "<description>"`');
+      return EXIT.PRECONDITION;
+    }
+    console.log(c.green("converted") + ` ${relPath(projectRoot, written)} — specs are the source of truth now`);
+    console.log(c.gray("next: ") + 'doctrina next');
+    return EXIT.OK;
+  }
+
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
@@ -128,11 +149,18 @@ Forms:
   doctrina intake --text "<text>"     Ingest an inline description
   doctrina intake                     Reprint the playbook for the
                                       existing pending intake
+  doctrina intake --converted         Close the bootstrap: flip the stored
+                                      intake's Status to converted
 
 Options:
   --text "<description>"   Inline description instead of a file
   --force                  Overwrite an existing .doctrina/intake.md
+  --converted              Mark the stored intake converted (ends the
+                           bootstrap; nothing else writes that header)
 
-After conversion the agent flips the intake header to
-"- **Status:** converted"; specs become the only source of truth.
+Close the bootstrap with \`doctrina intake --converted\` rather than editing
+the header by hand: \`next\` branches on that value, and \`validate\` reports a
+Status that is neither pending nor converted, because every other word read
+as pending in silence. After conversion the specs are the only source of
+truth.
 `;

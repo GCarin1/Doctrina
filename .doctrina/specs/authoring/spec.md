@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.15.2
+**Version:** 0.16.0
 
 ## Purpose
 
@@ -284,6 +284,7 @@ keep the checks and the read path.
 - When `change tick` names a box that is already ticked, the system shall leave it as is and say so; when it names something that is not a box number, the system shall refuse with the usage class and name the argument.
 - When a lifecycle transition is forced past its gates, the system shall record the waived blockers in the change ledger only after that transition has actually taken effect.
 - When an ops block replaces an EARS requirement that wraps over continuation lines, the system shall replace the whole item, so no line of the previous requirement survives beside the new one.
+- When `doctrina intake --converted` runs, the system shall write the stored intake's Status header itself, so the bootstrap is closed through the CLI rather than by hand-authoring a metadata header, and shall answer the precondition class when there is no intake to mark.
 
 ### Unwanted-behavior (must-not)
 
@@ -349,6 +350,7 @@ The authoring commands are v0 spec-compliant when:
 30. [verified] Recording follows the outcome across every gated transition, not the override — verified by `packages/doctrina-cli/test/gate-parity.test.js`.
 31. [verified] Replacing a wrapped requirement removes its continuation lines, leaves the bullets around it intact, and still numbers by bullet rather than by line — verified by `packages/doctrina-cli/test/spec-ops.test.js`.
 32. [verified] Every tracked source file in this repository is claimed by a capability's declared `Source:` header, and a file a spec merely mentions does not read as declared — verified by `packages/doctrina-cli/test/code-has-an-owner.test.js`.
+33. [verified] The command closes the bootstrap and `next` stops asking for it, marking one that never started costs the precondition class, and the bootstrap playbook names the command instead of the file — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
 
 ## Out of scope for this spec
 

@@ -124,11 +124,13 @@ executing agent (see ADR 0005).
 doctrina intake description.md
 doctrina intake --text "A shop with login, catalog, and checkout"
 doctrina intake                       # reprint the playbook for a pending intake
+doctrina intake --converted           # close the bootstrap
 ```
 
 | Flag | Purpose |
 |------|---------|
 | `--text "<description>"` | Inline description instead of a file. |
+| `--converted` | Mark the stored intake converted, ending the bootstrap. Nothing else writes that header, and `validate` refuses any value but `pending` or `converted` — every other word used to read as pending in silence. Exits `3` when there is no intake to mark. |
 | `--force` | Overwrite an existing `.doctrina/intake.md` that is still `pending`. A **converted** intake is never reopened — `--force` refuses with exit `3` and points at `doctrina intent add` (new intent) and `doctrina work` (a change of behaviour). |
 
 The positional takes either. A value that cannot be a path — a sentence,
@@ -142,10 +144,11 @@ as its explicit form.
 The playbook steps: read the intake, fill every `product.md` section,
 derive the capability list and run `spec new` + author EARS per
 capability, record any forced ADRs, run `clarify --all` and `validate`,
-then flip the intake header to `Status: converted`. After conversion
-the specs are the only source of truth — the intake is never edited to
-change requirements. Exits 1 when no source is given and no intake
-exists.
+then close the bootstrap with `doctrina intake --converted`. `next`
+branches on that header, so it is written by the CLI rather than by
+hand. After conversion the specs are the only source of truth — the
+intake is never edited to change requirements. Exits `3` when no source
+is given and no intake exists.
 
 ## `doctrina triage ["<prompt>"]`
 

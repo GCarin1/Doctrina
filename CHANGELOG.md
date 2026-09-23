@@ -19,6 +19,18 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The intake's Status is a control value, so it gets an owner and a gate.**
+  `next` branches on it to decide whether the bootstrap is finished, and the
+  playbook told an agent to flip it BY HAND — the one metadata header in this
+  framework written manually, against its own standing rule, and the one
+  nothing read back. Every token that was not exactly `converted` meant
+  pending, silently: `convertido` typed in a Portuguese project, `done`, or an
+  empty value left by a botched edit. `validate` exited 0 on all three while
+  `next` went on asking for a bootstrap that had already happened. The value
+  now has the enum and the error a spec's Status has always had, and
+  `doctrina intake --converted` writes it. The reference also claimed exit 1
+  where the command answers 3. (0162)
+
 - **A project has one name, and every surface reads it from the same place.**
   `doctrina adapter add` substituted the WORKING DIRECTORY's name into every
   file it installed, never the name recorded at `init` — so

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -124,6 +124,7 @@ those stays there, with the cross-cutting claim it belongs to.
   language tree and missing from the other (translation parity, both
   directions; warnings only — projects without both trees are exempt).
 - When `doctrina validate` runs with `--strict`, the system shall count every warning as a failure and exit 1, and shall name `--strict` as the cause when it found no error.
+- When `doctrina validate` runs on a tree holding an intake, the system shall report an error for a Status that is neither pending nor converted, reading the value as every other status is read — case-folded, with a note after the value tolerated — because any other word silently means pending.
 
 ### Unwanted-behavior (must-not)
 
@@ -143,6 +144,7 @@ those stays there, with the cross-cutting claim it belongs to.
 7. [verified] A stamp ahead of the running CLI survives `validate --fix` and `index rebuild`, is named by validate as "upgrade the CLI", and `index rebuild --check` exits 0 over it, while a stamp behind is still migrated — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
 8. [verified] `validate --strict` exits 1 on a tree whose only finding is a warning, exits 0 on a tree with nothing to say, and reports the mode it ran in under `--json` — verified by `packages/doctrina-cli/test/integration.test.js`.
 9. [verified] A requirement that merely contains "no" is reported under must-not while every form that negates the modal passes, and every must-not requirement in this repository forbids something — verified by `packages/doctrina-cli/test/uma-proibicao-nega-o-proprio-modal.test.js`.
+10. [verified] Only the two declared words pass validate on an intake, and an empty or mistyped value is reported rather than read as pending — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
 
 ## Out of scope for this spec
 
