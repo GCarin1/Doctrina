@@ -3,6 +3,16 @@
 // word-level smells; this catches grammar-shape problems per EARS section.
 // All findings are warnings: specs evolve, validation should not block.
 
+// A prohibition negates its own modal. Either the modal directly
+// ("shall not", "shall never") or the object the verb takes, immediately
+// ("shall do no work", "shall carry neither X nor Y").
+//
+// The gap is ONE word wide on purpose. Allowing two lets "shall report when
+// no contracts are declared" back in — a report, not a prohibition, and the
+// exact shape this check exists to keep out of the must-not section.
+const UNWANTED_NEGATION =
+  /\bshall\s+(?:not|never)\b|\bshall\s+\w+\s+(?:no|neither|nothing)\b/i;
+
 const SECTION_RULES = [
   {
     match: /^###\s+Ubiquitous/i,
@@ -38,7 +48,20 @@ const SECTION_RULES = [
     name: "Unwanted-behavior",
     check(req) {
       if (!/\bshall\b/i.test(req)) return "missing \"shall\" — unwanted-behavior form is \"The system shall not ...\"";
-      if (!/\b(not|no|never)\b/i.test(req)) return "missing a negation — unwanted-behavior requirements forbid something";
+      // The negation has to hang off the MODAL, not merely appear somewhere in
+      // the sentence. Searching the whole line let "no" the determiner stand
+      // in for a prohibition: "the system shall report it as a finding, because
+      // a claim over code that is not there..." forbids nothing and passed.
+      // Two requirements of this repository's own specs were positive
+      // obligations filed under must-not for exactly that reason.
+      //
+      // Both attachments count: "shall not/never <verb>", and the form that
+      // negates the object instead — "shall do no work", "shall carry neither".
+      if (!UNWANTED_NEGATION.test(req)) {
+        return "missing a negation on \"shall\" — unwanted-behavior forbids something "
+          + "(\"shall not ...\", \"shall never ...\", \"shall <verb> no ...\"); a "
+          + "requirement that only reports or accepts belongs in another section";
+      }
       return null;
     },
   },

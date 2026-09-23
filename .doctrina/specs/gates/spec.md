@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.40.0
+**Version:** 1.40.1
 
 ## Purpose
 
@@ -228,7 +228,7 @@ codes, zero-deps, no-network).
 - The system shall not treat a metadata header whose value is still the shipped template's placeholder as a header the author supplied.
 - The system shall not run its own binary as a subprocess to satisfy a step of a sequence it is already executing.
 - The system shall not offer, as a place to write documentation, a directory of the checked project that contains no prose.
-- If a spec declares a `**Source:**` pattern that matches no file on disk, the system shall report it as a finding, because a claim over code that is not there reads as coverage and provides none.
+- The system shall not let a `**Source:**` pattern that matches no file on disk pass unreported, because a claim over code that is not there reads as coverage and provides none.
 - If a quantifier appears inside an interrogative phrase such as "how many", the system shall not report it as a vague term, because the phrase names the number the requirement demands rather than leaving one unstated.
 - If no intent anchor is declared, the system shall not report the trace as satisfied, because a ratio over zero anchors states nothing true about provenance.
 - If a glob carries a brace with no matching close, the system shall not expand it into a partial set of alternatives; the pattern shall match nothing so the malformed declaration is reported rather than silently covering less than it claims.

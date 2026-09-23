@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Purpose
 
@@ -28,6 +28,10 @@ there that names a capability on its own.
 those stays there, with the cross-cutting claim it belongs to.
 
 ## Requirements (EARS)
+
+### Ubiquitous
+
+- The system shall read an unwanted-behavior requirement's negation from the modal it governs — "shall not", "shall never", or the object the verb negates directly — and shall not accept a negation word found elsewhere in the sentence as one, because an ordinary determiner then stands in for a prohibition.
 
 ### Event-driven
 
@@ -138,6 +142,7 @@ those stays there, with the cross-cutting claim it belongs to.
 6. [verified] A loose `specs/legacy.md`, a `specs/orfao/` without `spec.md` and a `specs/carteira/spec-old.md` each draw one validate warning with the canonical path, while a `notes.md` beside a `spec.md` is silent — verified by `packages/doctrina-cli/test/a-spec-off-the-path-is-named.test.js`.
 7. [verified] A stamp ahead of the running CLI survives `validate --fix` and `index rebuild`, is named by validate as "upgrade the CLI", and `index rebuild --check` exits 0 over it, while a stamp behind is still migrated — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
 8. [verified] `validate --strict` exits 1 on a tree whose only finding is a warning, exits 0 on a tree with nothing to say, and reports the mode it ran in under `--json` — verified by `packages/doctrina-cli/test/integration.test.js`.
+9. [verified] A requirement that merely contains "no" is reported under must-not while every form that negates the modal passes, and every must-not requirement in this repository forbids something — verified by `packages/doctrina-cli/test/uma-proibicao-nega-o-proprio-modal.test.js`.
 
 ## Out of scope for this spec
 

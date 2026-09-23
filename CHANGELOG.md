@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A prohibition negates its own modal.** The must-not grammar check asked
+  whether "not", "no" or "never" appeared anywhere in the requirement — and
+  "no" is an ordinary determiner, so a positive obligation carrying it passed
+  the check for the one section whose entire job is to forbid. Two of this
+  repository's own requirements were exactly that: they said what the system
+  reports, filed under must-not. The check now reads the modal — `shall not`,
+  `shall never`, or the object the verb negates directly (`shall do no work`)
+  — with a one-word gap, because a two-word gap lets `shall report when no
+  contracts are declared` back in. Both requirements now forbid what they
+  always meant. (0160)
+
 - **What a driver runs is held to its declaration, in prose too.** Change 0150
   fixed the close sequence after four copies had drifted to four lists; the
   same shape was one driver over. Eleven passages said the pre-commit hook

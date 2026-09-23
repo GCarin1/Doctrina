@@ -6,7 +6,7 @@
 **Realizes:** SC1, SC2, SC3
 **Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.15.0
+**Version:** 0.15.1
 
 ## Purpose
 
@@ -97,7 +97,7 @@ treatment cohorts using the same definition in each cohort.
   inference.
 - The system shall not treat bold prose as a metadata header; a header carries a colon and lives before the first section.
 - The system shall not count a bullet, a command reference, or a fenced block that lies inside an HTML comment as authored content of the artifact.
-- If an artifact the framework owns holds no content, or holds content with no title heading, the system shall report it as an error rather than as a well-formed artifact, because a header comparison finds nothing to disagree with in a file that has no headers.
+- The system shall not treat an artifact it owns that holds no content, or content with no title heading, as a well-formed artifact; it shall report an error, because a header comparison finds nothing to disagree with in a file that has no headers.
 - If a capability spec is active and declares no acceptance criterion, the system shall not report the tree as structurally sound, because a capability that states what the system must do and nothing about how anyone would know it does cannot be proven.
 - The system's tests shall not assert against a fixture transformation without first establishing that the transformation occurred, so a pattern that matches nothing fails rather than passing quietly.
 - The system shall not read a numbered item inside a fenced code block as an acceptance criterion, nor its citations as that criterion's proof.
