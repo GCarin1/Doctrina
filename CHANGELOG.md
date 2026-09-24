@@ -63,6 +63,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`upgrade` sees the slash command the last CLI left behind.** A command
+  shim is copied into a project once, so a project scaffolded by 0.16 kept
+  a `/doctrina-work` that ran `analyze` → `change apply`, and `upgrade`
+  reported nothing to do. It now names any installed shim that teaches a
+  deprecated or removed command, with `doctrina adapter add <agent>
+  --force` as the fix, and exits 1 until it is repaired. `change check`
+  titles its first section `structure`. (0187)
 - **The documentation guard reads every page of instructions.** It read
   the READMEs and `docs/` only, so CONTRIBUTING.md, the PR template, an
   example, two skills and `product.md` kept teaching `analyze` unseen. It

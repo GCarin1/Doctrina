@@ -9,7 +9,7 @@ import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./
 import { adapterFiles, isHubPointer, listAdapterNames } from "./adapters.js";
 import { readTemplate } from "./templates.js";
 import { PLAYBOOKS } from "./playbook.js";
-import { COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
+import { COMMAND_META, COMMAND_NAMES, DEPRECATED, REMOVED, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
 import { declaredBudget } from "./runtime.js";
 import { agentsMdBudget } from "./validation-model.js";
 /**
@@ -79,6 +79,16 @@ export const PRODUCT_SECTIONS = [
   "## Scope",
   "## Success criteria",
 ];
+
+// The first deprecated or removed operation a text tells you to run, as
+// `doctrina <op>`, or null.
+function retiredCommandIn(text) {
+  for (const op of [...Object.keys(DEPRECATED), ...Object.keys(REMOVED)]) {
+    const name = op.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`doctrina ${name}(?![a-z-])`).test(text)) return op;
+  }
+  return null;
+}
 
 // The findings `templates check` reports, as structured records with an
 // executable remedy. Exported so a test can seed each finding, run the
@@ -151,7 +161,24 @@ export function collectFindings(projectRoot) {
     for (const file of spec.files) {
       const installed = path.join(projectRoot, file.relativePath);
       if (!isFile(installed)) continue; // not installed — nothing to check
-      if (!isHubPointer(file)) continue; // command shim, not a pointer
+      if (!isHubPointer(file)) {
+        // A command shim is copied into the project once, so an upgrade
+        // of the CLI leaves it teaching whatever the CLI taught then: the
+        // 0.16 `/doctrina-work` still ran `analyze` → `change apply` after
+        // 0.17 deprecated one and handed the other to the close (change
+        // 0187). A shim naming a retired command is stale; the same rewrite
+        // from the template that repairs a pointer repairs it.
+        const retired = retiredCommandIn(read(installed));
+        if (retired) {
+          findings.push({
+            message: `adapter ${file.relativePath} still teaches \`doctrina ${retired}\`, which this CLI ${DEPRECATED[retired] ? "deprecated" : "removed"} — the agent running it follows the old flow`,
+            remedy: `doctrina adapter add ${name} --force`,
+          });
+        } else {
+          ok.push(`adapter ${file.relativePath}: teaches live commands only`);
+        }
+        continue;
+      }
       if (read(installed).includes("AGENTS.md")) {
         ok.push(`adapter ${file.relativePath}: points at AGENTS.md`);
       } else {

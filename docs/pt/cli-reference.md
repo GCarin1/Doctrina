@@ -993,7 +993,12 @@ roteiam o agente até o hub, e é por isso que um refresh do bloco de
 superfície alcança todos os agentes instalados. Shims de slash command
 (`.claude/commands/doctrina-*.md`) **não** são ponteiros: eles invocam o
 CLI e chegam ao hub pelo arquivo-ponteiro pai, então exigir que citassem
-`AGENTS.md` era uma falha falsa em toda instalação limpa.
+`AGENTS.md` era uma falha falsa em toda instalação limpa. O que se
+verifica num shim é se ficou defasado: ele é copiado para o projeto uma
+vez só, então um shim que ainda manda o agente rodar um comando
+depreciado ou removido (o `/doctrina-work` da 0.16 rodava `analyze` →
+`change apply`) é um achado, consertado com
+`doctrina adapter add <agente> --force`.
 
 Cada achado nomeia o comando que o resolve, ou diz claramente que o
 reparo é manual. Um teste executa cada remédio impresso e verifica que o

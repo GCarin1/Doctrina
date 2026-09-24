@@ -145,7 +145,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.24.0",
+        "version": "0.25.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3007,6 +3007,19 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0187-upgrade-aponta-slash-commands-defasados",
+        "title": "upgrade aponta slash commands defasados",
+        "path": ".doctrina/changes/archive/2026-09-24-0187-upgrade-aponta-slash-commands-defasados",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

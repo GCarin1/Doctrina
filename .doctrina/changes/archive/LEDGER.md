@@ -197,3 +197,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0184-textos-fora-docs-ensinam — textos fora de docs ensinam o caminho aposentado
 - 2026-09-24 — 0185-guarda-documentacao-cobrir-contributing — o guarda de documentação lê toda página de instrução (specs: docs MODIFIED)
 - 2026-09-24 — 0186-work-aceita-design — work aceita design (specs: authoring MODIFIED)
+- 2026-09-24 — 0187-upgrade-aponta-slash-commands-defasados — upgrade aponta slash commands defasados (specs: templates MODIFIED)

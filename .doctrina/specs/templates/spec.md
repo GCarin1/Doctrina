@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.24.0
+**Version:** 0.25.0
 
 ## Purpose
 
@@ -91,6 +91,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When a playbook describes closing a change, the system shall name every gate that asks the author to WRITE something — the documentation, the changelog entry, and the declaration that a named surface is only mentioned — before the close refuses for want of it.
 - When `doctrina upgrade` runs, the system shall report, in its scaffold-shape step, every finding `templates check` reports — the ones the additive update repairs as pending steps, and each one no command repairs (a hub pointer that lost AGENTS.md, a broken playbook) with its named fix — and shall exit with the gate class while any is left, with or without `--write`, because "nothing to upgrade" over a project the check fails is a green light on red.
 - When the deprecated `doctrina templates check` or `doctrina templates update` runs, the system shall behave as before and name `doctrina upgrade` (or `doctrina upgrade --write`) on stderr.
+- When `doctrina upgrade` runs over a project whose installed agent command shim tells the agent to run a deprecated or removed command, the system shall report that shim as a finding naming the command and the rewrite that repairs it (`doctrina adapter add <agent> --force`), and shall exit with the gate class until it is repaired, because a shim is copied once and an upgraded CLI otherwise leaves the agent on the old flow in silence.
 
 ### State-driven
 
@@ -182,6 +183,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 29. [verified] The packaging chain holds end to end — the canonical tree is the one in version control, the pack hook writes the packaged tree from it after clearing it, and the package's `files` ships the result — verified by `packages/doctrina-cli/test/o-template-que-envia-e-o-que-vale.test.js`.
 30. [verified] Over a project with one repairable and one manual finding, the upgrade preview reports every finding the check reported and exits 1, `upgrade --write` writes what `templates update --write` wrote and stays red until the named fix is run, and both templates operations warn naming the upgrade — verified by `packages/doctrina-cli/test/o-upgrade-cobre-o-templates.test.js`.
 31. [verified] With every adapter installed, no installed file names a manual analyze, apply or archive, and each `/doctrina-work` command previews with `change check` and finishes with `close` — verified by `packages/doctrina-cli/test/os-slash-commands-fecham-pelo-close.test.js`.
+32. [verified] A claude shim carrying the 0.16 `analyze` → `change apply` step makes `upgrade` exit 1 naming the file, the deprecated command and `doctrina adapter add claude --force`; running that fix clears it and the upgrade exits 0; `change check` titles its first section `structure` — verified by `packages/doctrina-cli/test/o-upgrade-ve-o-slash-command-defasado.test.js`.
 
 ## Out of scope for this spec
 

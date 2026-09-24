@@ -314,7 +314,7 @@ async function changeCheck(id, { verbose = false } = {}) {
   let failures = 0;
 
   // 1. Structural analysis — same checks analyze runs before an apply.
-  console.log(c.gray("──── 1/3 structure (analyze)"));
+  console.log(c.gray("──── 1/3 structure"));
   const analyze = await import("./analyze.js");
   if ((await analyze.run([id], new Map())) !== 0) failures += 1;
 

@@ -970,7 +970,11 @@ an agent at the hub, which is why one surface-block refresh reaches every
 installed agent. Slash-command shims (`.claude/commands/doctrina-*.md`)
 are **not** pointers: they invoke the CLI and reach the hub through their
 parent pointer file, so requiring them to name `AGENTS.md` was a false
-failure on every clean install.
+failure on every clean install. What a shim IS checked for is staleness:
+it is copied into the project once, so one that still tells the agent to
+run a deprecated or removed command (the 0.16 `/doctrina-work` ran
+`analyze` → `change apply`) is a finding, fixed by
+`doctrina adapter add <agent> --force`.
 
 Every finding names the command that resolves it, or says plainly that
 repair is manual. A test executes each printed remedy and asserts the
