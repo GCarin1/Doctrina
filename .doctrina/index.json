@@ -3278,6 +3278,15 @@
           }
         ],
         "lane": "product"
+      },
+      {
+        "id": "0197-0-17-0-inclui-0191-a-0196",
+        "title": "0.17.0 inclui 0191 a 0196",
+        "path": ".doctrina/changes/archive/2026-09-24-0197-0-17-0-inclui-0191-a-0196",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       }
     ],
     "skills": [

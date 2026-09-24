@@ -17,40 +17,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Fixed
-
-- **A change is named by its folder, never by a path.** `change archive
-  ../../victim --force` moved the project's own `victim/` directory into
-  the archive and wrote it into the ledger and the index: only `change new`
-  validated its id. Every command that takes an existing change —
-  `change apply|archive|check|tick|abandon`, `close`, `analyze`,
-  `work --resume` — now refuses a path, `.`, `..` or `archive` with exit 2
-  before touching the filesystem; legacy ids still resolve. (0196)
-- **`tasks.md` no longer asks you to tick what the close does.** Every
-  change ended with "## Closing steps" — apply, archive, update the index —
-  and the archive gate required them ticked before `doctrina close`, the
-  command that performs them. The scaffold no longer writes them, and a
-  change that still carries them is not held to them. (0195)
-- **`intake --converted` refuses while `validate` fails.** It converted
-  over a tree with an error — a hand-edited spec that drifted the index —
-  so the specs became the source of truth while `validate` said they were
-  not well-formed. It now lists the errors and exits 1; `--force` converts
-  anyway. (0194)
-- **`next` puts a drifted index first.** It listed index drift last, below
-  advisory nudges, though `validate` reports it as an error, the close
-  blocks on it, one runnable command fixes it, and the actions below it
-  read the drifted index. It now follows the runtime and intake actions.
-  (0193)
-- **The report's lane mix counts the history.** The index kept the lane of
-  open changes only; archiving dropped it, so `status --view report` read
-  "unknown" for every archived change. One constructor now builds the
-  archived entry for `change archive` and `index rebuild`, lane included —
-  run `doctrina index rebuild` to backfill an existing tree. (0192)
-- **A derived change id keeps the prompt's numbers.** The slug shared the
-  search tokenizer, which keeps only words that start with a letter, so
-  `work "cortar a 0.17.0"` opened `0189-cortar`. Versions and numbers now
-  stay (`cortar-0-17-0`, `migrar-node-24`). (0191)
-
 ## [0.17.0] — 2026-09-24
 
 ### Upgrading from 0.16
@@ -156,6 +122,37 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A change is named by its folder, never by a path.** `change archive
+  ../../victim --force` moved the project's own `victim/` directory into
+  the archive and wrote it into the ledger and the index: only `change new`
+  validated its id. Every command that takes an existing change —
+  `change apply|archive|check|tick|abandon`, `close`, `analyze`,
+  `work --resume` — now refuses a path, `.`, `..` or `archive` with exit 2
+  before touching the filesystem; legacy ids still resolve. (0196)
+- **`tasks.md` no longer asks you to tick what the close does.** Every
+  change ended with "## Closing steps" — apply, archive, update the index —
+  and the archive gate required them ticked before `doctrina close`, the
+  command that performs them. The scaffold no longer writes them, and a
+  change that still carries them is not held to them. (0195)
+- **`intake --converted` refuses while `validate` fails.** It converted
+  over a tree with an error — a hand-edited spec that drifted the index —
+  so the specs became the source of truth while `validate` said they were
+  not well-formed. It now lists the errors and exits 1; `--force` converts
+  anyway. (0194)
+- **`next` puts a drifted index first.** It listed index drift last, below
+  advisory nudges, though `validate` reports it as an error, the close
+  blocks on it, one runnable command fixes it, and the actions below it
+  read the drifted index. It now follows the runtime and intake actions.
+  (0193)
+- **The report's lane mix counts the history.** The index kept the lane of
+  open changes only; archiving dropped it, so `status --view report` read
+  "unknown" for every archived change. One constructor now builds the
+  archived entry for `change archive` and `index rebuild`, lane included —
+  run `doctrina index rebuild` to backfill an existing tree. (0192)
+- **A derived change id keeps the prompt's numbers.** The slug shared the
+  search tokenizer, which keeps only words that start with a letter, so
+  `work "cortar a 0.17.0"` opened `0189-cortar`. Versions and numbers now
+  stay (`cortar-0-17-0`, `migrar-node-24`). (0191)
 - **A chore no longer warns about two ghost capabilities.** Every chore is
   scaffolded with `Affects specs: (none — chore)`, and `validate` read
   "none" and "chore" as capability names with no spec. It now skips a

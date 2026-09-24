@@ -521,6 +521,7 @@ export const AGENT_CHANGELOG = {
     "Deprecated names still run with a notice — use the replacement: `analyze` → `change check`, `report` → `status --view report`, `skill sync` → `index rebuild`, `templates check|update` → `upgrade [--write]`. `constitution` and `change diff` are removed (exit 2).",
     "`doctrina upgrade` now reports an installed slash command that still teaches a retired command; run the fix it prints (`doctrina adapter add <agent> --force`).",
     "`doctrina work \"<prompt>\" --design` also scaffolds design.md — no need to fall back to `change new` for a change with non-trivial choices.",
+    "A new tasks.md has no Closing steps — the close applies, archives and indexes. `intake --converted` refuses while `validate` reports an error; a change reference is its folder name, never a path (exit 2).",
   ],
   "0.16.0": [
     "A reference or path that does not resolve now answers exit 2 (USAGE) everywhere — `clarify`, `show`, `why`, `analyze`, `context`, `change check`, `spec set`, `decision accept|scope`. Correct the invocation; retrying it unchanged never succeeds.",
