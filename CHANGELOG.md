@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The report's lane mix counts the history.** The index kept the lane of
+  open changes only; archiving dropped it, so `status --view report` read
+  "unknown" for every archived change. One constructor now builds the
+  archived entry for `change archive` and `index rebuild`, lane included —
+  run `doctrina index rebuild` to backfill an existing tree. (0192)
 - **A derived change id keeps the prompt's numbers.** The slug shared the
   search tokenizer, which keeps only words that start with a letter, so
   `work "cortar a 0.17.0"` opened `0189-cortar`. Versions and numbers now

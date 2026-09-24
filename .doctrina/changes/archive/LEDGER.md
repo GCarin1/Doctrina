@@ -202,3 +202,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0190-chore-sem-fantasmas-no-affects — chore sem fantasmas no affects (specs: structure MODIFIED)
 - 2026-09-24 — 0189-cortar — cortar a 0.17.0
 - 2026-09-24 — 0191-slug-mantem-numeros — slug mantém números (specs: authoring MODIFIED)
+- 2026-09-24 — 0192-lane-sobrevive-ao-arquivamento — lane sobrevive ao arquivamento (specs: insight MODIFIED)

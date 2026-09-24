@@ -1697,7 +1697,7 @@ validate` / `verify` are. A natural session-start command for the agent
 
 | Flag | Purpose |
 |------|---------|
-| `--view <name>` | Render a different shape of the same snapshot: `dashboard` (default), `prime`, `handoff`, `report` (the period digest), `rules` (the standing rules), or `agent-changelog` (a draft of the AGENTS.md "What changed" block). |
+| `--view <name>` | Render a different shape of the same snapshot: `dashboard` (default), `prime`, `handoff`, `report` (the period digest, including the lane mix — archived changes counted by the lane recorded in their proposal, "unknown" only for one that recorded none), `rules` (the standing rules), or `agent-changelog` (a draft of the AGENTS.md "What changed" block). |
 | `--since <days>` | With `--view report`: the window (default 7). With `--view agent-changelog`: the window (default: since the last tag). |
 | `--json` | Emit the snapshot as JSON (stable shape for agents and CI). The envelope does not change with `--view` — it is a machine contract. |
 

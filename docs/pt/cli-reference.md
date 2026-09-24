@@ -1748,7 +1748,7 @@ de sessão para o agente (`doctrina prime` é o primer de sessão mais rico).
 
 | Flag | Função |
 |------|--------|
-| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report` (o digest do período), `rules` (as regras vigentes) ou `agent-changelog` (um rascunho do bloco "What changed" do AGENTS.md). |
+| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report` (o digest do período, incluindo a mistura de lanes — changes arquivadas contadas pela lane registrada na proposal, "unknown" só para a que não registrou nenhuma), `rules` (as regras vigentes) ou `agent-changelog` (um rascunho do bloco "What changed" do AGENTS.md). |
 | `--since <dias>` | Com `--view report`: a janela (padrão 7). Com `--view agent-changelog`: a janela (padrão: desde a última tag). |
 | `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). O envelope não muda com `--view` — é um contrato de máquina. |
 

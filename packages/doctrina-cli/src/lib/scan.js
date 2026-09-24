@@ -170,6 +170,23 @@ export function changeEntry(proposal, id, prev, date) {
 }
 
 
+// An archived change, as an index entry — the one constructor both the
+// rebuild and `change archive` use. They each built their own, and neither
+// carried the lane: an archived change lost the lane it was born in, so the
+// report's "Lanes" section counted the whole history as unknown (change
+// 0192), which is the question change 0042 recorded the lane to answer.
+export function archivedChangeEntry(proposal, { id, archiveName, applied, specsAffected, prev = null, title = undefined }) {
+  return {
+    id,
+    title: (title === undefined ? parseChangeTitle(proposal) : title) ?? prev?.title ?? id,
+    path: `.doctrina/changes/archive/${archiveName}`,
+    status: "applied",
+    applied,
+    specs_affected: specsAffected,
+    ...laneOf(proposal, prev),
+  };
+}
+
 // Regenerate the index object from the artifacts on disk. The files are
 // the source of truth; fields with no on-disk source (project name,
 // framework_version, product metadata) are carried over from `current`.
@@ -286,14 +303,9 @@ export function deriveIndex(projectRoot, current) {
         specsAffected.push({ capability, operation: parseOperation(text) ?? "MODIFIED" });
       }
     }
-    out.artifacts.changes_archive.push({
-      id: m[2],
-      title: title ?? prev?.title ?? m[2],
-      path: `.doctrina/changes/archive/${name}`,
-      status: "applied",
-      applied: m[1],
-      specs_affected: specsAffected,
-    });
+    out.artifacts.changes_archive.push(archivedChangeEntry(proposal, {
+      id: m[2], archiveName: name, applied: m[1], specsAffected, prev, title,
+    }));
   }
 
   // Contracts — the integration/runtime surface (ports, env, interfaces)

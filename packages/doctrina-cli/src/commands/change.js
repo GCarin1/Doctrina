@@ -6,7 +6,7 @@ import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, 
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
-import { deriveIndex } from "../lib/scan.js";
+import { archivedChangeEntry, deriveIndex } from "../lib/scan.js";
 import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gates.js";
@@ -600,14 +600,10 @@ function changeArchive(args, flags) {
   console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
 
   const index = idx.load(projectRoot);
-  idx.moveChangeToArchive(index, id, {
-    id,
-    title,
-    path: `.doctrina/changes/archive/${archiveName}`,
-    status: "applied",
-    applied: date,
-    specs_affected: specsAffected,
-  });
+  idx.moveChangeToArchive(index, id, archivedChangeEntry(
+    exists(proposal) ? read(proposal) : "",
+    { id, archiveName, applied: date, specsAffected, title },
+  ));
   idx.touch(index, date);
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + " change archived");
