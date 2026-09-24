@@ -26,7 +26,7 @@ uvicorn app.main:app --reload
 
 # Doctrina checks
 doctrina validate
-doctrina analyze <change-id>      # before applying
+doctrina change check <change-id> # before closing
 doctrina clarify .doctrina/specs/<cap>/spec.md
 ```
 

@@ -541,14 +541,6 @@
     ],
     "changes": [
       {
-        "id": "0184-textos-fora-docs-ensinam",
-        "title": "textos fora de docs ensinam comandos depreciados: CONTRIBUTING, exemplo python, template de issue, skills e product.md, e um AGENTS.md de teste esquecido no pacote",
-        "path": ".doctrina/changes/0184-textos-fora-docs-ensinam",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (uncertain)"
-      },
-      {
         "id": "0185-guarda-documentacao-cobrir-contributing",
         "title": "o guarda de documentação deve cobrir CONTRIBUTING, examples, .github, skills e product.md",
         "path": ".doctrina/changes/0185-guarda-documentacao-cobrir-contributing",
@@ -2993,6 +2985,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0184-textos-fora-docs-ensinam",
+        "title": "textos fora de docs ensinam o caminho aposentado",
+        "path": ".doctrina/changes/archive/2026-09-24-0184-textos-fora-docs-ensinam",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": []
       }
     ],
     "skills": [

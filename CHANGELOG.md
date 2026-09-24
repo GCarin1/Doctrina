@@ -56,6 +56,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The contributor rules describe the workflow the repository runs.**
+  `CONTRIBUTING.md`, the contributing page, the PR template and the
+  release skill said framework work is committed directly, without change
+  folders, and that `.doctrina/changes/archive/` must stay empty — while
+  the repository has used Doctrina on itself since ADR 0014. They now
+  describe one loop: `prime` → `work` → `change check` → `close`, one
+  commit per change. The example, the issue template, two skills and
+  `product.md` stop naming `analyze`, and a test project's AGENTS.md
+  committed by mistake under `packages/doctrina-cli/` is gone. (0184)
 - **The CLI no longer tells you to run what it just deprecated.** `skill
   new` ended with "then run `doctrina skill sync`"; `work --help` walked
   analyze → apply → verify → archive → validate by hand, with no close; two

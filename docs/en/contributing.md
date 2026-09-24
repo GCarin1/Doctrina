@@ -17,30 +17,29 @@ node packages/doctrina-cli/src/index.js validate      # self-validate
 Requires Node.js 20.12 or newer. There are zero runtime dependencies and
 zero dev dependencies — `npm install` is a no-op.
 
-## The two workflows (read this first)
+## One workflow (read this first)
 
-Using the wrong workflow is the single most common contributor mistake.
+This repository builds Doctrina and uses it on itself (ADR 0014): a
+change to the framework goes through the same loop as a change in any
+project that adopted it, documented in [Workflow](workflow.md).
 
-**Workflow A — evolving Doctrina itself** (CLI, templates, framework
-specs, shipped docs): use **Conventional Commits** with direct commits.
-Do **not** use `doctrina change new`; the change workflow is for projects
-that *use* Doctrina, and `.doctrina/changes/archive/` in this repository
-must stay empty.
-
-```
-feat(cli): add doctrina skill list command
-fix(validate): handle missing index gracefully
-docs(brownfield): clarify retroactive ADR pattern
+```sh
+doctrina prime                          # gates, rules, open work
+doctrina work "<what you want to change>"
+# plan the proposal, tasks and spec delta; implement with a test
+doctrina change check <id>              # everything the close would refuse
+doctrina close <id>                     # the whole closing sequence
 ```
 
-**Workflow B — projects that use Doctrina**: the full
-`change new → apply → archive` cycle, documented in
-[Workflow](workflow.md).
+One change, one commit, with a Conventional Commits prefix and the change
+id in the title (`fix: <summary> — Change 0183`). The archived changes
+under `.doctrina/changes/archive/` are the project's history.
 
 ## What a good PR looks like
 
-- **Spec first.** If you change CLI behaviour, update
-  `.doctrina/specs/cli/spec.md` in the same PR and bump its `Version:`.
+- **Spec first.** If you change CLI behaviour, the change's spec delta
+  carries the new requirement, the criterion and the `bump-version`; the
+  close merges it into the spec.
 - **Tests.** Integration tests spawn the real CLI against a temp
   project; add one per new behaviour (`packages/doctrina-cli/test/`).
 - **Gates green.** `npm test`, `doctrina validate`,

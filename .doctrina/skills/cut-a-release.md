@@ -42,8 +42,9 @@ The canonical version lives in ONE place:
 6. `npm pack --dry-run` inside `packages/doctrina-cli/` — the tarball
    must list only `src/`, `templates/`, `README.md`, `package.json`
    (the `prepack` script copies `.doctrina/templates/` in).
-7. Commit (Conventional Commits — this repo does NOT use
-   `doctrina change new` for its own evolution), tag `vX.Y.Z`, publish.
+7. Commit (Conventional Commits prefix; the release bump is a chore
+   change like any other, closed with `doctrina close <id>`), tag
+   `vX.Y.Z`, publish.
 
 ## Anti-patterns
 

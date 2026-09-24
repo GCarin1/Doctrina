@@ -21,7 +21,7 @@ In scope:
 
 - A zero-dependency Node.js CLI for managing Doctrina artifacts and workflows.
 - Support for AGENTS.md-native project structure with product intent, capability specs, decisions, skills, templates, and indexed artifacts.
-- A single linear coordination model for `doctrina work`, `doctrina analyze`, `doctrina apply`, `doctrina close`, `doctrina validate`, and related commands.
+- A single linear coordination model for `doctrina work`, `doctrina change check`, `doctrina close`, `doctrina validate`, and related commands.
 - Integration patterns for AGENTS.md-aware agents and adapters, plus bilingual documentation and example projects.
 - Validation, traceability, and coverage gates to ensure changes remain aligned with specs and accepted decisions.
 
@@ -50,6 +50,6 @@ Out of scope (deferred or rejected):
 ## Delivery order (walking skeleton)
 
 1. Capture product intent and requirements in `.doctrina/product.md` and capability specs.
-2. Scaffold a change with `doctrina work` and implement it through `doctrina analyze` and `doctrina apply`.
+2. Scaffold a change with `doctrina work`, implement it, and preview its close with `doctrina change check`.
 3. Validate the resulting artifacts with `doctrina validate` and `doctrina verify`.
-4. Archive the change and confirm the project remains consistent via `doctrina status` and `doctrina next`.
+4. Close the change with `doctrina close`, which applies, verifies and archives it, and confirm the project remains consistent via `doctrina status` and `doctrina next`.

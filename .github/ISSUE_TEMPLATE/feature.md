@@ -38,7 +38,7 @@ Explicitly say what this feature does NOT cover. Doctrina prefers
 small features with clear edges.
 -->
 
-## How would `doctrina validate` and `doctrina analyze` see it?
+## How would `doctrina validate` and `doctrina change check` see it?
 
 <!--
 If this changes how artifacts look on disk, describe how the
