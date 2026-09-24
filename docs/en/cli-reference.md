@@ -525,8 +525,8 @@ but never planned): the listing marks it, and ticking it is refused —
 write the real task (or delete the line) first. `analyze` and `close`
 hard-fail on leftover placeholders, so a hollow change cannot close.
 
-Every surface counts the same boxes. `prime`, `report`, `handoff` and
-`next` report one progress number per change, placeholders included: an
+Every surface counts the same boxes. `prime`, `status --view report`,
+`handoff` and `next` report one progress number per change, placeholders included: an
 unwritten task is a task nobody finished, and hiding it is what let
 "tasks 0/3" mean six open boxes. `tick` adds the proposal's Verification
 boxes to that, because they share its ordinal space, and names the file
@@ -1252,8 +1252,8 @@ failure (declared debt is not hidden debt). Read-only without `--run`.
 
 A project that declares no criterion at all has no ratio to report, so
 coverage says so — *no criteria declared*, `pct: null` in `--json` — rather
-than scoring 100% over nothing. `status`, `prime`, `report`, `handoff` and
-`doctor` all render that same absence.
+than scoring 100% over nothing. `status` (every view), `prime`, `handoff`
+and `doctor` all render that same absence.
 
 Two more things the arithmetic honours. **The author's mark**: a
 criterion still marked `[unverified]` whose proof resolves is evidence
@@ -1461,7 +1461,7 @@ nobody knows that it is. One re-signature clears it, and `verify
 --signoff` warns at signing time when a check declares no `paths` — an
 unanchored signature is one nothing can hold to the code.
 
-`status`, `prime`, `handoff`, `report` and `doctor` all distinguish
+`status` (every view), `prime`, `handoff` and `doctor` all distinguish
 executed proof from signed proof, so a green total cannot hide how much of
 it was a human's word.
 
@@ -1882,8 +1882,8 @@ calls; nothing leaves the repository.
 
 **First-run states.** A repository with no commits, or a directory that is
 not a repository, is a valid state and not a failure: `metrics` reports
-"nothing to measure yet" and exits `0`. The same holds for `report`,
-`review`, and `skill suggest`. Only git being absent from the machine is an
+"nothing to measure yet" and exits `0`. The same holds for `status --view
+report`, `review`, and `skill suggest`. Only git being absent from the machine is an
 environment error (exit `4`). `context --diff` still fails when it cannot
 compute a diff, but names the condition rather than leaking git plumbing.
 

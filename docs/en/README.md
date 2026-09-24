@@ -23,9 +23,13 @@ no database, no vector store, no telemetry, zero runtime dependencies.
 
 ## Usage in 5 minutes
 
-**1. Initialise a project** — scaffolds `AGENTS.md` (the portable rules
-file every agent reads) plus the `.doctrina/` artifact tree, and installs
-thin adapters for every supported agent:
+You describe and approve; your agent runs the commands. Each step below
+names what it runs, so you can follow along or drive by hand.
+
+**1. Initialise the repository** — scaffolds `AGENTS.md` (the portable
+rules file every agent reads) plus the `.doctrina/` artifact tree, and
+installs thin adapters for every supported agent. At a terminal, `init`
+asks you to describe the project once, and keeps the answer:
 
 ```sh
 cd my-project
@@ -33,39 +37,34 @@ npx doctrina-cli init --agent all
 npx doctrina-cli hooks install        # pre-commit: validate --fix, then index rebuild --check --staged
 ```
 
-**2. Describe a capability** — the spec is the current truth of what the
-system does, written in EARS requirements:
+**2. Hand over to your agent** — tell it *"read AGENTS.md and run
+`doctrina next`"*. It turns your description into `product.md` and one
+EARS spec per capability (the bootstrap playbook), then asks you to
+review them:
 
 ```sh
-doctrina spec new billing
-# edit .doctrina/specs/billing/spec.md — or ask your agent to fill it in
+doctrina next      # a pending intake awaits conversion → doctrina intake
 ```
 
-**3. Open a change** — the unit of work. The proposal answers *why*, the
-tasks list the work, deltas describe spec updates:
+**3. Ask for a change in plain words** — every request becomes a change:
+a proposal (*why*), tasks, and spec deltas, with a playbook the agent
+follows. It loads exactly the context the task needs:
 
 ```sh
-doctrina change new 0001-late-fees "Charge late fees"
-doctrina next                          # the CLI tells you what to do next
+doctrina work "charge a late fee on overdue invoices"
+doctrina context billing --for "late fees" --concat
 ```
 
-**4. Let your agent work** — agents read `AGENTS.md` automatically.
-To hand one the exact context for the task:
+**4. Close it** — one attested pass applies the deltas (mechanically,
+from their `ops` blocks), runs the project's own checks, and archives the
+change. Preview first to see everything it would refuse:
 
 ```sh
-doctrina context billing --concat | <your agent>
+doctrina change check 0001-late-fees --verbose   # the dry-run, every delta shown
+doctrina close 0001-late-fees                    # the whole closing sequence, one attested pass
 ```
 
-**5. Apply, verify, archive:**
-
-```sh
-doctrina change check 0001-late-fees --verbose  # preview every delta
-doctrina change apply 0001-late-fees   # ADDED/REMOVED auto, MODIFIED manual
-doctrina validate                      # 18 structural checks
-doctrina change archive 0001-late-fees # history out of the read path
-```
-
-**6. Record decisions as you go:**
+**5. Record decisions as you go:**
 
 ```sh
 doctrina decision new "Use Postgres for the ledger"
@@ -87,11 +86,13 @@ use daily:
 
 | Command | What it does |
 |---------|--------------|
+| `doctrina prime` | The session primer: gates, rules, open work, next steps in one read |
 | `doctrina next` | Tells you (or your agent) the next recommended action |
+| `doctrina work "<prompt>"` | Turns a request into a change and prints the playbook to follow |
+| `doctrina close <id>` | The definition of done: apply, verify, archive, validate in one pass |
 | `doctrina context <cap>` | Prints the exact context pack, in read order |
-| `doctrina validate` | 18 schema/structure/EARS checks, CI-friendly |
+| `doctrina validate` | Schema, structure, EARS and index-drift checks (each one listed in the [CLI reference](cli-reference.md)), CI-friendly |
 | `doctrina search <term>` | "Where is X decided?" across all artifacts |
-| `doctrina metrics --save` | Local git-derived adoption metrics, no network |
 
 ## Why not just prompt harder?
 

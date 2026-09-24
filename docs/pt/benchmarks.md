@@ -46,23 +46,28 @@ geração de artefatos em vez de custo de CLI.
 
 ## Run de referência
 
-Host do mantenedor, junho/2026 (`node --version` v22.x em Linux):
+Um container Linux na nuvem, setembro/2026 (`node --version` v22.22),
+sobre a árvore de desenvolvimento da 0.17.0:
 
 ```
 Doctrina bench — 5 iterations per size
 
 size     specs  ADRs  archived  validate  analyze*  clarify**
 -------  -----  ----  --------  --------  --------  ---------
-small        1     1         1    ~85 ms        n/a   ~80 ms
-medium      10     5        10    ~85 ms        n/a   ~80 ms
-large       50    20        50    ~90 ms        n/a   ~82 ms
+small        1     1         1   ~137 ms        n/a   ~126 ms
+medium      10     5        10   ~148 ms        n/a   ~135 ms
+large       50    20        50   ~173 ms        n/a   ~130 ms
 ```
 
 Números variam ±10 ms entre runs no mesmo hardware. O headline:
 mesmo com 50 specs de capability mais 20 ADRs mais 50 changes
 arquivadas — bem acima da escala de primeiro ano de um projeto
-real — `doctrina validate` fica abaixo de 100 ms. Isso impede o
-pre-commit hook de ser uma espera perceptível ao dev.
+real — `doctrina validate` fica abaixo de 200 ms. Isso impede o
+pre-commit hook de ser uma espera perceptível ao dev. (A run de
+junho/2026 mediu ~90 ms em outro host; o `validate` ganhou checagens
+desde então, então as duas runs não formam uma tendência comparável.)
+Muito além dessa escala, com 300 specs e 1.500 changes arquivadas, uma
+medição avulsa no mesmo container deu cerca de 1,7 s para o `validate`.
 
 A curva tamanho-vs-tempo é aproximadamente plana. O trabalho do
 validate é dominado pelo custo de startup do Node.js, não pela

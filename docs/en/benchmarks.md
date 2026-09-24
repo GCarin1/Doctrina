@@ -42,23 +42,28 @@ artifact-generation cost rather than CLI cost.
 
 ## Reference run
 
-Maintainer host, June 2026 (`node --version` v22.x on Linux):
+A Linux cloud container, September 2026 (`node --version` v22.22),
+on the 0.17.0 development tree:
 
 ```
 Doctrina bench — 5 iterations per size
 
 size     specs  ADRs  archived  validate  analyze*  clarify**
 -------  -----  ----  --------  --------  --------  ---------
-small        1     1         1    ~85 ms        n/a   ~80 ms
-medium      10     5        10    ~85 ms        n/a   ~80 ms
-large       50    20        50    ~90 ms        n/a   ~82 ms
+small        1     1         1   ~137 ms        n/a   ~126 ms
+medium      10     5        10   ~148 ms        n/a   ~135 ms
+large       50    20        50   ~173 ms        n/a   ~130 ms
 ```
 
-Numbers vary ±10 ms across runs on the same hardware. The
+Numbers vary by ±10 ms across runs on the same hardware. The
 headline: even at 50 capability specs plus 20 ADRs plus 50
 archived changes — well above a real project's first-year scale
-— `doctrina validate` stays under 100 ms. That keeps the
-pre-commit hook from being a developer-noticeable wait.
+— `doctrina validate` stays under 200 ms. That keeps the
+pre-commit hook from being a developer-noticeable wait. (The June
+2026 run measured ~90 ms on a different host; `validate` has gained
+checks since, so the two runs are not a like-for-like trend.) Far past
+that scale, at 300 specs and 1,500 archived changes, a one-off
+measurement on the same container put `validate` at about 1.7 s.
 
 The size-to-time curve is flat to first order. Validate's work is
 dominated by Node.js startup cost, not by walking the

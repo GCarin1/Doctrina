@@ -155,9 +155,10 @@ Doctrina automatiza as operações comuns:
 
 - **ADDED** materializa um novo arquivo de spec.
 - **REMOVED** deleta a spec alvo.
-- **MODIFIED** imprime um ponteiro de merge manual; não escreve.
-  Você faz o merge à mão, o que mantém o agente fora de julgamentos
-  sobre seções conflitantes.
+- **MODIFIED** carrega um bloco `ops` (`set-header`, `bump-version`,
+  `append-requirement`, `append-criterion`, …) que o apply executa
+  mecanicamente, todas as ops ou nenhuma (ADR 0007). Um MODIFIED sem
+  bloco `ops` imprime um ponteiro de merge manual em vez de adivinhar.
 
 Antes de arquivar, prove o trabalho. "Pronto" é uma afirmação até ser
 verificada:
@@ -183,6 +184,13 @@ task ou verificação estiver desmarcada — passe `--force` só para arquivar
 deliberadamente com o gap registrado. Em sucesso, a pasta vai para
 `.doctrina/changes/archive/2026-06-03-0001-add-stripe-webhook/` e sai do
 caminho de leitura padrão do agente.
+
+**O mesmo, num comando só.** O `doctrina close 0001-add-stripe-webhook`
+roda a sequência de fechamento inteira — do analyze, passando por apply,
+verify, coverage e trace, até archive e validate; o `doctrina close --help`
+lista cada passo — e para no primeiro passo que recusar, nomeando a
+correção. Ele é a definição de pronto; o `doctrina change check <id>`
+mostra antes tudo o que ele recusaria.
 
 ## Opcional: esqueletar uma skill
 

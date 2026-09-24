@@ -95,7 +95,7 @@ e mande ir", não escrever documento por documento na mão.
 # doctrina change apply <id>
 #   ADDED   -> escreve .doctrina/specs/<capability>/spec.md
 #   REMOVED -> deleta esse arquivo
-#   MODIFIED -> merge manual; o CLI imprime o ponteiro
+#   MODIFIED -> o bloco ops, aplicado mecanicamente (sem ele: ponteiro de merge manual)
 #   proposal.md Status: flip proposed -> applied
 
 # doctrina verify     (gate de build do projeto) + doctrina coverage

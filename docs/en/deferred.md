@@ -1,8 +1,8 @@
 # Deferred
 
 A register of features Doctrina considered and chose not to ship
-(the register opened at v0.1.0 and grows with each release). Each item names a trigger that would justify
-revisiting. The list exists so future contributors and external
+(the register opened at v0.1.0 and grows with each release). Each
+item names a trigger that would justify revisiting. The list exists so future contributors and external
 users can distinguish "we have not done X" from "we considered X
 and these are the reasons we did not."
 
@@ -88,7 +88,7 @@ cross-project rule propagation.
 order-of-magnitude numbers. Deeper profiling (per-function CPU,
 allocation patterns, cold-cache behaviour on specific
 filesystems) requires real workloads from real projects, which
-v0.1.0 does not yet have.
+the project does not yet have.
 
 **Trigger to revisit:** a real adopter reports a latency that
 the bench script does not predict, or the validation A/B

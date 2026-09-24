@@ -48,6 +48,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Documentation caught up with the CLI.** The npm README's command list
+  had lost `close`, `prime`, `status` and a dozen more, and kept a stale
+  second copy of the `validate` checks; the docs home walked a reader
+  through a manual apply/archive and called MODIFIED deltas manual, as did
+  the glossary, workflow and getting-started pages, two releases after
+  `ops` blocks made them mechanical; the benchmark headline ("under
+  100 ms") was three months and many checks old. A test now keeps the npm
+  README naming every live operation and keeps every page from teaching a
+  deprecated or removed command. (0179)
 - **The first run gives one instruction.** `init` said "edit AGENTS.md and
   product.md", `next` then asked for the description again as an intake,
   and AGENTS.md says the agent drives. At a terminal `init` now asks one

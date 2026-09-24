@@ -88,7 +88,7 @@ not command-by-command document authoring.
 # doctrina change apply <id>
 #   ADDED   -> writes .doctrina/specs/<capability>/spec.md
 #   REMOVED -> deletes that file
-#   MODIFIED -> manual merge; CLI prints the pointer
+#   MODIFIED -> its ops block, applied mechanically (none: a manual-merge pointer)
 #   proposal.md Status: flips proposed -> applied
 
 # doctrina verify     (project build gate) + doctrina coverage

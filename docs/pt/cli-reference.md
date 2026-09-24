@@ -539,8 +539,8 @@ recusado — escreva a task real (ou delete a linha) primeiro. `analyze`
 e `close` falham duro com placeholders restantes, então um change oco
 não fecha.
 
-Toda superfície conta as mesmas caixas. O `prime`, o `report`, o
-`handoff` e o `next` reportam um número de progresso por change, com os
+Toda superfície conta as mesmas caixas. O `prime`, o `status --view
+report`, o `handoff` e o `next` reportam um número de progresso por change, com os
 placeholders incluídos: uma task não escrita é uma task que ninguém
 terminou, e escondê-la foi o que deixou "tasks 0/3" significar seis
 caixas abertas. O `tick` soma a isso as caixas de Verification do
@@ -1285,7 +1285,7 @@ sem `--run`.
 
 Um projeto que não declara critério nenhum não tem razão a reportar, então
 o coverage diz isso — *no criteria declared*, `pct: null` no `--json` — em
-vez de marcar 100% sobre nada. O `status`, o `prime`, o `report`, o
+vez de marcar 100% sobre nada. O `status` (toda vista), o `prime`, o
 `handoff` e o `doctor` renderizam a mesma ausência.
 
 Mais duas coisas que a aritmética honra. **A marca do autor**: um
@@ -1502,7 +1502,7 @@ porque ninguém sabe que ela está. Uma re-assinatura resolve, e o `verify
 --signoff` avisa na hora de assinar quando o check não declara `paths` —
 uma assinatura sem âncora é uma que nada consegue cobrar do código.
 
-O `status`, `prime`, `handoff`, `report` e `doctor` distinguem prova
+O `status` (toda vista), `prime`, `handoff` e `doctor` distinguem prova
 EXECUTADA de prova ASSINADA, para que um verde total não esconda quanto
 dele foi a palavra de uma pessoa.
 
@@ -1934,7 +1934,7 @@ chamadas de rede; nada sai do repositório.
 **Estados de primeira execução.** Um repositório sem commits, ou um
 diretório que não é repositório, é um estado válido e não uma falha: o
 `metrics` reporta "nada a medir ainda" e sai com `0`. O mesmo vale para
-`report`, `review` e `skill suggest`. Só a ausência do git na máquina é
+`status --view report`, `review` e `skill suggest`. Só a ausência do git na máquina é
 erro de ambiente (saída `4`). O `context --diff` ainda falha quando não
 consegue calcular o diff, mas nomeia a condição em vez de vazar plumbing
 do git.

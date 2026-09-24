@@ -150,9 +150,10 @@ Doctrina automates the common operations:
 
 - **ADDED** deltas materialise a new spec file.
 - **REMOVED** deltas delete the target spec.
-- **MODIFIED** deltas print a manual-merge pointer; you merge by hand,
-  which keeps the agent out of judgement calls about conflicting
-  sections.
+- **MODIFIED** deltas carry an `ops` block (`set-header`,
+  `bump-version`, `append-requirement`, `append-criterion`, …) that apply
+  executes mechanically, all ops or none (ADR 0007). A MODIFIED delta
+  without one prints a manual-merge pointer instead of guessing.
 
 Before you archive, prove the work. "Done" is a claim until it is checked:
 
@@ -177,6 +178,12 @@ verification box is unchecked — pass `--force` only to archive
 deliberately with a recorded gap. On success the change folder moves to
 `.doctrina/changes/archive/2026-06-03-0001-add-stripe-webhook/` and
 disappears from the agent's default read path.
+
+**The same, in one command.** `doctrina close 0001-add-stripe-webhook`
+runs the whole closing sequence — from analyze through apply, verify,
+coverage and trace to archive and validate; `doctrina close --help` lists
+every step — and stops at the first step that refuses, naming the fix. It is the definition of done; `doctrina change check <id>` previews
+everything it would refuse.
 
 ## Optional: scaffold a skill
 
