@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/skill.js`
 **Last updated:** 2026-07-02
-**Version:** 0.6.0
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -43,11 +43,7 @@ replacing it.
 - When `doctrina skill list` runs, the system shall print one
   line per skill containing the slug and the description from
   frontmatter; the command is strictly read-only.
-- When `doctrina skill sync` runs, the system shall copy each
-  skill's frontmatter `description:` into the matching index
-  entry, indexing skills present on disk but absent from the
-  index. The frontmatter is the single source of truth for the
-  description; the command never edits skill files.
+- When `doctrina index rebuild` (or `doctrina validate --fix`) runs, the system shall register every skill present on disk and mirror its frontmatter `description:` into the matching index entry, never replacing a written description with one still in the scaffold's `<...>` form and moving the entry's date only when its description changes; the command never edits skill files, and the deprecated `doctrina skill sync` shall leave the same index behind.
 - When `doctrina skill suggest` runs, the system shall list
   fix-shaped lessons not yet captured as skills, drawn from two
   deterministic sources — archived change proposals
@@ -63,10 +59,7 @@ replacing it.
   one or more of the required frontmatter fields, any skill
   over the 200-line cap, and any skill whose `name:` field
   does not match its filename slug.
-- When `doctrina validate` runs, the system shall emit a warning
-  for any skill whose frontmatter `description:` differs from
-  the description recorded in `.doctrina/index.json`, pointing
-  at `doctrina skill sync`.
+- When `doctrina validate` runs, the system shall emit a warning for any skill whose frontmatter `description:` differs from the description recorded in `.doctrina/index.json`, pointing at `doctrina index rebuild`.
 - When a skill is drafted from an error, the system shall fill its trigger from that error's own paths, identifiers and distinctive terms, and shall leave the procedure to the author.
 
 ### State-driven
@@ -110,13 +103,14 @@ A `.doctrina/skills/` directory is spec-compliant when:
 4. Every skill present on disk is referenced in
    `.doctrina/index.json` under `artifacts.skills`.
 5. Each indexed description matches the skill's frontmatter
-   `description:` — `doctrina skill sync` restores this
+   `description:` — `doctrina index rebuild` restores this
    (`packages/doctrina-cli/src/commands/skill.js`), and drift warns in
    `packages/doctrina-cli/src/commands/validate.js`.
 6. [verified] A trigger drafted from an error satisfies validate's detectable-trigger check — verified by `packages/doctrina-cli/test/orchestration.test.js`.
 7. [verified] Skills matching a `--for` query are ranked above the rest and marked — verified by `packages/doctrina-cli/test/context-retrieval.test.js`.
 8. [verified] A scaffolded skill's `when:` is not a detectable trigger and `skill sync` names it as scaffold; once filled, sync indexes it — verified by `packages/doctrina-cli/test/a-scaffold-is-not-an-artifact.test.js`.
 9. [verified] A generated slug folds accents and capitals instead of deleting them, and matches the `[a-z][a-z0-9-]*` shape this spec requires of a skill filename — verified by `packages/doctrina-cli/test/o-acento-nao-e-ruido.test.js`.
+10. [verified] From the same tree, `skill sync` and `index rebuild` leave the same skill entries — an edited description mirrored, a written description kept over a reverted placeholder, a hand-written skill registered — and `skill sync` warns on stderr naming the rebuild — verified by `packages/doctrina-cli/test/o-rebuild-faz-o-que-o-sync-fazia.test.js`.
 
 ## Out of scope for this spec
 

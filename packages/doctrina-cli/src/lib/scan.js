@@ -7,7 +7,7 @@ import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { today } from "./dates.js";
 import { cliVersion, newestVersion } from "./version.js";
 import { load } from "./index-json.js";
-import { parseFrontmatter } from "./doc-model.js";
+import { parseFrontmatter, isScaffoldValue } from "./doc-model.js";
 import { parseCapabilityFromDelta } from "./doc-model.js";
 import { parseOperation } from "./doc-model.js";
 import { git, gitLines, isRepo, GIT_STATE } from "./git.js";
@@ -170,6 +170,23 @@ export function changeEntry(proposal, id, prev, date) {
 }
 
 
+// An archived change, as an index entry — the one constructor both the
+// rebuild and `change archive` use. They each built their own, and neither
+// carried the lane: an archived change lost the lane it was born in, so the
+// report's "Lanes" section counted the whole history as unknown (change
+// 0192), which is the question change 0042 recorded the lane to answer.
+export function archivedChangeEntry(proposal, { id, archiveName, applied, specsAffected, prev = null, title = undefined }) {
+  return {
+    id,
+    title: (title === undefined ? parseChangeTitle(proposal) : title) ?? prev?.title ?? id,
+    path: `.doctrina/changes/archive/${archiveName}`,
+    status: "applied",
+    applied,
+    specs_affected: specsAffected,
+    ...laneOf(proposal, prev),
+  };
+}
+
 // Regenerate the index object from the artifacts on disk. The files are
 // the source of truth; fields with no on-disk source (project name,
 // framework_version, product metadata) are carried over from `current`.
@@ -286,14 +303,9 @@ export function deriveIndex(projectRoot, current) {
         specsAffected.push({ capability, operation: parseOperation(text) ?? "MODIFIED" });
       }
     }
-    out.artifacts.changes_archive.push({
-      id: m[2],
-      title: title ?? prev?.title ?? m[2],
-      path: `.doctrina/changes/archive/${name}`,
-      status: "applied",
-      applied: m[1],
-      specs_affected: specsAffected,
-    });
+    out.artifacts.changes_archive.push(archivedChangeEntry(proposal, {
+      id: m[2], archiveName: name, applied: m[1], specsAffected, prev, title,
+    }));
   }
 
   // Contracts — the integration/runtime surface (ports, env, interfaces)
@@ -312,18 +324,26 @@ export function deriveIndex(projectRoot, current) {
     });
   }
 
-  // Skills — frontmatter description wins.
+  // Skills — a WRITTEN frontmatter description wins. The rebuild is the one
+  // reconciliation (change 0177 retired `skill sync`, which did a subset of
+  // this), so it carries sync's rule: a description still in the scaffold's
+  // `<...>` form never overwrites one somebody wrote (change 0111), and the
+  // entry's date moves when its description does.
   const skillsDir = path.join(dot, "skills");
   for (const f of walk(skillsDir)) {
     if (!f.endsWith(".md")) continue;
     const id = path.basename(f, ".md");
     const prev = (cur.skills ?? []).find((s) => s.id === id);
+    const written = parseFrontmatter(read(f), "description");
+    const kept = prev?.description && !isScaffoldValue(prev.description) ? prev.description : null;
+    const description = written && !isScaffoldValue(written)
+      ? written
+      : kept ?? written ?? "<edit me — one-sentence summary>";
     out.artifacts.skills.push({
       id,
       path: `.doctrina/skills/${id}.md`,
-      description: parseFrontmatter(read(f), "description")
-        ?? prev?.description ?? "<edit me — one-sentence summary>",
-      last_updated: prev?.last_updated ?? date,
+      description,
+      last_updated: prev && prev.description === description ? prev.last_updated ?? date : date,
     });
   }
 

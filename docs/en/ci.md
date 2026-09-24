@@ -114,7 +114,7 @@ node scripts/e2e-packed.mjs --quick  # skip the per-adapter sweep
 It packs the tarball, installs it into a scratch directory **outside** the
 repo, and drives a real project through the whole lifecycle — `init` →
 `spec new` → `work` → delta → `change check` → `close` → archive — with the
-installed binary, asserting `validate`, `templates check` and `doctor` are
+installed binary, asserting `validate`, `upgrade` and `doctor` are
 green at each step. Then it installs every one of the twelve adapters into
 its own project and checks each.
 

@@ -6,14 +6,19 @@ Execute in order, in a single linear pass:
 
 1. Replace the placeholder tasks in .doctrina/changes/{{CHANGE_ID}}/tasks.md
    with small, checkable steps; implement them, checking each box.
-[[g]]   (Do it before implementing — analyze/close refuse leftover scaffold[[/g]]
+[[g]]   (Do it before implementing — the close refuses leftover scaffold[[/g]]
 [[g]]   placeholders, and `change tick` will not tick an empty box.)[[/g]]
-2. Prove it (archive refuses unchecked boxes):
+2. Prove it (the close refuses unchecked boxes):
        [[c]]doctrina verify[[/c]]     — the project's typecheck/test/build gate
        [[c]]doctrina verify --clean[[/c]] — clean-checkout reproducibility lint
    Then check the proposal's ## Verification boxes and every task.
 3. This is a chore: no spec changes. If you find yourself needing a
    spec delta, it is not a chore — reopen with [[c]]doctrina work "<prompt>"[[/c]].
-4. [[c]]doctrina change apply {{CHANGE_ID}}[[/c]]  (zero deltas → flips to applied).
-5. [[c]]doctrina change archive {{CHANGE_ID}}[[/c]], then [[c]]doctrina validate[[/c]].
+4. Close in one attested pass — the same close as any change; a chore
+   simply has no delta to apply:
+       [[c]]doctrina close {{CHANGE_ID}}[[/c]]
+[[g]]   It stops at the first failure with the exact rerun command, and the[[/g]]
+[[g]]   sequence is printed by the close itself. A chore that alters a[[/g]]
+[[g]]   documented surface still owes the docs and a changelog entry — or[[/g]]
+[[g]]   `- **Documented surface:** n/a — <why>` in the proposal.[[/g]]
 [[g]]   If this fix taught a lesson worth not relearning, capture it: [[/g]][[c]]doctrina skill new <slug>[[/c]][[g]].[[/g]]

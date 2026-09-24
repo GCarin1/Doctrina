@@ -118,7 +118,7 @@ node scripts/e2e-packed.mjs --quick  # pula a varredura por adapter
 Ele empacota o tarball, instala num diretório temporário **fora** do repo e
 conduz um projeto real por todo o ciclo — `init` → `spec new` → `work` →
 delta → `change check` → `close` → archive — com o binário instalado,
-verificando que `validate`, `templates check` e `doctor` estão verdes em
+verificando que `validate`, `upgrade` e `doctor` estão verdes em
 cada passo. Depois instala cada um dos doze adapters em seu próprio projeto
 e checa todos.
 

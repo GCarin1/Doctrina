@@ -86,11 +86,11 @@ documentação pública dos projetos; nada é inventado.
   que os líderes.
 - **Projetos exemplo do mundo real.** Spec Kit, Kiro, OpenSpec e
   BMAD todos ship projetos exemplo que adotantes externos podem
-  copiar. Em v0.1.0, Doctrina ship o próprio repositório
+  copiar. Na 0.16, Doctrina ship o próprio repositório
   auto-descrito mais dois projetos exemplo em `examples/`; os
   líderes ship dezenas.
 - **Comunidade.** Doctrina tem efetivamente zero contribuidores
-  externos no v0.1.0. Spec Kit tem suporte Microsoft, Kiro tem
+  externos na 0.16. Spec Kit tem suporte Microsoft, Kiro tem
   AWS, outros têm seguidores crescendo. Isso é função de idade,
   não de design.
 - **Documento constitution centralizado.** Spec Kit ship um

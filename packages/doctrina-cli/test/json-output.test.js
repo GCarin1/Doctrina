@@ -51,7 +51,6 @@ const INVOCATION = {
   next: ["next"],
   why: ["why", "--help"],
   handoff: ["handoff"],
-  constitution: ["constitution"],
   analyze: ["analyze", "--help"],
   clarify: ["clarify", "--all"],
   validate: ["validate"],

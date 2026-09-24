@@ -34,7 +34,9 @@ capped at 30 lines.
 
 The action of merging a change's spec deltas into the affected
 specs. ADDED deltas write a new spec file. REMOVED deltas delete a
-spec file. MODIFIED deltas require a manual merge.
+spec file. MODIFIED deltas are applied mechanically from their `ops`
+block, all ops or none (ADR 0007); one without an `ops` block prints a
+manual-merge pointer.
 
 ## Archive
 
@@ -74,8 +76,9 @@ project. Doctrina's Claude adapter is a thin `CLAUDE.md` that
 
 A spec change packaged inside a change folder. Carries an
 `Operation:` header (`ADDED`, `MODIFIED`, or `REMOVED`) and a target
-spec path. ADDED and REMOVED deltas are applied automatically by
-`doctrina change apply`. MODIFIED deltas require human merge.
+spec path. `doctrina change apply` (and `doctrina close`) applies all
+three automatically — a MODIFIED delta through its `ops` block; only one
+written without an `ops` block needs a human merge.
 
 ## Dogfooding
 
@@ -149,8 +152,8 @@ model.
 
 The act of opening a change with `doctrina change new`. The change
 starts at `Status: proposed`. A proposal becomes `applied` only when
-`doctrina change apply` finishes without errors and without manual
-MODIFIED deltas.
+`doctrina change apply` finishes without errors and without a MODIFIED
+delta left to merge by hand.
 
 ## Spec
 

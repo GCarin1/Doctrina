@@ -11,7 +11,7 @@ terminal.
 
 | Flag | Efeito |
 |------|--------|
-| `--help`, `-h` | Imprime a ajuda no topo, ou ajuda por-comando se vier depois de um comando. |
+| `--help`, `-h` | Imprime a ajuda no topo, ou ajuda por-comando se vier depois de um comando. A ajuda do topo (impressa também por `doctrina` sozinho) abre com por onde começar — `doctrina init`, depois `doctrina next` — e agrupa uma linha por comando sob o momento em que ele é usado (Bootstrap, Orient, Change, Gate, Maintain), o mesmo agrupamento do bloco do AGENTS.md; os nomes depreciados vêm por último, cada um apontando para o substituto. |
 | `--version`, `-v` | Imprime a versão do pacote. |
 | `--debug` | Em erro inesperado, também imprime o stack trace. |
 
@@ -89,7 +89,7 @@ doctrina init [opções]
 | Flag | Padrão | Função |
 |------|--------|--------|
 | `--project-name <nome>` | basename do cwd | Sobrescreve o nome do projeto nos artefatos. |
-| `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase. Omita `--non-interactive` para pular a pergunta. |
+| `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase para o `product.md`, sem intake. Sem ela (e sem `--intake`) num terminal, o `init` faz uma pergunta e guarda a resposta como intake. |
 | `--agent <nome>` | nenhum | Instala o adapter para um dos doze agentes suportados (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) ou `all`. Agentes AGENTS.md-native (`codex`, `amp`, `devin`, `factory`, `jules`) não instalam arquivo. |
 | `--from <path>` | nenhum | Diretório local de conventions; faz fold do `AGENTS.md` e do `.doctrina/product.md` (quando presentes) no novo projeto antes do scaffold. Só caminhos de filesystem — sem URLs. |
 | `--intake <file>` | nenhum | Descrição completa do projeto; armazenada literalmente em `.doctrina/intake.md`, usada para derivar a descrição de uma linha quando `--project-description` está ausente, e o playbook de bootstrap é impresso na hora — sem segundo comando. O `AGENTS.md` gerado também instrui qualquer agente a executar esse playbook sozinho ao ver um intake pendente. |
@@ -99,10 +99,16 @@ doctrina init [opções]
 | `--overwrite-content` | off | O segundo opt-in explícito que permite ao `--force` descartar `AGENTS.md` / `product.md` autorados. Sem ela, o `--force` sozinho não consegue destruí-los. |
 | `--non-interactive` | off | Falha em vez de perguntar. |
 
-O `init` precisa de uma descrição. Num terminal ele pergunta; fora de um
-ele **recusa** (saída `2`) em vez de aceitar a string vazia que o EOF
-devolve — isso esqueletizava um projeto com descrição em branco e sem
-aviso. Passe `--project-description` ou `--intake`.
+O `init` precisa de uma descrição. Num terminal ele faz **uma** pergunta —
+descreva o projeto: o que é, para quem, o que precisa fazer — e guarda a
+resposta como intake, para o `next` não pedi-la de novo; depois diz o único
+próximo passo: abrir o seu agente e pedir que ele leia o AGENTS.md e rode
+`doctrina next`. Fora de um terminal ele **recusa** (saída `2`) em vez de
+aceitar a string vazia que o EOF devolve — isso esqueletizava um projeto
+com descrição em branco e sem aviso. Passe `--project-description` ou
+`--intake`. Com descrição e sem intake, a linha final nomeia `doctrina
+intake --text` (ou `doctrina work --from-diff` para um código existente) —
+o mesmo passo que o `next` nomeia.
 
 Num terminal interativo, o `init` também oferece a instalação de
 adapter como passo de wizard quando `--agent` não foi passado
@@ -136,7 +142,8 @@ doctrina intake --converted           # encerra o bootstrap
 | Flag | Função |
 |------|--------|
 | `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
-| `--force` | Sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
+| `--converted` | Marca o intake armazenado como convertido, encerrando o bootstrap. Nada mais escreve esse cabeçalho, e o `validate` recusa qualquer valor além de `pending` ou `converted`. Recusa com saída `1` enquanto o `validate` reporta erro, listando-os — converter é afirmar que o bootstrap terminou; `--force` converte mesmo assim. Sai `3` quando não há intake para marcar. |
+| `--force` | Com `--converted`, converte mesmo com o `validate` falhando. Fora isso, sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
 
 O positional aceita os dois. Um valor que não pode ser um caminho — uma
 frase, com espaços e sem separador nem extensão de documento — é lido como a
@@ -212,8 +219,9 @@ um id de change sequencial (`NNNN-<slug>`), abre a pasta do change pelo
 mesmo caminho de `change new`, registra o prompt literalmente sob o
 `## Why` da proposal, ranqueia as specs existentes por sobreposição
 determinística de termos como dica de capability, e imprime os passos
-ordenados: context → spec delta → tasks → implementar → analyze →
-apply → verify (`verify`/`coverage`) → archive → validate. Nenhuma
+ordenados: context, spec delta, tasks, implementar, depois `doctrina
+change check <id>` para prever o close e `doctrina close <id>` para
+terminar. Nenhuma
 interpretação de linguagem natural acontece no CLI (ver ADR 0005).
 
 ```
@@ -249,6 +257,7 @@ arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
+| `--design` | Também esboça o `design.md`, para um change com escolhas não triviais (opt-in, como em `change new --design`). |
 | `--force` | Sobrescreve uma pasta de change existente, e passa pela retenção de raia descrita abaixo. |
 
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
@@ -401,10 +410,13 @@ O `<id>` é o nome do diretório. Convenção: `NNNN-slug`.
 Aplica cada delta encontrado em
 `.doctrina/changes/<id>/specs/`. Vários ids rodam em sequência, cada um
 independente (fechamento em lote de backlog); o código de saída é o pior
-resultado por id.
+resultado por id. Um id é o nome da pasta da change: um caminho, `.`, `..`
+ou `archive` é recusado com saída 2 antes de qualquer leitura — o mesmo
+vale para `archive`, `check`, `tick`, `abandon`, `close` e `work --resume`.
 
-**Gateado por `structure`** (ADR 0017): o `apply` recusa quando o
-`analyze` reprovaria, e não escreve nada. As precondições pertencem à
+**Gateado por `structure`** (ADR 0017): o `apply` recusa quando a
+checagem estrutural (a primeira seção do `change check`) reprovaria, e não
+escreve nada. As precondições pertencem à
 transição, não ao comando que a dirige, então o `apply` exige exatamente o
 que o caminho do `close` exige — um agente não consegue alcançar por um
 caminho um estado que outro caminho proíbe. O `--force` dispensa a
@@ -458,8 +470,10 @@ doctrina change archive 0042-add-saml 0043-rate-limit
 
 Arquivar é o ato de declarar um change terminado, então ele é **gateado
 por `verification`** (ADR 0017): o CLI **recusa** (exit 1) enquanto
-qualquer caixa no `tasks.md` (incluindo os closing steps) ou na seção
-`## Verification` do proposal estiver desmarcada. Ele deliberadamente não
+qualquer caixa no `tasks.md` ou na seção `## Verification` do proposal
+estiver desmarcada (uma lista antiga de `## Closing steps` — aplicar,
+arquivar, atualizar o índice — não conta: é o que o close faz). Ele
+deliberadamente não
 re-roda o gate `structure` — aquele gate pergunta "isto é seguro de
 aplicar?", e depois de um apply bem-sucedido a checagem de alvo ADDED
 reportaria a prova do sucesso como conflito. Termine e marque os itens, ou passe
@@ -533,8 +547,8 @@ recusado — escreva a task real (ou delete a linha) primeiro. `analyze`
 e `close` falham duro com placeholders restantes, então um change oco
 não fecha.
 
-Toda superfície conta as mesmas caixas. O `prime`, o `report`, o
-`handoff` e o `next` reportam um número de progresso por change, com os
+Toda superfície conta as mesmas caixas. O `prime`, o `status --view
+report`, o `handoff` e o `next` reportam um número de progresso por change, com os
 placeholders incluídos: uma task não escrita é uma task que ninguém
 terminou, e escondê-la foi o que deixou "tasks 0/3" significar seis
 caixas abertas. O `tick` soma a isso as caixas de Verification do
@@ -547,34 +561,6 @@ depois que a 1 for feita. A listagem mostra o estado de cada caixa; uma
 caixa já marcada é um no-op nomeado; um argumento que não é número é
 recusado pelo nome. Qualquer bullet Markdown (`-`, `*`, `+`) abre uma
 caixa, para o `tick` e para o gate de archive igualmente.
-
-## `doctrina change diff <id>` — depreciado
-
-> **Depreciado.** Use `doctrina change check <id> --verbose`, que executa
-> cada bloco de ops contra a spec alvo *e* imprime esta mesma pré-visualização
-> por delta. O nome antigo continua funcionando, avisa no stderr, traz um
-> campo `deprecated` no envelope do `--json` e será removido num minor
-> futuro.
-
-Pré-visualiza cada spec delta de uma change antes de aplicar.
-
-```
-doctrina change check 0042-add-saml --verbose   # preferido
-doctrina change diff 0042-add-saml              # alias depreciado
-```
-
-Por delta:
-
-- **ADDED:** caminho do alvo e contagem de linhas do corpo
-  (sinaliza conflito quando o alvo já existe).
-- **REMOVED:** caminho do alvo e linhas que seriam deletadas.
-- **MODIFIED:** diff de linhas unificado entre a spec alvo atual e
-  o corpo do delta. O corpo do delta é um fragmento a mergear,
-  então linhas `-` são conteúdo da spec ausente do delta —
-  contexto, não necessariamente remoções.
-
-Read-only; nunca modifica arquivos. Par do `analyze`: `analyze`
-checa a forma da change, `diff` mostra o conteúdo.
 
 ## `doctrina change abandon <id>`
 
@@ -729,7 +715,7 @@ doctrina skill new db-migration
 
 O slug deve casar com `[a-z][a-z0-9-]*`. O template carrega
 frontmatter com `name`, `description` e `when`; preencha e
-depois rode `doctrina skill sync` para espelhar a description
+depois rode `doctrina index rebuild` para espelhar a description
 no index.
 
 | Flag | Função |
@@ -748,17 +734,24 @@ doctrina skill list
 Read-only. Nunca modifica arquivos. Veja
 [skills.md](skills.md) para o design rationale.
 
-## `doctrina skill sync`
+## `doctrina skill sync` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina index rebuild` (ou `doctrina
+> validate --fix`), que registra toda skill e espelha a description pela
+> mesma regra, deixando o mesmo index. O nome antigo continua funcionando,
+> avisa no stderr, traz um campo `deprecated` no envelope do `--json` e será
+> removido num minor futuro.
 
 Copia a `description:` do frontmatter de cada skill para a
 entrada correspondente do `.doctrina/index.json`.
 
 ```
-doctrina skill sync
+doctrina index rebuild      # preferido
+doctrina skill sync         # alias depreciado
 ```
 
 O frontmatter é a fonte única de verdade: edite o arquivo da
-skill, rode `sync`, e o index acompanha. Skills presentes em
+skill, reconstrua o index, e ele acompanha. Skills presentes em
 disco mas ausentes do index são indexadas; skills sem campo
 `description:` são reportadas e puladas, e uma skill cuja description
 ainda é o placeholder `<…>` do template é nomeada como scaffold em vez de
@@ -881,12 +874,22 @@ fixe um com a forma `SC15:`). O follow-up é impresso: declare
 loop. `list` imprime cada âncora em ordem de documento. O CLI aloca e
 anexa; o texto da intenção é o seu, verbatim (ADR 0005).
 
-## `doctrina analyze <change-id>`
+## `doctrina analyze <change-id>` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina change check <change-id>`, que
+> reporta primeiro cada checagem abaixo, depois o dry-run das ops e o preview
+> do gate de arquivamento. Ele responde "o close passaria?", então também
+> sai com 1 enquanto houver uma caixa de `## Verification` aberta — onde o
+> `analyze` respondia "o apply passaria?". O `doctrina change apply` continua
+> recusando tudo o que o `analyze` recusava. O nome antigo continua
+> funcionando, avisa no stderr, traz um campo `deprecated` no envelope do
+> `--json` e será removido num minor futuro.
 
 Inspeciona uma pasta de change antes de aplicar.
 
 ```
-doctrina analyze 0042-add-saml
+doctrina change check 0042-add-saml   # preferido
+doctrina analyze 0042-add-saml        # alias depreciado
 ```
 
 Reporta por linha:
@@ -967,13 +970,20 @@ diretório de templates do framework e a contagem de linhas. Útil
 para descobrir o que `init`, `spec new`, `change new` e
 `decision new` vão esqueletar.
 
-## `doctrina templates check`
+## `doctrina templates check` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina upgrade`: o preview dele reporta
+> todo achado abaixo, cada um com sua correção — os que ele consegue reparar
+> como passos pendentes, o resto como reparo manual — e sai com 1 enquanto
+> sobrar algum. O nome antigo continua funcionando, avisa no stderr, traz um
+> campo `deprecated` no envelope do `--json` e será removido num minor futuro.
 
 Compara o projeto atual contra a forma de template recomendada
 shippada nesta versão do CLI.
 
 ```
-doctrina templates check
+doctrina upgrade             # preferido (preview)
+doctrina templates check     # alias depreciado
 ```
 
 Caminha por `AGENTS.md`, `.doctrina/product.md` e
@@ -989,7 +999,12 @@ roteiam o agente até o hub, e é por isso que um refresh do bloco de
 superfície alcança todos os agentes instalados. Shims de slash command
 (`.claude/commands/doctrina-*.md`) **não** são ponteiros: eles invocam o
 CLI e chegam ao hub pelo arquivo-ponteiro pai, então exigir que citassem
-`AGENTS.md` era uma falha falsa em toda instalação limpa.
+`AGENTS.md` era uma falha falsa em toda instalação limpa. O que se
+verifica num shim é se ficou defasado: ele é copiado para o projeto uma
+vez só, então um shim que ainda manda o agente rodar um comando
+depreciado ou removido (o `/doctrina-work` da 0.16 rodava `analyze` →
+`change apply`) é um achado, consertado com
+`doctrina adapter add <agente> --force`.
 
 Cada achado nomeia o comando que o resolve, ou diz claramente que o
 reparo é manual. Um teste executa cada remédio impresso e verifica que o
@@ -998,18 +1013,24 @@ achado sumiu — um remédio que o CLI não consegue executar e verificar não
 recomendada está presente, 1 caso contrário.
 
 Distinto de `validate`: `validate` responde "esta é uma árvore
-Doctrina bem-formada?"; `templates check` responde "esta árvore
+Doctrina bem-formada?"; o preview do upgrade responde "esta árvore
 ainda segue a forma que os templates do CLI atual recomendam?"
 Rode após `npm install -g doctrina-cli@latest` para ver se novas
 formas de template adicionaram seções que seus arquivos
 existentes ainda não adotaram.
 
-## `doctrina templates update`
+## `doctrina templates update` — depreciado
 
-Corretor para o que o `templates check` reporta.
+> **Depreciado** (0.17.0). Use `doctrina upgrade --write`, cujo primeiro
+> passo é esta atualização (com preview em `doctrina upgrade`). O nome
+> antigo continua funcionando, avisa no stderr, traz um campo `deprecated`
+> no envelope do `--json` e será removido num minor futuro.
+
+Corretor para o que o `doctrina upgrade` reporta.
 
 ```
-doctrina templates update [--write]
+doctrina upgrade [--write]            # preferido
+doctrina templates update [--write]   # alias depreciado
 ```
 
 Preview é o default: o comando imprime o plano de update — seções
@@ -1018,7 +1039,7 @@ campos de schema ou categorias de artefato faltando no
 `index.json`, e o estado do **bloco doctrina:surface** do AGENTS.md —
 não escreve nada e sai 1 enquanto há updates pendentes. Com `--write`
 ele anexa seções stub (marcadas com
-`<!-- added by doctrina templates update — fill in -->`), adiciona os
+`<!-- added by doctrina upgrade — fill in -->`), adiciona os
 campos faltantes e **regenera o bloco surface** a partir do catálogo
 do CLI instalado: um bloco desatualizado é reescrito no lugar; uma
 seção legada `## Doctrina command surface` escrita à mão (esqueleto de
@@ -1031,8 +1052,8 @@ sendo decisão humana.
 **A recomendação de seções diz o que custa.** O `AGENTS.md` tem um teto de
 linhas declarado (`agents-md-lines`), e é um budget de OUTPUT, então o
 `analyze` recusa uma change que resolva um estouro subindo o teto. Quando os
-stubs que faltam não cabem, o `templates check` nomeia o preço e o corte a
-fazer antes, e o `templates update --write` **segura** aquele item — imprime
+stubs que faltam não cabem, o `upgrade` nomeia o preço e o corte a
+fazer antes, e o `upgrade --write` **segura** aquele item — imprime
 o que recusou e por quê, deixa o arquivo intocado e aplica as outras
 atualizações normalmente. Abrir o espaço que ele pede e rodar de novo limpa
 a retenção. Sem isso, um gate advisory resolvia o próprio finding entrando
@@ -1121,7 +1142,7 @@ Checagens:
 15. O header `Version:` de cada spec de capability bate com a
     versão registrada no `index.json` (warning em caso de drift).
 16. A description do frontmatter de cada skill bate com a
-    registrada no `index.json` (warning; `doctrina skill sync`
+    registrada no `index.json` (warning; `doctrina index rebuild`
     restaura).
 17. Forma da gramática EARS por seção em toda spec que declara
     `## Requirements (EARS)`: requirements Ubiquitous carregam
@@ -1287,7 +1308,7 @@ sem `--run`.
 
 Um projeto que não declara critério nenhum não tem razão a reportar, então
 o coverage diz isso — *no criteria declared*, `pct: null` no `--json` — em
-vez de marcar 100% sobre nada. O `status`, o `prime`, o `report`, o
+vez de marcar 100% sobre nada. O `status` (toda vista), o `prime`, o
 `handoff` e o `doctor` renderizam a mesma ausência.
 
 Mais duas coisas que a aritmética honra. **A marca do autor**: um
@@ -1504,7 +1525,7 @@ porque ninguém sabe que ela está. Uma re-assinatura resolve, e o `verify
 --signoff` avisa na hora de assinar quando o check não declara `paths` —
 uma assinatura sem âncora é uma que nada consegue cobrar do código.
 
-O `status`, `prime`, `handoff`, `report` e `doctor` distinguem prova
+O `status` (toda vista), `prime`, `handoff` e `doctor` distinguem prova
 EXECUTADA de prova ASSINADA, para que um verde total não esconda quanto
 dele foi a palavra de uma pessoa.
 
@@ -1640,12 +1661,13 @@ doctrina next [--json] [--run]
 
 Inspeciona a árvore e reporta: declarações de runtime que não valem mais
 (primeiro — uma fiação quebrada é o motivo de a última execução ter
-mentido), changes abertas (proposal faltando, tasks desmarcadas, deltas
+mentido), o drift do index (em seguida: é um erro do `validate` que
+bloqueia o close, um comando executável o resolve, e tudo abaixo lê o
+index), changes abertas (proposal faltando, tasks desmarcadas, deltas
 prontos para aplicar, aplicadas-mas-não-arquivadas), ADRs ainda em
 status `proposed`, ADRs aceitos sem nada que os comprove ainda
 (sugerindo `decision land`), um nudge único de captura de skill quando
-nenhuma existe e uma change arquivada tem cara de fix, e o drift do
-index por último (ADR 0011).
+nenhuma existe e uma change arquivada tem cara de fix (ADR 0011).
 
 Num projeto que ainda não declara capability nenhuma, ele nomeia a porta de
 bootstrap — `doctrina intake` para começar do zero, `doctrina work
@@ -1733,19 +1755,20 @@ de sessão para o agente (`doctrina prime` é o primer de sessão mais rico).
 
 | Flag | Função |
 |------|--------|
-| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report`. |
-| `--since <dias>` | Com `--view report`: a janela (padrão 7). |
+| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report` (o digest do período, incluindo a mistura de lanes — changes arquivadas contadas pela lane registrada na proposal, "unknown" só para a que não registrou nenhuma), `rules` (as regras vigentes) ou `agent-changelog` (um rascunho do bloco "What changed" do AGENTS.md). |
+| `--since <dias>` | Com `--view report`: a janela (padrão 7). Com `--view agent-changelog`: a janela (padrão: desde a última tag). |
 | `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). O envelope não muda com `--view` — é um contrato de máquina. |
 
-**Um coletor, quatro vistas.** `status`, `prime`, `handoff` e `report` são
-quatro formas de *uma* coleta da árvore
+**Um coletor, quatro vistas.** `status`, `prime`, `handoff` e o digest do
+período são quatro formas de *uma* coleta da árvore
 (`packages/doctrina-cli/src/lib/snapshot.js`), renderizadas por funções
 puras em `lib/views.js`. Antes disso eram quatro comandos que percorriam a
 árvore cada um por si e importavam coletores de dentro dos módulos uns dos
 outros — que é justamente como quatro superfícies acabam podendo reportar
-números diferentes para o mesmo repositório. `prime`, `handoff` e `report`
-continuam sendo comandos próprios (são o que o AGENTS.md manda o agente
-rodar) e renderizam exatamente os mesmos bytes que `status --view <nome>`;
+números diferentes para o mesmo repositório. `prime` e `handoff` continuam
+sendo comandos próprios (são o que o AGENTS.md manda o agente rodar) e
+renderizam exatamente os mesmos bytes que `status --view <nome>`, como o
+`report` obsoleto faz para `--view report`;
 um teste garante essa identidade byte a byte, e outro proíbe para sempre
 que um módulo de comando importe um binding de um módulo de comando irmão.
 
@@ -1757,10 +1780,11 @@ Roda toda a sequência de fechamento de uma change em uma passada (ADR 0012).
 doctrina close 0001-add-login
 doctrina close 0001-add-login --force
 doctrina close 0099-nao-existe        # saída 2 antes de qualquer passo: referência que não resolve
+doctrina close ../../outro-lugar      # saída 2: uma change é um nome de pasta, nunca um caminho
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 
-Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
+Dirige structure → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
 texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
 **review** (consultivo) → `change apply` → **runtime** → implementation
@@ -1913,31 +1937,6 @@ entrega esta promessa?".
 
 Read-only nas duas direções.
 
-## `doctrina constitution` — depreciado
-
-> **Depreciado.** Use `doctrina prime --rules`, que imprime exatamente estas
-> linhas, da mesma coleção. O nome antigo continua funcionando, avisa no
-> stderr, traz um campo `deprecated` no envelope do `--json` e será removido
-> num minor futuro.
-
-Imprime as regras vigentes do projeto em uma leitura.
-
-```
-doctrina prime --rules      # preferido
-doctrina constitution       # alias depreciado
-```
-
-Monta, read-only: os ADRs aceitos (as decisões imutáveis que governam como o
-código evolui, mais antigos primeiro) e os `## Non-goals` do `product.md`. É
-o análogo do `constitution.md` do Spec Kit — um único lugar para ver os
-inegociáveis — mas não possui fatos próprios: para mudar um princípio,
-substitua (supersede) o ADR; para mudar um non-goal, edite o `product.md`.
-
-Um non-goal pode ser um bullet ou um parágrafo — o comentário do próprio
-template daquela seção convida prosa — e uma linha em branco separa um do
-próximo. O comentário instrucional do template nunca é lido como um non-goal
-declarado.
-
 ## `doctrina watch`
 
 Mantém o projeto sincronizado e o agente orientado continuamente (ADR 0012).
@@ -1960,7 +1959,7 @@ chamadas de rede; nada sai do repositório.
 **Estados de primeira execução.** Um repositório sem commits, ou um
 diretório que não é repositório, é um estado válido e não uma falha: o
 `metrics` reporta "nada a medir ainda" e sai com `0`. O mesmo vale para
-`report`, `review` e `skill suggest`. Só a ausência do git na máquina é
+`status --view report`, `review` e `skill suggest`. Só a ausência do git na máquina é
 erro de ambiente (saída `4`). O `context --diff` ainda falha quando não
 consegue calcular o diff, mas nomeia a condição em vez de vazar plumbing
 do git.
@@ -2083,11 +2082,13 @@ para rodar toda sessão. Read-only; sempre sai 0.
 
 | Flag | Função |
 |------|--------|
-| `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. As linhas que o `doctrina constitution` imprimia, da mesma coleção. |
+| `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. O análogo do `constitution.md` do Spec Kit, derivado em vez de escrito: para mudar um princípio, substitua a ADR; para mudar um non-goal, edite o `product.md`. (Até a 0.17.0 isto também era um comando próprio, já removido.) |
 
 O primer tem tamanho fixo de propósito — ele é lido no início de toda
 sessão — então o texto completo dos non-goals mora atrás de `--rules`,
-não dentro do primer.
+não dentro do primer. Um non-goal pode ser um bullet ou um parágrafo,
+uma linha em branco separa um do outro, e o comentário de instrução do
+template nunca é lido como non-goal declarado.
 
 ## `doctrina show <ref>`
 
@@ -2173,26 +2174,34 @@ duas, não uma delas isolada. Ambos são declarados como budgets de
 subindo o teto; a linha reporta a folga *antes* de ela acabar, enquanto
 ainda há escolha sobre o que cortar. Os dois números vêm do seu dono
 (`agentsMdBudget`, `surfaceBudget`), então esta linha nunca cita um
-tamanho de que o `validate` ou o `templates check` discordem.
+tamanho de que o `validate` ou o `upgrade` discordem.
 
 | Flag | Função |
 |------|--------|
 | `--env` | Também checa o `.env` local contra os nomes e enums declarados. Reporta apenas pertinência — um valor rejeitado **nunca é impresso**, então a saída é segura de colar numa issue ou num log de CI. |
 
-## `doctrina report`
+## `doctrina report` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina status --view report`, que imprime
+> exatamente este digest, do mesmo coletor, e `doctrina status --view
+> agent-changelog` no lugar de `--agent-changelog`. O nome antigo continua
+> funcionando, avisa no stderr, traz um campo `deprecated` no envelope do
+> `--json` e será removido num minor futuro. Os dois imprimiam digests
+> diferentes até a change 0176: o `report` trazia as taxas de revert e de
+> re-edit e o `--view report` as perdia.
 
 Digest em Markdown para um período — a visão de standup / descrição
 de PR.
 
 ```
-doctrina report
-doctrina report --since 30
+doctrina status --view report             # preferido
+doctrina status --view report --since 30
+doctrina report                           # alias depreciado
 ```
 
 | Flag | Default | Função |
 |------|---------|--------|
 | `--since <dias>` | `7` | Tamanho da janela em dias. |
-| `--agent-changelog` | off | Rascunha o bloco "What changed" do AGENTS.md em vez do digest. |
 
 Seções: estado dos gates, changes arquivadas na janela (do ledger do
 index), churn por capability (do ledger do archive), trabalho aberto
@@ -2207,7 +2216,7 @@ consultam, então os três nunca discordam sobre um mesmo repositório.
 
 ### Rascunhando o changelog do agente
 
-`--agent-changelog` responde outra pergunta, para outro público: o que
+`--view agent-changelog` responde outra pergunta, para outro público: o que
 um agente que chega na próxima release precisa fazer de diferente? Ele
 propõe um bullet candidato por change arquivada que tocou uma
 **superfície documentada** — um comando, uma flag, um código de saída —
@@ -2216,7 +2225,7 @@ permite. A janela é "desde a última tag", a menos que `--since` diga
 outra, e a saída declara qual janela usou.
 
 ```
-doctrina report --agent-changelog
+doctrina status --view agent-changelog
 ```
 
 Ele **propõe**; uma pessoa corta e reescreve. O rascunho sabe qual
@@ -2241,7 +2250,8 @@ doctrina completion pwsh >> $PROFILE
 ```
 
 Completa comandos e seus subcomandos (flags não são completadas).
-Saída estática — regenere após atualizar o CLI.
+Operações depreciadas ficam de fora: continuam rodando, mas o tab oferece
+só os substitutos. Saída estática — regenere após atualizar o CLI.
 
 ## `doctrina ci --emit <target>`
 
@@ -2287,7 +2297,7 @@ doctrina upgrade --write    # aplica
 
 Um orquestrador sobre as peças que já existem, em ordem:
 
-1. `templates update` — **regenera o bloco doctrina:surface do
+1. **Forma do scaffold** — **regenera o bloco doctrina:surface do
    AGENTS.md** a partir do catálogo do CLI instalado (o bloco é
    propriedade do CLI, ADR 0015 — é assim que agentes lendo o hub
    descobrem comandos adicionados desde o init; uma seção de superfície
@@ -2297,7 +2307,7 @@ Um orquestrador sobre as peças que já existem, em ordem:
 
    O bloco carrega um **gatilho por comando** — o que ele faz e o momento
    em que você o usa (ADR 0020) — e tem um orçamento declarado de 40 linhas
-   que o `templates check` cobra. Ao lado dele, um bloco gerado
+   que o preview do upgrade cobra. Ao lado dele, um bloco gerado
    `## What changed in <versão>` de três a seis linhas diz apenas o que
    altera o comportamento do agente, para que um agente lendo o AGENTS.md
    após um upgrade descubra o que é novo sem que ninguém mande olhar.
@@ -2319,8 +2329,9 @@ Um único `upgrade --write` cobre **todos os agentes instalados**: os
 adapters (CLAUDE.md, GEMINI.md, `.cursor/rules/…`, …) são ponteiros
 finos para o AGENTS.md e não carregam superfície de comandos própria,
 então atualizar o bloco do hub É atualizar o que todo agente lê. O
-`templates check` (passo 1) verifica que cada adapter instalado ainda
-aponta para o hub.
+passo 1 verifica que cada adapter instalado ainda aponta para o hub e
+nomeia `adapter add <nome> --force` para o que não aponta — um reparo que
+ele lista, sem fazer.
 
 ## Variáveis de ambiente
 

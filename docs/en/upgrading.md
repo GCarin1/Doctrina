@@ -16,7 +16,7 @@ doctrina upgrade --write     # the project
 Three steps, each delegating to a command that already exists, so
 there is one definition of each:
 
-1. **Scaffold shape** (`templates update`) — adds recommended
+1. **Scaffold shape** — adds recommended
    sections that are missing, and regenerates the two CLI-owned
    blocks in `AGENTS.md`: the command surface and the agent-facing
    changelog. **Additive only.** It never rewrites a line you wrote.

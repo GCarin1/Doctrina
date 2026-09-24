@@ -92,10 +92,10 @@ own documentation; nothing is invented.
   deliberately small but is concretely fewer than the leaders.
 - **Real-world example projects.** Spec Kit, Kiro, OpenSpec, and
   BMAD all ship example projects external adopters can copy. As
-  of v0.1.0, Doctrina ships its own self-described repository plus
+  of 0.16, Doctrina ships its own self-described repository plus
   two example projects in `examples/`; the leaders ship dozens.
 - **Community.** Doctrina has effectively zero external
-  contributors at v0.1.0. Spec Kit has Microsoft backing, Kiro
+  contributors as of 0.16. Spec Kit has Microsoft backing, Kiro
   has AWS, others have growing followings. This is a function of
   age, not of design.
 

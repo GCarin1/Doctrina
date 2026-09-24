@@ -46,7 +46,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>smell-test de ambiguidade"]
     end
 
-    close["doctrina close (id...)<br/>analyze → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>depois skill suggest (advisory)"]
+    close["doctrina close (id...)<br/>structure → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>depois skill suggest (advisory)"]
 
     subgraph GOV["Decisões & superfície de integração"]
         direction TB
@@ -66,7 +66,7 @@ flowchart TD
         direction TB
         skillsuggest["doctrina skill suggest --write<br/>rascunha de changes fix-shaped"]
         skillnew["doctrina skill new"]
-        skillsync["doctrina skill sync"]
+        skillsync["doctrina index rebuild<br/>espelha a description"]
         skilllist["doctrina skill list"]
         skillsuggest --> skillnew --> skillsync
     end
@@ -91,7 +91,7 @@ flowchart TD
         templates["doctrina templates list/check/update"]
         upgradecmd["doctrina upgrade<br/>atualiza o projeto após um npm update"]
         metrics["doctrina metrics<br/>adoção derivada do git"]
-        reportcmd["doctrina report<br/>digest Markdown do período"]
+        reportcmd["doctrina status --view report<br/>digest Markdown do período"]
         completion["doctrina completion<br/>bash/zsh/pwsh"]
     end
 
@@ -132,9 +132,10 @@ flowchart TD
   `work` (`--budget <n>` limita o tamanho; `--diff <ref>` é o pack de
   retomada de sessão).
 - `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
-  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
-  marca as caixas em lote, dry-run de tudo que o close recusaria (com
-  `--verbose`, também o preview por delta), pré-checa, funde deltas nas specs
+  `change apply <id...>` → `change archive <id...>` —
+  marca as caixas em lote, dry-run de tudo que o close recusaria (a
+  pré-checagem estrutural primeiro; com `--verbose`, também o preview por
+  delta), funde deltas nas specs
   (blocos ops cobrem headers, critérios e os bullets EARS de requisito) e
   arquiva (recusando trabalho aberto).
   apply/archive/check aceitam vários ids. `change abandon <id>` descarta.
@@ -153,7 +154,7 @@ flowchart TD
 **Fechamento em uma passada.**
 - `doctrina close <id...>` — roda a sequência declarada inteira numa
   passada, parando na primeira falha:
-  analyze → ADR checkpoint (advisory) → review (advisory) → apply →
+  structure → ADR checkpoint (advisory) → review (advisory) → apply →
   **runtime** → implementation (advisory) → verify → coverage →
   trace (advisory) → **docs** (forceable) → archive → index drift →
   validate, e depois skill suggest (advisory). A sequência tem um autor só
@@ -185,21 +186,21 @@ flowchart TD
   `doctrina handoff` — a nota de retomada em Markdown para a próxima sessão.
   `doctrina watch` — re-roda `validate --fix` + `next` a cada save.
   `status`/`next`/`validate`/`coverage`/`trace` falam `--json`.
-  `prime`, `handoff` e `report` são **vistas de um único snapshot** — os
-  mesmos bytes de `doctrina status --view prime|handoff|report`,
-  renderizados a partir de uma só coleta da árvore, então as quatro não têm
-  como reportar números diferentes.
+  `prime` e `handoff` são **vistas de um único snapshot** — os mesmos
+  bytes de `doctrina status --view prime|handoff`, ao lado do `--view
+  report` (o digest do período), renderizados a partir de uma só coleta da
+  árvore, então não têm como reportar números diferentes.
 
 **Manutenção / setup.**
 - `doctrina doctor` — diagnóstico agregado com correção por achado.
   `doctrina hooks install` — pre-commit = `validate --fix` e depois `index
   rebuild --check --staged`. `doctrina index
   rebuild` — regenera o índice a partir da árvore. `doctrina templates
-  list|check|update` — inspeciona/atualiza os templates distribuídos.
+  list` — de onde resolve cada template distribuído.
   `doctrina upgrade` (`--write`) — traz um projeto existente para o CLI
-  instalado após um npm update (templates update → índice/carimbo →
+  instalado após um npm update (forma do scaffold → índice/carimbo →
   validate). `doctrina metrics` — sinais de adoção derivados do git.
-  `doctrina report` — digest Markdown do período.
+  `doctrina status --view report` — digest Markdown do período.
   `doctrina completion bash|zsh|pwsh` — completions de shell geradas do
   catálogo.
 

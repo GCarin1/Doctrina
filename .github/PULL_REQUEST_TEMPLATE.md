@@ -1,8 +1,8 @@
 <!--
 This template covers PRs to the Doctrina framework repository
-itself. Framework evolution uses Conventional Commits, not
-`doctrina change new`. See CONTRIBUTING.md, section
-"Two workflows — pick the right one".
+itself. This repository uses Doctrina on itself: each change is
+opened with `doctrina work` and closed with `doctrina close`. See
+CONTRIBUTING.md, section "One workflow — the one Doctrina ships".
 -->
 
 ## Summary
@@ -28,8 +28,8 @@ test / build / ci).
 ## Checklist
 
 - [ ] Commits follow Conventional Commits (`type(scope): summary`).
-- [ ] No change folder was created under `.doctrina/changes/`
-      (framework evolution lives in git history, not artifacts).
+- [ ] Each change was closed with `doctrina close <id>` and its
+      commit names the change id.
 - [ ] `cd packages/doctrina-cli && npm test` is green.
 - [ ] `node packages/doctrina-cli/src/index.js validate` exits 0.
 - [ ] If a doc changed: EN and PT updated in the same PR.

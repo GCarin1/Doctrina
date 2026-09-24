@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.16.0",
+  "framework_version": "0.17.0",
   "last_updated": "2026-09-24",
   "artifacts": {
     "product": {
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.19.0",
+        "version": "0.25.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.51.0",
+        "version": "0.56.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -59,7 +59,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.9.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.41.0",
+        "version": "1.42.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -95,11 +95,11 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.9.0",
+        "version": "0.12.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js",
+          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js",
           "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js"
         ]
       },
@@ -107,7 +107,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.10.0",
+        "version": "0.11.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -122,7 +122,7 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
@@ -133,7 +133,7 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.5.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -145,7 +145,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.22.1",
+        "version": "0.25.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -1291,7 +1291,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0055-comentario-nao-e-conteudo",
@@ -1312,7 +1313,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0056-o-resumo-do-contract-check-nao-mente",
@@ -1325,7 +1327,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "runtime (confident; signals: ci) — opened anyway (--force)"
       },
       {
         "id": "0057-ausencia-nao-e-aprovacao",
@@ -1338,7 +1341,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0058-a-remediacao-sai-do-projeto-checado",
@@ -1351,7 +1355,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0059-o-tamanho-da-superficie-tem-um-dono",
@@ -1364,7 +1369,8 @@
             "capability": "docs",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0060-uma-resposta-por-pergunta",
@@ -1377,7 +1383,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "runtime (confident; signals: runner) — opened anyway (--force)"
       },
       {
         "id": "0061-a-depreciacao-chega-a-maquina",
@@ -1390,7 +1397,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0062-o-texto-alcanca-o-codigo",
@@ -1403,7 +1411,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain) — opened as chore"
       },
       {
         "id": "0063-o-gate-de-docs-le-o-contrato",
@@ -1416,7 +1425,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0064-o-next-le-os-mesmos-sinais",
@@ -1429,7 +1439,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0065-o-molde-nao-passa-por-conteudo",
@@ -1446,7 +1457,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0066-a-porta-de-bootstrap-aparece",
@@ -1459,7 +1471,8 @@
             "capability": "scaffolding",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0067-uma-contagem-de-caixas",
@@ -1472,7 +1485,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0068-o-contract-check-responde-a-maquina",
@@ -1485,7 +1499,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: declare)"
       },
       {
         "id": "0069-non-goals-em-prosa-contam",
@@ -1498,7 +1513,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0070-o-titulo-nao-nasce-duplicado",
@@ -1511,7 +1527,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0071-o-intake-aceita-a-prosa-convidada",
@@ -1524,7 +1541,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0072-o-acoplamento-dos-orcamentos-e-visivel",
@@ -1537,7 +1555,8 @@
             "capability": "templates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0073-o-adapter-remove-nao-deixa-rastro",
@@ -1550,7 +1569,8 @@
             "capability": "scaffolding",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0074-o-ternario-morto-sai",
@@ -1558,7 +1578,8 @@
         "path": ".doctrina/changes/archive/2026-09-08-0074-o-ternario-morto-sai",
         "status": "applied",
         "applied": "2026-09-08",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "product (uncertain; signals: change) — opened as chore"
       },
       {
         "id": "0075-os-adrs-seguem-a-capability",
@@ -1571,7 +1592,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0076-a-lane-entra-no-indice-com-a-change",
@@ -1584,7 +1606,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0077-o-review-enxerga-o-codigo-que-revisa",
@@ -1597,7 +1620,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0078-a-recomendacao-sabe-o-que-custa",
@@ -1610,7 +1634,8 @@
             "capability": "templates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0079-clarify-nao-confunde-pergunta-com-vagueza",
@@ -1623,7 +1648,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0080-o-report-nomeia-a-causa-certa",
@@ -1636,7 +1662,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0081-o-work-nao-deixa-specs-vazio",
@@ -1649,7 +1676,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0082-uma-flag-desconhecida-nao-passa",
@@ -1662,7 +1690,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0083-o-trace-nao-aprova-o-vazio",
@@ -1675,7 +1704,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0084-a-expansao-de-chaves-esta-certa",
@@ -1688,7 +1718,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0085-o-hub-segue-o-proprio-template",
@@ -1696,7 +1727,8 @@
         "path": ".doctrina/changes/archive/2026-09-08-0085-o-hub-segue-o-proprio-template",
         "status": "applied",
         "applied": "2026-09-08",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       },
       {
         "id": "0086-o-envelope-json-nao-mente",
@@ -1709,7 +1741,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0087-um-artefato-vazio-nao-passa",
@@ -1722,7 +1755,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0088-citar-um-comando-nao-e-mexer-nele",
@@ -1735,7 +1769,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0089-o-close-so-afirma-o-que-apurou",
@@ -1748,7 +1783,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0090-um-filtro-que-nao-casa-nada-nao-aprova",
@@ -1761,7 +1797,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0091-uma-spec-ativa-declara-como-provar",
@@ -1774,7 +1811,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0092-o-review-nao-aprova-contra-o-que-nao-existe",
@@ -1787,7 +1825,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0093-o-contrato-de-saida-vale-para-todos",
@@ -1800,7 +1839,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0094-change-new-tem-gramatica-de-id",
@@ -1813,7 +1853,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0095-analyze-roda-o-dry-run-de-ops",
@@ -1826,7 +1867,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0096-o-ledger-registra-o-que-aconteceu",
@@ -1839,7 +1881,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0097-um-exemplo-em-fence-nao-e-criterio",
@@ -1852,7 +1895,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0098-o-bom-nao-apaga-o-titulo-da-spec",
@@ -1865,7 +1909,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0099-o-envelope-json-diz-a-verdade",
@@ -1878,7 +1923,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0100-search-dobra-acentos",
@@ -1891,7 +1937,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0101-clarify-inexistente-e-erro-de-uso",
@@ -1904,7 +1951,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0102-os-cabecalhos-tem-um-enum",
@@ -1921,7 +1969,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0103-o-close-roda-o-contract-check-inteiro",
@@ -1934,7 +1983,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0104-os-ordinais-do-tick-sao-estaveis",
@@ -1947,7 +1997,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0105-a-marca-unverified-vale",
@@ -1960,7 +2011,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0106-a-prova-mora-no-projeto",
@@ -1977,7 +2029,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0107-o-triage-fala-portugues",
@@ -1994,7 +2047,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0108-uma-referencia-fantasma-e-apontada",
@@ -2007,7 +2061,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0109-so-uma-adr-aceita-e-superada",
@@ -2020,7 +2075,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0110-um-nome-de-capability-e-portavel",
@@ -2033,7 +2089,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0111-um-scaffold-nao-e-um-artefato",
@@ -2050,7 +2107,8 @@
             "capability": "skills",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0112-o-intake-convertido-nao-volta",
@@ -2063,7 +2121,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0113-uma-spec-fora-do-caminho-e-apontada",
@@ -2076,7 +2135,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0114-os-retardatarios-do-contrato-de-saida",
@@ -2089,7 +2149,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0115-o-doctor-le-o-config-que-existe",
@@ -2102,7 +2163,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0116-o-carimbo-nao-regride",
@@ -2119,7 +2181,8 @@
             "capability": "scaffolding",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0117-a-suite-roda-em-windows",
@@ -2132,7 +2195,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0118-a-gramatica-de-nome-tem-dono",
@@ -2145,7 +2209,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: spec, requisito, declarar)"
       },
       {
         "id": "0119-a-politica-de-fim-de-linha-fica-registada",
@@ -2153,7 +2218,8 @@
         "path": ".doctrina/changes/archive/2026-09-09-0119-a-politica-de-fim-de-linha-fica-registada",
         "status": "applied",
         "applied": "2026-09-09",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "product (confident; signals: registrar) — opened as chore"
       },
       {
         "id": "0120-cortar-a-0-16-0",
@@ -2161,7 +2227,8 @@
         "path": ".doctrina/changes/archive/2026-09-09-0120-cortar-a-0-16-0",
         "status": "applied",
         "applied": "2026-09-09",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore (confident; signals: changelog, mover) — opened as chore"
       },
       {
         "id": "0121-regravar-lockfile-versao-workspace",
@@ -2169,7 +2236,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0121-regravar-lockfile-versao-workspace",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore (confident; signals: lockfile) — opened as chore"
       },
       {
         "id": "0122-harness-e2e-descobre-id",
@@ -2177,7 +2245,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0122-harness-e2e-descobre-id",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0123-harness-e2e-aborta-primeira",
@@ -2185,7 +2254,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0123-harness-e2e-aborta-primeira",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0124-security-md-descreve-subprocessos",
@@ -2193,7 +2263,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0124-security-md-descreve-subprocessos",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0125-recuperar-stamps-ears-exemplos",
@@ -2201,7 +2272,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0125-recuperar-stamps-ears-exemplos",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0126-validate-ganha-modo-estrito",
@@ -2214,7 +2286,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "runtime (confident; signals: ci) — opened anyway (--force)"
       },
       {
         "id": "0127-declarar-gate-release-pode",
@@ -2227,7 +2300,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: declarar)"
       },
       {
         "id": "0128-ci-dispara-tambem-pull",
@@ -2235,7 +2309,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0128-ci-dispara-tambem-pull",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0129-coverage-so-cobra-como",
@@ -2248,7 +2323,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: criterio)"
       },
       {
         "id": "0130-teste-degradacao-mede-orcamento",
@@ -2256,7 +2332,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0130-teste-degradacao-mede-orcamento",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0131-replace-requirement-substitui-bullet-inteiro",
@@ -2269,7 +2346,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: requirement)"
       },
       {
         "id": "0132-drivers-sequenciam-gates-viram",
@@ -2286,7 +2364,8 @@
             "capability": "structure",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0133-teste-pacote-contexto-diz",
@@ -2294,7 +2373,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0133-teste-pacote-contexto-diz",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0134-cli-pode-sair-antes",
@@ -2307,7 +2387,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0135-close-cobra-mudanca-superficie",
@@ -2320,7 +2401,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "chore (confident; signals: changelog, so a documentacao)"
       },
       {
         "id": "0136-registrar-changelog-changes-fecharam",
@@ -2328,7 +2410,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0136-registrar-changelog-changes-fecharam",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0137-declarar-qual-capacidade-possui",
@@ -2349,7 +2432,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: declarar)"
       },
       {
         "id": "0138-invariante-onde-ci-roda",
@@ -2362,7 +2446,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: criterio)"
       },
       {
         "id": "0139-change-pode-declarar-citou",
@@ -2375,7 +2460,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: change, declarar)"
       },
       {
         "id": "0140-exemplo-divisao-spec-playbook",
@@ -2383,7 +2469,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0140-exemplo-divisao-spec-playbook",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0141-fechar-entrada-deferred-sobre",
@@ -2391,7 +2478,8 @@
         "path": ".doctrina/changes/archive/2026-09-11-0141-fechar-entrada-deferred-sobre",
         "status": "applied",
         "applied": "2026-09-11",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       },
       {
         "id": "0142-indice-guarda-cada-categoria",
@@ -2404,7 +2492,8 @@
             "capability": "scaffolding",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0143-close-checa-deriva-indice",
@@ -2417,7 +2506,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0144-declaracao-superficie-citada-aparece",
@@ -2430,7 +2520,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain)"
       },
       {
         "id": "0145-playbooks-skill-comando-avisam",
@@ -2443,7 +2534,8 @@
             "capability": "templates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "chore (confident; signals: changelog)"
       },
       {
         "id": "0146-modelo-documento-le-cabecalho",
@@ -2456,7 +2548,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "chore (confident; signals: comentario)"
       },
       {
         "id": "0147-modulo-skills-normaliza-nomes",
@@ -2469,7 +2562,8 @@
             "capability": "skills",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0148-handoff-com-cabecalho-colado",
@@ -2482,7 +2576,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0149-declaracao-so-existe-na-copia-do-repo",
@@ -2495,7 +2590,8 @@
             "capability": "templates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0150-sequencia-de-close-repetida-de-copia-velha",
@@ -2512,7 +2608,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0151-gate-de-pr-cobre-toda-checagem-declarada",
@@ -2525,7 +2622,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: requisito)"
       },
       {
         "id": "0152-insight-descreve-saidas-que-o-cli-nao-tem",
@@ -2538,7 +2636,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0153-names-js-sem-dono-declarado",
@@ -2555,7 +2654,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0154-desfazer-a-premissa-falsa-da-0149",
@@ -2568,7 +2668,8 @@
             "capability": "templates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change, declarar)"
       },
       {
         "id": "0155-sentinela-do-gate-de-docs-mede-conteudo-vivo",
@@ -2581,7 +2682,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0156-o-indice-e-conferido-contra-o-disco-nao-o-commit",
@@ -2594,7 +2696,8 @@
             "capability": "scaffolding",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: add)"
       },
       {
         "id": "0157-duas-saidas-fora-do-contrato-de-classe",
@@ -2607,7 +2710,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: spec)"
       },
       {
         "id": "0158-os-dois-lexicons-do-clarify-divergem",
@@ -2620,7 +2724,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas",
@@ -2637,7 +2742,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0160-a-negacao-do-must-not-e-procurada-na-frase-toda",
@@ -2658,7 +2764,8 @@
             "capability": "validation",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: must, requisito)"
       },
       {
         "id": "0161-o-adapter-nomeia-o-diretorio-nao-o-projeto",
@@ -2671,7 +2778,8 @@
             "capability": "scaffolding",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product (confident; signals: add)"
       },
       {
         "id": "0162-o-status-do-intake-nao-tem-dono-nem-gate",
@@ -2688,7 +2796,8 @@
             "capability": "structure",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "runtime (uncertain; signals: em silencio)"
       },
       {
         "id": "0163-regra-de-projeto-com-glob-morto-e-silenciosa",
@@ -2701,7 +2810,8 @@
             "capability": "structure",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "runtime (uncertain; signals: seletor)"
       },
       {
         "id": "0164-gatilho-de-skill-so-enxerga-vagueza-em-ingles",
@@ -2714,7 +2824,8 @@
             "capability": "structure",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0165-supersede-descarta-o-escopo-da-adr",
@@ -2727,7 +2838,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0166-intent-add-aceita-a-mesma-intencao-duas-vezes",
@@ -2744,7 +2856,8 @@
             "capability": "gates",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0167-teste-adr-substituta-falha",
@@ -2752,7 +2865,8 @@
         "path": ".doctrina/changes/archive/2026-09-23-0167-teste-adr-substituta-falha",
         "status": "applied",
         "applied": "2026-09-23",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore"
       },
       {
         "id": "0168-spec-set-responde-gate-a-erro-de-invocacao",
@@ -2765,7 +2879,8 @@
             "capability": "authoring",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0169-valor-de-flag-malformado-reinterpretado",
@@ -2778,7 +2893,8 @@
             "capability": "cli",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0170-estimativa-de-tokens-conta-o-cr",
@@ -2791,7 +2907,8 @@
             "capability": "insight",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
       },
       {
         "id": "0171-ci-nao-testa-o-node-24",
@@ -2799,7 +2916,8 @@
         "path": ".doctrina/changes/archive/2026-09-24-0171-ci-nao-testa-o-node-24",
         "status": "applied",
         "applied": "2026-09-24",
-        "specs_affected": []
+        "specs_affected": [],
+        "lane": "chore"
       },
       {
         "id": "0172-readme-sem-instalacao-e-lista-quebrada",
@@ -2812,7 +2930,363 @@
             "capability": "docs",
             "operation": "MODIFIED"
           }
-        ]
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0173-primeiro-uso-do-init-se-contradiz",
+        "title": "primeiro uso do init se contradiz",
+        "path": ".doctrina/changes/archive/2026-09-24-0173-primeiro-uso-do-init-se-contradiz",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0174-ajuda-sem-agrupamento-por-momento",
+        "title": "ajuda sem agrupamento por momento",
+        "path": ".doctrina/changes/archive/2026-09-24-0174-ajuda-sem-agrupamento-por-momento",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0175-remover-constitution-e-change-diff",
+        "title": "remover constitution e change diff",
+        "path": ".doctrina/changes/archive/2026-09-24-0175-remover-constitution-e-change-diff",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0176-report-diverge-de-status-view-report",
+        "title": "report diverge de status view report",
+        "path": ".doctrina/changes/archive/2026-09-24-0176-report-diverge-de-status-view-report",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0177-skill-sync-fundido-no-index-rebuild",
+        "title": "skill sync fundido no index rebuild",
+        "path": ".doctrina/changes/archive/2026-09-24-0177-skill-sync-fundido-no-index-rebuild",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0178-templates-check-e-update-fundidos-no-upgrade",
+        "title": "templates check e update fundidos no upgrade",
+        "path": ".doctrina/changes/archive/2026-09-24-0178-templates-check-e-update-fundidos-no-upgrade",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0179-documentacao-defasada",
+        "title": "documentacao defasada",
+        "path": ".doctrina/changes/archive/2026-09-24-0179-documentacao-defasada",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0180-playbook-de-chore-sem-close",
+        "title": "playbook de chore sem close",
+        "path": ".doctrina/changes/archive/2026-09-24-0180-playbook-de-chore-sem-close",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0181-slash-commands-com-passos-redundantes",
+        "title": "slash commands com passos redundantes",
+        "path": ".doctrina/changes/archive/2026-09-24-0181-slash-commands-com-passos-redundantes",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0182-analyze-fundido-no-change-check",
+        "title": "analyze fundido no change check",
+        "path": ".doctrina/changes/archive/2026-09-24-0182-analyze-fundido-no-change-check",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: change, deve)"
+      },
+      {
+        "id": "0183-cli-ainda-indica-comandos",
+        "title": "o CLI ainda indica comandos depreciados",
+        "path": ".doctrina/changes/archive/2026-09-24-0183-cli-ainda-indica-comandos",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0184-textos-fora-docs-ensinam",
+        "title": "textos fora de docs ensinam o caminho aposentado",
+        "path": ".doctrina/changes/archive/2026-09-24-0184-textos-fora-docs-ensinam",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [],
+        "lane": "chore"
+      },
+      {
+        "id": "0185-guarda-documentacao-cobrir-contributing",
+        "title": "o guarda de documentação lê toda página de instrução",
+        "path": ".doctrina/changes/archive/2026-09-24-0185-guarda-documentacao-cobrir-contributing",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0186-work-aceita-design",
+        "title": "work aceita design",
+        "path": ".doctrina/changes/archive/2026-09-24-0186-work-aceita-design",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0187-upgrade-aponta-slash-commands-defasados",
+        "title": "upgrade aponta slash commands defasados",
+        "path": ".doctrina/changes/archive/2026-09-24-0187-upgrade-aponta-slash-commands-defasados",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0188-completion-sem-depreciados",
+        "title": "completion sem depreciados",
+        "path": ".doctrina/changes/archive/2026-09-24-0188-completion-sem-depreciados",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0189-cortar",
+        "title": "cortar a 0.17.0",
+        "path": ".doctrina/changes/archive/2026-09-24-0189-cortar",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
+      },
+      {
+        "id": "0190-chore-sem-fantasmas-no-affects",
+        "title": "chore sem fantasmas no affects",
+        "path": ".doctrina/changes/archive/2026-09-24-0190-chore-sem-fantasmas-no-affects",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0191-slug-mantem-numeros",
+        "title": "slug mantém números",
+        "path": ".doctrina/changes/archive/2026-09-24-0191-slug-mantem-numeros",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0192-lane-sobrevive-ao-arquivamento",
+        "title": "lane sobrevive ao arquivamento",
+        "path": ".doctrina/changes/archive/2026-09-24-0192-lane-sobrevive-ao-arquivamento",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0193-next-corrige-o-indice-primeiro",
+        "title": "next corrige o índice primeiro",
+        "path": ".doctrina/changes/archive/2026-09-24-0193-next-corrige-o-indice-primeiro",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0194-intake-converte-so-com-validate-limpo",
+        "title": "intake converte só com validate limpo",
+        "path": ".doctrina/changes/archive/2026-09-24-0194-intake-converte-so-com-validate-limpo",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0195-closing-steps-saem-do-tasks",
+        "title": "closing steps saem do tasks",
+        "path": ".doctrina/changes/archive/2026-09-24-0195-closing-steps-saem-do-tasks",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0196-id-de-change-e-um-nome-nao-um-caminho",
+        "title": "id de change é um nome, não um caminho",
+        "path": ".doctrina/changes/archive/2026-09-24-0196-id-de-change-e-um-nome-nao-um-caminho",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0197-0-17-0-inclui-0191-a-0196",
+        "title": "0.17.0 inclui 0191 a 0196",
+        "path": ".doctrina/changes/archive/2026-09-24-0197-0-17-0-inclui-0191-a-0196",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
       }
     ],
     "skills": [

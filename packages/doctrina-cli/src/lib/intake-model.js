@@ -41,6 +41,30 @@ export function looksLikePath(value) {
   return false;
 }
 
+// What `init` tells a person to do next (change 0173). The first run used to
+// contradict itself three ways: `init` said "edit AGENTS.md and product.md",
+// `next` asked for the description again as an intake, and AGENTS.md said the
+// agent runs the commands while the human stays passive. One answer now,
+// the same one `next` and AGENTS.md give.
+//
+// `intakeFrom` is "tty" when the description was typed at init's question
+// (it is stored as the intake), or null when init got no intake at all.
+export function nextStepAfterInit(intakeFrom) {
+  if (intakeFrom === "tty") {
+    return [
+      "Next: open your AI agent in this repository and tell it:",
+      "    read AGENTS.md and run doctrina next",
+      "It turns your description into product.md and specs; you review and approve.",
+    ];
+  }
+  return [
+    "Next: give your AI agent the whole project description. It runs",
+    "    doctrina intake --text \"<description>\"",
+    "and turns it into product.md and specs (AGENTS.md, \"Working from intent\");",
+    "for an existing codebase, `doctrina work --from-diff` backfills them from the code.",
+  ];
+}
+
 export function warnIfThinIntake(body) {
   const assessment = assessBrief(body, { kind: "intake" });
   if (!assessment.thin) return;

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.41.0
+**Version:** 1.42.0
 
 ## Purpose
 
@@ -198,6 +198,8 @@ codes, zero-deps, no-network).
 - When `doctrina close` finishes writing — after the archive step, which is the last step that rewrites the index — the system shall compare the index against a rebuild and refuse the close when the two disagree.
 - When the docs gate refuses a change, the system shall name both remedies — documenting the surface, and declaring on the record that the names are only mentioned — before offering to force the close.
 - When `product.md` declares two intent anchors that state the same intent under different ids, the system shall report a warning naming both lines and the remedy, because realizing one leaves the other dropped and `trace --strict` fails on a gap no spec can close.
+- When the deprecated `doctrina analyze <id>` runs, the system shall behave as before and name `doctrina change check` on stderr, because `change check` prints the same structural checks as its first section and then answers whether the close would pass — so it also exits with the gate class while a Verification box is open, where `analyze` did not; `change apply` keeps refusing what `analyze` refused.
+- When a change has its tasks done and a delta to merge, `doctrina next` shall recommend `doctrina change check <id>` followed by `doctrina close <id>`, and when the close stops on its structural step it shall name `doctrina change check <id>` as the rerun instead of the deprecated `analyze`.
 
 ### State-driven
 
@@ -339,6 +341,7 @@ The gate surface is spec-compliant when:
 82. [verified] The same claim written in English and in Portuguese produces the same smells, and both lexicons declare the same rule names — verified by `packages/doctrina-cli/test/um-smell-test-nao-muda-de-lingua.test.js`.
 83. [verified] The contract's description of the composite action names every step of the declared CI sequence — verified by `packages/doctrina-cli/test/o-que-um-driver-roda-tem-um-autor.test.js`.
 84. [verified] A hand-written twin anchor in `product.md` makes `validate` warn, naming the twin and the first anchor's line — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
+85. [verified] Over a hollow change `analyze` and the first section of `change check` print the same check lines with the same verdict; over a structurally sound change with open Verification boxes `analyze` exits 0 and `change check` exits 1 naming the verification blocker while `change apply` still refuses a hollow proposal; `analyze` warns naming `change check`, and `close` and `next` point to `change check` — verified by `packages/doctrina-cli/test/o-change-check-cobre-o-analyze.test.js`.
 
 ## Out of scope for this spec
 
@@ -346,7 +349,7 @@ The gate surface is spec-compliant when:
   of the `.doctrina/` tree it enforces (covered by the `structure` spec).
 - Context assembly and the read-only commands that render project state —
   `context`, `search`, `show`, `status`, `prime`, `handoff`, `report`,
-  `why`, `constitution` (covered by the `insight` spec).
+  `why` (covered by the `insight` spec).
 - The command surface, exit-code conventions, and scaffolding/workflow
   commands (covered by the `cli` spec).
 - The content of `verify.json` checks — those are project-declared, not

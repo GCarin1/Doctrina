@@ -13,6 +13,7 @@ import { derivedImplementations, implementationMismatch, summarize } from "../li
 import { specHeader, dependentsOf } from "../lib/scan.js";
 import { sequence, sequenceLabels, stepRerun } from "../lib/gates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
+import { refuseChangeRef } from "../lib/project.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -68,6 +69,8 @@ export async function run(positional, flags) {
 }
 
 async function closeOne(projectRoot, id, flags) {
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
   // A change id that does not resolve is the USAGE class, before any step
   // is sequenced (change 0114) — every sibling that takes a change id
   // answers 2; `close` answered 1 through the analyze step it ran first.

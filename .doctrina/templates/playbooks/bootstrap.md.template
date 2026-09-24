@@ -39,7 +39,8 @@ Execute in order, in a single linear pass:
        [[c]]doctrina intake --converted[[/c]]
 [[g]]   `next` branches on that header and `validate` refuses any other[[/g]]
 [[g]]   value, because every word but the two declared ones used to read[[/g]]
-[[g]]   as pending in silence.[[/g]]
+[[g]]   as pending in silence. It refuses while `validate` reports an[[/g]]
+[[g]]   error — the step-6 gates are what "done" means.[[/g]]
 
 8. [[c]]doctrina next[[/c]] — follow the recommendation. Implementation then
    flows through [[c]]doctrina work "<brief prompt>"[[/c]], one change at a time.

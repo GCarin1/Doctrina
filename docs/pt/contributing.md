@@ -20,29 +20,29 @@ node packages/doctrina-cli/src/index.js validate      # auto-validação
 Requer Node.js 20.12 ou mais novo. Há zero dependências de runtime e
 zero de dev — `npm install` é um no-op.
 
-## Os dois workflows (leia isto primeiro)
+## Um workflow só (leia isto primeiro)
 
-Usar o workflow errado é o erro mais comum de quem contribui.
+Este repositório constrói o Doctrina e o usa em si mesmo (ADR 0014): uma
+mudança no framework passa pelo mesmo ciclo de uma mudança em qualquer
+projeto que o adotou, documentado em [Workflow](workflow.md).
 
-**Workflow A — evoluir o próprio Doctrina** (CLI, templates, specs do
-framework, docs shipped): use **Conventional Commits** com commits
-diretos. **Não** use `doctrina change new`; o workflow de change é para
-projetos que *usam* o Doctrina, e `.doctrina/changes/archive/` neste
-repositório deve ficar vazio.
-
-```
-feat(cli): add doctrina skill list command
-fix(validate): handle missing index gracefully
-docs(brownfield): clarify retroactive ADR pattern
+```sh
+doctrina prime                          # gates, regras, trabalho aberto
+doctrina work "<o que você quer mudar>"
+# planeje proposal, tasks e delta de spec; implemente com um teste
+doctrina change check <id>              # tudo o que o close recusaria
+doctrina close <id>                     # a sequência de fechamento inteira
 ```
 
-**Workflow B — projetos que usam o Doctrina**: o ciclo completo
-`change new → apply → archive`, documentado em [Workflow](workflow.md).
+Uma change, um commit, com prefixo de Conventional Commits e o id da
+change no título (`fix: <resumo> — Change 0183`). As changes arquivadas
+em `.doctrina/changes/archive/` são o histórico do projeto.
 
 ## Como é um bom PR
 
-- **Spec primeiro.** Se mudar comportamento do CLI, atualize
-  `.doctrina/specs/cli/spec.md` no mesmo PR e suba o `Version:`.
+- **Spec primeiro.** Se mudar comportamento do CLI, o delta de spec da
+  change carrega o requisito novo, o critério e o `bump-version`; o close
+  faz o merge na spec.
 - **Testes.** Os testes de integração spawnam o CLI real contra um
   projeto temporário; adicione um por comportamento novo
   (`packages/doctrina-cli/test/`).

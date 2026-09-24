@@ -14,7 +14,7 @@
 
 > Framework spec-driven nativo de AGENTS.md para desenvolvimento multi-agente com IA.
 
-**Status:** v0.16.0 — lançado.
+**Status:** v0.17.0 — lançado.
 **Leia em [inglês](./README.md).**
 
 ## Instalação
@@ -46,7 +46,7 @@ flowchart TD
     W --> C
     C --> E["spec delta → tasks → implementar"]
     E --> CK["doctrina change check<br/>(dry-run pré-fechamento)"]
-    CK --> AP["doctrina analyze → change apply"]
+    CK -- "gate estrutural" --> AP["doctrina change apply"]
     AP --> GATE{"gates verdes?<br/>verify · coverage · trace · review"}
     GATE -- "vermelho" --> E
     GATE -- "verde" --> AR["doctrina change archive → validate"]
@@ -94,10 +94,10 @@ como um corpo de agentes age.
   comandos pelo hub, então o hub nunca fica atrás do CLI.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 38 comandos
-  e 61 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
-  skill, intent, analyze, clarify, context, show, search, validate, coverage,
-  trace, review, verify, close, doctor, status, why, handoff, constitution,
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 37 comandos
+  e 59 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
+  skill, intent, clarify, context, show, search, validate, coverage,
+  trace, review, verify, close, doctor, status, why, handoff,
   watch, templates, hooks, index, next, metrics, report, completion e
   upgrade. As duas contagens são verificadas contra o catálogo pelo
   `scripts/check-docs.js` — como toda contagem afirmada na documentação

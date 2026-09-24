@@ -4,7 +4,8 @@
 > fonte de verdade; este arquivo o segue.
 
 Registro de features que Doctrina considerou e escolheu não
-shippar (o registro abriu em v0.1.0 e cresce a cada release). Cada item nomeia um gatilho que justificaria
+shippar (o registro abriu em v0.1.0 e cresce a cada release). Cada
+item nomeia um gatilho que justificaria
 revisitar. A lista existe para que contribuidores futuros e
 usuários externos consigam distinguir "não fizemos X" de
 "consideramos X e estas são as razões pelas quais não fizemos".
@@ -73,7 +74,7 @@ agente e editor.
 
 ## Mecanismo de auto-update para templates
 
-**Status:** levantado — `doctrina templates update` shipped, com a
+**Status:** levantado — `doctrina templates update` shipped (desde 0.17.0 é o passo 1 do `doctrina upgrade --write`), com a
 barra exata que este registro definiu: preview é o default (o
 comando não escreve nada e sai 1 enquanto há updates pendentes),
 `--write` é o opt-in, e as mudanças são só-aditivas (seções stub
@@ -93,7 +94,7 @@ recomendado para propagar regras entre projetos.
 números de ordem de grandeza. Profiling mais profundo (CPU
 por-função, padrões de alocação, comportamento cold-cache em
 filesystems específicos) requer cargas reais de projetos reais,
-o que v0.1.0 ainda não tem.
+o que o projeto ainda não tem.
 
 **Gatilho para revisitar:** um adopter real reporta latência que
 o script de bench não prevê, ou o protocolo A/B de validação

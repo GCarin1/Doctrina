@@ -21,7 +21,7 @@ The canonical version lives in ONE place:
    pre-1.0 minor bumps may change CLI surface and artifact shapes).
 2. Bump `version` in `packages/doctrina-cli/package.json`.
 2b. Draft the agent-facing changelog and edit it in by hand:
-   `doctrina report --agent-changelog` proposes one candidate bullet per
+   `doctrina status --view agent-changelog` proposes one candidate bullet per
    archived change that touched a documented surface, newest first, capped
    at the block's five bullets and windowed since the last tag. Paste the
    block into `AGENT_CHANGELOG` in `src/lib/commands.js` under the new
@@ -42,8 +42,9 @@ The canonical version lives in ONE place:
 6. `npm pack --dry-run` inside `packages/doctrina-cli/` — the tarball
    must list only `src/`, `templates/`, `README.md`, `package.json`
    (the `prepack` script copies `.doctrina/templates/` in).
-7. Commit (Conventional Commits — this repo does NOT use
-   `doctrina change new` for its own evolution), tag `vX.Y.Z`, publish.
+7. Commit (Conventional Commits prefix; the release bump is a chore
+   change like any other, closed with `doctrina close <id>`), tag
+   `vX.Y.Z`, publish.
 
 ## Anti-patterns
 

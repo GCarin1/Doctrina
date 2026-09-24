@@ -85,14 +85,19 @@ test("an action carries the command and its arguments, not a sentence to parse",
 
     const a = actionsOf(dir).find((x) => x.id === "change-apply-ready");
     assert.ok(a, "expected the apply-ready action");
-    assert.equal(a.command, "analyze");
+    // `change check`, not the deprecated `analyze` (change 0182): the same
+    // structural checks first, and still read-only, so still runnable.
+    assert.equal(a.command, "change check");
     assert.deepEqual(a.args, ["0001-x"]);
     assert.equal(a.gate, "structure");
     assert.equal(a.severity, "blocking");
     assert.equal(a.runnable, true);
 
     // The whole point: re-issue from the fields, with no string parsing.
-    const reissued = run(dir, [a.command, ...a.args]);
+    // `change check` previews the close, so the proposal's Verification
+    // boxes count too; with them ticked the change is ready to close.
+    run(dir, ["change", "tick", "0001-x", "--all"]);
+    const reissued = run(dir, [...a.command.split(" "), ...a.args]);
     assert.equal(reissued.status, 0, reissued.stderr || reissued.stdout);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -250,6 +255,30 @@ test("declaring the build gate needs a person, so --run says so instead of scaff
     assert.equal(verify.runnable, false);
     assert.equal(existsSync(path.join(dir, ".doctrina", "verify.json")), false,
       "and nothing scaffolded it behind the author's back");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Index drift is a validate ERROR and a blocking close step, fixed by one
+// runnable command, and the actions below it read the drifted index. It is
+// the first action after the intake, not the last (change 0193).
+test("index drift outranks open work and every advisory nudge", () => {
+  const dir = project();
+  try {
+    assert.equal(run(dir, ["spec", "new", "core"]).status, 0);
+    assert.equal(run(dir, ["change", "new", "0001-x", "Do x"]).status, 0);
+    const indexPath = path.join(dir, ".doctrina", "index.json");
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    index.artifacts.specs.push({
+      id: "ghost", path: ".doctrina/specs/ghost/spec.md",
+      status: "active", version: "0.1.0", last_updated: "2026-01-01",
+    });
+    writeFileSync(indexPath, JSON.stringify(index, null, 2) + "\n");
+
+    const ids = actionsOf(dir).map((a) => a.id);
+    assert.ok(ids.length > 1, "there is other work to rank it against");
+    assert.equal(ids[0], "index-drift", `order was ${ids.join(", ")}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

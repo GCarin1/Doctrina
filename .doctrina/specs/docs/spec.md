@@ -6,7 +6,7 @@
 **Realizes:** SC3, SC5
 **Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
 **Last updated:** 2026-09-11
-**Version:** 0.7.0
+**Version:** 0.9.0
 
 ## Purpose
 
@@ -37,6 +37,8 @@ this spec; humans and agents do.
 - The system shall reject a README whose stated command or operation count differs from the catalog.
 - The system shall check every stated count of the command surface and of the decision set against the catalog and the decisions directory that own them, in the root READMEs and in every Markdown file under `docs/`, in both languages.
 - The system shall open each README, in English and in Portuguese, with the install command ahead of the flow diagram, and shall link every user guide of its language from one unbroken documentation list, so that a reader reaches any guide without knowing its file name.
+- The system shall keep the npm package README's command summary naming every live operation of the catalog, and shall not let any page teach a deprecated or removed command except in the lines that retire it, so that a merge or a removal cannot leave the prose instructing what the CLI warns about or refuses.
+- The system shall hold every page a person or an agent reads for instructions — the READMEs, `CONTRIBUTING.md`, `AGENTS.md`, `docs/`, `.github/`, the skills, `product.md`, the scaffolding templates, the installed slash commands and the example projects — to the rule that no page teaches a deprecated or removed command outside the lines that retire it, shall keep the contributor pages describing the workflow the repository runs (closing each change with `doctrina close`, the archive as its history), and shall allow an `AGENTS.md` only at the root and in the example projects.
 
 ### Event-driven
 
@@ -108,6 +110,8 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
 16. [verified] No page in `docs/en/` or `docs/pt/` describes the closing sequence as fewer steps than the CLI declares — verified by `packages/doctrina-cli/test/a-sequencia-tem-um-autor-so.test.js`.
 17. [verified] No page in `docs/en/` or `docs/pt/` spells out what the pre-commit hook runs while naming fewer invocations than the shipped hook template makes — verified by `packages/doctrina-cli/test/o-que-um-driver-roda-tem-um-autor.test.js`.
 18. [verified] Both READMEs carry the install command before the flow diagram, link every guide of their language except the named exemptions, and strand no guide after the project-policy line — verified by `packages/doctrina-cli/test/o-readme-leva-a-cada-guia.test.js`.
+19. [verified] The npm README's moment-grouped summary names every live operation, and a page that teaches a deprecated or removed command outside the lines retiring it fails the check — verified by `packages/doctrina-cli/test/a-documentacao-acompanha-o-catalogo.test.js`.
+20. [verified] The guard reads CONTRIBUTING.md, the PR template, product.md, the skills, the templates and the example projects; a page outside `docs/` that teaches `doctrina analyze` fails it, the contributor pages name `doctrina close` and never say the archive must stay empty, and an `AGENTS.md` under `packages/doctrina-cli/` fails it — verified by `packages/doctrina-cli/test/a-documentacao-acompanha-o-catalogo.test.js`.
 
 ## Out of scope for this spec
 

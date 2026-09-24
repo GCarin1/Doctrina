@@ -73,7 +73,7 @@ rode o comando para ler o playbook atual, e ponha o seu próprio arquivo em
 `.doctrina/templates/playbooks/` para adaptá-lo ao processo do seu time —
 um passo de review a mais, um close diferente. Esta página deliberadamente
 não repete os passos, porque um procedimento escrito em dois lugares é um
-procedimento que vai discordar de si mesmo; o `doctrina templates check`
+procedimento que vai discordar de si mesmo; o `doctrina upgrade`
 verifica que cada playbook ainda resolve e está bem formado.
 
 Na prática o bootstrap é um comando só: rode
@@ -95,7 +95,7 @@ e mande ir", não escrever documento por documento na mão.
 # doctrina change apply <id>
 #   ADDED   -> escreve .doctrina/specs/<capability>/spec.md
 #   REMOVED -> deleta esse arquivo
-#   MODIFIED -> merge manual; o CLI imprime o ponteiro
+#   MODIFIED -> o bloco ops, aplicado mecanicamente (sem ele: ponteiro de merge manual)
 #   proposal.md Status: flip proposed -> applied
 
 # doctrina verify     (gate de build do projeto) + doctrina coverage
@@ -203,7 +203,7 @@ O `doctrina work` classifica todo prompt numa lane — PRODUCT, RUNTIME ou CHORE
 ```
 
 É histórico, não gate: nada o lê para decidir, e um valor sem sentido não muda
-comportamento nenhum. Com ele, o `doctrina report` diz que tipo de trabalho um
+comportamento nenhum. Com ele, o `doctrina status --view report` diz que tipo de trabalho um
 período teve — pergunta que nenhum relatório respondia enquanto o veredito era
 calculado, impresso e descartado — e o classificador ganha acertos e erros.
 
@@ -223,7 +223,7 @@ diferentes:
 | `doctrina status` | painel num olhar | uma checagem rápida de saúde |
 | `doctrina prime` | primer de sessão (~40 linhas) | no INÍCIO de toda sessão |
 | `doctrina handoff` | nota de retomada em Markdown | antes de compactar ou entregar |
-| `doctrina report --since <dias>` | digest do período | uma daily ou a descrição de um PR |
+| `doctrina status --view report --since <dias>` | digest do período | uma daily ou a descrição de um PR |
 
 São **uma coleta da árvore, renderizada de quatro maneiras** — o mesmo
 snapshot, quatro formatadores puros — então não têm como reportar números

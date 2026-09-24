@@ -40,7 +40,8 @@ This creates:
 - `AGENTS.md` at the project root — the portable, agent-readable
   operational source of truth.
 - `.doctrina/product.md` — your project's vision, scope, and target
-  users. Edit this immediately.
+  users. Your agent fills it from your description (next section); you
+  review it.
 - `.doctrina/index.json` — metadata about every artifact.
 - Empty `.doctrina/specs/`, `.doctrina/changes/`,
   `.doctrina/changes/archive/`, and `.doctrina/decisions/` directories.
@@ -95,9 +96,9 @@ Once the project exists, drive each feature with a one-line prompt:
 doctrina work "add login with email and password"
 ```
 
-`work` scaffolds the change and prints a **work playbook** — context →
-spec delta → tasks → implement → analyze → apply → **verify** → archive →
-validate — that the agent executes in one linear pass. The two commands
+`work` scaffolds the change and prints a **work playbook** — context,
+spec delta, tasks, implement, then `doctrina close <id>`, which runs the
+whole closing sequence — that the agent executes in one linear pass. The two commands
 are the no-ceremony path; the manual commands below are exactly what they
 orchestrate, and stay available when you want fine-grained control.
 
@@ -149,9 +150,10 @@ Doctrina automates the common operations:
 
 - **ADDED** deltas materialise a new spec file.
 - **REMOVED** deltas delete the target spec.
-- **MODIFIED** deltas print a manual-merge pointer; you merge by hand,
-  which keeps the agent out of judgement calls about conflicting
-  sections.
+- **MODIFIED** deltas carry an `ops` block (`set-header`,
+  `bump-version`, `append-requirement`, `append-criterion`, …) that apply
+  executes mechanically, all ops or none (ADR 0007). A MODIFIED delta
+  without one prints a manual-merge pointer instead of guessing.
 
 Before you archive, prove the work. "Done" is a claim until it is checked:
 
@@ -162,8 +164,8 @@ doctrina coverage    # every acceptance criterion should cite a real test
 
 `doctrina verify` is the real build gate (declare your commands once with
 `doctrina verify --init`), distinct from the structural `validate`. Then
-check every box in the change's `tasks.md` (closing steps included) and
-the proposal's `## Verification` section.
+check every box in the change's `tasks.md` and the proposal's
+`## Verification` section.
 
 Finally, archive the change:
 
@@ -176,6 +178,12 @@ verification box is unchecked — pass `--force` only to archive
 deliberately with a recorded gap. On success the change folder moves to
 `.doctrina/changes/archive/2026-06-03-0001-add-stripe-webhook/` and
 disappears from the agent's default read path.
+
+**The same, in one command.** `doctrina close 0001-add-stripe-webhook`
+runs the whole closing sequence — from analyze through apply, verify,
+coverage and trace to archive and validate; `doctrina close --help` lists
+every step — and stops at the first step that refuses, naming the fix. It is the definition of done; `doctrina change check <id>` previews
+everything it would refuse.
 
 ## Optional: scaffold a skill
 

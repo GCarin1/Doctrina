@@ -4,16 +4,16 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
+**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.9.0
+**Version:** 0.12.0
 
 ## Purpose
 
 Define the semantics of the READ path: how a context pack is assembled to
 fit a token budget (ADR 0022), and the read-only commands that render the
 project's state without judging it — `context`, `search`, `show`, `status`,
-`prime`, `handoff`, `report`, `why`, `constitution`.
+`prime`, `handoff`, `report`, `why`.
 
 Split out of the `gates` spec when that spec crossed its own 400-line cap
 and grew to two thirds of every capability pack it appeared in. The seam is
@@ -37,6 +37,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall compare search terms against artifact text with combining marks folded away, so that a query typed without accents finds the accented text and the reverse.
 - The system shall separate every heading of a Markdown view from the line before it with a blank line, in every state of the tree, so the document renders where it is pasted.
 - The system shall estimate a context pack's tokens with each line ending counted as one character, so that the same tree yields the same estimate and the same budget verdict on a CRLF checkout as on an LF one.
+- The system shall carry the lane recorded in a change's proposal into its archived index entry, built by one constructor that both `change archive` and `index rebuild` use, so the report's lane mix counts the history by the lane each change was born in and reports as unknown only a change that recorded none.
 
 ### Event-driven
 
@@ -56,7 +57,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   implementation state, and proof ratio), and the archived changes behind
   those capabilities — read-only, erroring with the known anchors when
   the anchor does not exist.
-- When `doctrina prime --rules` runs — or the deprecated `doctrina constitution`, which prints the same lines — the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them.
+- When `doctrina prime --rules` runs, the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them; `doctrina constitution`, removed in 0.17.0, shall run nothing and refuse with the usage class, naming `doctrina prime --rules`.
 - When `doctrina context [<capability>]` runs, the system shall
   print the context pack in the documented read order — AGENTS.md,
   `product.md`, the capability spec when given (or every active spec
@@ -90,11 +91,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   tasks and exact resume command, and the prioritised next actions —
   as a view derived from the tree at call time, never written to disk,
   and always exit 0.
-- When `doctrina report [--since <days>]` runs, the system shall print
-  a Markdown digest for the window (default seven days) — gate state,
-  changes archived in the window from the index ledger, open work with
-  task progress, artifact counts, and a local-git summary that
-  degrades silently outside a repository — read-only, with no network.
+- When `doctrina status --view report [--since <days>]` runs, the system shall print a Markdown digest for the window (default seven days) — gate state, changes archived in the window from the index ledger, open work with task progress, artifact counts, and a local-git summary with the window's metrics that degrades silently outside a repository — read-only, with no network; the deprecated `doctrina report` shall print the same bytes from the same collector, and `--view agent-changelog` shall print the draft `report --agent-changelog` printed.
 - When the pack's irreducible core alone exceeds the budget, the system shall report which artifacts cannot be reduced and exit 1 rather than return a pack over budget.
 - When a task description is supplied via --for, the system shall rank artifacts by term coverage and density rather than by document length.
 - When a context pack is assembled, the system shall place at most one open change in the irreducible core — the one the named capability or the task query identifies unambiguously — and shall place none there when more than one match equally.
@@ -132,7 +129,7 @@ The read path is spec-compliant when:
 9. [verified] No command module imports a binding out of a sibling command module, and no library module depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 10. [verified] Every view is a pure function of the snapshot, and each renders byte-identical output whether reached by its own command or by the view flag — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 11. [verified] An unknown view name exits with the usage code naming the nearest real one, and the machine-readable envelope keeps its shape whichever view is asked for — verified by `packages/doctrina-cli/test/one-collector.test.js`.
-12. [verified] `constitution` and `prime --rules` produce byte-identical output, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+12. [verified] `prime --rules` prints the standing rules in full, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 13. [verified] `prime`, `handoff` and `report` print the title of a change with a multi-word id without the id in front of it, and the index records the same — verified by `packages/doctrina-cli/test/change-title.test.js`.
 14. [verified] On a spec `doctrina spec new` has just created, `show <cap>-R1` returns the first authored requirement rather than the scaffold's EARS legend, and a spec with no authored requirement reports zero — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 15. [verified] Prose, two paragraphs and bullets are each read as declared, the template comment is not, an empty section is told to be filled while a missing one is told to be created, and this repository's four non-goals are unchanged — verified by `packages/doctrina-cli/test/non-goals-in-prose.test.js`.
@@ -141,6 +138,8 @@ The read path is spec-compliant when:
 18. [verified] No heading in the `handoff` or `report` document is glued to the preceding line, with open changes and with none — verified by `packages/doctrina-cli/test/o-handoff-e-markdown-valido.test.js`.
 19. [verified] A search with no match and a reference that does not resolve each cost the class the CLI-wide contract gives them, so this spec and the `cli` spec cannot describe two different commands — verified by `packages/doctrina-cli/test/a-spec-descreve-o-cli-que-existe.test.js`.
 20. [verified] A CRLF copy of a project estimates the same pack as its LF original, and a budget set exactly at that estimate passes on both — verified by `packages/doctrina-cli/test/o-orcamento-nao-depende-do-fim-de-linha.test.js`.
+21. [verified] In a repository with history, `status --view report` prints what `report` printed, rates included, `status --view agent-changelog` prints what `report --agent-changelog` printed, and `report` still works while warning on stderr — verified by `packages/doctrina-cli/test/o-digest-tem-um-nome-so.test.js`.
+22. [verified] An archived chore keeps its lane in the index whether written by `change archive` or derived by `index rebuild` (the two entries are equal), and the report's Lanes section counts it instead of reporting it unknown — verified by `packages/doctrina-cli/test/a-lane-sobrevive-ao-arquivamento.test.js`.
 
 ## Out of scope for this spec
 

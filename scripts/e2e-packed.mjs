@@ -173,13 +173,13 @@ const init = doctrina(["init", "--non-interactive", "--project-name", "Acme",
 assert(init.status === 0, "doctrina init", init.out);
 
 // C5's invariant: a project is born clean.
-const freshUpdate = doctrina(["templates", "update"], proj);
-assert(freshUpdate.status === 0, "a fresh project needs zero templates update operations", freshUpdate.out);
+const freshUpdate = doctrina(["upgrade"], proj);
+assert(freshUpdate.status === 0, "a fresh project needs zero upgrade operations", freshUpdate.out);
 
 // Gates are green on an empty project.
 for (const [label, args] of [
   ["validate", ["validate"]],
-  ["templates check", ["templates", "check"]],
+  ["upgrade", ["upgrade"]],
   ["doctor", ["doctor"]],
 ]) {
   const r = doctrina(args, proj);
@@ -275,7 +275,7 @@ assert(/When a refund is requested/.test(specText), "the EARS requirement was ap
 for (const [label, args] of [
   ["validate", ["validate"]],
   ["index rebuild --check", ["index", "rebuild", "--check"]],
-  ["templates check", ["templates", "check"]],
+  ["upgrade", ["upgrade"]],
   ["doctor", ["doctor"]],
 ]) {
   const r = doctrina(args, proj);
@@ -315,10 +315,10 @@ if (!quick) {
       fail(`init --agent ${agent}`, i.out);
       continue;
     }
-    const tc = doctrina(["templates", "check"], p);
+    const tc = doctrina(["upgrade"], p);
     // Each agent gets its own throwaway project, so one bad adapter says
     // nothing about the next: sweep them all and report the whole set.
-    assertIndependent(tc.status === 0, `init --agent ${agent} then templates check`, tc.out);
+    assertIndependent(tc.status === 0, `init --agent ${agent} then upgrade`, tc.out);
   }
 } else {
   console.log("\n5. per-adapter sweep skipped (--quick)");

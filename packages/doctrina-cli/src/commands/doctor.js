@@ -188,7 +188,7 @@ export async function run(_positional, _flags) {
         ? tmplFindings[0].message
         : `${tmplFindings.length} template findings`;
       const remedy = [...byRemedy.keys()].filter((k) => k !== "(manual repair)");
-      row("warn", "templates", summary, remedy.length === 1 ? remedy[0] : "doctrina templates check   (each finding names its own fix)");
+      row("warn", "templates", summary, remedy.length === 1 ? remedy[0] : "doctrina upgrade   (each finding names its own fix)");
       warningsTotal += 1;
     },
 

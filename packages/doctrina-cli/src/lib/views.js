@@ -408,6 +408,6 @@ export function report(s, { days = 7, cutoffIso = "", git = null, gitState = nul
   }
 
   out.push("");
-  out.push(`*Generated read-only by \`doctrina report --since ${days}\`; deeper numbers: \`doctrina metrics\`.*`);
+  out.push(`*Generated read-only by \`doctrina status --view report --since ${days}\`; deeper numbers: \`doctrina metrics\`.*`);
   return out;
 }

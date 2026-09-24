@@ -1,15 +1,21 @@
 // @ts-check
-import { OPERATIONS, COMMAND_NAMES } from "../lib/commands.js";
+import { DEPRECATED, OPERATIONS } from "../lib/commands.js";
 import { c } from "../lib/colors.js";
 
 // Shell completions, generated from the same OPERATIONS catalog that feeds
 // `--help` and the docs drift tests — so the completion script can never
 // know a different surface than the CLI ships. Static output by design:
 // paste it into your shell config once; regenerate after upgrading.
+//
+// Deprecated operations are left out (change 0188): they still run, with a
+// notice, for a script that already types them — but tab completion is how
+// a person discovers the surface, and it should offer the replacement only.
+const LIVE = OPERATIONS.filter(([op]) => !DEPRECATED[op]);
+const COMMAND_NAMES = [...new Set(LIVE.map(([op]) => op.split(" ")[0]))];
 
 function subcommandMap() {
   const map = new Map();
-  for (const [op] of OPERATIONS) {
+  for (const [op] of LIVE) {
     const [cmd, sub] = op.split(" ");
     if (!sub) continue;
     if (!map.has(cmd)) map.set(cmd, []);

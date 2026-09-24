@@ -6,7 +6,7 @@ import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, 
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
-import { deriveIndex } from "../lib/scan.js";
+import { archivedChangeEntry, deriveIndex } from "../lib/scan.js";
 import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gates.js";
@@ -17,11 +17,11 @@ import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js"
 import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
-import { ensureDoctrinaProject } from "../lib/project.js";
+import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew } from "../lib/change-ops.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -42,8 +42,6 @@ export async function run(positional, flags) {
         changeCheck(id, { verbose: flagBool(flags, "verbose", false) }));
     case "tick":
       return changeTick(positional.slice(1), flags);
-    case "diff":
-      return changeDiff(positional.slice(1), flags);
     case "abandon":
       return await changeAbandon(positional.slice(1), flags);
     default:
@@ -100,6 +98,8 @@ async function forEachId(ids, name, one) {
   }
   let worst = 0;
   for (const id of ids) {
+    const refused = refuseChangeRef(id);
+    if (refused !== null) { worst = Math.max(worst, refused); continue; }
     if (ids.length > 1) {
       console.log("");
       console.log(c.bold(`──── change ${name} ${id}`));
@@ -316,7 +316,7 @@ async function changeCheck(id, { verbose = false } = {}) {
   let failures = 0;
 
   // 1. Structural analysis — same checks analyze runs before an apply.
-  console.log(c.gray("──── 1/3 structure (analyze)"));
+  console.log(c.gray("──── 1/3 structure"));
   const analyze = await import("./analyze.js");
   if ((await analyze.run([id], new Map())) !== 0) failures += 1;
 
@@ -356,7 +356,7 @@ async function changeCheck(id, { verbose = false } = {}) {
   if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
   if (opsFindings > 0) failures += 1;
 
-  // --verbose: the same per-delta preview `change diff` prints. The dry-run
+  // --verbose: the per-delta preview the removed `change diff` printed. The dry-run
   // above says whether the ops WOULD apply; this says what the file would
   // look like afterwards, which is the question the separate command existed
   // to answer (change 0049).
@@ -404,6 +404,8 @@ function changeTick(args, flags) {
     console.error(c.red("error:") + " change tick requires <id> [ordinals... | --all]");
     return 2;
   }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
@@ -530,7 +532,7 @@ function changeArchive(args, flags) {
 
   // Verification gate. "Done" is a claim until it is checked. Archiving is
   // the act of declaring a change finished, so it must refuse while any
-  // task (including closing steps) or any declared verification item is
+  // task or any declared verification item is
   // still unchecked. This is the difference between "boxes marked" and
   // "verification passed" the framework was faulted for collapsing.
   // Preconditions from the shared map (C6): structure AND verification.
@@ -602,14 +604,10 @@ function changeArchive(args, flags) {
   console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
 
   const index = idx.load(projectRoot);
-  idx.moveChangeToArchive(index, id, {
-    id,
-    title,
-    path: `.doctrina/changes/archive/${archiveName}`,
-    status: "applied",
-    applied: date,
-    specs_affected: specsAffected,
-  });
+  idx.moveChangeToArchive(index, id, archivedChangeEntry(
+    exists(proposal) ? read(proposal) : "",
+    { id, archiveName, applied: date, specsAffected, title },
+  ));
   idx.touch(index, date);
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + " change archived");
@@ -626,6 +624,8 @@ async function changeAbandon(args, flags) {
     console.error(c.red("error:") + " change abandon requires <id>");
     return 2;
   }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
 
@@ -683,9 +683,9 @@ async function changeAbandon(args, flags) {
 // ADDED reports the body it would write, REMOVED the spec it would delete,
 // MODIFIED a line diff against the current spec.
 //
-// One renderer, two callers (change 0049): `change diff` is this and nothing
-// else, and `change check --verbose` prints it after its ops dry-run — which
-// is what makes the merge honest rather than a claim. Returns the number of
+// `change check --verbose` prints this after its ops dry-run. It was also
+// the whole of `change diff`, until that alias was retired (changes 0049,
+// 0175) — the one renderer is what made the merge honest. Returns the number of
 // deltas it could not read.
 export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
   let errors = 0;
@@ -733,33 +733,6 @@ export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
   return errors;
 }
 
-function changeDiff(args, _flags) {
-  const id = args[0];
-  if (!id) {
-    console.error(c.red("error:") + " change diff requires <id>");
-    return 2;
-  }
-  const projectRoot = process.cwd();
-  ensureDoctrinaProject(projectRoot);
-
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
-  if (!isDir(changeDir)) {
-    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return EXIT.USAGE;
-  }
-
-  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
-  if (deltaFiles.length === 0) {
-    console.log(c.gray("no spec deltas in this change; nothing to diff"));
-    return 0;
-  }
-
-  const errors = printDeltaPreview(projectRoot, changeDir, deltaFiles);
-  console.log("");
-  return errors > 0 ? 1 : 0;
-}
-
-
 function extractDeltaBody(text) {
   // The delta separates headers from the spec body with a `---` line.
   const idxSep = text.indexOf("\n---\n");
@@ -767,28 +740,6 @@ function extractDeltaBody(text) {
   return text.slice(idxSep + 5).replace(/^\n+/, "");
 }
 
-
-// Reasons a change is not finished enough to archive. Counts unchecked
-// GitHub-style checkboxes (`- [ ]`) in tasks.md (every task, including the
-// closing steps) and in the proposal's "## Verification" section. Returns
-// a list of human-readable blocker strings; empty means clear to archive.
-function collectArchiveBlockers(changeDir) {
-  const blockers = [];
-  const countUnchecked = (s) => (s.match(/^\s*-\s*\[ \]/gm) ?? []).length;
-
-  const tasksPath = path.join(changeDir, "tasks.md");
-  if (exists(tasksPath)) {
-    const n = countUnchecked(read(tasksPath));
-    if (n > 0) blockers.push(`${n} unchecked task${n === 1 ? "" : "s"} in tasks.md (closing steps count)`);
-  }
-
-  const proposalPath = path.join(changeDir, "proposal.md");
-  if (exists(proposalPath)) {
-    const n = countUnchecked(getSection(read(proposalPath), "Verification"));
-    if (n > 0) blockers.push(`${n} unmet verification item${n === 1 ? "" : "s"} in proposal.md (## Verification)`);
-  }
-  return blockers;
-}
 
 export const help = `
 Usage: doctrina change <subcommand> [args]
@@ -807,7 +758,7 @@ Subcommands:
                          MODIFIED without one prints a manual-merge pointer.
                          On any spec write the index is rebuilt from the tree.
   archive <id...>        Move the change to .doctrina/changes/archive/YYYY-MM-DD-<id>/
-  check <id...>          Pre-close dry-run, read-only: analyze's structural
+  check <id...>          Pre-close dry-run, read-only: the structural
                          checks + every ops block executed in memory against
                          its target + the archive gate preview + an advisory
                          list of accepted ADRs citing the touched capabilities.
@@ -817,8 +768,6 @@ Subcommands:
                          or every one with --all. No args = list only.
   abandon <id>           Delete an open change folder and its index entry, and
                          record the abandonment in the ledger ([--reason "..."]).
-  diff <id>              Preview every spec delta: line diff for MODIFIED,
-                         summary for ADDED/REMOVED. Read-only.
 
 apply / archive / check accept multiple ids (batch close of a backlog); the
 exit code is the worst per-id result.

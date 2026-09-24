@@ -131,7 +131,7 @@ required:
 ```bash
 doctrina metrics --save     # snapshot today's window into .doctrina/metrics/
 doctrina metrics --trend    # every saved snapshot, and the direction each rate moved
-doctrina report --since 30  # the period's digest, with the same rates
+doctrina status --view report --since 30  # the period's digest, with the same rates
 ```
 
 `--save` writes one dated JSON per snapshot. Those files are a **time
@@ -141,7 +141,7 @@ FIRST to the LAST — not against the previous one. A rate that drifted up
 for six months and dipped once reads as an improvement from a delta and
 as what it is from the series.
 
-`report --since <days>` carries the revert rate and the re-edit rate for
+`status --view report --since <days>` carries the revert rate and the re-edit rate for
 its own window, computed from the same snapshot `metrics` renders — one
 definition, so the two surfaces cannot report different numbers for the
 same period.

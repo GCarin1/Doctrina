@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.19.0
+**Version:** 0.25.0
 
 ## Purpose
 
@@ -48,6 +48,8 @@ keep the checks and the read path.
 - The system shall treat a task line opened by any Markdown bullet marker (`-`, `*`, `+`) as a box, for `change tick` and for the archive gate alike.
 - The system shall classify a prompt into its lane after folding it (accents stripped, case folded) and with signal lists that carry both English and Portuguese vocabularies, so that a request phrased in either language is read into the same lane.
 - The system shall validate the name of a new spec, contract or skill against one shared grammar, defined once in `packages/doctrina-cli/src/lib/names.js` — lowercase letters, digits and hyphens, starting with a letter, no trailing or doubled hyphen, at most 64 characters, never a Windows reserved device name (con, prn, aux, nul, com1-com9, lpt1-lpt9) — and shall name the rule that failed.
+- The system shall keep a version or a number from the prompt in a derived change slug — "cortar a 0.17.0" slugs to `cortar-0-17-0`, "migrar para Node 24" to `migrar-node-24` — reading the slug's own tokens rather than the retrieval tokenizer's letter-first words, while still dropping stopwords and one-letter words.
+- The system shall scaffold a change's `tasks.md` with implementation tasks only, and shall count its boxes through one counter that leaves out a legacy `## Closing steps` list, so no surface asks an agent to tick "apply", "archive" or "update the index" before the command that performs them has run.
 
 ### Event-driven
 
@@ -65,19 +67,7 @@ keep the checks and the read path.
   point at `doctrina work`; when no intake exists, it shall exit with a
   clear error.
 
-- When `doctrina work "<prompt>"` runs, the system shall derive a
-  sequential change id of the form `NNNN-<slug>` (the next number across
-  open and archived changes; the slug an ASCII-folded kebab-case of the
-  prompt), scaffold the change folder via the same path as
-  `change new`, record the prompt verbatim under the proposal's
-  `## Why`, rank existing specs by deterministic term overlap as a
-  capability hint, and print the agent-executed work playbook (context →
-  spec delta → tasks → implement → analyze → apply → verify →
-  archive → validate). With `--capability <cap>` the system shall pin that
-  capability instead of ranking, and with `--id <id>` it shall use the
-  given id instead of deriving one. The CLI's language processing is
-  limited to slugging and case-insensitive term counting; all semantic
-  work is the executing agent's.
+- When `doctrina work "<prompt>"` runs, the system shall derive a sequential change id of the form `NNNN-<slug>` (the next number across open and archived changes; the slug an ASCII-folded kebab-case of the prompt), scaffold the change folder via the same path as `change new`, record the prompt verbatim under the proposal's `## Why`, rank existing specs by deterministic term overlap as a capability hint, and print the agent-executed work playbook (context, spec delta, tasks, implement, then `doctrina change check <id>` to preview the close and `doctrina close <id>` to finish). With `--capability <cap>` the system shall pin that capability instead of ranking, and with `--id <id>` it shall use the given id instead of deriving one. The CLI's language processing is limited to slugging and case-insensitive term counting; all semantic work is the executing agent's.
 
 - When `doctrina work --resume <id>` runs, the system shall reprint the
   work playbook for that open change and create nothing; and when the
@@ -95,9 +85,7 @@ keep the checks and the read path.
   criterion `[unverified]` until proven). With no working-tree changes it
   exits 1 (ADR 0010).
 
-- When `doctrina work --chore` (alias `--no-spec`) runs, the system shall
-  open a spec-less chore change and print a playbook that omits the
-  spec-delta steps (ADR 0010).
+- When `doctrina work --chore` (alias `--no-spec`) runs, the system shall open a spec-less chore change and print a playbook that omits the spec-delta steps (ADR 0010) and ends, like the work playbook, with `doctrina close <id>` — never a hand-run apply, archive and validate, which skip the close's review, documentation, coverage, trace and ADR gates.
 
 - When `doctrina spec new <capability>` runs, the system shall create
   `.doctrina/specs/<capability>/spec.md` from `templates/spec.md.template`
@@ -168,21 +156,9 @@ keep the checks and the read path.
   line per skill containing the slug and the description from
   frontmatter. The command is strictly read-only.
 
-- When `doctrina skill sync` runs, the system shall copy each
-  skill's frontmatter `description:` into the matching
-  `artifacts.skills` entry of `.doctrina/index.json`, indexing
-  any skill present on disk but absent from the index. Skills
-  without a `description:` field are reported and skipped. The
-  frontmatter is the source of truth; the command never edits
-  skill files.
+- When the deprecated `doctrina skill sync` runs, the system shall leave the index `doctrina index rebuild` leaves — every skill on disk registered, each frontmatter `description:` mirrored, a written description never replaced by a scaffold placeholder, skills without a `description:` field reported and skipped — and shall name the rebuild on stderr.
 
-- When `doctrina change diff <id>` runs, the system shall print,
-  for each spec delta in the change: for ADDED, the target path
-  and the delta body line count; for REMOVED, the target path to
-  be deleted; for MODIFIED, a line-level diff between the current
-  target spec and the delta body, with the caveat that the delta
-  body is a fragment to merge, so context lines absent from the
-  delta are not removals. The command is strictly read-only.
+- When `doctrina change diff <id>` is invoked after its removal in 0.17.0, the system shall run nothing and refuse with the usage class, naming `doctrina change check <id> --verbose`, which prints the same per-delta preview — ADDED with its line count, REMOVED with its target, MODIFIED as a line diff against the current spec.
 
 - When `doctrina change archive <id>` runs, the system shall
   append a one-line summary (date, id, title, affected specs) to
@@ -210,10 +186,7 @@ keep the checks and the read path.
   collision or a missing referenced `specs/<capability>`, and warn when a
   declared environment variable is absent from `.env.example`.
 
-- When `doctrina change archive <id>` runs, the system shall refuse
-  (exit 1) while any checkbox in `tasks.md` (closing steps included) or
-  the proposal's `## Verification` section is unchecked, unless `--force`
-  is supplied — which archives and records the gap.
+- When `doctrina change archive <id>` runs, the system shall refuse (exit 1) while any checkbox in `tasks.md` or the proposal's `## Verification` section is unchecked — a legacy `## Closing steps` list excepted, since apply, archive and index are what the close does — unless `--force` is supplied, which archives and records the gap.
 
 - When `doctrina skill suggest` runs, the system shall list fix-shaped
   lessons whose skill is not yet captured, drawn from two deterministic
@@ -288,6 +261,7 @@ keep the checks and the read path.
 - When `doctrina decision supersede` creates a successor ADR, the system shall carry the superseded ADR's Scope into it and say so, because an unscoped ADR is global and the refinement of a decision that governed one capability would otherwise load into every context pack.
 - When `doctrina intent add` is given a text that an existing anchor already states — compared with case, accents, spacing and trailing punctuation folded away, pinned id or not — the system shall refuse without writing, naming the anchor that states it, because the twin would stay dropped once a spec realizes the first and `trace --strict` would fail on a gap no spec can close.
 - When `doctrina spec set` refuses an operation, the system shall answer the usage class if any error lies in the invocation — a value outside the header's or the mark's domain, a malformed flag, a criterion the spec does not declare — and the gate class only when every error lies in the spec itself, because retrying an invocation error unchanged never succeeds.
+- When `doctrina work` runs with `--design`, the system shall also scaffold the change's `design.md`, identical to the one `doctrina change new --design` writes, and without the flag shall scaffold none, so a change that needs a design document never has to leave the recommended door for the manual one.
 
 ### Unwanted-behavior (must-not)
 
@@ -316,6 +290,8 @@ keep the checks and the read path.
 - The system shall not create an ADR whose title is only digits; `decision supersede` refuses it and names the grammar `supersede <number> "<title>"`.
 - The system shall not overwrite an intake whose Status is `converted`, even under `--force`; `intake` refuses with the precondition class and points at `intent add` for new intent and `work` for a change of behaviour, while an intake still `pending` may be replaced.
 - The system shall not record a forced transition that wrote nothing, so the ledger never claims an event that did not occur.
+- The system shall not mark the stored intake converted while `doctrina validate` reports an error; it shall list the errors, name `doctrina validate --fix` for index drift, exit with the gate class and write nothing, and shall convert anyway only under `--force`, because converting makes the specs the source of truth and an error says they are not yet well-formed.
+- The system shall not resolve a change reference given to `change apply|archive|check|tick|abandon`, `close`, `analyze` or `work --resume` that is not a single folder name under `.doctrina/changes/` — one containing a path separator, `.`, `..`, or the archive's own folder name — and shall refuse it with the usage class before touching the filesystem, while still resolving an existing change whose id predates the `NNNN-slug` grammar.
 
 ## Acceptance criteria
 
@@ -331,7 +307,7 @@ The authoring commands are v0 spec-compliant when:
 8. [verified] The lane reaches the index, its absence is left absent rather than guessed, and a report counts an unrecorded lane as unknown — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 9. [verified] Rewriting a proposal's lane to a nonsense value changes no gate's verdict or output — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 10. [verified] `work` scaffolds the winning capability's delta with `**Operation:** MODIFIED` and a guess mark when the prompt ranking has a real margin, writes nothing when it does not, and never marks a pinned delta a guess — verified by `packages/doctrina-cli/test/scaffolded-delta.test.js`.
-11. [verified] Every line `change diff` prints appears in `change check --verbose`, and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+11. [verified] `change check --verbose` prints the per-delta preview the removed `change diff` printed — target, operation and the line diff itself — and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 12. [verified] Every decision this repository's specs cite names the citing capability, the `authoring` pack keeps all of them, a decision that names a capability outranks one it only inherits even when its number is older, and an unscoped decision is never reported as a violation — verified by `packages/doctrina-cli/test/adr-scope-follows-capability.test.js`.
 13. [verified] An untouched decision record is refused with its unwritten sections named and its Status left alone, one with a one-line decision is accepted, and accepting leaves the index in sync — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 14. [verified] A change opened on the default path has an identifier under fifty characters while its H1 still carries the whole prompt and the parse returns it whole, `--title` decides both halves as before, and the derivation is deterministic — verified by `packages/doctrina-cli/test/change-title.test.js`.
@@ -357,6 +333,12 @@ The authoring commands are v0 spec-compliant when:
 34. [verified] A successor inherits its predecessor's scope and, once accepted, stays out of the packs its predecessor stayed out of, while an unscoped predecessor yields an unscoped successor — verified by `packages/doctrina-cli/test/uma-adr-substituta-herda-o-escopo.test.js`.
 35. [verified] The same intent added twice, in any casing, accenting, spacing or with a pinned id, is refused naming the existing anchor and writes nothing, while a different intent is still added — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
 36. [verified] An out-of-domain value, a malformed flag and a missing criterion answer the usage class and leave the spec untouched, a spec lacking the header the operation needs answers the gate class and passes once repaired, and both at once answer the usage class — verified by `packages/doctrina-cli/test/spec-set-diz-o-que-corrigir.test.js`.
+37. [verified] The chore playbook and its opening line name `doctrina close` and neither `change apply` nor `change archive`, and a chore done by its playbook closes in one pass in a fresh project — verified by `packages/doctrina-cli/test/a-chore-fecha-como-toda-change.test.js`.
+38. [verified] `work --design` writes the design.md that `change new --design` writes for the same title, and `work` without the flag writes none — verified by `packages/doctrina-cli/test/o-work-esboca-o-design.test.js`.
+39. [verified] Prompts carrying a version or a number keep it in the slug, and one-letter words are still dropped — verified by `packages/doctrina-cli/test/change-title.test.js`.
+40. [verified] Over a tree whose hand-edited spec drifted the index, `intake --converted` exits 1 naming the errors and the fix and leaves the intake pending; with `--force` it converts — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
+41. [verified] A scaffolded tasks.md carries no closing steps, `change tick` numbers the tasks and then the Verification claims, and the counter leaves a legacy `## Closing steps` list out while the grammar still sees its boxes — verified by `packages/doctrina-cli/test/one-box-count.test.js`.
+42. [verified] Every command that takes a change reference refuses `../../victim` and `archive` with exit 2, leaving an outside directory, the ledger and the index untouched, and a legacy id such as `Add_Login` still resolves — verified by `packages/doctrina-cli/test/um-id-de-change-e-um-nome.test.js`.
 
 ## Out of scope for this spec
 

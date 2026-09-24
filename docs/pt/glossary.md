@@ -38,8 +38,9 @@ Adapters não carregam regras próprias e têm cap de 30 linhas.
 
 A ação de fazer merge dos deltas de spec de um change nas specs
 afetadas. Deltas ADDED escrevem um arquivo de spec novo. Deltas
-REMOVED deletam um arquivo. Deltas MODIFIED requerem merge
-manual.
+REMOVED deletam um arquivo. Deltas MODIFIED são aplicados
+mecanicamente pelo bloco `ops`, todas as ops ou nenhuma (ADR 0007); um
+sem bloco `ops` imprime um ponteiro de merge manual.
 
 ## Archive
 
@@ -82,9 +83,9 @@ que `@`-importa `AGENTS.md`.
 
 Uma mudança de spec empacotada dentro de uma pasta de change.
 Carrega um header `Operation:` (`ADDED`, `MODIFIED` ou `REMOVED`)
-e um caminho de spec alvo. ADDED e REMOVED são aplicados
-automaticamente por `doctrina change apply`. MODIFIED requer
-merge humano.
+e um caminho de spec alvo. O `doctrina change apply` (e o `doctrina
+close`) aplica os três automaticamente — um MODIFIED pelo bloco `ops`;
+só um escrito sem bloco `ops` precisa de merge humano.
 
 ## Dogfooding
 
@@ -159,8 +160,8 @@ modelo operacional.
 
 O ato de abrir um change com `doctrina change new`. O change
 começa com `Status: proposed`. Um proposal vira `applied` só
-quando `doctrina change apply` termina sem erros e sem deltas
-MODIFIED manuais.
+quando `doctrina change apply` termina sem erros e sem nenhum delta
+MODIFIED para mesclar à mão.
 
 ## Spec
 

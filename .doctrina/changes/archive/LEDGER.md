@@ -183,3 +183,28 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0170-estimativa-de-tokens-conta-o-cr — estimativa de tokens conta o CR (specs: insight MODIFIED)
 - 2026-09-24 — 0171-ci-nao-testa-o-node-24 — CI nao testa o Node 24
 - 2026-09-24 — 0172-readme-sem-instalacao-e-lista-quebrada — README sem instalacao e lista quebrada (specs: docs MODIFIED)
+- 2026-09-24 — 0176-report-diverge-de-status-view-report — report diverge de status view report (specs: insight MODIFIED)
+- 2026-09-24 — 0177-skill-sync-fundido-no-index-rebuild — skill sync fundido no index rebuild (specs: authoring MODIFIED, skills MODIFIED, structure MODIFIED)
+- 2026-09-24 — 0178-templates-check-e-update-fundidos-no-upgrade — templates check e update fundidos no upgrade (specs: templates MODIFIED)
+- 2026-09-24 — 0175-remover-constitution-e-change-diff — remover constitution e change diff (specs: authoring MODIFIED, cli MODIFIED, insight MODIFIED)
+- 2026-09-24 — 0174-ajuda-sem-agrupamento-por-momento — ajuda sem agrupamento por momento (specs: cli MODIFIED)
+- 2026-09-24 — 0173-primeiro-uso-do-init-se-contradiz — primeiro uso do init se contradiz (specs: scaffolding MODIFIED)
+- 2026-09-24 — 0179-documentacao-defasada — documentacao defasada (specs: docs MODIFIED)
+- 2026-09-24 — 0180-playbook-de-chore-sem-close — playbook de chore sem close (specs: authoring MODIFIED)
+- 2026-09-24 — 0181-slash-commands-com-passos-redundantes — slash commands com passos redundantes (specs: templates MODIFIED)
+- 2026-09-24 — 0182-analyze-fundido-no-change-check — analyze fundido no change check (specs: gates MODIFIED)
+- 2026-09-24 — 0183-cli-ainda-indica-comandos — o CLI ainda indica comandos depreciados (specs: authoring MODIFIED, cli MODIFIED)
+- 2026-09-24 — 0184-textos-fora-docs-ensinam — textos fora de docs ensinam o caminho aposentado
+- 2026-09-24 — 0185-guarda-documentacao-cobrir-contributing — o guarda de documentação lê toda página de instrução (specs: docs MODIFIED)
+- 2026-09-24 — 0186-work-aceita-design — work aceita design (specs: authoring MODIFIED)
+- 2026-09-24 — 0187-upgrade-aponta-slash-commands-defasados — upgrade aponta slash commands defasados (specs: templates MODIFIED)
+- 2026-09-24 — 0188-completion-sem-depreciados — completion sem depreciados (specs: cli MODIFIED)
+- 2026-09-24 — 0190-chore-sem-fantasmas-no-affects — chore sem fantasmas no affects (specs: structure MODIFIED)
+- 2026-09-24 — 0189-cortar — cortar a 0.17.0
+- 2026-09-24 — 0191-slug-mantem-numeros — slug mantém números (specs: authoring MODIFIED)
+- 2026-09-24 — 0192-lane-sobrevive-ao-arquivamento — lane sobrevive ao arquivamento (specs: insight MODIFIED)
+- 2026-09-24 — 0193-next-corrige-o-indice-primeiro — next corrige o índice primeiro (specs: cli MODIFIED)
+- 2026-09-24 — 0194-intake-converte-so-com-validate-limpo — intake converte só com validate limpo (specs: authoring MODIFIED)
+- 2026-09-24 — 0195-closing-steps-saem-do-tasks — closing steps saem do tasks (specs: authoring MODIFIED)
+- 2026-09-24 — 0196-id-de-change-e-um-nome-nao-um-caminho — id de change é um nome, não um caminho (specs: authoring MODIFIED)
+- 2026-09-24 — 0197-0-17-0-inclui-0191-a-0196 — 0.17.0 inclui 0191 a 0196

@@ -183,8 +183,20 @@ export const CONFIDENT_MARGIN = 10;
 // content words, no interpretation (ADR 0005).
 export const SLUG_WORDS = 4;
 
+// A number is content in an id (change 0191). `terms` serves retrieval, where
+// a bare "24" matches everything, so it keeps only words that start with a
+// letter — and the slug inherited that: "cortar a 0.17.0" became `cortar`
+// and "migrar para Node 24" `migrar-node`. The slug reads its own tokens: a
+// version or a number is one word, its dots folded into hyphens.
+function slugTerms(prompt) {
+  const words = (fold(String(prompt ?? "")).match(/[a-z0-9][a-z0-9.-]*/g) ?? [])
+    .map((w) => w.replace(/[.-]+$/g, "").replace(/\./g, "-"))
+    .filter((w) => (w.length > 1 || /^\d$/.test(w)) && !STOPWORDS.has(w));
+  return [...new Set(words)];
+}
+
 export function slugFromPrompt(prompt, { words = SLUG_WORDS } = {}) {
-  const content = terms(prompt).slice(0, words);
+  const content = slugTerms(prompt).slice(0, words);
   const slug = slugify(content.join(" "));
   // A prompt of nothing but stopwords ("do it now") still needs an id.
   return slug || slugify(prompt).split("-").slice(0, words).join("-");

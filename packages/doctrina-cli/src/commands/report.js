@@ -5,11 +5,9 @@ import { exists } from "../lib/fs-ops.js";
 import { flagBool, flagString, parsePositiveInt } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { collectSnapshot } from "../lib/snapshot.js";
+import { collectSnapshot, collectReportWindow } from "../lib/snapshot.js";
 import { renderView } from "../lib/views.js";
-import { gitWindow, historyState, windowCutoff } from "../lib/git.js";
 import { draftAgentChangelog, renderDraft } from "../lib/agent-changelog.js";
-import { collectMetrics } from "../lib/metrics-model.js";
 import { cliVersion } from "../lib/version.js";
 
 // Periodic digest in Markdown — the standup/PR-description view: what was
@@ -51,19 +49,9 @@ export async function run(_positional, flags) {
     return 0;
   }
 
-  const options = {
-    days,
-    cutoffIso: windowCutoff(days),
-    git: gitWindow(projectRoot, days),
-    // Why there is no window, when there is none — the same door `metrics`
-    // and `context` already ask, so the three cannot disagree about the
-    // state of one repository (change 0080).
-    gitState: historyState(projectRoot),
-    // The same snapshot `metrics` renders, for the same window (change
-    // 0050). One definition of "revert rate", so the digest and the metrics
-    // command cannot report two different numbers for one period.
-    metrics: collectMetrics(projectRoot, `${days} days ago`),
-  };
+  // One collector with `status --view report` (change 0176), so the
+  // deprecated name and its survivor cannot print different digests.
+  const options = collectReportWindow(projectRoot, days);
   for (const line of renderView("report", collectSnapshot(projectRoot), options)) console.log(line);
   return 0;
 }
@@ -78,7 +66,8 @@ work with task progress, artifact counts, and a local-git summary
 descriptions. Read-only; no network. \`doctrina metrics\` has the
 deeper git-derived numbers.
 
-The same view as \`doctrina status --view report --since <days>\`.
+Deprecated: this is \`doctrina status --view report --since <days>\`, and
+\`--agent-changelog\` is \`doctrina status --view agent-changelog\`.
 
   --agent-changelog   Draft the AGENTS.md "What changed" block instead of
                       the digest: one candidate bullet per archived change

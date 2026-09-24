@@ -162,7 +162,7 @@ changed nine times; only the ledger can tell you a capability did.
 
 Three surfaces read it:
 
-- `doctrina report` lists **capability churn** for the period.
+- `doctrina status --view report` lists **capability churn** for the period.
 - `doctrina review` notes a touched capability that has landed several
   changes lately.
 - `doctrina close` lists the **dependents** of the capabilities the change

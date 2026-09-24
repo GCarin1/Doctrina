@@ -15,7 +15,7 @@ import { printPlaybookTemplate } from "../lib/playbook.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
-import { isChangeId } from "../lib/project.js";
+import { isChangeId, refuseChangeRef } from "../lib/project.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -29,7 +29,7 @@ export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "chore", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
+export const flags = { boolean: ["json", "chore", "design", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
 
 export async function run(positional, flags) {
   const prompt = positional.join(" ").trim();
@@ -387,6 +387,8 @@ function resumeChange(projectRoot, resumeId) {
     if (open.length) console.error(c.gray("open: ") + open.map((ch) => ch.id).join(", "));
     return 2;
   }
+  const refused = refuseChangeRef(resumeId);
+  if (refused !== null) return refused;
   const entry = open.find((ch) => ch.id === resumeId);
   if (!entry && !isDir(path.join(projectRoot, ".doctrina", "changes", resumeId))) {
     console.error(c.red("error:") + ` no open change "${resumeId}"`);
@@ -515,9 +517,10 @@ change id (NNNN-<slug>) from the prompt, opens the change folder,
 records the prompt under the proposal's "## Why", ranks existing specs
 by term overlap as a capability hint, flags a thin/under-specified prompt
 so you clarify before writing deltas (advisory), and prints the steps:
-context → spec delta → tasks → implement → analyze → apply → verify
-(verify + coverage) → archive → validate. No natural-language
-interpretation happens in the CLI.
+context, spec delta, tasks, implement, then \`doctrina change check <id>\`
+to preview the close and \`doctrina close <id>\` to finish, which runs the
+whole closing sequence in one pass. No natural-language interpretation
+happens in the CLI.
 
 The change's spec delta is scaffolded with **Operation:** prefilled
 whenever the CLI can name the capability: from --capability, or from the
@@ -542,6 +545,8 @@ Options:
                        prompt needed) and print a code-first playbook (F8)
   --chore, --no-spec   Open a spec-less chore change (infra/docs/build) with a
                        playbook that skips the spec-delta steps (F9)
+  --design             Also scaffold design.md, for a change with non-trivial
+                       choices (opt-in, as with \`change new --design\`)
   --force              Open a new change even when one is open, overwrite an
                        existing change folder, and proceed past the lane hold
                        below

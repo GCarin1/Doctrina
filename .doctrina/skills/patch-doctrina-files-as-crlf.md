@@ -74,7 +74,7 @@ in one session.
 
    ```sh
    cat -A .doctrina/changes/<id>/proposal.md | head -20
-   doctrina analyze <id>     # fails on a section that is still scaffold
+   doctrina change check <id>   # fails on a section that is still scaffold
    ```
 
 ## Anti-patterns

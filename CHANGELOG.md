@@ -17,8 +17,210 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-09-24
+
+### Upgrading from 0.16
+
+- Run `doctrina upgrade --write`. It regenerates the AGENTS.md command
+  surface and "What changed" blocks and re-stamps the index.
+- If `upgrade` still exits 1 naming a slash command under
+  `.claude/commands/` or `.cursor/commands/`, run the fix it prints
+  (`doctrina adapter add <agent> --force`): the 0.16 `/doctrina-work` ran
+  `analyze` → `change apply` before the close.
+- `doctrina constitution` and `doctrina change diff` are gone (exit 2,
+  naming the replacement). `analyze`, `report`, `skill sync` and
+  `templates check|update` still run, with a notice on stderr naming what
+  replaces them; move scripts over before a later minor removes them.
+- Regenerate shell completion (`doctrina completion <shell>`).
+
+### Added
+
+- **`doctrina work --design`.** `work` opens its change through `change
+  new` but refused `--design`, so a change that needed a design document
+  had to leave the recommended door for the manual one. It now scaffolds
+  the same `design.md`. (0186)
+
+- **A change can declare that it only *mentions* a surface.**
+  `Documented surface: n/a — <why>` in a proposal tells the docs gate that the
+  command names in its prose are context, not a change — the same grammar as
+  `Realizes: n/a — <why>`, and a bare `n/a` silences nothing. Three closes in
+  one session had been forced over names that appeared only in an explanation
+  or in a Scope boundaries line, and a gate that is routinely forced stops
+  being a gate. (0139)
+- **`validate --strict`** treats warnings as failures, the way `coverage
+  --strict` and `trace --strict` already do. The default stays lenient,
+  because a warning is advice; a gate wants a verdict. The CI step that
+  validates the shipped examples uses it — it had reported green for weeks
+  over an example defect it had no way to reprove. (0126)
+- **The release gate is no longer weaker than the pull-request gate.**
+  Publishing now runs `verify`, the packed-install harness and the strict
+  example check, and publishes with `--provenance` — which is what the
+  `id-token: write` permission it already requested was for. (0127)
+- **CI runs on `develop`,** the branch feature work actually lands on. It
+  triggered only on `main`, so a pull request into `develop` ran no gate at
+  all. (0128)
+- **`close` asks the changelog, not only the docs.** A change that alters a
+  documented surface now has to record that it changed, as well as describe
+  how it works — two obligations, because prose about new behaviour reads
+  exactly like prose that always described it. Blocking, with `--force` and a
+  ledger line like every other gate, and silent for a project that keeps no
+  `CHANGELOG.md`.
+
+### Changed
+
+- **`validate` moved out of the `gates` spec into a new `structure`
+  capability** (ADR 0028). `gates` had crossed its 400-line cap a second
+  time; three split axes were measured against the tree and only this one
+  resolved it, taking the spec from 427 lines to 331. The split follows a
+  real seam: `validate` answers whether the tree is well-formed, asked before
+  anything answers whether it is proven. (0132)
+- `SECURITY.md` describes the subprocesses the CLI actually runs. It claimed
+  none beyond the pre-commit hook, while eleven modules query `git` and
+  `verify` runs shell commands a project declares — so it described a
+  narrower trust boundary than the real one, which is the one documentation
+  error with a security consequence. (0124)
+- The context-degradation test measures its budget instead of hardcoding one,
+  and the context-pack test reports which link broke rather than one missing
+  regex. (0130, 0133)
+
+### Deprecated
+
+- **`doctrina analyze <id>` → `doctrina change check <id>`.** The check's
+  first section was already every line analyze printed, followed by the
+  ops dry-run and the archive-gate preview. One difference is stated, not
+  hidden: the check answers "would the close pass?", so it exits 1 while a
+  Verification box is open, where analyze exited 0; `change apply` still
+  refuses what analyze refused. `next` now recommends `change check` then
+  `close`, and a close stopped on its structural step names `change check`
+  as the rerun. (0182)
+- **`doctrina templates check` / `templates update` → `doctrina upgrade`
+  / `upgrade --write`.** The upgrade's first step was already the update,
+  and the check was that step without the power to fix — but the check also
+  reported what no command repairs (a hub pointer that lost AGENTS.md, a
+  broken playbook), and the upgrade said "nothing to upgrade" over it. The
+  upgrade now lists those with their fixes and exits 1 while one is left.
+  (0178)
+- **`doctrina skill sync` → `doctrina index rebuild`.** The rebuild already
+  registered every skill and mirrored its description; `sync` added one
+  rule, that a scaffold `<...>` description never overwrites a written one.
+  The rebuild now carries that rule — before, reverting a description to
+  the placeholder made `index rebuild`, `validate --fix` and the pre-commit
+  hook serve the placeholder to every context pack. (0177)
+- **`doctrina report` → `doctrina status --view report`.** They were
+  documented as the same digest and were not: `report` carried the
+  window's revert and re-edit rates and `--view report` dropped them. One
+  collector now feeds both, and `report --agent-changelog` is
+  `status --view agent-changelog`. The old name still works, with a notice
+  on stderr, until a later minor removes it. (0176)
+
+### Removed
+
+- **`doctrina constitution` and `doctrina change diff`**, deprecated since
+  0.16.0. Use `doctrina prime --rules` and `doctrina change check <id>
+  --verbose`, which print the same output. Typing a removed name exits `2`
+  naming its replacement, instead of "unknown command" and a guess. (0175)
+
 ### Fixed
 
+- **A change is named by its folder, never by a path.** `change archive
+  ../../victim --force` moved the project's own `victim/` directory into
+  the archive and wrote it into the ledger and the index: only `change new`
+  validated its id. Every command that takes an existing change —
+  `change apply|archive|check|tick|abandon`, `close`, `analyze`,
+  `work --resume` — now refuses a path, `.`, `..` or `archive` with exit 2
+  before touching the filesystem; legacy ids still resolve. (0196)
+- **`tasks.md` no longer asks you to tick what the close does.** Every
+  change ended with "## Closing steps" — apply, archive, update the index —
+  and the archive gate required them ticked before `doctrina close`, the
+  command that performs them. The scaffold no longer writes them, and a
+  change that still carries them is not held to them. (0195)
+- **`intake --converted` refuses while `validate` fails.** It converted
+  over a tree with an error — a hand-edited spec that drifted the index —
+  so the specs became the source of truth while `validate` said they were
+  not well-formed. It now lists the errors and exits 1; `--force` converts
+  anyway. (0194)
+- **`next` puts a drifted index first.** It listed index drift last, below
+  advisory nudges, though `validate` reports it as an error, the close
+  blocks on it, one runnable command fixes it, and the actions below it
+  read the drifted index. It now follows the runtime and intake actions.
+  (0193)
+- **The report's lane mix counts the history.** The index kept the lane of
+  open changes only; archiving dropped it, so `status --view report` read
+  "unknown" for every archived change. One constructor now builds the
+  archived entry for `change archive` and `index rebuild`, lane included —
+  run `doctrina index rebuild` to backfill an existing tree. (0192)
+- **A derived change id keeps the prompt's numbers.** The slug shared the
+  search tokenizer, which keeps only words that start with a letter, so
+  `work "cortar a 0.17.0"` opened `0189-cortar`. Versions and numbers now
+  stay (`cortar-0-17-0`, `migrar-node-24`). (0191)
+- **A chore no longer warns about two ghost capabilities.** Every chore is
+  scaffolded with `Affects specs: (none — chore)`, and `validate` read
+  "none" and "chore" as capability names with no spec. It now skips a
+  none/n/a header and parenthesised asides. (0190)
+- **Tab completion offers the live surface.** The bash, zsh and pwsh
+  scripts were generated from the whole catalog and kept offering
+  `analyze`, `report`, `skill sync` and `templates check|update` beside
+  their replacements. Deprecated names still run; they are no longer
+  suggested. Regenerate with `doctrina completion <shell>`. (0188)
+- **`upgrade` sees the slash command the last CLI left behind.** A command
+  shim is copied into a project once, so a project scaffolded by 0.16 kept
+  a `/doctrina-work` that ran `analyze` → `change apply`, and `upgrade`
+  reported nothing to do. It now names any installed shim that teaches a
+  deprecated or removed command, with `doctrina adapter add <agent>
+  --force` as the fix, and exits 1 until it is repaired. `change check`
+  titles its first section `structure`. (0187)
+- **The documentation guard reads every page of instructions.** It read
+  the READMEs and `docs/` only, so CONTRIBUTING.md, the PR template, an
+  example, two skills and `product.md` kept teaching `analyze` unseen. It
+  now reads those, the templates and the installed slash commands too,
+  holds the contributor pages to `doctrina close`, and refuses an
+  `AGENTS.md` outside the root and the examples. (0185)
+- **The contributor rules describe the workflow the repository runs.**
+  `CONTRIBUTING.md`, the contributing page, the PR template and the
+  release skill said framework work is committed directly, without change
+  folders, and that `.doctrina/changes/archive/` must stay empty — while
+  the repository has used Doctrina on itself since ADR 0014. They now
+  describe one loop: `prime` → `work` → `change check` → `close`, one
+  commit per change. The example, the issue template, two skills and
+  `product.md` stop naming `analyze`, and a test project's AGENTS.md
+  committed by mistake under `packages/doctrina-cli/` is gone. (0184)
+- **The CLI no longer tells you to run what it just deprecated.** `skill
+  new` ended with "then run `doctrina skill sync`"; `work --help` walked
+  analyze → apply → verify → archive → validate by hand, with no close; two
+  `validate` warnings said "analyze/apply will refuse it". They now name
+  `index rebuild`, `change check` then `close`, and `change apply`. The
+  close's first step is labelled `structure`, the gate it holds, in its
+  help and output. A test sweeps every live command's `--help`. (0183)
+- **The `/doctrina-work` slash commands leave the lifecycle to the close.**
+  The Claude Code and Cursor adapters told the agent to run `analyze` →
+  `change apply` before `close` — two steps the close runs itself. They now
+  preview with `change check <id>` and finish with `close <id>`. Refresh an
+  installed copy with `doctrina adapter add <agent> --force`. (0181)
+- **A chore closes the way every change closes.** The chore playbook, and
+  the line `work --chore` prints on opening, ended with a hand-run
+  `change apply`, `change archive` and `validate` — skipping the close's
+  review, documentation and changelog gate, coverage, trace and ADR
+  checkpoint. Both now end with `doctrina close <id>`. (0180)
+- **Documentation caught up with the CLI.** The npm README's command list
+  had lost `close`, `prime`, `status` and a dozen more, and kept a stale
+  second copy of the `validate` checks; the docs home walked a reader
+  through a manual apply/archive and called MODIFIED deltas manual, as did
+  the glossary, workflow and getting-started pages, two releases after
+  `ops` blocks made them mechanical; the benchmark headline ("under
+  100 ms") was three months and many checks old. A test now keeps the npm
+  README naming every live operation and keeps every page from teaching a
+  deprecated or removed command. (0179)
+- **The first run gives one instruction.** `init` said "edit AGENTS.md and
+  product.md", `next` then asked for the description again as an intake,
+  and AGENTS.md says the agent drives. At a terminal `init` now asks one
+  question, stores the answer as the intake, and ends with "open your agent
+  and have it read AGENTS.md and run `doctrina next`"; without an intake its
+  closing line names the same step `next` does. (0173)
+- **`doctrina --help` starts where a newcomer starts.** It printed the 61
+  operations as one flat list, deprecated names mixed in. It now opens with
+  `doctrina init` and `doctrina next`, groups one line per command under the
+  moment it is reached for (the AGENTS.md grouping), and lists deprecated
+  names last with their replacement — 70 lines instead of 77. (0174)
 - **The README says how to install, and reaches every guide.** It never
   showed `npm install -g doctrina-cli`, three guides were stranded after
   the project-policy line, seven (among them exit codes and upgrading)
@@ -312,51 +514,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `package-lock.json` records the CLI at its real version, so `npm install`
   no longer dirties the tree and `review` no longer reports nine false
   breaks. (0121)
-
-### Added
-
-- **A change can declare that it only *mentions* a surface.**
-  `Documented surface: n/a — <why>` in a proposal tells the docs gate that the
-  command names in its prose are context, not a change — the same grammar as
-  `Realizes: n/a — <why>`, and a bare `n/a` silences nothing. Three closes in
-  one session had been forced over names that appeared only in an explanation
-  or in a Scope boundaries line, and a gate that is routinely forced stops
-  being a gate. (0139)
-- **`validate --strict`** treats warnings as failures, the way `coverage
-  --strict` and `trace --strict` already do. The default stays lenient,
-  because a warning is advice; a gate wants a verdict. The CI step that
-  validates the shipped examples uses it — it had reported green for weeks
-  over an example defect it had no way to reprove. (0126)
-- **The release gate is no longer weaker than the pull-request gate.**
-  Publishing now runs `verify`, the packed-install harness and the strict
-  example check, and publishes with `--provenance` — which is what the
-  `id-token: write` permission it already requested was for. (0127)
-- **CI runs on `develop`,** the branch feature work actually lands on. It
-  triggered only on `main`, so a pull request into `develop` ran no gate at
-  all. (0128)
-- **`close` asks the changelog, not only the docs.** A change that alters a
-  documented surface now has to record that it changed, as well as describe
-  how it works — two obligations, because prose about new behaviour reads
-  exactly like prose that always described it. Blocking, with `--force` and a
-  ledger line like every other gate, and silent for a project that keeps no
-  `CHANGELOG.md`.
-
-### Changed
-
-- **`validate` moved out of the `gates` spec into a new `structure`
-  capability** (ADR 0028). `gates` had crossed its 400-line cap a second
-  time; three split axes were measured against the tree and only this one
-  resolved it, taking the spec from 427 lines to 331. The split follows a
-  real seam: `validate` answers whether the tree is well-formed, asked before
-  anything answers whether it is proven. (0132)
-- `SECURITY.md` describes the subprocesses the CLI actually runs. It claimed
-  none beyond the pre-commit hook, while eleven modules query `git` and
-  `verify` runs shell commands a project declares — so it described a
-  narrower trust boundary than the real one, which is the one documentation
-  error with a security consequence. (0124)
-- The context-degradation test measures its budget instead of hardcoding one,
-  and the context-pack test reports which link broke rather than one missing
-  regex. (0130, 0133)
 
 ## [0.16.0] — 2026-09-09
 

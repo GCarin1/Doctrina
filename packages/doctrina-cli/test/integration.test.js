@@ -1139,7 +1139,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     assert.match(r.stdout, /open task/);
     assert.match(r.stdout, /0001-x\/tasks\.md/);
 
-    // Tasks done + a delta present: suggests analyze/apply.
+    // Tasks done + a delta present: suggests the check, then the close.
     planTasks(tmp, "0001-x");
     const tasksPath = path.join(tmp, ".doctrina", "changes", "0001-x", "tasks.md");
     writeFileSync(tasksPath, readFileSync(tasksPath, "utf8").replaceAll("- [ ]", "- [x]"));
@@ -1150,7 +1150,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
       "# Spec Delta — capability: core\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/core/spec.md`\n\n---\n\n# Spec — Core\n\nbody\n",
     );
     r = runCli(["next"], { cwd: tmp });
-    assert.match(r.stdout, /doctrina change apply 0001-x/);
+    assert.match(r.stdout, /doctrina change check 0001-x, then doctrina close 0001-x/);
 
     // Applied but not archived.
     planTasks(tmp, "0001-x");
@@ -1185,7 +1185,7 @@ test("next flags ADRs stuck in proposed status", () => {
   }
 });
 
-test("change diff renders a unified diff for MODIFIED deltas", () => {
+test("change check --verbose renders a unified diff for MODIFIED deltas", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
@@ -1201,8 +1201,9 @@ test("change diff renders a unified diff for MODIFIED deltas", () => {
       "# Spec Delta — capability: billing\n\n**Operation:** MODIFIED\n**Target spec on apply:** `.doctrina/specs/billing/spec.md`\n\n---\n\nThe system shall bill weekly.\n",
     );
 
-    const r = runCli(["change", "diff", "0001-tweak"], { cwd: tmp });
-    assert.equal(r.status, 0, r.stderr || r.stdout);
+    // The preview `change diff` printed until its removal (change 0175). The
+    // check may still refuse the unwritten proposal; the preview is the point.
+    const r = runCli(["change", "check", "0001-tweak", "--verbose"], { cwd: tmp });
     assert.match(r.stdout, /MODIFIED .*billing\/spec\.md/);
     assert.match(r.stdout, /@@ /);
     assert.match(r.stdout, /\+The system shall bill weekly\./);
@@ -1212,7 +1213,7 @@ test("change diff renders a unified diff for MODIFIED deltas", () => {
   }
 });
 
-test("change diff summarises ADDED deltas without diffing", () => {
+test("change check --verbose summarises ADDED deltas without diffing", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
@@ -1223,8 +1224,7 @@ test("change diff summarises ADDED deltas without diffing", () => {
       deltaPath,
       "# Spec Delta — capability: core\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/core/spec.md`\n\n---\n\n# Spec — Core\n\nbody\n",
     );
-    const r = runCli(["change", "diff", "0001-add"], { cwd: tmp });
-    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const r = runCli(["change", "check", "0001-add", "--verbose"], { cwd: tmp });
     assert.match(r.stdout, /ADDED .*core\/spec\.md \(\+\d+ lines\)/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -1379,12 +1379,12 @@ test("templates update previews by default and applies with --write", () => {
     const preview = runCli(["templates", "update"], { cwd: tmp });
     assert.equal(preview.status, 1);
     assert.match(preview.stdout, /would.*AGENTS\.md: append stub section "## Conventions and boundaries"/);
-    assert.ok(!readFileSync(agentsPath, "utf8").includes("added by doctrina templates update"));
+    assert.ok(!readFileSync(agentsPath, "utf8").includes("added by doctrina upgrade"));
 
     const applied = runCli(["templates", "update", "--write"], { cwd: tmp });
     assert.equal(applied.status, 0, applied.stderr || applied.stdout);
     const body = readFileSync(agentsPath, "utf8");
-    assert.match(body, /## Conventions and boundaries\n\n<!-- added by doctrina templates update — fill in -->/);
+    assert.match(body, /## Conventions and boundaries\n\n<!-- added by doctrina upgrade — fill in -->/);
 
     const check = runCli(["templates", "check"], { cwd: tmp });
     assert.equal(check.status, 0, check.stdout);

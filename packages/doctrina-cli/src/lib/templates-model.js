@@ -9,7 +9,7 @@ import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./
 import { adapterFiles, isHubPointer, listAdapterNames } from "./adapters.js";
 import { readTemplate } from "./templates.js";
 import { PLAYBOOKS } from "./playbook.js";
-import { COMMAND_META, COMMAND_NAMES, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
+import { COMMAND_META, COMMAND_NAMES, DEPRECATED, REMOVED, SURFACE_LINE_BUDGET, surfaceBlock, surfaceMarkdown, findSurfaceBlock } from "./commands.js";
 import { declaredBudget } from "./runtime.js";
 import { agentsMdBudget } from "./validation-model.js";
 /**
@@ -80,6 +80,16 @@ export const PRODUCT_SECTIONS = [
   "## Success criteria",
 ];
 
+// The first deprecated or removed operation a text tells you to run, as
+// `doctrina <op>`, or null.
+function retiredCommandIn(text) {
+  for (const op of [...Object.keys(DEPRECATED), ...Object.keys(REMOVED)]) {
+    const name = op.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`doctrina ${name}(?![a-z-])`).test(text)) return op;
+  }
+  return null;
+}
+
 // The findings `templates check` reports, as structured records with an
 // executable remedy. Exported so a test can seed each finding, run the
 // remedy it names, and assert the finding clears — a remedy that cannot
@@ -111,16 +121,16 @@ export function collectFindings(projectRoot) {
             : ` — the ${missingSections.length} missing stub(s) cost ${budget.cost} lines and ` +
               `AGENTS.md has ${budget.slack} left of its declared ceiling`),
         remedy: budget.fits
-          ? "doctrina templates update --write"
-          : `cut ${budget.over} line(s) of prose from AGENTS.md, then \`doctrina templates update --write\``,
+          ? "doctrina upgrade --write"
+          : `cut ${budget.over} line(s) of prose from AGENTS.md, then \`doctrina upgrade --write\``,
       });
     }
     // Command-surface block: present and current vs the installed catalog.
     const block = findSurfaceBlock(text);
     if (!block) {
-      findings.push({ message: "AGENTS.md has no doctrina:surface block — agents discover commands through this file", remedy: "doctrina templates update --write" });
+      findings.push({ message: "AGENTS.md has no doctrina:surface block — agents discover commands through this file", remedy: "doctrina upgrade --write" });
     } else if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(surfaceBlock())) {
-      findings.push({ message: "AGENTS.md doctrina:surface block is stale vs the installed CLI", remedy: "doctrina templates update --write" });
+      findings.push({ message: "AGENTS.md doctrina:surface block is stale vs the installed CLI", remedy: "doctrina upgrade --write" });
     } else {
       ok.push("AGENTS.md: doctrina:surface block current");
     }
@@ -134,7 +144,7 @@ export function collectFindings(projectRoot) {
     const text = read(productPath);
     for (const heading of PRODUCT_SECTIONS) {
       if (hasHeading(text, heading)) ok.push(`product.md: ${heading}`);
-      else findings.push({ message: `.doctrina/product.md missing recommended section "${heading}"`, remedy: "doctrina templates update --write" });
+      else findings.push({ message: `.doctrina/product.md missing recommended section "${heading}"`, remedy: "doctrina upgrade --write" });
     }
   } else {
     findings.push({ message: ".doctrina/product.md missing", remedy: "doctrina init --force" });
@@ -151,7 +161,24 @@ export function collectFindings(projectRoot) {
     for (const file of spec.files) {
       const installed = path.join(projectRoot, file.relativePath);
       if (!isFile(installed)) continue; // not installed — nothing to check
-      if (!isHubPointer(file)) continue; // command shim, not a pointer
+      if (!isHubPointer(file)) {
+        // A command shim is copied into the project once, so an upgrade
+        // of the CLI leaves it teaching whatever the CLI taught then: the
+        // 0.16 `/doctrina-work` still ran `analyze` → `change apply` after
+        // 0.17 deprecated one and handed the other to the close (change
+        // 0187). A shim naming a retired command is stale; the same rewrite
+        // from the template that repairs a pointer repairs it.
+        const retired = retiredCommandIn(read(installed));
+        if (retired) {
+          findings.push({
+            message: `adapter ${file.relativePath} still teaches \`doctrina ${retired}\`, which this CLI ${DEPRECATED[retired] ? "deprecated" : "removed"} — the agent running it follows the old flow`,
+            remedy: `doctrina adapter add ${name} --force`,
+          });
+        } else {
+          ok.push(`adapter ${file.relativePath}: teaches live commands only`);
+        }
+        continue;
+      }
       if (read(installed).includes("AGENTS.md")) {
         ok.push(`adapter ${file.relativePath}: points at AGENTS.md`);
       } else {
@@ -195,7 +222,7 @@ export function collectFindings(projectRoot) {
       const idx = JSON.parse(read(indexPath));
       for (const field of INDEX_FIELDS) {
         if (idx[field] !== undefined) ok.push(`index.json: ${field}`);
-        else findings.push({ message: `.doctrina/index.json missing field "${field}"`, remedy: "doctrina templates update --write" });
+        else findings.push({ message: `.doctrina/index.json missing field "${field}"`, remedy: "doctrina upgrade --write" });
       }
       if (idx.$schema_version && idx.$schema_version !== "0.1.0") {
         findings.push({ message: `.doctrina/index.json $schema_version is "${idx.$schema_version}" (expected "0.1.0")`, remedy: null });

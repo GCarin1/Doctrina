@@ -155,6 +155,34 @@ export function computeActions(projectRoot, gates = {}) {
     }));
   }
 
+  // Index drift comes right after the intake (change 0193). It used to be
+  // surfaced LAST as "silent rot" — but `validate` reports it as an error,
+  // the close's index-drift step blocks on it, the fix is one runnable
+  // command, and the actions below read the very index that drifted. Ranked
+  // fifth, under advisory nudges, it told the agent to polish product.md
+  // before running the one command that unblocked everything.
+  try {
+    const current = idx.load(projectRoot);
+    if (!indexesMatch(deriveIndex(projectRoot, current), current)) {
+      actions.push(action({
+        id: "index-drift",
+        command: "index rebuild",
+        gate: "index",
+        runnable: true,
+        why: "index.json has drifted from the tree",
+      }));
+    }
+  } catch {
+    actions.push(action({
+      id: "index-unreadable",
+      command: "index rebuild",
+      gate: "index",
+      runnable: true,
+      why: "index.json is missing or unreadable",
+    }));
+  }
+
+
   // Open changes drive the loop: finish what is started before opening more.
   const changesDir = path.join(projectRoot, ".doctrina", "changes");
   if (isDir(changesDir)) {
@@ -200,12 +228,12 @@ export function computeActions(projectRoot, gates = {}) {
       if (deltas.length > 0) {
         actions.push(action({
           id: "change-apply-ready",
-          command: "analyze",
+          command: "change check",
           args: [id],
           gate: "structure",
           runnable: true,
           why: `tasks done, ${deltas.length} delta${deltas.length === 1 ? "" : "s"} ready`,
-          text: `doctrina analyze ${id}, then doctrina change apply ${id} — ` +
+          text: `doctrina change check ${id}, then doctrina close ${id} — ` +
             `tasks done, ${deltas.length} delta${deltas.length === 1 ? "" : "s"} ready`,
         }));
       } else {
@@ -374,28 +402,6 @@ export function computeActions(projectRoot, gates = {}) {
       // mistake — `next --run` picked it, found no runner registered, and
       // errored where it should have said the next step needs a person.
       why: "no .doctrina/verify.json — the close skips its build gate entirely",
-    }));
-  }
-
-  // Index drift is silent rot; surface it last.
-  try {
-    const current = idx.load(projectRoot);
-    if (!indexesMatch(deriveIndex(projectRoot, current), current)) {
-      actions.push(action({
-        id: "index-drift",
-        command: "index rebuild",
-        gate: "index",
-        runnable: true,
-        why: "index.json has drifted from the tree",
-      }));
-    }
-  } catch {
-    actions.push(action({
-      id: "index-unreadable",
-      command: "index rebuild",
-      gate: "index",
-      runnable: true,
-      why: "index.json is missing or unreadable",
     }));
   }
 

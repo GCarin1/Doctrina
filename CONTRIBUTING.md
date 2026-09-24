@@ -16,84 +16,61 @@ node packages/doctrina-cli/src/index.js validate      # self-validate
 Requires Node.js 20.12 or newer. There are zero runtime
 dependencies and zero dev dependencies — `npm install` is a no-op.
 
-## Two workflows — pick the right one
+## One workflow — the one Doctrina ships
 
-Doctrina has two distinct workflows. Using the wrong one is the
-single most common mistake contributors make, and it has
-polluted this repository twice. Read this section before opening
-a PR.
+This repository builds Doctrina and uses it on itself (ADR 0014): a
+change to the framework goes through the same change workflow a project
+that adopted Doctrina uses. There is no separate "direct commit" path.
 
-### Workflow A — Framework evolution (this repository)
+1. **Orient.** `doctrina prime` prints the gates, the standing rules and
+   the open work in one read.
+2. **Open the change** with `doctrina work "<what you want to change>"`.
+   It derives the `NNNN-slug` id, scaffolds `.doctrina/changes/<id>/`
+   (proposal, tasks, a spec delta when it can name the capability) and
+   prints the playbook to follow.
+3. **Plan it.** The proposal answers why and what; tasks list the work;
+   `design.md` covers non-trivial choices. A spec delta carries an
+   ` ```ops ` block (`append-requirement`, `replace-requirement`,
+   `append-criterion`, `bump-version`, ...) that the close applies
+   mechanically.
+4. **Implement** against the spec, with a test that the acceptance
+   criterion you add cites as its evidence.
+5. **Preview the close** with `doctrina change check <id>`: it lists
+   everything the close would refuse, before it runs.
+6. **Close** with `doctrina close <id>`. It runs the whole closing
+   sequence (structure, ADR checkpoint, review, apply, runtime, verify,
+   coverage, trace, docs, archive, index drift, validate) and archives
+   the change under `.doctrina/changes/archive/`, which is the project's
+   history. If the close refuses, the change is not done.
+7. **Commit** once per change, with a Conventional Commits prefix and the
+   change id in the title (`fix: <summary> — Change 0183`).
 
-When you change Doctrina **itself** (the CLI, the templates, the
-specs that describe the framework, the docs that ship with it),
-you use **Conventional Commits** with direct commits. **Not**
-`doctrina change new`.
-
-```
-feat(cli): add doctrina skill list command
-fix(workflows): use node --test auto-discovery
-docs(brownfield): clarify retroactive ADR pattern
-refactor(validate): extract stale-reference helper
-chore(deps): bump engines.node to 20.12
-```
-
-The git history is the record of how the framework evolves. The
-`.doctrina/changes/archive/` directory in this repository **must
-stay empty** (only `.gitkeep`). Creating change folders for
-framework work means the framework ships with the log of how it
-was built embedded as artifacts — content that is noise for
-anyone adopting Doctrina.
-
-### Workflow B — Projects that **use** Doctrina
-
-When you write changes in a project that adopted Doctrina (a
-real application, a service, a library), you use the change
-workflow we ship:
-
-1. **Open a change folder** with `doctrina change new <id> "<title>"`.
-   Use the convention `NNNN-slug` for the id.
-2. **Fill the change**. The proposal answers "why"; tasks list
-   the work; design covers non-trivial choices.
-3. **Write spec deltas** if the change modifies a capability
-   spec. ADDED creates new specs; MODIFIED requires manual
-   merge; REMOVED deletes. The CLI never auto-merges MODIFIED
-   on principle.
-4. **Implement the work** against the approved spec.
-5. **Run the gates**:
-   ```
-   doctrina validate
-   doctrina analyze <your-change-id>
-   doctrina clarify <each new spec or ADR>
-   ```
-6. **Apply and archive** the change before opening the PR.
-7. **Open the PR**. Reference the change id in the title.
-
-If you have not used Doctrina before in an adopting project, the
-fastest read is [`docs/en/workflow.md`](docs/en/workflow.md) and
-[`docs/en/cli-reference.md`](docs/en/cli-reference.md).
+In a project that uses Doctrina, the loop is the same; the
+[workflow guide](docs/en/workflow.md) walks through it.
 
 ## Submitting a pull request to this repository
 
 For framework evolution PRs:
 
-1. **Branch from `main`** with a descriptive name (e.g.
-   `fix/windows-hook-path`, `feat/aider-adapter`).
-2. **Make focused commits** using Conventional Commits prefixes.
-   Keep commits small enough to read in one sitting.
-3. **Run the gates** before pushing:
+1. **Branch from `develop`** with a descriptive name (e.g.
+   `fix/windows-hook-path`, `feat/aider-adapter`); CI runs on pull
+   requests to `develop` and `main`.
+2. **One change, one commit**, closed with `doctrina close <id>` as
+   above. Keep each change small enough to read in one sitting.
+3. **Run the gates** before pushing — the close already ran them for
+   your change; these rerun them on the whole tree:
    ```
-   cd packages/doctrina-cli && npm test
-   node packages/doctrina-cli/src/index.js validate
-   node packages/doctrina-cli/src/index.js clarify docs/en/<file you touched>.md
+   node packages/doctrina-cli/src/index.js verify
+   node scripts/check-docs.js
    ```
 4. **If you touched docs**: ship the EN change and the PT
    translation in the same PR.
 5. **If you added a new CLI command**: add at least one
    integration test, register the command in `src/index.js`, and
    document it in `docs/en/cli-reference.md` and the PT mirror.
-6. **If you added a new spec, ADR, or template**: do it as a
-   direct edit. Do **not** run `doctrina change new`.
+6. **If you added a new spec, ADR, or template**: scaffold it with the
+   CLI (`doctrina spec new`, `doctrina decision new`) inside the change,
+   so the index registers it.
 7. **Open the PR** with the
    [PR template](.github/PULL_REQUEST_TEMPLATE.md) filled in.
 

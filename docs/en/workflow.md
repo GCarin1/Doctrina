@@ -66,7 +66,7 @@ the command to read the current playbook, and drop your own file in
 `.doctrina/templates/playbooks/` to adapt it to your team's process — an
 extra review step, a different close. This page deliberately does not
 repeat the steps, because a procedure written in two places is a
-procedure that will disagree with itself; `doctrina templates check`
+procedure that will disagree with itself; `doctrina upgrade`
 verifies each playbook still resolves and is well-formed.
 
 In practice the bootstrap is one command: run
@@ -88,7 +88,7 @@ not command-by-command document authoring.
 # doctrina change apply <id>
 #   ADDED   -> writes .doctrina/specs/<capability>/spec.md
 #   REMOVED -> deletes that file
-#   MODIFIED -> manual merge; CLI prints the pointer
+#   MODIFIED -> its ops block, applied mechanically (none: a manual-merge pointer)
 #   proposal.md Status: flips proposed -> applied
 
 # doctrina verify     (project build gate) + doctrina coverage
@@ -200,7 +200,7 @@ It is history, not a gate: nothing reads it to decide anything, and a
 nonsense value changes no command's behaviour. Two things follow from
 recording it:
 
-- `doctrina report` can say what kind of work a period actually held, which
+- `doctrina status --view report` can say what kind of work a period actually held, which
   is a question no report could answer while the verdict was computed,
   printed and thrown away.
 - The classifier gains a set of right and wrong answers. **Disagreements are
@@ -223,7 +223,7 @@ shapes:
 | `doctrina status` | one-glance dashboard | a quick health check |
 | `doctrina prime` | ~40-line session primer | the START of every session |
 | `doctrina handoff` | Markdown resume note | before compaction or a handover |
-| `doctrina report --since <days>` | period digest | a standup or a PR description |
+| `doctrina status --view report --since <days>` | period digest | a standup or a PR description |
 
 They are **one collection of the tree, rendered four ways** — the same
 snapshot, four pure formatters — so they cannot report different numbers

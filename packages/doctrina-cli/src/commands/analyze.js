@@ -5,7 +5,7 @@ import { isDir, relPath } from "../lib/fs-ops.js";
 import { c } from "../lib/colors.js";
 import { collectAnalysis } from "../lib/analysis.js";
 import { EXIT } from "../lib/exit-codes.js";
-import { ensureDoctrinaProject } from "../lib/project.js";
+import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 
 // The findings themselves live in lib/analysis.js, where the gate map reads
 // them; this command is their renderer (audit finding F7).
@@ -29,6 +29,8 @@ export async function run(positional, _flags) {
   // — which points at creating a change somewhere there is nothing to
   // create it in.
   ensureDoctrinaProject(projectRoot);
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
   if (!isDir(changeDir)) {
     console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);

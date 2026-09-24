@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Doctrina benchmark — synthetic projects of three sizes, timing
-// validate / analyze / clarify. Zero deps; only node: stdlib.
+// validate / change check / clarify. Zero deps; only node: stdlib.
 //
 // Usage:
 //   node scripts/bench.js [--iterations N]
@@ -141,7 +141,7 @@ function fmt(ms) {
 
 console.log(`Doctrina bench — ${iterations} iterations per size`);
 console.log("");
-console.log("size     specs  ADRs  archived  validate  analyze*  clarify**");
+console.log("size     specs  ADRs  archived  validate    check*  clarify**");
 console.log("-------  -----  ----  --------  --------  --------  ---------");
 
 for (const [name, size] of Object.entries(SIZES)) {
@@ -170,7 +170,7 @@ for (const [name, size] of Object.entries(SIZES)) {
 }
 
 console.log("");
-console.log("*  analyze requires an open change folder; skipped in synthetic benches.");
+console.log("*  change check requires an open change folder; skipped in synthetic benches.");
 console.log("** clarify timing is per single-spec invocation.");
 console.log("");
 console.log("Numbers are medians across iterations on a single host. Synthetic;");

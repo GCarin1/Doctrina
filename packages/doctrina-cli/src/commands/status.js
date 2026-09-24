@@ -6,9 +6,10 @@ import { flagBool, flagString, parsePositiveInt } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { collectSnapshot, collectStatus } from "../lib/snapshot.js";
+import { collectSnapshot, collectStatus, collectReportWindow } from "../lib/snapshot.js";
 import { renderView, VIEWS } from "../lib/views.js";
-import { gitWindow, historyState, windowCutoff } from "../lib/git.js";
+import { draftAgentChangelog, renderDraft } from "../lib/agent-changelog.js";
+import { cliVersion } from "../lib/version.js";
 import { suggest } from "../lib/suggest.js";
 
 // One-glance project health (review 2026-06-27 passive-user feature #1): a
@@ -32,6 +33,9 @@ export const jsonNative = true;
 
 export const flags = { boolean: ["json"], string: ["view", "since"] };
 
+// The snapshot's views, plus the one draft that is not a view of it.
+const STATUS_VIEWS = [...VIEWS, "agent-changelog"];
+
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
@@ -39,10 +43,10 @@ export async function run(_positional, flags) {
   }
 
   const view = flagString(flags, "view") ?? "dashboard";
-  if (!VIEWS.includes(view)) {
+  if (!STATUS_VIEWS.includes(view)) {
     console.error(c.red("error:") + ` unknown view "${view}"`);
-    const guess = suggest(view, VIEWS);
-    console.error(c.gray("hint: ") + (guess ? `did you mean --view ${guess}?` : `available: ${VIEWS.join(", ")}`));
+    const guess = suggest(view, STATUS_VIEWS);
+    console.error(c.gray("hint: ") + (guess ? `did you mean --view ${guess}?` : `available: ${STATUS_VIEWS.join(", ")}`));
     return 2;
   }
 
@@ -53,18 +57,24 @@ export async function run(_positional, flags) {
     return 0;
   }
 
-  const options = {};
-  if (view === "report") {
-    const sinceRaw = flagString(flags, "since") ?? "7";
-    const days = parsePositiveInt(sinceRaw);
+  let options = {};
+  if (view === "report" || view === "agent-changelog") {
+    const sinceRaw = flagString(flags, "since");
+    const days = parsePositiveInt(sinceRaw ?? "7");
     if (days === null) {
       console.error(c.red("error:") + ` --since expects a positive day count, got "${sinceRaw}"`);
       return 2;
     }
-    options.days = days;
-    options.cutoffIso = windowCutoff(days);
-    options.git = gitWindow(projectRoot, days);
-    options.gitState = historyState(projectRoot);
+    // A DRAFT of the block `upgrade --write` writes into AGENTS.md, proposed
+    // from what the archived changes said they touched. Not a view of the
+    // snapshot, so it renders here; authorship stays human (ADR 0005). With
+    // no --since the window is "since the last tag".
+    if (view === "agent-changelog") {
+      const draft = draftAgentChangelog(projectRoot, { days: sinceRaw === undefined ? null : days });
+      for (const line of renderDraft(draft, cliVersion())) console.log(line);
+      return 0;
+    }
+    options = collectReportWindow(projectRoot, days);
   }
 
   const snapshot = collectSnapshot(projectRoot);
@@ -85,13 +95,22 @@ Flags:
                     dashboard  the default one-glance health board
                     prime      the session primer (\`doctrina prime\`)
                     handoff    the Markdown resume note (\`doctrina handoff\`)
-                    report     the period digest (\`doctrina report\`)
-  --since <days>  With --view report: the window (default 7).
+                    report     the period digest: gates, archived changes,
+                               open work, and local git numbers
+                    rules      the standing rules (\`doctrina prime --rules\`)
+                    agent-changelog
+                               a DRAFT of the AGENTS.md "What changed" block:
+                               one bullet per archived change that touched a
+                               documented surface, newest first, at most five.
+                               It proposes; a person cuts and rewrites.
+  --since <days>  With --view report: the window (default 7). With
+                  --view agent-changelog: the window (default: since the
+                  last tag).
   --json          Emit the snapshot as JSON (stable shape for agents and CI).
 
-All four views read ONE collection of the tree, so they can never report
-different numbers; \`prime\`, \`handoff\` and \`report\` are the same views
-under their own names.
+The views read ONE collection of the tree, so they can never report
+different numbers; \`prime\` and \`handoff\` are the same views under their
+own names. \`doctrina report\` is deprecated: it is \`--view report\`.
 
 It is a fast summary, not the authoritative gate: run \`doctrina validate\`
 and \`doctrina verify\` for the full structural and build checks, and

@@ -83,13 +83,15 @@ when: The task opens more than one change at a time, or parks a change to be imp
 
    ```sh
    for d in .doctrina/changes/0*/; do
-     doctrina analyze "$(basename "$d")" | tail -1
+     doctrina change check "$(basename "$d")" | grep -m1 "ready to apply"
    done
    doctrina validate
    ```
 
-   Every change must report `ready to apply` and `validate` must show
-   0 errors before the session ends.
+   Every change's structure section (the first of `change check`) must
+   report `ready to apply` — its archive-gate section lists the open
+   tasks, which is expected for a staged change — and `validate` must
+   show 0 errors before the session ends.
 
 6. **Write the files whole, not with patches.** See
    [[patch-doctrina-files-as-crlf]] — `.doctrina/` is CRLF and a

@@ -111,3 +111,30 @@ test("the bootstrap playbook points at the command, not at the file", () => {
   assert.doesNotMatch(tpl, /flip\s+"?- \*\*Status:\*\*/,
     "and must not tell the agent to edit the header by hand");
 });
+
+// Converting is the claim that the bootstrap is done: step 6 of the
+// playbook ("fix everything the gates report") made checkable (change
+// 0194). It converted over a tree `validate` failed — a spec edited by hand
+// and never re-indexed — so the specs became the source of truth while an
+// error said they were not well-formed.
+test("the bootstrap does not close over a tree validate fails, unless forced", () => {
+  const dir = project();
+  try {
+    assert.equal(runCli(["spec", "new", "carteira"], dir).status, 0);
+    const spec = path.join(dir, ".doctrina", "specs", "carteira", "spec.md");
+    writeFileSync(spec, readFileSync(spec, "utf8").replace(/\*\*Version:\*\* 0\.1\.0/, "**Version:** 0.2.0"));
+    assert.equal(runCli(["validate"], dir).status, EXIT.GATE, "the hand edit drifted the index");
+
+    const refused = runCli(["intake", "--converted"], dir);
+    assert.equal(refused.status, EXIT.GATE);
+    assert.match(refused.stderr, /the bootstrap is not done — `doctrina validate` reports \d+ error/);
+    assert.match(refused.stderr, /doctrina validate --fix/);
+    assert.match(readFileSync(intakeOf(dir), "utf8"), /- \*\*Status:\*\* pending/, "nothing was written");
+
+    const forced = runCli(["intake", "--converted", "--force"], dir);
+    assert.equal(forced.status, EXIT.OK, forced.stderr);
+    assert.match(readFileSync(intakeOf(dir), "utf8"), /- \*\*Status:\*\* converted/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

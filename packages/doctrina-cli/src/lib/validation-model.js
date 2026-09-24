@@ -22,7 +22,7 @@ import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
 import { cliVersion, newestVersion } from "./version.js";
 import { today } from "./dates.js";
-import { checklistProgress, kindFromPath, maskComments, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue } from "./doc-model.js";
+import { checklistProgress, kindFromPath, maskComments, nonConformingHeaders, repairHeaders, parseFrontmatter, isPlaceholderHeaderValue, isScaffoldValue } from "./doc-model.js";
 import { checkEars, isEarsSpec } from "./ears.js";
 import { parseAdrScope, parseSourceGlobs, parseDependsOn, specHeader, listHeader, deriveIndex, indexesMatch, stableStringify } from "./scan.js";
 import { COMMAND_NAMES, referencedCommands, DEPRECATED } from "./commands.js";
@@ -452,7 +452,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         if (ph > 0) {
           warnings.push(
             `open change "${entry}" tasks.md still carries ${ph} scaffold placeholder task${ph === 1 ? "" : "s"} — ` +
-              `the change was opened but never planned (replace them with real tasks; analyze/close refuse them)`,
+              `the change was opened but never planned (replace them with real tasks; \`change check\` and the close refuse them)`,
           );
         }
       }
@@ -460,10 +460,15 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
       // capabilities a change touches, and a name with no spec behind it
       // — a typo, or a capability that was never created — passed
       // analyze, check and close in silence. A capability this change is
-      // about to CREATE (an ADDED delta) is not a ghost.
+      // about to CREATE (an ADDED delta) is not a ghost. Neither is the
+      // header's own "none": a chore is scaffolded with "(none — chore)",
+      // and reading its words as names warned twice on every chore (change
+      // 0190). A parenthesised aside is a note, not a capability.
       if (isFile(proposal)) {
-        const affects = (listHeader(read(proposal), "Affects specs") ?? "")
-          .match(/[a-z][a-z0-9-]*/g) ?? [];
+        const header = (listHeader(read(proposal), "Affects specs") ?? "").trim();
+        const affects = /^\(?\s*(none|n\/a)\b/i.test(header)
+          ? []
+          : header.replace(/\([^)]*\)/g, "").match(/[a-z][a-z0-9-]*/g) ?? [];
         const specsRoot = path.join(projectRoot, ".doctrina", "specs");
         for (const cap of affects) {
           if (isFile(path.join(specsRoot, cap, "spec.md"))) continue;
@@ -481,12 +486,12 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         if (!m) {
           warnings.push(
             `${relPath(projectRoot, deltaPath)} has no **Operation:** header — ` +
-              `analyze/apply will refuse it at close time (add "**Operation:** ADDED|MODIFIED|REMOVED")`,
+              `\`change apply\` and the close will refuse it (add "**Operation:** ADDED|MODIFIED|REMOVED")`,
           );
         } else if (!["ADDED", "MODIFIED", "REMOVED"].includes(m[1])) {
           warnings.push(
             `${relPath(projectRoot, deltaPath)} Operation "${m[1]}" is not ADDED|MODIFIED|REMOVED — ` +
-              `analyze/apply will refuse it at close time`,
+              `\`change apply\` and the close will refuse it`,
           );
         }
       }
@@ -1004,11 +1009,11 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
       else if (lines > 150) warnings.push(`${rel} is ${lines} lines (>150 soft cap)`);
 
       // 15. Skill description drift — index.json must mirror the
-      //     frontmatter description (run `doctrina skill sync`).
+      //     frontmatter description (`doctrina index rebuild` does).
       if (descField && index?.artifacts?.skills) {
         const entry = index.artifacts.skills.find((s) => s.id === baseName);
         if (entry && entry.description !== descField) {
-          warnings.push(`${rel} description differs from index.json (run \`doctrina skill sync\`)`);
+          warnings.push(`${rel} description differs from index.json (run \`doctrina index rebuild\`)`);
         }
       }
     }
@@ -1092,10 +1097,9 @@ function looksVague(text) {
   return VAGUE_TRIGGER_EN.test(folded) || VAGUE_TRIGGER_PT.test(folded);
 }
 
-/** A value still wrapped in the template's angle brackets: `<one-sentence …>`. */
-export function isScaffoldValue(value) {
-  return /^<[^<>]*>$/.test(String(value ?? "").trim());
-}
+// Owned by the document model since change 0177 (the rebuild needs it and
+// cannot import this module); re-exported so existing callers stay put.
+export { isScaffoldValue };
 
 /** An intent's text, folded for comparison: case, accents and spacing ignored. */
 export function intentKey(text) {
@@ -1246,9 +1250,9 @@ function globToRegExp(glob) {
 // artifact whose recorded metadata no longer matches its file.
 function metadataDrift(current, derived) {
   const lines = [];
-  // Skills are deliberately excluded: their description has a dedicated
-  // reconciliation command (`doctrina skill sync`) and stays an advisory
-  // warning (see section 15), not a hard error.
+  // Skills are deliberately excluded: their description is reconciled by
+  // `doctrina index rebuild` and stays an advisory warning (see section
+  // 15), not a hard error.
   const cats = ["specs", "decisions", "changes", "changes_archive", "contracts"];
   for (const cat of cats) {
     const cur = new Map((current.artifacts?.[cat] ?? []).map((e) => [e.id, e]));

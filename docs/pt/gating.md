@@ -169,7 +169,7 @@ vezes; só o ledger conta que uma capability mudou.
 
 Três superfícies o leem:
 
-- `doctrina report` lista o **churn por capability** do período.
+- `doctrina status --view report` lista o **churn por capability** do período.
 - `doctrina review` anota uma capability tocada que aterrissou várias
   changes recentemente.
 - `doctrina close` lista os **dependentes** das capabilities tocadas, com a

@@ -79,7 +79,7 @@ export async function run(_positional, flags) {
 export const RUNNERS = {
   triage: () => import("./triage.js"),
   intake: () => import("./intake.js"),
-  analyze: () => import("./analyze.js"),
+  "change check": () => import("./change.js"),
   "change apply": () => import("./change.js"),
   "change archive": () => import("./change.js"),
   "index rebuild": () => import("./index-rebuild.js"),

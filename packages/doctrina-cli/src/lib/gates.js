@@ -24,10 +24,10 @@ import { appendLedgerLine, forcedLine } from "./ledger.js";
 // A gate is a named precondition returning human-readable blockers.
 export const GATES = {
   // Structural validity: the change's own files parse and point at real
-  // targets. The same checks `doctrina analyze` reports.
+  // targets. The same checks `doctrina change check` reports first.
   structure: {
     label: "structure",
-    rerun: (id) => `doctrina analyze ${id}`,
+    rerun: (id) => `doctrina change check ${id}`,
     blockers(projectRoot, changeDir) {
       return collectAnalysis(projectRoot, changeDir)
         .filter((r) => r.kind === "fail")
@@ -49,7 +49,7 @@ export const GATES = {
   // history recorded six hollow proposals reaching the archive.
   integrity: {
     label: "integrity",
-    rerun: (id) => `doctrina analyze ${id}`,
+    rerun: (id) => `doctrina change check ${id}`,
     blockers(projectRoot, changeDir) {
       return collectAnalysis(projectRoot, changeDir)
         .filter((r) => r.kind === "fail" && r.scope !== "pre-apply")
@@ -58,8 +58,9 @@ export const GATES = {
   },
 
   // Verification: the work is claimed complete. Every checkbox in
-  // tasks.md (closing steps included) and in the proposal's
-  // "## Verification" section.
+  // tasks.md and in the proposal's "## Verification" section — except a
+  // legacy "## Closing steps" list, which names what the close itself does
+  // (change 0195).
   verification: {
     label: "verification",
     rerun: (id) => `doctrina change tick ${id}`,
@@ -72,7 +73,7 @@ export const GATES = {
       const tasksPath = path.join(changeDir, "tasks.md");
       if (isFile(tasksPath)) {
         const n = countUnchecked(read(tasksPath));
-        if (n > 0) out.push(`${n} unchecked task${n === 1 ? "" : "s"} in tasks.md (closing steps count)`);
+        if (n > 0) out.push(`${n} unchecked task${n === 1 ? "" : "s"} in tasks.md`);
       }
       const proposalPath = path.join(changeDir, "proposal.md");
       if (isFile(proposalPath)) {
@@ -158,7 +159,11 @@ export const SEQUENCES = {
   // The closing sequence. `close` runs these in order, in-process where it
   // can, stopping at the first blocking failure with the step's rerun line.
   close: [
-    { id: "analyze", label: "analyze", level: "blocking", argv: ["analyze", "<id>"] },
+    // The structural pre-flight. Its id stays "analyze" (the module it runs
+    // in-process), but a reader sees "structure", the gate it holds: change
+    // 0182 deprecated `doctrina analyze`, and the command a person reruns is
+    // `change check`, which reports the same checks first (change 0183).
+    { id: "analyze", label: "structure", level: "blocking", argv: ["analyze", "<id>"], rerun: "doctrina change check <id>" },
     { id: "adr-checkpoint", label: "ADR checkpoint (advisory)", level: "advisory", argv: ["decision", "list"] },
     // Conformance review (audit finding F3). It is the richest analysis the
     // project has — capabilities whose code moved while their spec did not,
@@ -205,7 +210,7 @@ export const SEQUENCES = {
     { id: "coverage", label: "coverage", level: "advisory", argv: ["coverage"] },
     { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
     { id: "clean-checkout", label: "clean-checkout", level: "blocking", argv: ["verify", "--clean"] },
-    { id: "templates", label: "templates", level: "advisory", argv: ["templates", "check"] },
+    { id: "templates", label: "templates", level: "advisory", argv: ["upgrade"] },
     { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
     { id: "local-env", label: "local .env", level: "blocking", argv: null, rerun: "doctrina doctor --env", flag: "env" },
     { id: "verify-config", label: "verify config", level: "blocking", argv: ["verify", "--init"] },
@@ -311,7 +316,7 @@ export function sequenceLabels(name) {
  * not a single command.
  */
 export function stepRerun(step, changeId = "<id>") {
-  if (step.rerun) return step.rerun;
+  if (step.rerun) return step.rerun.replace(/<id>/g, changeId);
   if (!step.argv) return `doctrina ${step.id}`;
   return `doctrina ${step.argv.map((a) => (a === "<id>" ? changeId : a)).join(" ")}`;
 }

@@ -13,6 +13,8 @@ import { computeActions } from "./actions.js";
 import { readLedger } from "./ledger.js";
 import { parseChangeTitle, checklistProgress } from "./doc-model.js";
 import { summarizeSignoffs } from "./signoff.js";
+import { gitWindow, historyState, windowCutoff } from "./git.js";
+import { collectMetrics } from "./metrics-model.js";
 
 // ONE collector, several views (audit finding F7).
 //
@@ -207,4 +209,23 @@ function countSkills(projectRoot) {
   const skillsDir = path.join(projectRoot, ".doctrina", "skills");
   if (!isDir(skillsDir)) return 0;
   return walk(skillsDir).filter((f) => f.endsWith(".md")).length;
+}
+
+/**
+ * Everything the period digest reads beyond the snapshot, for a window of
+ * `days`. ONE collector for every door that renders the digest: `report`
+ * passed the metrics and `status --view report` did not, so the view that
+ * promised "never different numbers" printed two lines fewer (change 0176).
+ *
+ * @param {string} projectRoot
+ * @param {number} days
+ */
+export function collectReportWindow(projectRoot, days) {
+  return {
+    days,
+    cutoffIso: windowCutoff(days),
+    git: gitWindow(projectRoot, days),
+    gitState: historyState(projectRoot),
+    metrics: collectMetrics(projectRoot, `${days} days ago`),
+  };
 }
