@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.20.0
+**Version:** 0.21.0
 
 ## Purpose
 
@@ -95,9 +95,7 @@ keep the checks and the read path.
   criterion `[unverified]` until proven). With no working-tree changes it
   exits 1 (ADR 0010).
 
-- When `doctrina work --chore` (alias `--no-spec`) runs, the system shall
-  open a spec-less chore change and print a playbook that omits the
-  spec-delta steps (ADR 0010).
+- When `doctrina work --chore` (alias `--no-spec`) runs, the system shall open a spec-less chore change and print a playbook that omits the spec-delta steps (ADR 0010) and ends, like the work playbook, with `doctrina close <id>` — never a hand-run apply, archive and validate, which skip the close's review, documentation, coverage, trace and ADR gates.
 
 - When `doctrina spec new <capability>` runs, the system shall create
   `.doctrina/specs/<capability>/spec.md` from `templates/spec.md.template`
@@ -345,6 +343,7 @@ The authoring commands are v0 spec-compliant when:
 34. [verified] A successor inherits its predecessor's scope and, once accepted, stays out of the packs its predecessor stayed out of, while an unscoped predecessor yields an unscoped successor — verified by `packages/doctrina-cli/test/uma-adr-substituta-herda-o-escopo.test.js`.
 35. [verified] The same intent added twice, in any casing, accenting, spacing or with a pinned id, is refused naming the existing anchor and writes nothing, while a different intent is still added — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
 36. [verified] An out-of-domain value, a malformed flag and a missing criterion answer the usage class and leave the spec untouched, a spec lacking the header the operation needs answers the gate class and passes once repaired, and both at once answer the usage class — verified by `packages/doctrina-cli/test/spec-set-diz-o-que-corrigir.test.js`.
+37. [verified] The chore playbook and its opening line name `doctrina close` and neither `change apply` nor `change archive`, and a chore done by its playbook closes in one pass in a fresh project — verified by `packages/doctrina-cli/test/a-chore-fecha-como-toda-change.test.js`.
 
 ## Out of scope for this spec
 

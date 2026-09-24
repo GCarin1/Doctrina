@@ -190,3 +190,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0174-ajuda-sem-agrupamento-por-momento — ajuda sem agrupamento por momento (specs: cli MODIFIED)
 - 2026-09-24 — 0173-primeiro-uso-do-init-se-contradiz — primeiro uso do init se contradiz (specs: scaffolding MODIFIED)
 - 2026-09-24 — 0179-documentacao-defasada — documentacao defasada (specs: docs MODIFIED)
+- 2026-09-24 — 0180-playbook-de-chore-sem-close — playbook de chore sem close (specs: authoring MODIFIED)

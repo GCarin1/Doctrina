@@ -96,8 +96,10 @@ export function changeNew(args, flags) {
 
   console.log("");
   if (chore) {
+    // A chore is still a change: it closes through the one definition of
+    // done, not a hand-run apply and archive (change 0180).
     console.log(c.bold("Chore opened.") + " No spec deltas expected — implement, check the tasks, then " +
-      c.cyan(`doctrina change apply ${id}`) + " and " + c.cyan(`doctrina change archive ${id}`) + ".");
+      c.cyan(`doctrina close ${id}`) + ".");
   } else {
     console.log(c.bold("Change opened.") + " Add spec deltas under " +
       c.cyan(`.doctrina/changes/${id}/specs/<capability>/delta.md`));

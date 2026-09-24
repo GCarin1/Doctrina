@@ -48,6 +48,14 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // framework, against its own rule, and the header `next` branches on. It now
 // names `doctrina intake --converted`, the command that writes it. The
 // bootstrap golden was re-captured; every other line in it is the original.
+//
+// And change 0180 rewrote the CHORE playbook's closing steps: it told the
+// agent to `change apply`, `change archive` and `validate` by hand, skipping
+// the close — the definition of done — and with it review, the docs and
+// changelog gate, coverage, trace and the ADR checkpoint. It now names
+// `doctrina close`, like the work playbook, and so does the "Chore opened"
+// line above it. The chore golden was
+// re-captured; every other line in it is the original.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

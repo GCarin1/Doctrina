@@ -48,6 +48,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A chore closes the way every change closes.** The chore playbook, and
+  the line `work --chore` prints on opening, ended with a hand-run
+  `change apply`, `change archive` and `validate` — skipping the close's
+  review, documentation and changelog gate, coverage, trace and ADR
+  checkpoint. Both now end with `doctrina close <id>`. (0180)
 - **Documentation caught up with the CLI.** The npm README's command list
   had lost `close`, `prime`, `status` and a dozen more, and kept a stale
   second copy of the `validate` checks; the docs home walked a reader
