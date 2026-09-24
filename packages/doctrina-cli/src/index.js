@@ -59,9 +59,8 @@ const COMMANDS = {
 };
 
 const TOP_HELP = `
-Usage: doctrina <command> [options]
+Usage: doctrina <command> [options]      (\`doctrina <command> --help\` for its flags)
 
-Commands:
 ${surfaceHelp()}
 
 Global flags:

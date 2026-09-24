@@ -129,7 +129,7 @@ export const COMMAND_META = {
   triage:       { moment: "Change",     when: "a request arrives — BEFORE scaffolding, especially if it smells like an incident", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
   work:         { moment: "Change",     when: "a request arrives that changes behaviour (triage says PRODUCT)", purpose: "scaffold a change and print the playbook to execute" },
   spec:         { moment: "Change",     when: "a capability needs creating or its headers advancing", purpose: "create, list, and edit capability specs" },
-  change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "new / apply / archive / check (--verbose) / tick / abandon" },
+  change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "drive a change by hand — check --verbose previews every delta" },
   decision:     { moment: "Change",     when: "the change decides something a later session must not relitigate", purpose: "record, accept, land, scope, and supersede ADRs" },
   contract:     { moment: "Change",     when: "the change touches ports, env vars, or public endpoints", purpose: "own and verify the integration surface" },
   intent:       { moment: "Change",     when: "new product intent appears after the intake", purpose: "append and list product intent anchors" },
@@ -145,7 +145,7 @@ export const COMMAND_META = {
   close:        { moment: "Gate",       when: "a change is implemented and ready to finish", purpose: "the whole closing sequence in one attested pass" },
   doctor:       { moment: "Gate",       when: "something looks wrong and you do not know which gate to ask", purpose: "aggregate diagnostic with per-finding remedies" },
 
-  templates:    { moment: "Maintain",   when: "after upgrading the CLI, or to customise a scaffold", purpose: "inspect, check, and refresh the template shape" },
+  templates:    { moment: "Maintain",   when: "customising a scaffold, to see which template file wins", purpose: "where each shipped template resolves from" },
   upgrade:      { moment: "Maintain",   when: "you just updated the doctrina-cli package", purpose: "bring this project up to the installed CLI" },
   index:        { moment: "Maintain",   when: "the index drifted from the tree", purpose: "regenerate index.json from the artifacts on disk" },
   hooks:        { moment: "Maintain",   when: "setting up a repo so drift cannot be committed", purpose: "install the pre-commit gate" },
@@ -161,9 +161,48 @@ export const MOMENTS = ["Bootstrap", "Orient", "Change", "Gate", "Maintain"];
 
 // The Commands block of `doctrina --help`, generated from OPERATIONS so the
 // printed surface can never omit an operation the catalog knows about.
+//
+// Grouped by the MOMENT an operation is reached for, in the same order as
+// the AGENTS.md block, and opened by the two lines a newcomer needs: a flat
+// list of sixty operations, deprecated ones mixed in, answered "where do I
+// start?" with the whole catalog (change 0174). Deprecated operations stay
+// listed — someone types those names — but last, each pointing at its
+// replacement.
 export function surfaceHelp() {
-  return OPERATIONS.map(([op, summary]) => `  ${op.padEnd(21)}${summary}`).join("\n");
+  // A name longer than the column puts its text on the next line, aligned,
+  // so the summaries stay one scannable column at 80 characters.
+  const line = (op, text) => op.length < 20
+    ? `  ${op.padEnd(21)}${text}`
+    : `  ${op}\n  ${"".padEnd(21)}${text}`;
+  const out = [
+    "Start here:",
+    line("doctrina init", "set up this repository (asks for a one-line description)"),
+    line("doctrina next", "what to do now — your agent runs the rest from AGENTS.md"),
+  ];
+  // One line per COMMAND, its subcommands joined: the summary a newcomer
+  // scans; `doctrina <command> --help` has each subcommand's detail.
+  const live = OPERATIONS.filter(([op]) => !DEPRECATED[op]);
+  for (const moment of MOMENTS) {
+    const cmds = [...new Set(live.map(([op]) => op.split(" ")[0]))]
+      .filter((cmd) => COMMAND_META[cmd]?.moment === moment);
+    if (cmds.length === 0) continue;
+    out.push("", `${moment}:`);
+    for (const cmd of cmds) {
+      const ops = live.filter(([op]) => op.split(" ")[0] === cmd);
+      const subs = ops.map(([op]) => op.split(" ")[1]).filter(Boolean);
+      const text = ops.length === 1 ? ops[0][1] : capitalise(COMMAND_META[cmd].purpose);
+      out.push(line(subs.length > 0 ? `${cmd} ${subs.join("|")}` : cmd, text));
+    }
+  }
+  const old = OPERATIONS.filter(([op]) => DEPRECATED[op]);
+  if (old.length > 0) {
+    out.push("", "Deprecated (still run, with a notice on stderr):",
+      ...old.map(([op]) => line(op, `→ ${DEPRECATED[op].use}`)));
+  }
+  return out.join("\n");
 }
+
+const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // ---------------------------------------------------------------------------
 // The CLI-owned AGENTS.md command-surface block (operator review 2026-07-19,

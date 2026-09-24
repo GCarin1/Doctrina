@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.52.0",
+        "version": "0.53.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -544,14 +544,6 @@
         "id": "0173-primeiro-uso-do-init-se-contradiz",
         "title": "primeiro uso do init se contradiz",
         "path": ".doctrina/changes/0173-primeiro-uso-do-init-se-contradiz",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (uncertain)"
-      },
-      {
-        "id": "0174-ajuda-sem-agrupamento-por-momento",
-        "title": "ajuda sem agrupamento por momento",
-        "path": ".doctrina/changes/0174-ajuda-sem-agrupamento-por-momento",
         "status": "proposed",
         "opened": "2026-09-24",
         "lane": "product (uncertain)"
@@ -2835,6 +2827,19 @@
         "specs_affected": [
           {
             "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0174-ajuda-sem-agrupamento-por-momento",
+        "title": "ajuda sem agrupamento por momento",
+        "path": ".doctrina/changes/archive/2026-09-24-0174-ajuda-sem-agrupamento-por-momento",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ]

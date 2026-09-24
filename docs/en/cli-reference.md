@@ -7,7 +7,7 @@ Every command of the `doctrina` CLI, with flags and exit codes. Run
 
 | Flag | Effect |
 |------|--------|
-| `--help`, `-h` | Print top-level usage, or per-command help if placed after a command. |
+| `--help`, `-h` | Print top-level usage, or per-command help if placed after a command. The top-level help (also printed by `doctrina` alone) opens with where to start — `doctrina init`, then `doctrina next` — and groups one line per command under the moment it is reached for (Bootstrap, Orient, Change, Gate, Maintain), the same grouping as the AGENTS.md block; deprecated names come last, each pointing at its replacement. |
 | `--version`, `-v` | Print the package version. |
 | `--debug` | On an unexpected error, also print the stack trace. |
 

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.52.0
+**Version:** 0.53.0
 
 ## Purpose
 
@@ -33,8 +33,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall implement every command using only the Node.js
   standard library; the runtime dependency list shall remain empty.
 
-- The system shall print a usage summary when invoked with `--help`,
-  `-h`, or with no arguments.
+- The system shall print a usage summary when invoked with `--help`, `-h`, or with no arguments, opening with where to start (`doctrina init`, then `doctrina next`) and grouping one line per command — its subcommands joined — under the moment it is reached for, in the order of the AGENTS.md block, with deprecated names last, each pointing at its replacement.
 
 - The system shall print the package version when invoked with
   `--version` or `-v`.
@@ -257,6 +256,7 @@ The CLI is v0 spec-compliant when:
 42. [verified] Every command answers the precondition class with one message outside a project, the declared exceptions answer with their own output instead, and a typed error crossing a multi-id driver keeps its class — verified by `packages/doctrina-cli/test/a-fronteira-da-precondicao.test.js`.
 43. [verified] A window git would misread, a count with trailing text or a fraction, and a negative number after a value-taking flag each answer the usage class naming the value, while the documented forms still run — verified by `packages/doctrina-cli/test/um-valor-malformado-e-recusado.test.js`.
 44. [verified] `constitution` and `change diff` answer the usage class naming `prime --rules` and `change check --verbose`, print nothing on stdout, and return `{ok: false, exit_code: 2}` under `--json` — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+45. [verified] The top-level help opens with where to start, follows the moments in the AGENTS.md order, gives each live command one line, lists deprecated names only in the last group with their replacement, and is shorter than the flat list it replaced — verified by `packages/doctrina-cli/test/a-ajuda-comeca-pelo-comeco.test.js`.
 
 ## Out of scope for this spec
 

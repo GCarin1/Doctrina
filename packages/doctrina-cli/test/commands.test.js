@@ -261,10 +261,16 @@ test("why surfaces the archived changes that built a capability", () => {
 test("COMMAND_NAMES and OPERATIONS agree on the top-level surface", () => {
   const fromOps = new Set(OPERATIONS.map(([op]) => op.split(" ")[0]));
   assert.deepEqual([...fromOps].sort(), [...COMMAND_NAMES].sort());
-  // And the generated help block names every operation exactly once.
+  // And the generated help block names every operation: a command at the
+  // start of a line, a subcommand in that line's `a|b|c` list (change 0174
+  // grouped the help one line per command).
   const help = surfaceHelp();
   for (const [op] of OPERATIONS) {
-    assert.match(help, new RegExp(`^  ${op}(\\s|$)`, "m"), `--help omits \`${op}\``);
+    const [cmd, sub] = op.split(" ");
+    const pattern = sub
+      ? `^  ${cmd} (?:[a-z-]+\\|)*${sub}(?:\\|[a-z-]+)*(\\s|$)`
+      : `^  ${cmd}(\\s|$)`;
+    assert.match(help, new RegExp(pattern, "m"), `--help omits \`${op}\``);
   }
 });
 

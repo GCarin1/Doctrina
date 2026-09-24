@@ -11,7 +11,7 @@ terminal.
 
 | Flag | Efeito |
 |------|--------|
-| `--help`, `-h` | Imprime a ajuda no topo, ou ajuda por-comando se vier depois de um comando. |
+| `--help`, `-h` | Imprime a ajuda no topo, ou ajuda por-comando se vier depois de um comando. A ajuda do topo (impressa também por `doctrina` sozinho) abre com por onde começar — `doctrina init`, depois `doctrina next` — e agrupa uma linha por comando sob o momento em que ele é usado (Bootstrap, Orient, Change, Gate, Maintain), o mesmo agrupamento do bloco do AGENTS.md; os nomes depreciados vêm por último, cada um apontando para o substituto. |
 | `--version`, `-v` | Imprime a versão do pacote. |
 | `--debug` | Em erro inesperado, também imprime o stack trace. |
 

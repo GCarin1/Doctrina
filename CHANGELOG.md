@@ -48,6 +48,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`doctrina --help` starts where a newcomer starts.** It printed the 61
+  operations as one flat list, deprecated names mixed in. It now opens with
+  `doctrina init` and `doctrina next`, groups one line per command under the
+  moment it is reached for (the AGENTS.md grouping), and lists deprecated
+  names last with their replacement — 70 lines instead of 77. (0174)
 - **The README says how to install, and reaches every guide.** It never
   showed `npm install -g doctrina-cli`, three guides were stranded after
   the project-policy line, seven (among them exit codes and upgrading)
