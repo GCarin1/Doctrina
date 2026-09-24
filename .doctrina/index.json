@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.16.0",
-  "last_updated": "2026-09-23",
+  "last_updated": "2026-09-24",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.8.0",
+        "version": "0.9.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -539,16 +539,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0170-estimativa-de-tokens-conta-o-cr",
-        "title": "estimativa de tokens conta o CR",
-        "path": ".doctrina/changes/0170-estimativa-de-tokens-conta-o-cr",
-        "status": "proposed",
-        "opened": "2026-09-23",
-        "lane": "product (uncertain)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2785,6 +2776,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0170-estimativa-de-tokens-conta-o-cr",
+        "title": "estimativa de tokens conta o CR",
+        "path": ".doctrina/changes/archive/2026-09-24-0170-estimativa-de-tokens-conta-o-cr",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ]

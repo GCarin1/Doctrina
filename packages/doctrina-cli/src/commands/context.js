@@ -466,8 +466,11 @@ function capabilitiesInPlay(projectRoot) {
   return [...caps];
 }
 
+// Line endings are not content: a Windows checkout stores every line with a
+// CR, which added ~2% to the same pack, so the budget gate — run on every OS
+// in CI — could pass on Linux and fail on Windows for the same tree.
 function estimateTokens(text) {
-  return Math.round(text.length / TOKEN_DIVISOR);
+  return Math.round(text.replace(/\r\n/g, "\n").length / TOKEN_DIVISOR);
 }
 
 // Flag beats project config beats the built-in default. Returns null for a

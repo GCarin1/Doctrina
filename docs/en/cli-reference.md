@@ -1948,7 +1948,8 @@ separately as name + description only: they are on-demand by
 design, the body loads only when the task matches. The change
 archive and non-accepted ADRs are excluded.
 
-Every file carries a token estimate (chars/4), and the pack is
+Every file carries a token estimate (chars/4, line endings counted as
+one character on every OS), and the pack is
 **assembled to fit a token budget** rather than merely measured
 against one (ADR 0022). The budget resolves as `--budget` >
 `config.context_budget` in `index.json` > `15000`.

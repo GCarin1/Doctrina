@@ -2003,7 +2003,8 @@ Skills são listadas à parte como nome + description apenas: são
 on-demand por design, o corpo carrega só quando a tarefa casa. O
 archive de changes e ADRs não-aceitos ficam de fora.
 
-Cada arquivo carrega uma estimativa de tokens (chars/4), e o pack é
+Cada arquivo carrega uma estimativa de tokens (chars/4, com a quebra de
+linha contada como um caractere em qualquer sistema), e o pack é
 **montado para caber num orçamento de tokens** em vez de apenas ser
 medido contra um (ADR 0022). O orçamento resolve como `--budget` >
 `config.context_budget` no `index.json` > `15000`.

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.8.0
+**Version:** 0.9.0
 
 ## Purpose
 
@@ -36,6 +36,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall keep a command module free of any binding imported from another command module, and shall keep its libraries free of any dependency on a command module.
 - The system shall compare search terms against artifact text with combining marks folded away, so that a query typed without accents finds the accented text and the reverse.
 - The system shall separate every heading of a Markdown view from the line before it with a blank line, in every state of the tree, so the document renders where it is pasted.
+- The system shall estimate a context pack's tokens with each line ending counted as one character, so that the same tree yields the same estimate and the same budget verdict on a CRLF checkout as on an LF one.
 
 ### Event-driven
 
@@ -139,6 +140,7 @@ The read path is spec-compliant when:
 17. [verified] A query with and without accents finds the same accented text, and folding does not make an absent term match — verified by `packages/doctrina-cli/test/retrieval-folds-and-refuses.test.js`.
 18. [verified] No heading in the `handoff` or `report` document is glued to the preceding line, with open changes and with none — verified by `packages/doctrina-cli/test/o-handoff-e-markdown-valido.test.js`.
 19. [verified] A search with no match and a reference that does not resolve each cost the class the CLI-wide contract gives them, so this spec and the `cli` spec cannot describe two different commands — verified by `packages/doctrina-cli/test/a-spec-descreve-o-cli-que-existe.test.js`.
+20. [verified] A CRLF copy of a project estimates the same pack as its LF original, and a budget set exactly at that estimate passes on both — verified by `packages/doctrina-cli/test/o-orcamento-nao-depende-do-fim-de-linha.test.js`.
 
 ## Out of scope for this spec
 

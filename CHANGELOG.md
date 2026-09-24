@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The context budget no longer depends on line endings.** The chars/4
+  estimate counted the CR of every CRLF line, so a Windows checkout paid
+  about 2% more for the same pack, and the budget gate CI runs on every OS
+  could pass on Linux and fail on Windows for one tree. A line ending now
+  counts as one character everywhere. (0170)
 - **A malformed flag value is refused instead of reinterpreted.**
   `metrics --since` handed free text to git, which reads anything as a
   date: `abc` became *now* ("nothing to measure", exit 0) and `2026-13-45`
