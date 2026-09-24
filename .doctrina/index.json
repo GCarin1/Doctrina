@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.21.0",
+        "version": "0.21.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.53.0",
+        "version": "0.54.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -539,7 +539,24 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0184-textos-fora-docs-ensinam",
+        "title": "textos fora de docs ensinam comandos depreciados: CONTRIBUTING, exemplo python, template de issue, skills e product.md, e um AGENTS.md de teste esquecido no pacote",
+        "path": ".doctrina/changes/0184-textos-fora-docs-ensinam",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0185-guarda-documentacao-cobrir-contributing",
+        "title": "o guarda de documentação deve cobrir CONTRIBUTING, examples, .github, skills e product.md",
+        "path": ".doctrina/changes/0185-guarda-documentacao-cobrir-contributing",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (confident; signals: deve)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2956,6 +2973,23 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0183-cli-ainda-indica-comandos",
+        "title": "o CLI ainda indica comandos depreciados",
+        "path": ".doctrina/changes/archive/2026-09-24-0183-cli-ainda-indica-comandos",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ]

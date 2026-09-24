@@ -46,7 +46,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>smell-test de ambiguidade"]
     end
 
-    close["doctrina close (id...)<br/>analyze → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>depois skill suggest (advisory)"]
+    close["doctrina close (id...)<br/>structure → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>depois skill suggest (advisory)"]
 
     subgraph GOV["Decisões & superfície de integração"]
         direction TB
@@ -154,7 +154,7 @@ flowchart TD
 **Fechamento em uma passada.**
 - `doctrina close <id...>` — roda a sequência declarada inteira numa
   passada, parando na primeira falha:
-  analyze → ADR checkpoint (advisory) → review (advisory) → apply →
+  structure → ADR checkpoint (advisory) → review (advisory) → apply →
   **runtime** → implementation (advisory) → verify → coverage →
   trace (advisory) → **docs** (forceable) → archive → index drift →
   validate, e depois skill suggest (advisory). A sequência tem um autor só

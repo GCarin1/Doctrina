@@ -38,7 +38,7 @@ test("the close help renders the declared sequence rather than restating it", ()
 // names a reader writes ("change apply", "index-drift") are the ones a reader
 // reads back, so the map is generous about spelling and strict about the set.
 const ALIASES = new Map([
-  ["analyze", "analyze"],
+  ["analyze", "analyze"], ["structure", "analyze"], ["estrutura", "analyze"],
   ["adr checkpoint", "adr-checkpoint"],
   ["checkpoint de adr", "adr-checkpoint"],
   ["review", "review"],

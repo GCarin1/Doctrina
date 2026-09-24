@@ -211,9 +211,9 @@ playbook** the host agent executes. The CLI derives a sequential change
 id (`NNNN-<slug>`), opens the change folder via the same path as
 `change new`, records the prompt verbatim under the proposal's
 `## Why`, ranks existing specs by deterministic term overlap as a
-capability hint, and prints the ordered steps: context → spec delta →
-tasks → implement → analyze → apply → verify (`verify`/`coverage`) →
-archive → validate. No natural-language interpretation happens in the
+capability hint, and prints the ordered steps: context, spec delta,
+tasks, implement, then `doctrina change check <id>` to preview the close
+and `doctrina close <id>` to finish. No natural-language interpretation happens in the
 CLI (see ADR 0005).
 
 ```
@@ -1720,7 +1720,7 @@ doctrina close 0099-nao-existe        # exit 2 before any step: a reference that
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 
-Drives analyze → **ADR checkpoint** (advisory: the accepted ADRs whose
+Drives structure → **ADR checkpoint** (advisory: the accepted ADRs whose
 text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
 **review** (advisory) → `change apply` → **runtime** → implementation

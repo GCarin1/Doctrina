@@ -43,7 +43,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>ambiguity smell-test"]
     end
 
-    close["doctrina close (id...)<br/>analyze → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>then skill suggest (advisory)"]
+    close["doctrina close (id...)<br/>structure → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>then skill suggest (advisory)"]
 
     subgraph GOV["Decisions & integration surface"]
         direction TB
@@ -149,7 +149,7 @@ flowchart TD
 **One-shot close.**
 - `doctrina close <id...>` — runs the whole declared sequence in one pass,
   stopping at the first failure:
-  analyze → ADR checkpoint (advisory) → review (advisory) → apply →
+  structure → ADR checkpoint (advisory) → review (advisory) → apply →
   **runtime** → implementation (advisory) → verify → coverage →
   trace (advisory) → **docs** (forceable) → archive → index drift →
   validate, then skill suggest (advisory). The sequence has one author —

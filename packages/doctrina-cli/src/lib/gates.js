@@ -158,11 +158,11 @@ export const SEQUENCES = {
   // The closing sequence. `close` runs these in order, in-process where it
   // can, stopping at the first blocking failure with the step's rerun line.
   close: [
-    // The structural pre-flight. Its step keeps the name "analyze" (the
-    // documented sequence names it) and runs in-process; the command a
-    // person reruns is `change check`, which reports the same checks first
-    // (change 0182 deprecated `doctrina analyze`).
-    { id: "analyze", label: "analyze", level: "blocking", argv: ["analyze", "<id>"], rerun: "doctrina change check <id>" },
+    // The structural pre-flight. Its id stays "analyze" (the module it runs
+    // in-process), but a reader sees "structure", the gate it holds: change
+    // 0182 deprecated `doctrina analyze`, and the command a person reruns is
+    // `change check`, which reports the same checks first (change 0183).
+    { id: "analyze", label: "structure", level: "blocking", argv: ["analyze", "<id>"], rerun: "doctrina change check <id>" },
     { id: "adr-checkpoint", label: "ADR checkpoint (advisory)", level: "advisory", argv: ["decision", "list"] },
     // Conformance review (audit finding F3). It is the richest analysis the
     // project has — capabilities whose code moved while their spec did not,

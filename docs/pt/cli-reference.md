@@ -218,8 +218,9 @@ um id de change sequencial (`NNNN-<slug>`), abre a pasta do change pelo
 mesmo caminho de `change new`, registra o prompt literalmente sob o
 `## Why` da proposal, ranqueia as specs existentes por sobreposição
 determinística de termos como dica de capability, e imprime os passos
-ordenados: context → spec delta → tasks → implementar → analyze →
-apply → verify (`verify`/`coverage`) → archive → validate. Nenhuma
+ordenados: context, spec delta, tasks, implementar, depois `doctrina
+change check <id>` para prever o close e `doctrina close <id>` para
+terminar. Nenhuma
 interpretação de linguagem natural acontece no CLI (ver ADR 0005).
 
 ```
@@ -1769,7 +1770,7 @@ doctrina close 0099-nao-existe        # saída 2 antes de qualquer passo: refer�
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 
-Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
+Dirige structure → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
 texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
 **review** (consultivo) → `change apply` → **runtime** → implementation

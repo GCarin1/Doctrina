@@ -452,7 +452,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         if (ph > 0) {
           warnings.push(
             `open change "${entry}" tasks.md still carries ${ph} scaffold placeholder task${ph === 1 ? "" : "s"} — ` +
-              `the change was opened but never planned (replace them with real tasks; analyze/close refuse them)`,
+              `the change was opened but never planned (replace them with real tasks; \`change check\` and the close refuse them)`,
           );
         }
       }
@@ -481,12 +481,12 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         if (!m) {
           warnings.push(
             `${relPath(projectRoot, deltaPath)} has no **Operation:** header — ` +
-              `analyze/apply will refuse it at close time (add "**Operation:** ADDED|MODIFIED|REMOVED")`,
+              `\`change apply\` and the close will refuse it (add "**Operation:** ADDED|MODIFIED|REMOVED")`,
           );
         } else if (!["ADDED", "MODIFIED", "REMOVED"].includes(m[1])) {
           warnings.push(
             `${relPath(projectRoot, deltaPath)} Operation "${m[1]}" is not ADDED|MODIFIED|REMOVED — ` +
-              `analyze/apply will refuse it at close time`,
+              `\`change apply\` and the close will refuse it`,
           );
         }
       }

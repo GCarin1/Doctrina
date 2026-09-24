@@ -778,7 +778,7 @@ Subcommands:
                          MODIFIED without one prints a manual-merge pointer.
                          On any spec write the index is rebuilt from the tree.
   archive <id...>        Move the change to .doctrina/changes/archive/YYYY-MM-DD-<id>/
-  check <id...>          Pre-close dry-run, read-only: analyze's structural
+  check <id...>          Pre-close dry-run, read-only: the structural
                          checks + every ops block executed in memory against
                          its target + the archive gate preview + an advisory
                          list of accepted ADRs citing the touched capabilities.

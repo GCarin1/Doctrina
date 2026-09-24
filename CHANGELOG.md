@@ -56,6 +56,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The CLI no longer tells you to run what it just deprecated.** `skill
+  new` ended with "then run `doctrina skill sync`"; `work --help` walked
+  analyze → apply → verify → archive → validate by hand, with no close; two
+  `validate` warnings said "analyze/apply will refuse it". They now name
+  `index rebuild`, `change check` then `close`, and `change apply`. The
+  close's first step is labelled `structure`, the gate it holds, in its
+  help and output. A test sweeps every live command's `--help`. (0183)
 - **The `/doctrina-work` slash commands leave the lifecycle to the close.**
   The Claude Code and Cursor adapters told the agent to run `analyze` →
   `change apply` before `close` — two steps the close runs itself. They now

@@ -515,9 +515,10 @@ change id (NNNN-<slug>) from the prompt, opens the change folder,
 records the prompt under the proposal's "## Why", ranks existing specs
 by term overlap as a capability hint, flags a thin/under-specified prompt
 so you clarify before writing deltas (advisory), and prints the steps:
-context → spec delta → tasks → implement → analyze → apply → verify
-(verify + coverage) → archive → validate. No natural-language
-interpretation happens in the CLI.
+context, spec delta, tasks, implement, then \`doctrina change check <id>\`
+to preview the close and \`doctrina close <id>\` to finish, which runs the
+whole closing sequence in one pass. No natural-language interpretation
+happens in the CLI.
 
 The change's spec delta is scaffolded with **Operation:** prefilled
 whenever the CLI can name the capability: from --capability, or from the

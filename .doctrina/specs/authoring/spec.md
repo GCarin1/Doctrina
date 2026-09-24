@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.21.0
+**Version:** 0.21.1
 
 ## Purpose
 
@@ -65,19 +65,7 @@ keep the checks and the read path.
   point at `doctrina work`; when no intake exists, it shall exit with a
   clear error.
 
-- When `doctrina work "<prompt>"` runs, the system shall derive a
-  sequential change id of the form `NNNN-<slug>` (the next number across
-  open and archived changes; the slug an ASCII-folded kebab-case of the
-  prompt), scaffold the change folder via the same path as
-  `change new`, record the prompt verbatim under the proposal's
-  `## Why`, rank existing specs by deterministic term overlap as a
-  capability hint, and print the agent-executed work playbook (context →
-  spec delta → tasks → implement → analyze → apply → verify →
-  archive → validate). With `--capability <cap>` the system shall pin that
-  capability instead of ranking, and with `--id <id>` it shall use the
-  given id instead of deriving one. The CLI's language processing is
-  limited to slugging and case-insensitive term counting; all semantic
-  work is the executing agent's.
+- When `doctrina work "<prompt>"` runs, the system shall derive a sequential change id of the form `NNNN-<slug>` (the next number across open and archived changes; the slug an ASCII-folded kebab-case of the prompt), scaffold the change folder via the same path as `change new`, record the prompt verbatim under the proposal's `## Why`, rank existing specs by deterministic term overlap as a capability hint, and print the agent-executed work playbook (context, spec delta, tasks, implement, then `doctrina change check <id>` to preview the close and `doctrina close <id>` to finish). With `--capability <cap>` the system shall pin that capability instead of ranking, and with `--id <id>` it shall use the given id instead of deriving one. The CLI's language processing is limited to slugging and case-insensitive term counting; all semantic work is the executing agent's.
 
 - When `doctrina work --resume <id>` runs, the system shall reprint the
   work playbook for that open change and create nothing; and when the

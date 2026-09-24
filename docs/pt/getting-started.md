@@ -100,9 +100,9 @@ doctrina work "adicionar login com email e senha"
 ```
 
 O `work` esqueleta o change e imprime um **playbook de trabalho** —
-contexto → delta de spec → tasks → implementar → analyze → apply →
-**verify** → archive → validate — que o agente executa numa passada
-linear. Os dois comandos são o caminho sem cerimônia; os comandos manuais
+contexto, delta de spec, tasks, implementar, depois `doctrina close <id>`,
+que roda a sequência de fechamento inteira — que o agente executa numa
+passada linear. Os dois comandos são o caminho sem cerimônia; os comandos manuais
 abaixo são exatamente o que eles orquestram, e seguem disponíveis quando
 você quer controle fino.
 

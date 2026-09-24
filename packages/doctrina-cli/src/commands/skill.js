@@ -475,7 +475,7 @@ function skillNew(args, flags) {
   idx.save(projectRoot, index);
   console.log(c.green("indexed") + ` skill "${name}"`);
   console.log("");
-  console.log(c.gray("hint: ") + "fill the description and when frontmatter fields, then run `doctrina skill sync` to update index.json");
+  console.log(c.gray("hint: ") + "fill the description and when frontmatter fields, then run `doctrina index rebuild` to update index.json");
   return 0;
 }
 

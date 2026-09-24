@@ -96,9 +96,9 @@ Once the project exists, drive each feature with a one-line prompt:
 doctrina work "add login with email and password"
 ```
 
-`work` scaffolds the change and prints a **work playbook** — context →
-spec delta → tasks → implement → analyze → apply → **verify** → archive →
-validate — that the agent executes in one linear pass. The two commands
+`work` scaffolds the change and prints a **work playbook** — context,
+spec delta, tasks, implement, then `doctrina close <id>`, which runs the
+whole closing sequence — that the agent executes in one linear pass. The two commands
 are the no-ceremony path; the manual commands below are exactly what they
 orchestrate, and stay available when you want fine-grained control.
 
