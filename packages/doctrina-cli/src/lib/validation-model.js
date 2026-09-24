@@ -460,10 +460,15 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
       // capabilities a change touches, and a name with no spec behind it
       // — a typo, or a capability that was never created — passed
       // analyze, check and close in silence. A capability this change is
-      // about to CREATE (an ADDED delta) is not a ghost.
+      // about to CREATE (an ADDED delta) is not a ghost. Neither is the
+      // header's own "none": a chore is scaffolded with "(none — chore)",
+      // and reading its words as names warned twice on every chore (change
+      // 0190). A parenthesised aside is a note, not a capability.
       if (isFile(proposal)) {
-        const affects = (listHeader(read(proposal), "Affects specs") ?? "")
-          .match(/[a-z][a-z0-9-]*/g) ?? [];
+        const header = (listHeader(read(proposal), "Affects specs") ?? "").trim();
+        const affects = /^\(?\s*(none|n\/a)\b/i.test(header)
+          ? []
+          : header.replace(/\([^)]*\)/g, "").match(/[a-z][a-z0-9-]*/g) ?? [];
         const specsRoot = path.join(projectRoot, ".doctrina", "specs");
         for (const cap of affects) {
           if (isFile(path.join(specsRoot, cap, "spec.md"))) continue;

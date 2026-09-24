@@ -199,3 +199,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0186-work-aceita-design — work aceita design (specs: authoring MODIFIED)
 - 2026-09-24 — 0187-upgrade-aponta-slash-commands-defasados — upgrade aponta slash commands defasados (specs: templates MODIFIED)
 - 2026-09-24 — 0188-completion-sem-depreciados — completion sem depreciados (specs: cli MODIFIED)
+- 2026-09-24 — 0190-chore-sem-fantasmas-no-affects — chore sem fantasmas no affects (specs: structure MODIFIED)

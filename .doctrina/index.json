@@ -133,7 +133,7 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.5.1",
+        "version": "0.5.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -539,7 +539,16 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0189-cortar",
+        "title": "cortar a 0.17.0",
+        "path": ".doctrina/changes/0189-cortar",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (uncertain) — opened as chore"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -3033,6 +3042,19 @@
         "specs_affected": [
           {
             "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0190-chore-sem-fantasmas-no-affects",
+        "title": "chore sem fantasmas no affects",
+        "path": ".doctrina/changes/archive/2026-09-24-0190-chore-sem-fantasmas-no-affects",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "structure",
             "operation": "MODIFIED"
           }
         ]

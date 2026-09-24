@@ -89,3 +89,21 @@ test("an intent anchor declared twice is a validate error and trace names it", (
   assert.equal(trace.status, 1);
   assert.match(trace.stdout, /duplicate anchor \[SC1\]/);
 });
+
+// A chore is scaffolded with "Affects specs: (none — chore)"; its words are
+// the header saying "nothing", not two capabilities named none and chore
+// (change 0190). A parenthesised aside beside real names is a note too.
+test("a chore's (none — chore) is not a ghost, and an aside beside a name is not one either", () => {
+  const dir = project();
+  assert.equal(run(dir, ["work", "Bump the lockfile", "--chore", "--quiet"]).status, 0);
+  let res = run(dir, ["validate"]);
+  assert.doesNotMatch(res.stdout, /names "(none|chore)"/);
+
+  assert.equal(run(dir, ["change", "new", "0002-y", "Do y", "--force"]).status, 0);
+  const proposal = path.join(dir, ".doctrina", "changes", "0002-y", "proposal.md");
+  writeFileSync(proposal, readFileSync(proposal, "utf8")
+    .replace(/^(- \*\*Affects specs:\*\*).*$/m, "$1 carteira (via ops only), fantasma"));
+  res = run(dir, ["validate"]);
+  assert.doesNotMatch(res.stdout, /names "(via|ops|only)"/);
+  assert.match(res.stdout, /names "fantasma"/, "a real ghost beside the aside still warns");
+});

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.5.1
+**Version:** 0.5.2
 
 ## Purpose
 
@@ -121,6 +121,7 @@ those stays there, with the cross-cutting claim it belongs to.
 
 - The system shall not propose or write `verified` for a spec on the strength of a criterion whose author marked it `[unverified]`, whether the proposal comes from `validate` or the write from `spec set --implementation auto`.
 - The system shall not write a `framework_version` stamp lower than the one the index already carries; an older CLI that rebuilds the index keeps the newer stamp, `validate` reports a stamp ahead of the running CLI as a reason to upgrade the CLI rather than to rebuild, and `index rebuild --check` does not count a stamp ahead as index drift.
+- The system shall not read an open change's `Affects specs:` header of "none" or "n/a" — including the `(none — chore)` a chore is scaffolded with — or a parenthesised aside beside real names, as capability names, so the ghost-capability warning fires only on a name the author meant.
 
 ## Acceptance criteria
 
@@ -138,6 +139,7 @@ those stays there, with the cross-cutting claim it belongs to.
 10. [verified] Only the two declared words pass validate on an intake, and an empty or mistyped value is reported rather than read as pending — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
 11. [verified] A rule scoped to a path that matches nothing is reported while a rule that reaches files, one that finds a violation, one that declares no scope, and one suppressed by its own hit cap each keep their answer — verified by `packages/doctrina-cli/test/uma-regra-que-nao-alcanca-nada.test.js`.
 12. [verified] The same vague trigger is reported in English and in Portuguese, an accent does not change the answer, a concrete trigger passes in either language, and the module counts content words through the shared lexicon — verified by `packages/doctrina-cli/test/um-gatilho-vago-e-vago-nas-duas-linguas.test.js`.
+13. [verified] A chore opened by `work --chore` validates without a ghost warning for "none" or "chore", and an aside such as "(via ops only)" beside a real name is ignored while a real ghost in the same header still warns — verified by `packages/doctrina-cli/test/a-ghost-reference-is-named.test.js`.
 
 ## Out of scope for this spec
 

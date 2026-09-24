@@ -63,6 +63,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A chore no longer warns about two ghost capabilities.** Every chore is
+  scaffolded with `Affects specs: (none — chore)`, and `validate` read
+  "none" and "chore" as capability names with no spec. It now skips a
+  none/n/a header and parenthesised asides. (0190)
 - **Tab completion offers the live surface.** The bash, zsh and pwsh
   scripts were generated from the whole catalog and kept offering
   `analyze`, `report`, `skill sync` and `templates check|update` beside
