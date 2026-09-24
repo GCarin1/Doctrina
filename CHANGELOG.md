@@ -17,6 +17,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **`doctrina work --design`.** `work` opens its change through `change
+  new` but refused `--design`, so a change that needed a design document
+  had to leave the recommended door for the manual one. It now scaffolds
+  the same `design.md`. (0186)
+
 ### Removed
 
 - **`doctrina constitution` and `doctrina change diff`**, deprecated since

@@ -256,6 +256,7 @@ arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
+| `--design` | Também esboça o `design.md`, para um change com escolhas não triviais (opt-in, como em `change new --design`). |
 | `--force` | Sobrescreve uma pasta de change existente, e passa pela retenção de raia descrita abaixo. |
 
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de

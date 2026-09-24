@@ -29,7 +29,7 @@ export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "chore", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
+export const flags = { boolean: ["json", "chore", "design", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
 
 export async function run(positional, flags) {
   const prompt = positional.join(" ").trim();
@@ -543,6 +543,8 @@ Options:
                        prompt needed) and print a code-first playbook (F8)
   --chore, --no-spec   Open a spec-less chore change (infra/docs/build) with a
                        playbook that skips the spec-delta steps (F9)
+  --design             Also scaffold design.md, for a change with non-trivial
+                       choices (opt-in, as with \`change new --design\`)
   --force              Open a new change even when one is open, overwrite an
                        existing change folder, and proceed past the lane hold
                        below

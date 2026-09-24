@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.21.1",
+        "version": "0.22.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -2994,6 +2994,19 @@
         "specs_affected": [
           {
             "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0186-work-aceita-design",
+        "title": "work aceita design",
+        "path": ".doctrina/changes/archive/2026-09-24-0186-work-aceita-design",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ]

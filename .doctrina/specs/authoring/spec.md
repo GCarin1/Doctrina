@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.21.1
+**Version:** 0.22.0
 
 ## Purpose
 
@@ -262,6 +262,7 @@ keep the checks and the read path.
 - When `doctrina decision supersede` creates a successor ADR, the system shall carry the superseded ADR's Scope into it and say so, because an unscoped ADR is global and the refinement of a decision that governed one capability would otherwise load into every context pack.
 - When `doctrina intent add` is given a text that an existing anchor already states — compared with case, accents, spacing and trailing punctuation folded away, pinned id or not — the system shall refuse without writing, naming the anchor that states it, because the twin would stay dropped once a spec realizes the first and `trace --strict` would fail on a gap no spec can close.
 - When `doctrina spec set` refuses an operation, the system shall answer the usage class if any error lies in the invocation — a value outside the header's or the mark's domain, a malformed flag, a criterion the spec does not declare — and the gate class only when every error lies in the spec itself, because retrying an invocation error unchanged never succeeds.
+- When `doctrina work` runs with `--design`, the system shall also scaffold the change's `design.md`, identical to the one `doctrina change new --design` writes, and without the flag shall scaffold none, so a change that needs a design document never has to leave the recommended door for the manual one.
 
 ### Unwanted-behavior (must-not)
 
@@ -332,6 +333,7 @@ The authoring commands are v0 spec-compliant when:
 35. [verified] The same intent added twice, in any casing, accenting, spacing or with a pinned id, is refused naming the existing anchor and writes nothing, while a different intent is still added — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
 36. [verified] An out-of-domain value, a malformed flag and a missing criterion answer the usage class and leave the spec untouched, a spec lacking the header the operation needs answers the gate class and passes once repaired, and both at once answer the usage class — verified by `packages/doctrina-cli/test/spec-set-diz-o-que-corrigir.test.js`.
 37. [verified] The chore playbook and its opening line name `doctrina close` and neither `change apply` nor `change archive`, and a chore done by its playbook closes in one pass in a fresh project — verified by `packages/doctrina-cli/test/a-chore-fecha-como-toda-change.test.js`.
+38. [verified] `work --design` writes the design.md that `change new --design` writes for the same title, and `work` without the flag writes none — verified by `packages/doctrina-cli/test/o-work-esboca-o-design.test.js`.
 
 ## Out of scope for this spec
 

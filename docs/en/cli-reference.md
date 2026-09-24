@@ -248,6 +248,7 @@ prompt ranking scaffolds; `--from-diff` and `--chore` do not.
 | `--quiet` | Register the change and print one line — no playbook. For backlog entry ("record 19 works now, start none"); reprint later with `--resume <id>`. |
 | `--id <id>` | Override the derived change id. |
 | `--chore`, `--no-spec` | Open a spec-less chore change (infra/docs/build) whose playbook skips the spec-delta steps. |
+| `--design` | Also scaffold `design.md`, for a change with non-trivial choices (opt-in, as with `change new --design`). |
 | `--force` | Overwrite an existing change folder, and proceed past the lane hold below. |
 
 Before anything is scaffolded, `work` consults the lane classifier (see
