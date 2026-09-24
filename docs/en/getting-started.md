@@ -40,7 +40,8 @@ This creates:
 - `AGENTS.md` at the project root — the portable, agent-readable
   operational source of truth.
 - `.doctrina/product.md` — your project's vision, scope, and target
-  users. Edit this immediately.
+  users. Your agent fills it from your description (next section); you
+  review it.
 - `.doctrina/index.json` — metadata about every artifact.
 - Empty `.doctrina/specs/`, `.doctrina/changes/`,
   `.doctrina/changes/archive/`, and `.doctrina/decisions/` directories.

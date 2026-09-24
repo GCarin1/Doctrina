@@ -157,7 +157,10 @@ test("init without an intake is unchanged", () => {
     const r = runCli(["init", "--non-interactive", "--project-name", "Acme"], dir);
     assert.equal(r.status, 0, r.stderr);
     assert.ok(!existsSync(path.join(dir, ".doctrina", "intake.md")));
-    assert.match(r.stdout, /Next: edit AGENTS\.md/);
+    // The next step is the one `next` and AGENTS.md give (change 0173), not
+    // "edit AGENTS.md and product.md" by hand.
+    assert.match(r.stdout, /doctrina intake --text/);
+    assert.doesNotMatch(r.stdout, /Next: edit/);
     assert.doesNotMatch(r.stdout, /Mark the intake consumed/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

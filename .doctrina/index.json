@@ -107,7 +107,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.10.0",
+        "version": "0.11.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -540,14 +540,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0173-primeiro-uso-do-init-se-contradiz",
-        "title": "primeiro uso do init se contradiz",
-        "path": ".doctrina/changes/0173-primeiro-uso-do-init-se-contradiz",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0179-documentacao-defasada",
         "title": "documentacao defasada",
@@ -2827,6 +2819,19 @@
         "specs_affected": [
           {
             "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0173-primeiro-uso-do-init-se-contradiz",
+        "title": "primeiro uso do init se contradiz",
+        "path": ".doctrina/changes/archive/2026-09-24-0173-primeiro-uso-do-init-se-contradiz",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
             "operation": "MODIFIED"
           }
         ]

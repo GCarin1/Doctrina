@@ -89,7 +89,7 @@ doctrina init [opções]
 | Flag | Padrão | Função |
 |------|--------|--------|
 | `--project-name <nome>` | basename do cwd | Sobrescreve o nome do projeto nos artefatos. |
-| `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase. Omita `--non-interactive` para pular a pergunta. |
+| `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase para o `product.md`, sem intake. Sem ela (e sem `--intake`) num terminal, o `init` faz uma pergunta e guarda a resposta como intake. |
 | `--agent <nome>` | nenhum | Instala o adapter para um dos doze agentes suportados (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) ou `all`. Agentes AGENTS.md-native (`codex`, `amp`, `devin`, `factory`, `jules`) não instalam arquivo. |
 | `--from <path>` | nenhum | Diretório local de conventions; faz fold do `AGENTS.md` e do `.doctrina/product.md` (quando presentes) no novo projeto antes do scaffold. Só caminhos de filesystem — sem URLs. |
 | `--intake <file>` | nenhum | Descrição completa do projeto; armazenada literalmente em `.doctrina/intake.md`, usada para derivar a descrição de uma linha quando `--project-description` está ausente, e o playbook de bootstrap é impresso na hora — sem segundo comando. O `AGENTS.md` gerado também instrui qualquer agente a executar esse playbook sozinho ao ver um intake pendente. |
@@ -99,10 +99,16 @@ doctrina init [opções]
 | `--overwrite-content` | off | O segundo opt-in explícito que permite ao `--force` descartar `AGENTS.md` / `product.md` autorados. Sem ela, o `--force` sozinho não consegue destruí-los. |
 | `--non-interactive` | off | Falha em vez de perguntar. |
 
-O `init` precisa de uma descrição. Num terminal ele pergunta; fora de um
-ele **recusa** (saída `2`) em vez de aceitar a string vazia que o EOF
-devolve — isso esqueletizava um projeto com descrição em branco e sem
-aviso. Passe `--project-description` ou `--intake`.
+O `init` precisa de uma descrição. Num terminal ele faz **uma** pergunta —
+descreva o projeto: o que é, para quem, o que precisa fazer — e guarda a
+resposta como intake, para o `next` não pedi-la de novo; depois diz o único
+próximo passo: abrir o seu agente e pedir que ele leia o AGENTS.md e rode
+`doctrina next`. Fora de um terminal ele **recusa** (saída `2`) em vez de
+aceitar a string vazia que o EOF devolve — isso esqueletizava um projeto
+com descrição em branco e sem aviso. Passe `--project-description` ou
+`--intake`. Com descrição e sem intake, a linha final nomeia `doctrina
+intake --text` (ou `doctrina work --from-diff` para um código existente) —
+o mesmo passo que o `next` nomeia.
 
 Num terminal interativo, o `init` também oferece a instalação de
 adapter como passo de wizard quando `--agent` não foi passado

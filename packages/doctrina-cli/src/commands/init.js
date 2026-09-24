@@ -14,7 +14,7 @@ import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ask, isInteractive } from "../lib/prompt.js";
-import { looksLikePath, writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake } from "../lib/intake-model.js";
+import { looksLikePath, writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake, nextStepAfterInit } from "../lib/intake-model.js";
 
 const SUPPORTED_AGENTS = [
   "claude",
@@ -107,9 +107,20 @@ export async function run(_positional, flags) {
   // isTTY check the adapter prompt already had. A non-interactive caller
   // that forgot --non-interactive read EOF, got an empty answer, and
   // scaffolded a project with a blank description — silently (C9).
+  // At a terminal, ONE question, and its answer is the intake (change 0173):
+  // it was asked as a one-line description, written into product.md, and
+  // then `next` asked for the same thing again as an intake. A person
+  // describes the project once.
+  let intakeFromTty = false;
   if (!description && !nonInteractive) {
     if (isInteractive()) {
-      description = await ask("One-sentence project description:");
+      const answer = await ask("Describe the project — what it is, who it is for, what it must do:");
+      if (answer && answer.trim() !== "") {
+        intakeBody = answer.trim();
+        intakeSource = "typed at `doctrina init`";
+        intakeFromTty = true;
+        description = firstLineSummary(intakeBody);
+      }
     }
     if (!description) {
       console.error(c.red("error:") + " no project description given and no terminal to ask on");
@@ -293,7 +304,11 @@ export async function run(_positional, flags) {
 
   console.log("");
   console.log(c.bold("Doctrina initialised."));
-  if (intakeBody) {
+  if (intakeFromTty) {
+    // A person at a terminal gets the one instruction, not the agent's
+    // playbook: the agent reprints it with `doctrina intake`.
+    for (const line of nextStepAfterInit("tty")) console.log(line);
+  } else if (intakeBody) {
     console.log(`Next: execute the bootstrap playbook below — it converts the intake into`);
     console.log(`${c.cyan(".doctrina/product.md")} and capability specs. Any AGENTS.md-aware agent`);
     console.log(`runs it on its own; reprint anytime with ${c.cyan("doctrina intake")}.`);
@@ -301,7 +316,7 @@ export async function run(_positional, flags) {
     warnIfThinIntake(intakeBody);
     printBootstrapPlaybook(projectRoot);
   } else {
-    console.log(`Next: edit ${c.cyan("AGENTS.md")} and ${c.cyan(".doctrina/product.md")} for your project.`);
+    for (const line of nextStepAfterInit(null)) console.log(line);
   }
   return 0;
 }

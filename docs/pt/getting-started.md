@@ -43,7 +43,8 @@ Isso cria:
 - `AGENTS.md` na raiz do projeto — a fonte de verdade operacional
   portátil e legível por agentes.
 - `.doctrina/product.md` — visão, escopo e usuários-alvo do seu
-  projeto. Edite imediatamente.
+  projeto. O seu agente o preenche a partir da sua descrição (próxima
+  seção); você revisa.
 - `.doctrina/index.json` — metadados de todos os artefatos.
 - Diretórios vazios `.doctrina/specs/`, `.doctrina/changes/`,
   `.doctrina/changes/archive/` e `.doctrina/decisions/`.

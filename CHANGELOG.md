@@ -48,6 +48,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The first run gives one instruction.** `init` said "edit AGENTS.md and
+  product.md", `next` then asked for the description again as an intake,
+  and AGENTS.md says the agent drives. At a terminal `init` now asks one
+  question, stores the answer as the intake, and ends with "open your agent
+  and have it read AGENTS.md and run `doctrina next`"; without an intake its
+  closing line names the same step `next` does. (0173)
 - **`doctrina --help` starts where a newcomer starts.** It printed the 61
   operations as one flat list, deprecated names mixed in. It now opens with
   `doctrina init` and `doctrina next`, groups one line per command under the

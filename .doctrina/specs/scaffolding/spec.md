@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.10.0
+**Version:** 0.11.0
 
 ## Purpose
 
@@ -189,6 +189,8 @@ authoring commands, and the conventions every command shares.
 - When `doctrina init` receives both `--intake` and `--intake-text`, the system shall report a usage error naming the two as alternatives, and scaffold nothing.
 - When a project declares no capability spec and has no intake awaiting conversion, the system shall recommend the bootstrap command, naming the code-first alternative for a project adopting an existing codebase.
 - When `doctrina index rebuild --check --staged` runs, the system shall compare the staged index against the staged tree rather than the working tree — reporting every artifact the staged index names that the commit does not carry, and every staged artifact the index does not name — writing nothing, and exiting successfully when no index is staged or the project is not a git repository.
+- When `doctrina init` runs on an interactive terminal with neither a description nor an intake supplied, the system shall ask one question — describe the project — store the answer as the intake with the description derived from it, and close by telling the person to have their agent read AGENTS.md and run `doctrina next`, rather than printing the agent's playbook or asking for the same description again later.
+- When `doctrina init` finishes with a description but no intake, the system shall name the step `doctrina next` names — `doctrina intake --text` with the whole description, or `doctrina work --from-diff` for an existing codebase — and never tell the person to edit AGENTS.md or product.md by hand.
 
 ### State-driven
 
@@ -224,6 +226,7 @@ Project scaffolding is spec-compliant when:
 13. [verified] A spec, a skill and an archived change that sort before an existing entry each land in walk order and leave `index rebuild --check` clean, punctuation included — verified by `packages/doctrina-cli/test/the-index-is-written-once.test.js`.
 14. [verified] A partial commit of `.doctrina/` is refused by name while a whole-tree commit passes, and the installed pre-commit hook asks that question after the step that stages the index — verified by `packages/doctrina-cli/test/o-indice-descreve-o-commit.test.js`.
 15. [verified] Adding an adapter after `init` writes the recorded name rather than the directory's, both installation paths agree, and no module resolves the name on its own — verified by `packages/doctrina-cli/test/o-projeto-tem-um-nome-so.test.js`.
+16. [verified] After a description typed at the terminal the closing line sends the person to their agent, without an intake `init` and `next` name the same command, and an intake given as a flag still prints the agent's playbook — verified by `packages/doctrina-cli/test/o-primeiro-uso-tem-uma-instrucao.test.js`.
 
 ## Out of scope for this spec
 

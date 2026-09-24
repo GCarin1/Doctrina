@@ -188,3 +188,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0178-templates-check-e-update-fundidos-no-upgrade — templates check e update fundidos no upgrade (specs: templates MODIFIED)
 - 2026-09-24 — 0175-remover-constitution-e-change-diff — remover constitution e change diff (specs: authoring MODIFIED, cli MODIFIED, insight MODIFIED)
 - 2026-09-24 — 0174-ajuda-sem-agrupamento-por-momento — ajuda sem agrupamento por momento (specs: cli MODIFIED)
+- 2026-09-24 — 0173-primeiro-uso-do-init-se-contradiz — primeiro uso do init se contradiz (specs: scaffolding MODIFIED)

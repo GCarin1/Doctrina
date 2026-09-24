@@ -84,7 +84,7 @@ doctrina init [options]
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `--project-name <name>` | basename of cwd | Override the project name written into artifacts. |
-| `--project-description <text>` | empty (prompts) | One-sentence description. Omit `--non-interactive` to skip the prompt. |
+| `--project-description <text>` | empty (prompts) | One-sentence description for `product.md`, with no intake. Without it (and without `--intake`) on a terminal, `init` asks one question and stores the answer as the intake. |
 | `--agent <name>` | none | Install the adapter for one of the twelve supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or `all`. AGENTS.md-native agents (`codex`, `amp`, `devin`, `factory`, `jules`) install no file. |
 | `--from <path>` | none | Local conventions directory; folds its `AGENTS.md` and `.doctrina/product.md` (when present) into the new project before scaffolding. Filesystem paths only — no URLs. |
 | `--intake <file>` | none | Full project description; stored verbatim at `.doctrina/intake.md`, used to derive the one-line description when `--project-description` is absent, and the bootstrap playbook is printed inline — no second command needed. The scaffolded `AGENTS.md` also tells any agent to run that playbook on its own when it sees a pending intake. |
@@ -94,10 +94,16 @@ doctrina init [options]
 | `--overwrite-content` | off | The explicit second opt-in that lets `--force` discard authored `AGENTS.md` / `product.md`. Without it, `--force` alone cannot destroy them. |
 | `--non-interactive` | off | Fail instead of prompting for missing required values. |
 
-`init` needs a description. On a terminal it asks; off one it **refuses**
-(exit `2`) rather than accepting the empty string EOF returns — that used
-to scaffold a project with a blank description and no warning. Pass
-`--project-description` or `--intake`.
+`init` needs a description. On a terminal it asks **one** question —
+describe the project: what it is, who it is for, what it must do — and
+stores the answer as the intake, so `next` does not ask for it again, then
+tells you the one next step: open your agent and have it read AGENTS.md
+and run `doctrina next`. Off a terminal it **refuses** (exit `2`) rather
+than accepting the empty string EOF returns — that used to scaffold a
+project with a blank description and no warning. Pass
+`--project-description` or `--intake`. With a description and no intake,
+the closing line names `doctrina intake --text` (or `doctrina work
+--from-diff` for an existing codebase) — the same step `next` names.
 
 `init` refuses to run if `AGENTS.md` or `.doctrina/` already exist
 unless `--force` is supplied.
