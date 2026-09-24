@@ -19,6 +19,10 @@ import { parseChecklist } from "../src/lib/doc-model.js";
 // The second half: `* [ ] task` was not a box to the grammar, so `tick`
 // could not tick it and the archive gate did not count it — an unchecked
 // task that closed green.
+//
+// Since change 0195 the scaffold ships no "## Closing steps" (apply, archive
+// and index are what the close does), so the proposal's Verification claims
+// follow the four tasks directly.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
@@ -51,17 +55,17 @@ test("the listing numbers every box, ticked or not, and the numbers do not move"
   const before = run(dir, ["change", "tick", "0001-x"]).stdout;
   assert.match(before, /1\. \[ \] task one/);
   assert.match(before, /4\. \[ \] task four \(plus\)/);
-  assert.match(before, /5\. \[ \] Apply the change/);
-  assert.match(before, /8\. \[ \] Automated checks pass/);
+  assert.doesNotMatch(before, /Apply the change/, "no closing steps to tick");
+  assert.match(before, /5\. \[ \] Automated checks pass/);
 
   assert.equal(run(dir, ["change", "tick", "0001-x", "1"]).status, 0);
   const after = run(dir, ["change", "tick", "0001-x"]).stdout;
   assert.match(after, /1\. \[x\] task one/);
   assert.match(after, /2\. \[ \] task two/, "task two kept its number after task one was ticked");
-  assert.match(after, /5\. \[ \] Apply the change/);
+  assert.match(after, /5\. \[ \] Automated checks pass/);
 });
 
-test("sequential ticks land on the boxes they name — never on the closing steps", () => {
+test("sequential ticks land on the boxes they name — never on the Verification claims", () => {
   const { dir, tasksPath } = project();
   for (const n of ["1", "2", "3", "4"]) assert.equal(run(dir, ["change", "tick", "0001-x", n]).status, 0);
   const tasks = readFileSync(tasksPath, "utf8");
@@ -69,7 +73,6 @@ test("sequential ticks land on the boxes they name — never on the closing step
   assert.match(tasks, /- \[x\] task two/);
   assert.match(tasks, /\* \[x\] task three \(star\)/);
   assert.match(tasks, /\+ \[x\] task four \(plus\)/);
-  assert.match(tasks, /- \[ \] Apply the change/, "the closing steps were not touched");
   const proposal = readFileSync(path.join(dir, ".doctrina", "changes", "0001-x", "proposal.md"), "utf8");
   assert.match(proposal, /- \[ \] Automated checks pass/, "the Verification claims were not touched");
 });
@@ -82,7 +85,7 @@ test("a box already ticked is a named no-op, and a non-number names the argument
   assert.match(again.stdout, /box 1 is already ticked/);
   const bad = run(dir, ["change", "tick", "0001-x", "abc"]);
   assert.equal(bad.status, 2);
-  assert.match(bad.stderr, /no box "abc" \(a number 1\.\.9/);
+  assert.match(bad.stderr, /no box "abc" \(a number 1\.\.6/);
   assert.doesNotMatch(bad.stderr, /NaN/);
 });
 

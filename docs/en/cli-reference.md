@@ -454,8 +454,10 @@ doctrina change archive 0042-add-saml 0043-rate-limit
 
 Archiving is the act of declaring a change finished, so it is **gated on
 `verification`** (ADR 0017): the CLI **refuses** (exit 1) while any
-checkbox in `tasks.md` (the closing steps included) or in the proposal's
-`## Verification` section is still unchecked. It deliberately does not
+checkbox in `tasks.md` or in the proposal's
+`## Verification` section is still unchecked (a legacy `## Closing steps`
+list — apply, archive, update the index — is not counted: those are what
+the close does). It deliberately does not
 re-run the `structure` gate — that gate asks "is this safe to apply?",
 and after a successful apply its ADDED-target check would report the
 proof of success as a conflict. Finish and check the

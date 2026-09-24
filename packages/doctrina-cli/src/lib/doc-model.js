@@ -419,15 +419,17 @@ export function isPlaceholderHeaderValue(value, opts = {}) {
  *
  * @param {string} text
  * @param {{ section?: string|null }} [opts] limit to one `## ` section
- * @returns {Array<{ line: number, checked: boolean, text: string, placeholder: boolean }>}
+ * @returns {Array<{ line: number, checked: boolean, text: string, placeholder: boolean, section: string|null }>}
  */
 export function parseChecklist(text, opts = {}) {
   const section = opts.section ?? null;
   const lines = String(text).split(/\r?\n/);
   const out = [];
   let inSection = section === null;
+  let heading = null;
   for (let i = 0; i < lines.length; i++) {
     if (/^##\s+/.test(lines[i])) {
+      heading = lines[i].replace(/^##\s+/, "").trim();
       if (section !== null) {
         inSection = new RegExp(`^##\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
           .test(lines[i]);
@@ -442,7 +444,7 @@ export function parseChecklist(text, opts = {}) {
     const m = /^\s*[-*+]\s*\[([ xX])\]\s*(.*)$/.exec(lines[i]);
     if (!m) continue;
     const body = m[2].trim();
-    out.push({ line: i, checked: m[1] !== " ", text: body, placeholder: body === "" });
+    out.push({ line: i, checked: m[1] !== " ", text: body, placeholder: body === "", section: heading });
   }
   return out;
 }
@@ -456,8 +458,16 @@ export function parseChecklist(text, opts = {}) {
  * @param {{ section?: string|null }} [opts]
  * @returns {{ total: number, done: number, open: string[], placeholders: number }}
  */
+// A tasks.md scaffolded before change 0195 ends with "## Closing steps" —
+// apply, archive, update the index. Those are what `doctrina close` DOES,
+// so asking for them ticked before the close ran was asking the agent to
+// claim three things that had not happened yet. The template no longer
+// writes them; a change that still carries them is not held to them.
+const CLOSING_STEPS = /^closing steps$/i;
+
 export function checklistProgress(text, opts = {}) {
-  const boxes = parseChecklist(text, opts);
+  const boxes = parseChecklist(text, opts)
+    .filter((b) => opts.section != null || !CLOSING_STEPS.test(b.section ?? ""));
   return {
     total: boxes.length,
     done: boxes.filter((b) => b.checked).length,

@@ -467,8 +467,10 @@ doctrina change archive 0042-add-saml 0043-rate-limit
 
 Arquivar é o ato de declarar um change terminado, então ele é **gateado
 por `verification`** (ADR 0017): o CLI **recusa** (exit 1) enquanto
-qualquer caixa no `tasks.md` (incluindo os closing steps) ou na seção
-`## Verification` do proposal estiver desmarcada. Ele deliberadamente não
+qualquer caixa no `tasks.md` ou na seção `## Verification` do proposal
+estiver desmarcada (uma lista antiga de `## Closing steps` — aplicar,
+arquivar, atualizar o índice — não conta: é o que o close faz). Ele
+deliberadamente não
 re-roda o gate `structure` — aquele gate pergunta "isto é seguro de
 aplicar?", e depois de um apply bem-sucedido a checagem de alvo ADDED
 reportaria a prova do sucesso como conflito. Termine e marque os itens, ou passe

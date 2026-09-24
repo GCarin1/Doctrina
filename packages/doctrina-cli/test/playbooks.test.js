@@ -65,6 +65,11 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // Change 0194 made `intake --converted` refuse while `validate` reports an
 // error, and step 7 of the bootstrap playbook says so in two added lines.
 // The bootstrap golden was re-captured with the test's own invocation.
+//
+// Change 0195 dropped "## Closing steps" from the tasks scaffold — apply,
+// archive and index are what the close does — so step 7 of the work
+// playbook no longer says "closing steps included". The work, pinned, thin
+// and ANSI goldens were re-captured for that one line.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

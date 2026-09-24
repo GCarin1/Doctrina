@@ -58,8 +58,9 @@ export const GATES = {
   },
 
   // Verification: the work is claimed complete. Every checkbox in
-  // tasks.md (closing steps included) and in the proposal's
-  // "## Verification" section.
+  // tasks.md and in the proposal's "## Verification" section — except a
+  // legacy "## Closing steps" list, which names what the close itself does
+  // (change 0195).
   verification: {
     label: "verification",
     rerun: (id) => `doctrina change tick ${id}`,
@@ -72,7 +73,7 @@ export const GATES = {
       const tasksPath = path.join(changeDir, "tasks.md");
       if (isFile(tasksPath)) {
         const n = countUnchecked(read(tasksPath));
-        if (n > 0) out.push(`${n} unchecked task${n === 1 ? "" : "s"} in tasks.md (closing steps count)`);
+        if (n > 0) out.push(`${n} unchecked task${n === 1 ? "" : "s"} in tasks.md`);
       }
       const proposalPath = path.join(changeDir, "proposal.md");
       if (isFile(proposalPath)) {

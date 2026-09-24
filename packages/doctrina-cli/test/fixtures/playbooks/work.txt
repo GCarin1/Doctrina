@@ -77,7 +77,7 @@ Execute in order, in a single linear pass:
    The sequence is declared in one place and printed by the close itself,
    so read it there rather than from a copy that goes stale.
    Before it: check the proposal's ## Verification boxes and every task,
-   closing steps included, and bump Implementation to verified.
+   and bump Implementation to verified.
    Two gates ask for WRITING, and both refuse late if you leave them:
    a change that alters a documented surface needs the documentation to
    move with it, AND an entry in the project's changelog — one says how it

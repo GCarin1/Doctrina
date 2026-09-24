@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.23.0",
+        "version": "0.24.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -3241,6 +3241,20 @@
         "id": "0194-intake-converte-so-com-validate-limpo",
         "title": "intake converte só com validate limpo",
         "path": ".doctrina/changes/archive/2026-09-24-0194-intake-converte-so-com-validate-limpo",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0195-closing-steps-saem-do-tasks",
+        "title": "closing steps saem do tasks",
+        "path": ".doctrina/changes/archive/2026-09-24-0195-closing-steps-saem-do-tasks",
         "status": "applied",
         "applied": "2026-09-24",
         "specs_affected": [

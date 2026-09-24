@@ -47,15 +47,18 @@ test("a scaffold placeholder is a box, and is marked as one", () => {
   assert.deepEqual(boxes.map((b) => b.placeholder), [true, false, false]);
   assert.deepEqual(boxes.map((b) => b.checked), [false, true, false]);
 
+  // The counter does not hold a legacy "## Closing steps" list to account:
+  // apply, archive and index are what the close does (change 0195). The
+  // grammar still SEES the box — `change tick` numbers every box there is.
   const p = checklistProgress(text);
-  assert.equal(p.total, 3);
+  assert.equal(p.total, 2);
   assert.equal(p.done, 1);
   assert.equal(p.placeholders, 1);
 });
 
 test("a section can be counted on its own", () => {
   const text = "# Tasks\n\n- [ ] work\n\n## Closing steps\n\n- [ ] Apply\n- [x] Archive\n";
-  assert.equal(checklistProgress(text).total, 3);
+  assert.equal(checklistProgress(text).total, 1, "the legacy closing steps are not work");
   const closing = checklistProgress(text, { section: "Closing steps" });
   assert.equal(closing.total, 2);
   assert.equal(closing.done, 1);
@@ -68,7 +71,7 @@ test("prime, report, handoff and next report the same number of boxes", () => {
   try {
     const tasks = readFileSync(path.join(dir, ".doctrina", "changes", id, "tasks.md"), "utf8");
     const real = checklistProgress(tasks).total;
-    assert.ok(real >= 6, `the scaffold ships several boxes, got ${real}`);
+    assert.ok(real >= 3, `the scaffold ships several boxes, got ${real}`);
 
     const prime = run(dir, ["prime"]).stdout;
     const report = run(dir, ["report"]).stdout;

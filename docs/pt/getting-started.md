@@ -170,8 +170,8 @@ doctrina coverage    # cada critério de aceite deve citar um teste real
 
 O `doctrina verify` é o gate de build real (declare seus comandos uma vez
 com `doctrina verify --init`), distinto do `validate` estrutural. Depois
-marque cada caixa no `tasks.md` do change (closing steps incluídos) e na
-seção `## Verification` do proposal.
+marque cada caixa no `tasks.md` do change e na seção `## Verification`
+do proposal.
 
 Por fim, arquive o change:
 

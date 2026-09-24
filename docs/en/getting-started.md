@@ -164,8 +164,8 @@ doctrina coverage    # every acceptance criterion should cite a real test
 
 `doctrina verify` is the real build gate (declare your commands once with
 `doctrina verify --init`), distinct from the structural `validate`. Then
-check every box in the change's `tasks.md` (closing steps included) and
-the proposal's `## Verification` section.
+check every box in the change's `tasks.md` and the proposal's
+`## Verification` section.
 
 Finally, archive the change:
 

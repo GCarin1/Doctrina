@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`tasks.md` no longer asks you to tick what the close does.** Every
+  change ended with "## Closing steps" — apply, archive, update the index —
+  and the archive gate required them ticked before `doctrina close`, the
+  command that performs them. The scaffold no longer writes them, and a
+  change that still carries them is not held to them. (0195)
 - **`intake --converted` refuses while `validate` fails.** It converted
   over a tree with an error — a hand-edited spec that drifted the index —
   so the specs became the source of truth while `validate` said they were
