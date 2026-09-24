@@ -539,7 +539,16 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0172-readme-sem-instalacao-e-lista-quebrada",
+        "title": "README sem instalacao e lista quebrada",
+        "path": ".doctrina/changes/0172-readme-sem-instalacao-e-lista-quebrada",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "chore (confident; signals: readme)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2792,6 +2801,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0171-ci-nao-testa-o-node-24",
+        "title": "CI nao testa o Node 24",
+        "path": ".doctrina/changes/archive/2026-09-24-0171-ci-nao-testa-o-node-24",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": []
       }
     ],
     "skills": [

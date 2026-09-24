@@ -181,3 +181,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-23 — 0168-spec-set-responde-gate-a-erro-de-invocacao — spec set responde GATE a erro de invocacao (specs: authoring MODIFIED)
 - 2026-09-23 — 0169-valor-de-flag-malformado-reinterpretado — valor de flag malformado reinterpretado (specs: cli MODIFIED)
 - 2026-09-24 — 0170-estimativa-de-tokens-conta-o-cr — estimativa de tokens conta o CR (specs: insight MODIFIED)
+- 2026-09-24 — 0171-ci-nao-testa-o-node-24 — CI nao testa o Node 24
