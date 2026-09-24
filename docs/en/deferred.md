@@ -1,7 +1,7 @@
-# Deferred at v0.1.0
+# Deferred
 
 A register of features Doctrina considered and chose not to ship
-at v0.1.0. Each item names a trigger that would justify
+(the register opened at v0.1.0 and grows with each release). Each item names a trigger that would justify
 revisiting. The list exists so future contributors and external
 users can distinguish "we have not done X" from "we considered X
 and these are the reasons we did not."

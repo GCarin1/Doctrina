@@ -1,10 +1,10 @@
-# Adiado em v0.1.0
+# Adiado
 
 > Tradução da [versão em inglês](../en/deferred.md). O inglês é a
 > fonte de verdade; este arquivo o segue.
 
 Registro de features que Doctrina considerou e escolheu não
-shippar em v0.1.0. Cada item nomeia um gatilho que justificaria
+shippar (o registro abriu em v0.1.0 e cresce a cada release). Cada item nomeia um gatilho que justificaria
 revisitar. A lista existe para que contribuidores futuros e
 usuários externos consigam distinguir "não fizemos X" de
 "consideramos X e estas são as razões pelas quais não fizemos".

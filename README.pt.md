@@ -17,6 +17,17 @@
 **Status:** v0.16.0 — lançado.
 **Leia em [inglês](./README.md).**
 
+## Instalação
+
+```
+npm install -g doctrina-cli     # Node.js 20.12+; o comando instalado é `doctrina`
+cd seu-repo && doctrina init    # AGENTS.md + .doctrina/, pede uma descrição do projeto
+```
+
+Daí em diante o seu agente conduz: `doctrina prime` no início da sessão,
+`doctrina work "<prompt>"` para cada pedido, `doctrina close <id>` para
+concluí-lo. Passo a passo completo: [Começando](./docs/pt/getting-started.md).
+
 ---
 
 ## Como funciona
@@ -131,15 +142,17 @@ scripts/                 benchmark de performance sintético
 
 **📖 Site de documentação:** [gcarin1.github.io/Doctrina](https://gcarin1.github.io/Doctrina/) —
 bilíngue (EN/PT), navegação lateral, busca full-text, servido direto da
-pasta `docs/` deste repositório via GitHub Pages, sem build (habilite uma
-vez em *Settings → Pages → Deploy from a branch → `main` / `docs`*).
+pasta `docs/` deste repositório via GitHub Pages, sem build. A publicação é
+automatizada por [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
+que publica `docs/` a cada push na `main` que o altera. Configuração única:
+habilite o Pages em *Settings → Pages → Source → **GitHub Actions***.
 
 A documentação para usuários vive em [`docs/`](./docs/):
 
 - [Começando](./docs/pt/getting-started.md) — instalar, init, primeira feature.
 - [Workflow](./docs/pt/workflow.md) — propose → apply → archive.
 - [Referência do CLI](./docs/pt/cli-reference.md) — todos os comandos e flags.
-- [Adapters](./docs/pt/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue.
+- [Adapters](./docs/pt/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules.
 - [LLMs locais](./docs/pt/local-llms.md) — conectar Doctrina a LLaMA, Mistral, Qwen, DeepSeek ou qualquer endpoint OpenAI-compatible.
 - [Modelo multi-agente](./docs/pt/multi-agent.md) — como Doctrina coordena ferramentas, fases e humanos sem escritores paralelos.
 - [Skills](./docs/pt/skills.md) — memória procedural on-demand: conhecimento especializado "como fazer X" carregado só quando relevante.
@@ -149,16 +162,21 @@ A documentação para usuários vive em [`docs/`](./docs/):
 - [Comparação](./docs/pt/comparison.md) — posicionamento honesto vs Spec Kit, Kiro, OpenSpec, BMAD, SpecWeave.
 - [Migração](./docs/pt/migration.md) — mapeamentos práticos vindos de Spec Kit, OpenSpec, BMAD, Kiro, SpecWeave.
 - [Benchmarks](./docs/pt/benchmarks.md) — números sintéticos de `validate` e `clarify` por tamanho de projeto.
-- [Adiado](./docs/pt/deferred.md) — o que deliberadamente não shippamos em v0.1.0 e por quê.
+- [Playbook de adoção](./docs/pt/adoption-playbook.md) — Doctrina num projeto multi-agente existente.
+- [Integração com CI](./docs/pt/ci.md) — os gates no seu pipeline.
+- [Templates](./docs/pt/templates.md) — a cadeia de override.
+- [Códigos de saída](./docs/pt/exit-codes.md) — as cinco classes em que um agente se baseia.
+- [Atualizando](./docs/pt/upgrading.md) — levar um projeto a um CLI mais novo.
+- [Antipatterns](./docs/pt/antipatterns.md) — modos de falha documentados.
+- [Validação](./docs/pt/validation.md) — protocolo A/B empírico para decidir se Doctrina compensa.
+- [Glossário](./docs/pt/glossary.md) — EARS, ADR, MADR, capability, etc.
+- [Adiado](./docs/pt/deferred.md) — o que o Doctrina deliberadamente não entrega, e o que mudaria isso.
 
 Dois projetos de referência vivem em [`examples/`](./examples/):
 um demo FastAPI greenfield em Python e um retrofit Express
 brownfield em TypeScript.
 
 Política do projeto: [CONTRIBUTING.md](./CONTRIBUTING.md) · [CHANGELOG.md](./CHANGELOG.md) · [SECURITY.md](./SECURITY.md).
-- [Antipatterns](./docs/pt/antipatterns.md) — modos de falha documentados.
-- [Validação](./docs/pt/validation.md) — protocolo A/B empírico para decidir se Doctrina compensa.
-- [Glossário](./docs/pt/glossary.md) — EARS, ADR, MADR, capability, etc.
 
 As versões em inglês estão em [`docs/en/`](./docs/en/).
 

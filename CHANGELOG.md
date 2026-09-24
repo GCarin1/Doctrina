@@ -19,6 +19,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The README says how to install, and reaches every guide.** It never
+  showed `npm install -g doctrina-cli`, three guides were stranded after
+  the project-policy line, seven (among them exit codes and upgrading)
+  were not listed, the adapters item named 8 of 12, and the Portuguese
+  README described a Pages setup the workflow no longer uses. The
+  `deferred` register drops its "at v0.1.0" title. (0172)
 - **The context budget no longer depends on line endings.** The chars/4
   estimate counted the CR of every CRLF line, so a Windows checkout paid
   about 2% more for the same pack, and the budget gate CI runs on every OS
