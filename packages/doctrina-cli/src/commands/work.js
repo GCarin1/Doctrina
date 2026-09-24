@@ -15,7 +15,7 @@ import { printPlaybookTemplate } from "../lib/playbook.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
-import { isChangeId } from "../lib/project.js";
+import { isChangeId, refuseChangeRef } from "../lib/project.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -387,6 +387,8 @@ function resumeChange(projectRoot, resumeId) {
     if (open.length) console.error(c.gray("open: ") + open.map((ch) => ch.id).join(", "));
     return 2;
   }
+  const refused = refuseChangeRef(resumeId);
+  if (refused !== null) return refused;
   const entry = open.find((ch) => ch.id === resumeId);
   if (!entry && !isDir(path.join(projectRoot, ".doctrina", "changes", resumeId))) {
     console.error(c.red("error:") + ` no open change "${resumeId}"`);

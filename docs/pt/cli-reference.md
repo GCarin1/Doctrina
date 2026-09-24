@@ -410,10 +410,13 @@ O `<id>` é o nome do diretório. Convenção: `NNNN-slug`.
 Aplica cada delta encontrado em
 `.doctrina/changes/<id>/specs/`. Vários ids rodam em sequência, cada um
 independente (fechamento em lote de backlog); o código de saída é o pior
-resultado por id.
+resultado por id. Um id é o nome da pasta da change: um caminho, `.`, `..`
+ou `archive` é recusado com saída 2 antes de qualquer leitura — o mesmo
+vale para `archive`, `check`, `tick`, `abandon`, `close` e `work --resume`.
 
-**Gateado por `structure`** (ADR 0017): o `apply` recusa quando o
-`analyze` reprovaria, e não escreve nada. As precondições pertencem à
+**Gateado por `structure`** (ADR 0017): o `apply` recusa quando a
+checagem estrutural (a primeira seção do `change check`) reprovaria, e não
+escreve nada. As precondições pertencem à
 transição, não ao comando que a dirige, então o `apply` exige exatamente o
 que o caminho do `close` exige — um agente não consegue alcançar por um
 caminho um estado que outro caminho proíbe. O `--force` dispensa a
@@ -1777,6 +1780,7 @@ Roda toda a sequência de fechamento de uma change em uma passada (ADR 0012).
 doctrina close 0001-add-login
 doctrina close 0001-add-login --force
 doctrina close 0099-nao-existe        # saída 2 antes de qualquer passo: referência que não resolve
+doctrina close ../../outro-lugar      # saída 2: uma change é um nome de pasta, nunca um caminho
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 

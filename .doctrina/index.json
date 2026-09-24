@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.24.0",
+        "version": "0.25.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -3255,6 +3255,20 @@
         "id": "0195-closing-steps-saem-do-tasks",
         "title": "closing steps saem do tasks",
         "path": ".doctrina/changes/archive/2026-09-24-0195-closing-steps-saem-do-tasks",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0196-id-de-change-e-um-nome-nao-um-caminho",
+        "title": "id de change é um nome, não um caminho",
+        "path": ".doctrina/changes/archive/2026-09-24-0196-id-de-change-e-um-nome-nao-um-caminho",
         "status": "applied",
         "applied": "2026-09-24",
         "specs_affected": [

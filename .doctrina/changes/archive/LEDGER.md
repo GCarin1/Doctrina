@@ -206,3 +206,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0193-next-corrige-o-indice-primeiro — next corrige o índice primeiro (specs: cli MODIFIED)
 - 2026-09-24 — 0194-intake-converte-so-com-validate-limpo — intake converte só com validate limpo (specs: authoring MODIFIED)
 - 2026-09-24 — 0195-closing-steps-saem-do-tasks — closing steps saem do tasks (specs: authoring MODIFIED)
+- 2026-09-24 — 0196-id-de-change-e-um-nome-nao-um-caminho — id de change é um nome, não um caminho (specs: authoring MODIFIED)

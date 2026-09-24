@@ -397,10 +397,13 @@ The `<id>` is the directory name. Convention: `NNNN-slug`.
 
 Apply every spec delta found under `.doctrina/changes/<id>/specs/`.
 Multiple ids run in sequence, each independently (batch close of a
-backlog); the exit code is the worst per-id result.
+backlog); the exit code is the worst per-id result. An id is the change's
+folder name: a path, `.`, `..` or `archive` is refused with exit 2 before
+anything is read — the same for `archive`, `check`, `tick`, `abandon`,
+`close` and `work --resume`.
 
-**Gated on `structure`** (ADR 0017): `apply` refuses when `analyze` would
-fail, and writes nothing. Preconditions attach to the transition, not to
+**Gated on `structure`** (ADR 0017): `apply` refuses when the structural
+check (the first section of `change check`) would fail, and writes nothing. Preconditions attach to the transition, not to
 the command driving it, so `apply` enforces exactly what the `close` path
 enforces — an agent cannot reach through one path a state another path
 forbids. `--force` waives the *check* and records the gap in the ledger;
@@ -1726,6 +1729,7 @@ Run the whole closing sequence for a change in one pass (ADR 0012).
 doctrina close 0001-add-login
 doctrina close 0001-add-login --force
 doctrina close 0099-nao-existe        # exit 2 before any step: a reference that does not resolve
+doctrina close ../../elsewhere        # exit 2: a change is a folder name, never a path
 doctrina close 0001-add-login 0002-rate-limit 0003-audit
 ```
 

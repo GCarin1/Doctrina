@@ -17,7 +17,7 @@ import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js"
 import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
-import { ensureDoctrinaProject } from "../lib/project.js";
+import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew } from "../lib/change-ops.js";
 
@@ -98,6 +98,8 @@ async function forEachId(ids, name, one) {
   }
   let worst = 0;
   for (const id of ids) {
+    const refused = refuseChangeRef(id);
+    if (refused !== null) { worst = Math.max(worst, refused); continue; }
     if (ids.length > 1) {
       console.log("");
       console.log(c.bold(`──── change ${name} ${id}`));
@@ -402,6 +404,8 @@ function changeTick(args, flags) {
     console.error(c.red("error:") + " change tick requires <id> [ordinals... | --all]");
     return 2;
   }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
   const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
@@ -620,6 +624,8 @@ async function changeAbandon(args, flags) {
     console.error(c.red("error:") + " change abandon requires <id>");
     return 2;
   }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
   const projectRoot = process.cwd();
   ensureDoctrinaProject(projectRoot);
 

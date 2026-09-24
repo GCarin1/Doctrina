@@ -1,7 +1,8 @@
 // @ts-check
 import path from "node:path";
 import { exists } from "./fs-ops.js";
-import { notADoctrinaProject } from "./exit-codes.js";
+import { EXIT, notADoctrinaProject } from "./exit-codes.js";
+import { c } from "./colors.js";
 import { load } from "./index-json.js";
 
 // The one precondition every command shares: this is a Doctrina project.
@@ -55,6 +56,27 @@ export const CHANGE_ID = /^[a-z0-9][a-z0-9-]*$/;
 
 export function isChangeId(id) {
   return typeof id === "string" && CHANGE_ID.test(id);
+}
+
+// A reference to an EXISTING change is looser than the id `change new`
+// accepts — a project may hold a change named before that grammar — but it
+// is always a folder NAME under .doctrina/changes/, never a path. Nothing
+// checked that: `change archive ../../victim --force` moved the project's
+// own `victim/` directory into the archive and wrote it into the ledger and
+// the index (change 0196). `archive` is the archive's own folder, not a
+// change.
+export function isChangeRef(id) {
+  return typeof id === "string" && id.length > 0 && id !== "." && id !== ".."
+    && id !== "archive" && !/[\/\\\0]/.test(id);
+}
+
+// The one refusal every command that takes a change reference prints: the
+// USAGE class, before anything is resolved against the filesystem.
+export function refuseChangeRef(id) {
+  if (isChangeRef(id)) return null;
+  console.error(c.red("error:") + ` "${id}" is not a change — a change is named by its folder under .doctrina/changes/, never by a path`);
+  console.error(c.gray("hint: ") + "open changes: `doctrina next`");
+  return EXIT.USAGE;
 }
 
 /**

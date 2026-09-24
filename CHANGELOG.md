@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **A change is named by its folder, never by a path.** `change archive
+  ../../victim --force` moved the project's own `victim/` directory into
+  the archive and wrote it into the ledger and the index: only `change new`
+  validated its id. Every command that takes an existing change —
+  `change apply|archive|check|tick|abandon`, `close`, `analyze`,
+  `work --resume` — now refuses a path, `.`, `..` or `archive` with exit 2
+  before touching the filesystem; legacy ids still resolve. (0196)
 - **`tasks.md` no longer asks you to tick what the close does.** Every
   change ended with "## Closing steps" — apply, archive, update the index —
   and the archive gate required them ticked before `doctrina close`, the
