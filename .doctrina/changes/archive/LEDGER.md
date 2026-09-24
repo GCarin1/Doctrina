@@ -195,3 +195,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0182-analyze-fundido-no-change-check — analyze fundido no change check (specs: gates MODIFIED)
 - 2026-09-24 — 0183-cli-ainda-indica-comandos — o CLI ainda indica comandos depreciados (specs: authoring MODIFIED, cli MODIFIED)
 - 2026-09-24 — 0184-textos-fora-docs-ensinam — textos fora de docs ensinam o caminho aposentado
+- 2026-09-24 — 0185-guarda-documentacao-cobrir-contributing — o guarda de documentação lê toda página de instrução (specs: docs MODIFIED)

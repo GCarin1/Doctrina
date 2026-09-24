@@ -59,7 +59,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.8.0",
+        "version": "0.9.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -539,16 +539,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0185-guarda-documentacao-cobrir-contributing",
-        "title": "o guarda de documentação deve cobrir CONTRIBUTING, examples, .github, skills e product.md",
-        "path": ".doctrina/changes/0185-guarda-documentacao-cobrir-contributing",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (confident; signals: deve)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2993,6 +2984,19 @@
         "status": "applied",
         "applied": "2026-09-24",
         "specs_affected": []
+      },
+      {
+        "id": "0185-guarda-documentacao-cobrir-contributing",
+        "title": "o guarda de documentação lê toda página de instrução",
+        "path": ".doctrina/changes/archive/2026-09-24-0185-guarda-documentacao-cobrir-contributing",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

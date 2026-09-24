@@ -56,6 +56,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The documentation guard reads every page of instructions.** It read
+  the READMEs and `docs/` only, so CONTRIBUTING.md, the PR template, an
+  example, two skills and `product.md` kept teaching `analyze` unseen. It
+  now reads those, the templates and the installed slash commands too,
+  holds the contributor pages to `doctrina close`, and refuses an
+  `AGENTS.md` outside the root and the examples. (0185)
 - **The contributor rules describe the workflow the repository runs.**
   `CONTRIBUTING.md`, the contributing page, the PR template and the
   release skill said framework work is committed directly, without change
