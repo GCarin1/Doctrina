@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`next` puts a drifted index first.** It listed index drift last, below
+  advisory nudges, though `validate` reports it as an error, the close
+  blocks on it, one runnable command fixes it, and the actions below it
+  read the drifted index. It now follows the runtime and intake actions.
+  (0193)
 - **The report's lane mix counts the history.** The index kept the lane of
   open changes only; archiving dropped it, so `status --view report` read
   "unknown" for every archived change. One constructor now builds the

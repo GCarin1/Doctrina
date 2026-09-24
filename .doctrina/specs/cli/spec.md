@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.55.0
+**Version:** 0.56.0
 
 ## Purpose
 
@@ -78,19 +78,7 @@ command shares (git, the lexicon, the usage log).
   subcommand, the system shall suggest the closest match by edit
   distance when one exists within a threshold of three.
 
-- When `doctrina next` runs, the system shall inspect the
-  `.doctrina/` tree and print the recommended next workflow
-  actions in priority order: a pending `.doctrina/intake.md`
-  (not yet `converted`), open changes (missing proposal,
-  unchecked tasks, deltas ready to apply, applied but not
-  archived), ADRs still in `proposed` status, accepted ADRs with
-  neither `Evidence` nor `Landed` proving them (suggesting
-  `decision land`), a single skill-capture nudge when no skill
-  exists yet and an archived change is fix-shaped, and index drift
-  last. When no work is open the system shall say so and point at
-  `change new` and `spec new`. With `--json` the system shall emit
-  the action list as JSON. The command is strictly read-only
-  and shall exit 0.
+- When `doctrina next` runs, the system shall inspect the `.doctrina/` tree and print the recommended next workflow actions in priority order: runtime declarations that no longer hold, a pending `.doctrina/intake.md` (not yet `converted`) or an unspecced project, index drift — a `validate` error that blocks the close, fixed by one runnable command, and read by every action below it — then open changes (missing proposal, unchecked tasks, deltas ready to apply, applied but not archived), ADRs still in `proposed` status, accepted ADRs with neither `Evidence` nor `Landed` proving them (suggesting `decision land`), and a single skill-capture nudge when no skill exists yet and an archived change is fix-shaped. When no work is open the system shall say so and point at `doctrina work "<prompt>"`, or at `doctrina intake` for a project with nothing specced. With `--json` the system shall emit the action list as JSON. The command is strictly read-only and shall exit 0.
 
 - When a spec declares a `**Depends on:** <caps>` header, the system shall
   record the capability list in the index, show the graph in `doctrina why`
@@ -262,6 +250,7 @@ The CLI is v0 spec-compliant when:
 45. [verified] The top-level help opens with where to start, follows the moments in the AGENTS.md order, gives each live command one line, lists deprecated names only in the last group with their replacement, and is shorter than the flat list it replaced — verified by `packages/doctrina-cli/test/a-ajuda-comeca-pelo-comeco.test.js`.
 46. [verified] No live command's `--help` names a deprecated command as a step or as a `doctrina <op>` to run, `work --help` ends in `change check` and `close`, `close --help` opens on `structure`, `skill new` points at `doctrina index rebuild`, and the `validate` warnings for a delta without an operation and for placeholder tasks name `change apply`, `change check` and the close instead of `analyze` — verified by `packages/doctrina-cli/test/o-cli-nao-indica-comando-depreciado.test.js`.
 47. [verified] Each completion script offers every live command and none of the deprecated names — verified by `packages/doctrina-cli/test/a-completacao-oferece-so-o-vivo.test.js`.
+48. [verified] With an open change and a drifted index, `next` lists the index rebuild first — verified by `packages/doctrina-cli/test/actions.test.js`.
 
 ## Out of scope for this spec
 

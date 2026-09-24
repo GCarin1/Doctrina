@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.55.0",
+        "version": "0.56.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3218,6 +3218,20 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product"
+      },
+      {
+        "id": "0193-next-corrige-o-indice-primeiro",
+        "title": "next corrige o índice primeiro",
+        "path": ".doctrina/changes/archive/2026-09-24-0193-next-corrige-o-indice-primeiro",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "cli",
             "operation": "MODIFIED"
           }
         ],

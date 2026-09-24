@@ -259,3 +259,27 @@ test("declaring the build gate needs a person, so --run says so instead of scaff
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// Index drift is a validate ERROR and a blocking close step, fixed by one
+// runnable command, and the actions below it read the drifted index. It is
+// the first action after the intake, not the last (change 0193).
+test("index drift outranks open work and every advisory nudge", () => {
+  const dir = project();
+  try {
+    assert.equal(run(dir, ["spec", "new", "core"]).status, 0);
+    assert.equal(run(dir, ["change", "new", "0001-x", "Do x"]).status, 0);
+    const indexPath = path.join(dir, ".doctrina", "index.json");
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    index.artifacts.specs.push({
+      id: "ghost", path: ".doctrina/specs/ghost/spec.md",
+      status: "active", version: "0.1.0", last_updated: "2026-01-01",
+    });
+    writeFileSync(indexPath, JSON.stringify(index, null, 2) + "\n");
+
+    const ids = actionsOf(dir).map((a) => a.id);
+    assert.ok(ids.length > 1, "there is other work to rank it against");
+    assert.equal(ids[0], "index-drift", `order was ${ids.join(", ")}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

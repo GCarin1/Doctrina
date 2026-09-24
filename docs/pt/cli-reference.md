@@ -1655,12 +1655,13 @@ doctrina next [--json] [--run]
 
 Inspeciona a árvore e reporta: declarações de runtime que não valem mais
 (primeiro — uma fiação quebrada é o motivo de a última execução ter
-mentido), changes abertas (proposal faltando, tasks desmarcadas, deltas
+mentido), o drift do index (em seguida: é um erro do `validate` que
+bloqueia o close, um comando executável o resolve, e tudo abaixo lê o
+index), changes abertas (proposal faltando, tasks desmarcadas, deltas
 prontos para aplicar, aplicadas-mas-não-arquivadas), ADRs ainda em
 status `proposed`, ADRs aceitos sem nada que os comprove ainda
 (sugerindo `decision land`), um nudge único de captura de skill quando
-nenhuma existe e uma change arquivada tem cara de fix, e o drift do
-index por último (ADR 0011).
+nenhuma existe e uma change arquivada tem cara de fix (ADR 0011).
 
 Num projeto que ainda não declara capability nenhuma, ele nomeia a porta de
 bootstrap — `doctrina intake` para começar do zero, `doctrina work
