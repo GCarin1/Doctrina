@@ -17,6 +17,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Deprecated
+
+- **`doctrina report` → `doctrina status --view report`.** They were
+  documented as the same digest and were not: `report` carried the
+  window's revert and re-edit rates and `--view report` dropped them. One
+  collector now feeds both, and `report --agent-changelog` is
+  `status --view agent-changelog`. The old name still works, with a notice
+  on stderr, until a later minor removes it. (0176)
+
 ### Fixed
 
 - **The README says how to install, and reaches every guide.** It never

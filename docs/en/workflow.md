@@ -200,7 +200,7 @@ It is history, not a gate: nothing reads it to decide anything, and a
 nonsense value changes no command's behaviour. Two things follow from
 recording it:
 
-- `doctrina report` can say what kind of work a period actually held, which
+- `doctrina status --view report` can say what kind of work a period actually held, which
   is a question no report could answer while the verdict was computed,
   printed and thrown away.
 - The classifier gains a set of right and wrong answers. **Disagreements are
@@ -223,7 +223,7 @@ shapes:
 | `doctrina status` | one-glance dashboard | a quick health check |
 | `doctrina prime` | ~40-line session primer | the START of every session |
 | `doctrina handoff` | Markdown resume note | before compaction or a handover |
-| `doctrina report --since <days>` | period digest | a standup or a PR description |
+| `doctrina status --view report --since <days>` | period digest | a standup or a PR description |
 
 They are **one collection of the tree, rendered four ways** — the same
 snapshot, four pure formatters — so they cannot report different numbers

@@ -183,3 +183,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0170-estimativa-de-tokens-conta-o-cr — estimativa de tokens conta o CR (specs: insight MODIFIED)
 - 2026-09-24 — 0171-ci-nao-testa-o-node-24 — CI nao testa o Node 24
 - 2026-09-24 — 0172-readme-sem-instalacao-e-lista-quebrada — README sem instalacao e lista quebrada (specs: docs MODIFIED)
+- 2026-09-24 — 0176-report-diverge-de-status-view-report — report diverge de status view report (specs: insight MODIFIED)

@@ -88,7 +88,7 @@ flowchart TD
         templates["doctrina templates list/check/update"]
         upgradecmd["doctrina upgrade<br/>bring the project up after an npm update"]
         metrics["doctrina metrics<br/>git-derived adoption"]
-        reportcmd["doctrina report<br/>Markdown digest of the period"]
+        reportcmd["doctrina status --view report<br/>Markdown digest of the period"]
         completion["doctrina completion<br/>bash/zsh/pwsh"]
     end
 
@@ -194,7 +194,7 @@ flowchart TD
   `doctrina upgrade` (`--write`) — bring an existing project up to the
   installed CLI after an npm update (templates update → index/stamp →
   validate). `doctrina metrics` — git-derived adoption signals.
-  `doctrina report` — Markdown digest of the period.
+  `doctrina status --view report` — Markdown digest of the period.
   `doctrina completion bash|zsh|pwsh` — shell completions generated from
   the catalog.
 

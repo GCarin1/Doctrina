@@ -224,6 +224,11 @@ export const DEPRECATED = Object.freeze({
     use: "doctrina prime --rules",
     why: "prime renders the same standing-rules view, from the same collection",
   },
+  "report": {
+    since: "0.17.0",
+    use: "doctrina status --view report",
+    why: "status renders the same digest from the same collector; --agent-changelog is status --view agent-changelog",
+  },
   "change diff": {
     since: "0.16.0",
     use: "doctrina change check --verbose",

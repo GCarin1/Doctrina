@@ -1684,19 +1684,20 @@ validate` / `verify` are. A natural session-start command for the agent
 
 | Flag | Purpose |
 |------|---------|
-| `--view <name>` | Render a different shape of the same snapshot: `dashboard` (default), `prime`, `handoff`, `report`. |
-| `--since <days>` | With `--view report`: the window (default 7). |
+| `--view <name>` | Render a different shape of the same snapshot: `dashboard` (default), `prime`, `handoff`, `report` (the period digest), `rules` (the standing rules), or `agent-changelog` (a draft of the AGENTS.md "What changed" block). |
+| `--since <days>` | With `--view report`: the window (default 7). With `--view agent-changelog`: the window (default: since the last tag). |
 | `--json` | Emit the snapshot as JSON (stable shape for agents and CI). The envelope does not change with `--view` — it is a machine contract. |
 
-**One collector, four views.** `status`, `prime`, `handoff` and `report`
-are four shapes of *one* collection of the tree
+**One collector, four views.** `status`, `prime`, `handoff` and the
+period digest are four shapes of *one* collection of the tree
 (`packages/doctrina-cli/src/lib/snapshot.js`), rendered by pure functions
 in `lib/views.js`. Before this, they were four commands that each
 re-traversed the tree and imported collectors out of each other's
 modules — which is how four surfaces end up able to report different
-numbers for the same repository. `prime`, `handoff` and `report` remain
-their own commands (they are what AGENTS.md tells an agent to run) and
-render exactly the bytes `status --view <name>` does; a test asserts the
+numbers for the same repository. `prime` and `handoff` remain their own
+commands (they are what AGENTS.md tells an agent to run) and render
+exactly the bytes `status --view <name>` does, as the deprecated
+`report` does for `--view report`; a test asserts the
 byte-identity, and another forbids a command module from importing a
 binding out of a sibling command module ever again.
 
@@ -2120,19 +2121,27 @@ a choice about what to cut. Both numbers come from their owner
 |------|---------|
 | `--env` | Also check the local `.env` against the declared names and enums. Reports membership only — a rejected value is **never printed**, so the output is safe to paste into an issue or a CI log. |
 
-## `doctrina report`
+## `doctrina report` — deprecated
+
+> **Deprecated** (0.17.0). Use `doctrina status --view report`, which prints
+> exactly this digest from the same collector, and `doctrina status --view
+> agent-changelog` for `--agent-changelog`. The old name still works, warns
+> on stderr, carries a `deprecated` field in its `--json` envelope, and will
+> be removed in a later minor. The two printed different digests until
+> change 0176: `report` carried the revert and re-edit rates and
+> `--view report` dropped them.
 
 Markdown digest for a period — the standup / PR-description view.
 
 ```
-doctrina report
-doctrina report --since 30
+doctrina status --view report             # preferred
+doctrina status --view report --since 30
+doctrina report                           # deprecated alias
 ```
 
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `--since <days>` | `7` | Window size in days. |
-| `--agent-changelog` | off | Draft the AGENTS.md "What changed" block instead of the digest. |
 
 Sections: gate state, changes archived in the window (from the index
 ledger), capability churn (from the archive ledger), open work with
@@ -2147,7 +2156,7 @@ so the three never disagree about one repository.
 
 ### Drafting the agent changelog
 
-`--agent-changelog` answers a different question for a different
+`--view agent-changelog` answers a different question for a different
 audience: what must an agent arriving at the next release do
 differently? It proposes one candidate bullet per archived change that
 touched a **documented surface** — a command, a flag, an exit code —
@@ -2156,7 +2165,7 @@ window is "since the last tag" unless `--since` names one, and the
 output states which window it used.
 
 ```
-doctrina report --agent-changelog
+doctrina status --view agent-changelog
 ```
 
 It **proposes**; a person cuts and rewrites. The draft knows which

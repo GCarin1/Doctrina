@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.9.0",
+        "version": "0.10.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -539,7 +539,56 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0173-primeiro-uso-do-init-se-contradiz",
+        "title": "primeiro uso do init se contradiz",
+        "path": ".doctrina/changes/0173-primeiro-uso-do-init-se-contradiz",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0174-ajuda-sem-agrupamento-por-momento",
+        "title": "ajuda sem agrupamento por momento",
+        "path": ".doctrina/changes/0174-ajuda-sem-agrupamento-por-momento",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0175-remover-constitution-e-change-diff",
+        "title": "remover constitution e change diff",
+        "path": ".doctrina/changes/0175-remover-constitution-e-change-diff",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0177-skill-sync-fundido-no-index-rebuild",
+        "title": "skill sync fundido no index rebuild",
+        "path": ".doctrina/changes/0177-skill-sync-fundido-no-index-rebuild",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (confident; signals: deve)"
+      },
+      {
+        "id": "0178-templates-check-e-update-fundidos-no-upgrade",
+        "title": "templates check e update fundidos no upgrade",
+        "path": ".doctrina/changes/0178-templates-check-e-update-fundidos-no-upgrade",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "chore (confident; signals: upgrade)"
+      },
+      {
+        "id": "0179-documentacao-defasada",
+        "title": "documentacao defasada",
+        "path": ".doctrina/changes/0179-documentacao-defasada",
+        "status": "proposed",
+        "opened": "2026-09-24",
+        "lane": "product (uncertain)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2810,6 +2859,19 @@
         "specs_affected": [
           {
             "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0176-report-diverge-de-status-view-report",
+        "title": "report diverge de status view report",
+        "path": ".doctrina/changes/archive/2026-09-24-0176-report-diverge-de-status-view-report",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ]

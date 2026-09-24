@@ -137,7 +137,7 @@ Três daquelas colunas saem do próprio repositório, sem dashboard nenhum:
 ```bash
 doctrina metrics --save     # fotografa a janela de hoje em .doctrina/metrics/
 doctrina metrics --trend    # todos os snapshots salvos e a direção de cada taxa
-doctrina report --since 30  # o digest do período, com as mesmas taxas
+doctrina status --view report --since 30  # o digest do período, com as mesmas taxas
 ```
 
 O `--save` escreve um JSON datado por snapshot. Esses arquivos são uma
@@ -147,7 +147,7 @@ movimento do PRIMEIRO ao ÚLTIMO — não contra o anterior. Uma taxa que
 subiu por seis meses e caiu uma vez parece melhora no delta e aparece
 como o que é na série.
 
-O `report --since <dias>` carrega a taxa de revert e a de re-edit da
+O `status --view report --since <dias>` carrega a taxa de revert e a de re-edit da
 própria janela, calculadas a partir do mesmo snapshot que o `metrics`
 renderiza — uma definição só, então as duas superfícies não conseguem
 reportar números diferentes para o mesmo período.

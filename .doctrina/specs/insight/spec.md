@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.9.0
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -90,11 +90,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   tasks and exact resume command, and the prioritised next actions —
   as a view derived from the tree at call time, never written to disk,
   and always exit 0.
-- When `doctrina report [--since <days>]` runs, the system shall print
-  a Markdown digest for the window (default seven days) — gate state,
-  changes archived in the window from the index ledger, open work with
-  task progress, artifact counts, and a local-git summary that
-  degrades silently outside a repository — read-only, with no network.
+- When `doctrina status --view report [--since <days>]` runs, the system shall print a Markdown digest for the window (default seven days) — gate state, changes archived in the window from the index ledger, open work with task progress, artifact counts, and a local-git summary with the window's metrics that degrades silently outside a repository — read-only, with no network; the deprecated `doctrina report` shall print the same bytes from the same collector, and `--view agent-changelog` shall print the draft `report --agent-changelog` printed.
 - When the pack's irreducible core alone exceeds the budget, the system shall report which artifacts cannot be reduced and exit 1 rather than return a pack over budget.
 - When a task description is supplied via --for, the system shall rank artifacts by term coverage and density rather than by document length.
 - When a context pack is assembled, the system shall place at most one open change in the irreducible core — the one the named capability or the task query identifies unambiguously — and shall place none there when more than one match equally.
@@ -141,6 +137,7 @@ The read path is spec-compliant when:
 18. [verified] No heading in the `handoff` or `report` document is glued to the preceding line, with open changes and with none — verified by `packages/doctrina-cli/test/o-handoff-e-markdown-valido.test.js`.
 19. [verified] A search with no match and a reference that does not resolve each cost the class the CLI-wide contract gives them, so this spec and the `cli` spec cannot describe two different commands — verified by `packages/doctrina-cli/test/a-spec-descreve-o-cli-que-existe.test.js`.
 20. [verified] A CRLF copy of a project estimates the same pack as its LF original, and a budget set exactly at that estimate passes on both — verified by `packages/doctrina-cli/test/o-orcamento-nao-depende-do-fim-de-linha.test.js`.
+21. [verified] In a repository with history, `status --view report` prints what `report` printed, rates included, `status --view agent-changelog` prints what `report --agent-changelog` printed, and `report` still works while warning on stderr — verified by `packages/doctrina-cli/test/o-digest-tem-um-nome-so.test.js`.
 
 ## Out of scope for this spec
 

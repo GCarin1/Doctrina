@@ -21,7 +21,7 @@ The canonical version lives in ONE place:
    pre-1.0 minor bumps may change CLI surface and artifact shapes).
 2. Bump `version` in `packages/doctrina-cli/package.json`.
 2b. Draft the agent-facing changelog and edit it in by hand:
-   `doctrina report --agent-changelog` proposes one candidate bullet per
+   `doctrina status --view agent-changelog` proposes one candidate bullet per
    archived change that touched a documented surface, newest first, capped
    at the block's five bullets and windowed since the last tag. Paste the
    block into `AGENT_CHANGELOG` in `src/lib/commands.js` under the new

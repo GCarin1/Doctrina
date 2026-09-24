@@ -1733,19 +1733,20 @@ de sessão para o agente (`doctrina prime` é o primer de sessão mais rico).
 
 | Flag | Função |
 |------|--------|
-| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report`. |
-| `--since <dias>` | Com `--view report`: a janela (padrão 7). |
+| `--view <nome>` | Renderiza outra forma do mesmo snapshot: `dashboard` (padrão), `prime`, `handoff`, `report` (o digest do período), `rules` (as regras vigentes) ou `agent-changelog` (um rascunho do bloco "What changed" do AGENTS.md). |
+| `--since <dias>` | Com `--view report`: a janela (padrão 7). Com `--view agent-changelog`: a janela (padrão: desde a última tag). |
 | `--json` | Emite o snapshot como JSON (forma estável para agentes e CI). O envelope não muda com `--view` — é um contrato de máquina. |
 
-**Um coletor, quatro vistas.** `status`, `prime`, `handoff` e `report` são
-quatro formas de *uma* coleta da árvore
+**Um coletor, quatro vistas.** `status`, `prime`, `handoff` e o digest do
+período são quatro formas de *uma* coleta da árvore
 (`packages/doctrina-cli/src/lib/snapshot.js`), renderizadas por funções
 puras em `lib/views.js`. Antes disso eram quatro comandos que percorriam a
 árvore cada um por si e importavam coletores de dentro dos módulos uns dos
 outros — que é justamente como quatro superfícies acabam podendo reportar
-números diferentes para o mesmo repositório. `prime`, `handoff` e `report`
-continuam sendo comandos próprios (são o que o AGENTS.md manda o agente
-rodar) e renderizam exatamente os mesmos bytes que `status --view <nome>`;
+números diferentes para o mesmo repositório. `prime` e `handoff` continuam
+sendo comandos próprios (são o que o AGENTS.md manda o agente rodar) e
+renderizam exatamente os mesmos bytes que `status --view <nome>`, como o
+`report` obsoleto faz para `--view report`;
 um teste garante essa identidade byte a byte, e outro proíbe para sempre
 que um módulo de comando importe um binding de um módulo de comando irmão.
 
@@ -2179,20 +2180,28 @@ tamanho de que o `validate` ou o `templates check` discordem.
 |------|--------|
 | `--env` | Também checa o `.env` local contra os nomes e enums declarados. Reporta apenas pertinência — um valor rejeitado **nunca é impresso**, então a saída é segura de colar numa issue ou num log de CI. |
 
-## `doctrina report`
+## `doctrina report` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina status --view report`, que imprime
+> exatamente este digest, do mesmo coletor, e `doctrina status --view
+> agent-changelog` no lugar de `--agent-changelog`. O nome antigo continua
+> funcionando, avisa no stderr, traz um campo `deprecated` no envelope do
+> `--json` e será removido num minor futuro. Os dois imprimiam digests
+> diferentes até a change 0176: o `report` trazia as taxas de revert e de
+> re-edit e o `--view report` as perdia.
 
 Digest em Markdown para um período — a visão de standup / descrição
 de PR.
 
 ```
-doctrina report
-doctrina report --since 30
+doctrina status --view report             # preferido
+doctrina status --view report --since 30
+doctrina report                           # alias depreciado
 ```
 
 | Flag | Default | Função |
 |------|---------|--------|
 | `--since <dias>` | `7` | Tamanho da janela em dias. |
-| `--agent-changelog` | off | Rascunha o bloco "What changed" do AGENTS.md em vez do digest. |
 
 Seções: estado dos gates, changes arquivadas na janela (do ledger do
 index), churn por capability (do ledger do archive), trabalho aberto
@@ -2207,7 +2216,7 @@ consultam, então os três nunca discordam sobre um mesmo repositório.
 
 ### Rascunhando o changelog do agente
 
-`--agent-changelog` responde outra pergunta, para outro público: o que
+`--view agent-changelog` responde outra pergunta, para outro público: o que
 um agente que chega na próxima release precisa fazer de diferente? Ele
 propõe um bullet candidato por change arquivada que tocou uma
 **superfície documentada** — um comando, uma flag, um código de saída —
@@ -2216,7 +2225,7 @@ permite. A janela é "desde a última tag", a menos que `--since` diga
 outra, e a saída declara qual janela usou.
 
 ```
-doctrina report --agent-changelog
+doctrina status --view agent-changelog
 ```
 
 Ele **propõe**; uma pessoa corta e reescreve. O rascunho sabe qual
