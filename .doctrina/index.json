@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.19.0",
+        "version": "0.19.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -122,7 +122,7 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
@@ -133,7 +133,7 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.5.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -563,14 +563,6 @@
         "status": "proposed",
         "opened": "2026-09-24",
         "lane": "product (uncertain; signals: change)"
-      },
-      {
-        "id": "0177-skill-sync-fundido-no-index-rebuild",
-        "title": "skill sync fundido no index rebuild",
-        "path": ".doctrina/changes/0177-skill-sync-fundido-no-index-rebuild",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (confident; signals: deve)"
       },
       {
         "id": "0178-templates-check-e-update-fundidos-no-upgrade",
@@ -2872,6 +2864,27 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0177-skill-sync-fundido-no-index-rebuild",
+        "title": "skill sync fundido no index rebuild",
+        "path": ".doctrina/changes/archive/2026-09-24-0177-skill-sync-fundido-no-index-rebuild",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
             "operation": "MODIFIED"
           }
         ]

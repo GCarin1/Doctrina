@@ -344,7 +344,7 @@ function skillSuggest(args, flags) {
     idx.save(projectRoot, index);
   }
   console.log("");
-  console.log(c.green("ok") + ` scaffolded ${created} skill stub${created === 1 ? "" : "s"} — fill the description/when/body, then \`doctrina skill sync\``);
+  console.log(c.green("ok") + ` scaffolded ${created} skill stub${created === 1 ? "" : "s"} — fill the description/when/body, then \`doctrina index rebuild\``);
   return 0;
 }
 

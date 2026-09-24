@@ -712,7 +712,7 @@ doctrina skill new db-migration
 
 The slug must match `[a-z][a-z0-9-]*`. The template carries
 frontmatter with `name`, `description`, and `when` fields; fill
-those in, then run `doctrina skill sync` to mirror the
+those in, then run `doctrina index rebuild` to mirror the
 description into the index.
 
 | Flag | Purpose |
@@ -731,17 +731,24 @@ doctrina skill list
 Read-only. Never modifies any file. See
 [skills.md](skills.md) for the design rationale.
 
-## `doctrina skill sync`
+## `doctrina skill sync` — deprecated
+
+> **Deprecated** (0.17.0). Use `doctrina index rebuild` (or `doctrina
+> validate --fix`), which registers every skill and mirrors its description
+> by the same rule and leaves the same index behind. The old name still
+> works, warns on stderr, carries a `deprecated` field in its `--json`
+> envelope, and will be removed in a later minor.
 
 Copy each skill's frontmatter `description:` into the matching
 entry of `.doctrina/index.json`.
 
 ```
-doctrina skill sync
+doctrina index rebuild      # preferred
+doctrina skill sync         # deprecated alias
 ```
 
 The frontmatter is the single source of truth: edit the skill
-file, run `sync`, and the index follows. Skills present on disk
+file, rebuild, and the index follows. Skills present on disk
 but absent from the index are indexed; skills without a
 `description:` field are reported and skipped, and a skill whose
 description is still the template's `<…>` placeholder is named as
@@ -1098,7 +1105,7 @@ Checks performed:
 15. Each capability spec's `Version:` header matches the version
     recorded in `index.json` (warning on drift).
 16. Each skill's frontmatter description matches the description
-    recorded in `index.json` (warning; `doctrina skill sync`
+    recorded in `index.json` (warning; `doctrina index rebuild`
     restores it).
 17. EARS grammar shape per section in every spec that declares
     `## Requirements (EARS)`: Ubiquitous requirements carry

@@ -229,6 +229,11 @@ export const DEPRECATED = Object.freeze({
     use: "doctrina status --view report",
     why: "status renders the same digest from the same collector; --agent-changelog is status --view agent-changelog",
   },
+  "skill sync": {
+    since: "0.17.0",
+    use: "doctrina index rebuild",
+    why: "the rebuild registers every skill and mirrors its description, keeping a written one over a scaffold placeholder",
+  },
   "change diff": {
     since: "0.16.0",
     use: "doctrina change check --verbose",

@@ -133,8 +133,9 @@ doctrina skill new db-migration
 # Read-only: list skills with their descriptions.
 doctrina skill list
 
-# Mirror each skill's frontmatter description into index.json.
-doctrina skill sync
+# Mirror each skill's frontmatter description into index.json
+# (the rebuild does it for every artifact; `skill sync` is deprecated).
+doctrina index rebuild
 ```
 
 `doctrina validate` walks `.doctrina/skills/` and warns on:
@@ -144,7 +145,7 @@ doctrina skill sync
 - Skill files over the 200-line cap (warning at 150).
 - `name:` field that does not match the filename slug.
 - Frontmatter description that differs from the one recorded in
-  `index.json` (`doctrina skill sync` restores it).
+  `index.json` (`doctrina index rebuild` restores it).
 
 All warnings, not errors — consistent with the rest of validate.
 

@@ -19,6 +19,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Deprecated
 
+- **`doctrina skill sync` → `doctrina index rebuild`.** The rebuild already
+  registered every skill and mirrored its description; `sync` added one
+  rule, that a scaffold `<...>` description never overwrites a written one.
+  The rebuild now carries that rule — before, reverting a description to
+  the placeholder made `index rebuild`, `validate --fix` and the pre-commit
+  hook serve the placeholder to every context pack. (0177)
 - **`doctrina report` → `doctrina status --view report`.** They were
   documented as the same digest and were not: `report` carried the
   window's revert and re-edit rates and `--view report` dropped them. One

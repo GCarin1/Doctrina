@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.5.0
+**Version:** 0.5.1
 
 ## Purpose
 
@@ -73,19 +73,8 @@ those stays there, with the cross-cutting claim it belongs to.
   repository-relative file path and does not exist on disk.
   URLs, anchors, wildcards, placeholder patterns, folder-style
   paths (ending with `/`), and backtick spans are excluded.
-- When `doctrina validate` runs, the system shall regenerate the index
-  from the tree and emit an error for any artifact present in both the
-  index and the tree (specs, decisions, changes, changes_archive,
-  contracts) whose recorded metadata no longer matches its file — so a
-  green `validate` cannot hide the drift `index rebuild --check` would
-  catch (G5). Presence drift (orphan / missing file), the
-  `framework_version` stamp, and skill descriptions stay advisory
-  (warnings / `skill sync`). With `--fix` the system shall rebuild the
-  index from the tree before validating instead of erroring (ADR 0009).
-- When `doctrina validate` runs, the system shall compare each
-  skill's frontmatter `description:` against the description
-  recorded in `.doctrina/index.json` and emit a warning on
-  mismatch, pointing at `doctrina skill sync` (warnings only).
+- When `doctrina validate` runs, the system shall regenerate the index from the tree and emit an error for any artifact present in both the index and the tree (specs, decisions, changes, changes_archive, contracts) whose recorded metadata no longer matches its file — so a green `validate` cannot hide the drift `index rebuild --check` would catch (G5). Presence drift (orphan / missing file), the `framework_version` stamp, and skill descriptions stay advisory (warnings / `index rebuild`). With `--fix` the system shall rebuild the index from the tree before validating instead of erroring (ADR 0009).
+- When `doctrina validate` runs, the system shall compare each skill's frontmatter `description:` against the description recorded in `.doctrina/index.json` and emit a warning on mismatch, pointing at `doctrina index rebuild` (warnings only).
 - When `doctrina validate` runs against a capability spec that
   declares a `## Requirements (EARS)` section, the system shall
   emit a warning for each requirement whose shape does not match

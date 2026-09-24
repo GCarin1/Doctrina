@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.19.0
+**Version:** 0.19.1
 
 ## Purpose
 
@@ -168,13 +168,7 @@ keep the checks and the read path.
   line per skill containing the slug and the description from
   frontmatter. The command is strictly read-only.
 
-- When `doctrina skill sync` runs, the system shall copy each
-  skill's frontmatter `description:` into the matching
-  `artifacts.skills` entry of `.doctrina/index.json`, indexing
-  any skill present on disk but absent from the index. Skills
-  without a `description:` field are reported and skipped. The
-  frontmatter is the source of truth; the command never edits
-  skill files.
+- When the deprecated `doctrina skill sync` runs, the system shall leave the index `doctrina index rebuild` leaves — every skill on disk registered, each frontmatter `description:` mirrored, a written description never replaced by a scaffold placeholder, skills without a `description:` field reported and skipped — and shall name the rebuild on stderr.
 
 - When `doctrina change diff <id>` runs, the system shall print,
   for each spec delta in the change: for ADDED, the target path

@@ -47,7 +47,7 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina change new|apply|archive|check|tick|abandon` — new / apply / archive / check (--verbose) / tick / abandon. *When:* driving a change through its lifecycle by hand.
 - `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.
 - `doctrina decision new|accept|land|supersede|list|scope` — record, accept, land, scope, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
-- `doctrina skill new|list|sync|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
+- `doctrina skill new|list|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
 - `doctrina intent add|list` — append and list product intent anchors. *When:* new product intent appears after the intake.
 **Gate**
 - `doctrina analyze` — structural pre-flight on a change folder. *When:* before applying a change.

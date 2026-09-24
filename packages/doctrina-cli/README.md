@@ -42,7 +42,6 @@ doctrina decision supersede <num> "<t>"    supersede an existing ADR
 doctrina decision list                     list ADRs with status, date, title
 doctrina skill new <name>                  scaffold an on-demand procedural-memory skill
 doctrina skill list                        list skills with descriptions (read-only)
-doctrina skill sync                        mirror skill frontmatter descriptions into index.json
 doctrina analyze <change-id>               inspect a change folder before applying
 doctrina clarify <path>                    smell-test a Markdown file for ambiguity (--all: tree)
 doctrina context [<capability>]            print the context pack in read order (--concat)
@@ -129,7 +128,7 @@ the abandonment.
 15. Indexed artifact metadata (spec/decision/change/contract) matches its
     file — a mismatch is an **error** so a green `validate` can't hide the
     drift `index rebuild --check` would catch (G5; `validate --fix` rebuilds).
-16. Each skill's frontmatter description matches `index.json` (drift warn; `skill sync` fixes).
+16. Each skill's frontmatter description matches `index.json` (drift warn; `index rebuild` fixes).
 17. EARS grammar shape per section in specs declaring `## Requirements (EARS)` (warn).
 18. Nested `AGENTS.md` files obey the root size caps (warn > 150, error > 200).
 19. No two ADR files share the same `NNNN` number (merge-collision error).

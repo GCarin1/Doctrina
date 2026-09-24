@@ -63,7 +63,7 @@ flowchart TD
         direction TB
         skillsuggest["doctrina skill suggest --write<br/>draft from fix-shaped changes"]
         skillnew["doctrina skill new"]
-        skillsync["doctrina skill sync"]
+        skillsync["doctrina index rebuild<br/>mirrors the description"]
         skilllist["doctrina skill list"]
         skillsuggest --> skillnew --> skillsync
     end

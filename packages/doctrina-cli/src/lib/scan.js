@@ -7,7 +7,7 @@ import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { today } from "./dates.js";
 import { cliVersion, newestVersion } from "./version.js";
 import { load } from "./index-json.js";
-import { parseFrontmatter } from "./doc-model.js";
+import { parseFrontmatter, isScaffoldValue } from "./doc-model.js";
 import { parseCapabilityFromDelta } from "./doc-model.js";
 import { parseOperation } from "./doc-model.js";
 import { git, gitLines, isRepo, GIT_STATE } from "./git.js";
@@ -312,18 +312,26 @@ export function deriveIndex(projectRoot, current) {
     });
   }
 
-  // Skills — frontmatter description wins.
+  // Skills — a WRITTEN frontmatter description wins. The rebuild is the one
+  // reconciliation (change 0177 retired `skill sync`, which did a subset of
+  // this), so it carries sync's rule: a description still in the scaffold's
+  // `<...>` form never overwrites one somebody wrote (change 0111), and the
+  // entry's date moves when its description does.
   const skillsDir = path.join(dot, "skills");
   for (const f of walk(skillsDir)) {
     if (!f.endsWith(".md")) continue;
     const id = path.basename(f, ".md");
     const prev = (cur.skills ?? []).find((s) => s.id === id);
+    const written = parseFrontmatter(read(f), "description");
+    const kept = prev?.description && !isScaffoldValue(prev.description) ? prev.description : null;
+    const description = written && !isScaffoldValue(written)
+      ? written
+      : kept ?? written ?? "<edit me — one-sentence summary>";
     out.artifacts.skills.push({
       id,
       path: `.doctrina/skills/${id}.md`,
-      description: parseFrontmatter(read(f), "description")
-        ?? prev?.description ?? "<edit me — one-sentence summary>",
-      last_updated: prev?.last_updated ?? date,
+      description,
+      last_updated: prev && prev.description === description ? prev.last_updated ?? date : date,
     });
   }
 

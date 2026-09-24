@@ -637,3 +637,8 @@ export function parseChangeTitle(text) {
   const title = m?.[1]?.trim();
   return title ? title : null;
 }
+
+/** A value still wrapped in the template's angle brackets: `<one-sentence …>`. */
+export function isScaffoldValue(value) {
+  return /^<[^<>]*>$/.test(String(value ?? "").trim());
+}
