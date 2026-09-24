@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `.doctrina/templates/**`
-**Last updated:** 2026-08-06
-**Version:** 0.20.0
+**Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
+**Last updated:** 2026-09-11
+**Version:** 0.22.1
 
 ## Purpose
 
@@ -57,6 +57,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall pre-render every variable part of a playbook into a plain token value, and shall not evaluate conditionals or loops declared inside a template.
 - The system shall resolve every declared size budget from the project's contract, falling back to the shipped default only when the project declares none, so one ceiling is never read from two places.
 - The system shall state what a template recommendation costs against the declared budget it spends from, whenever following that recommendation would write into a file with a declared ceiling.
+- The system shall generate the published package's template tree from the canonical tree at pack time, keeping the canonical tree the only authored copy, so that a template fix cannot land on one tree and miss the other.
 
 ### Event-driven
 
@@ -87,6 +88,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When `doctrina templates check` runs, the system shall report a playbook that does not resolve, and one whose body is empty, has no numbered first step, or leaves a colour span unclosed.
 - When the agent-facing changelog is drafted, the system shall propose one candidate bullet per archived change in the window that touched a documented surface, newest first, capped at the block's bullet limit, and shall name the window it used and every candidate that did not fit.
 - When an archived change in the window touched no documented surface, the system shall propose no bullet for it and shall say that it proposed none, rather than emitting an empty block.
+- When a playbook describes closing a change, the system shall name every gate that asks the author to WRITE something — the documentation, the changelog entry, and the declaration that a named surface is only mentioned — before the close refuses for want of it.
 
 ### State-driven
 
@@ -111,6 +113,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - A freshly scaffolded contract shall not fail its own `contract check`: placeholder rows are scaffolding, not declarations.
 - The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
 - If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall not append them, and shall report the shortfall instead of resolving one gate's recommendation by breaching another gate's refusal.
+- The system shall not restate a declared sequence inside a playbook; a playbook shall point at the command that prints it, so a reader never meets a second copy that has gone stale.
 
 ### Optional
 
@@ -172,6 +175,8 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 25. [verified] `doctor` and `templates check` quote one size for the surface block, and a ceiling declared in the contract beats the shipped literal for both budgets — verified by `packages/doctrina-cli/test/coupled-budgets.test.js`.
 26. [verified] With room, the recommendation and its remedy are unchanged and the applied cost equals the estimate; without room, the finding names the cost and the remedy names the cut — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
 27. [verified] Without room `templates update --write` stands down leaving the file untouched, and making the room it asks for clears the hold — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
+28. [verified] The work playbook names the writing gates and no longer restates the closing sequence, and every playbook variant still renders byte for byte against its golden — verified by `packages/doctrina-cli/test/playbooks.test.js`.
+29. [verified] The packaging chain holds end to end — the canonical tree is the one in version control, the pack hook writes the packaged tree from it after clearing it, and the package's `files` ships the result — verified by `packages/doctrina-cli/test/o-template-que-envia-e-o-que-vale.test.js`.
 
 ## Out of scope for this spec
 

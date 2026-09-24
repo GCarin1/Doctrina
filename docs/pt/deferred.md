@@ -1,10 +1,10 @@
-# Adiado em v0.1.0
+# Adiado
 
 > Tradução da [versão em inglês](../en/deferred.md). O inglês é a
 > fonte de verdade; este arquivo o segue.
 
 Registro de features que Doctrina considerou e escolheu não
-shippar em v0.1.0. Cada item nomeia um gatilho que justificaria
+shippar (o registro abriu em v0.1.0 e cresce a cada release). Cada item nomeia um gatilho que justificaria
 revisitar. A lista existe para que contribuidores futuros e
 usuários externos consigam distinguir "não fizemos X" de
 "consideramos X e estas são as razões pelas quais não fizemos".
@@ -177,3 +177,32 @@ Abra um `doctrina change new` cujo proposal nomeie o item deste
 registro, o gatilho que disparou e o escopo da remoção. A pasta
 de change ship o trabalho; este doc é atualizado para registrar o
 novo status.
+
+## A falha do pacote de contexto em macOS com Node 20.12
+
+**Status:** resolvida — a causa era o CLI truncando a própria saída,
+corrigida na change 0134.
+
+Quatro testes falhavam em macOS com Node 20.12 e em nenhuma outra perna da
+matriz, vermelhos desde pelo menos 2026-08-06. Os quatro eram execuções
+`--concat` afirmando sobre conteúdo perto do fim de uma saída longa.
+
+**O que era.** O entrypoint terminava em `process.exit()`. O Node
+bufferiza escritas para pipe, e o `process.exit()` descarta o que ainda
+não chegou ao sistema operacional — então o fim de uma saída longa era
+simplesmente perdido. O tamanho do buffer de pipe varia por plataforma, e
+foi assim que o defeito escolheu uma perna da matriz e se escondeu nas
+outras.
+
+Nunca foi sobre macOS, nem sobre o pacote de contexto. Qualquer consumidor
+que lesse este CLI por um pipe podia receber uma resposta truncada com um
+`0` ao lado.
+
+**Como foi achado.** A change 0130 tirou um orçamento fixo do caminho e a
+change 0133 desmontou a asserção opaca nos seus cinco elos. A execução
+seguinte em macOS então reportou o fato decisivo: o `product.md` estava em
+disco E na listagem do pacote, e o `--concat` tinha impresso exatamente
+uma seção. A montagem estava certa; a saída é que estava sendo cortada.
+
+**Verde confirmado:** a matriz inteira, nove jobs incluindo macOS com Node
+20.12, na primeira execução com a change 0134.

@@ -260,13 +260,32 @@ test("the ladder gives up the least relevant first, and never touches the core",
   assert.ok(!byRel["AGENTS.md"].degraded && !byRel["AGENTS.md"].dropped);
 });
 
+// The interesting budget is one that lands BETWEEN the pack's irreducible core
+// and its full size: below the core nothing fits, above the full size nothing
+// degrades, and only in between is a summary what the reader actually gets.
+//
+// That window is a property of the live tree, so this MEASURES it instead of
+// naming a number. A literal 13000 sat in the window when it was written and
+// walked toward the edge with every spec and ADR added — a test that breaks on
+// a growing repository reports the repository growing, which nobody needs, and
+// hides the regression it was written to catch.
+function budgetInsideTheDegradationWindow() {
+  // A budget nothing can meet: the reported total is the core, the one part
+  // that is never degraded and never dropped.
+  const core = tokensOf(run(repoRoot, ["context", "cli", "--budget", "500"]).stdout);
+  // A budget nothing needs to meet: the pack at full size.
+  const full = tokensOf(run(repoRoot, ["context", "cli", "--budget", "10000000"]).stdout);
+  assert.ok(core !== null && full !== null, "both probes must report a token total");
+  assert.ok(core < full,
+    `no degradation window exists: the core (~${core}) is the whole pack (~${full})`);
+  return Math.floor((core + full) / 2);
+}
+
 test("a degraded ADR keeps its title, its decision, and a pointer to the full text", () => {
-  // 13000 sits between this pack's irreducible core and its full size, so
-  // some ADRs degrade and the pack still fits — the case where a summary is
-  // actually what the reader receives.
-  const res = run(repoRoot, ["context", "cli", "--budget", "13000", "--concat"]);
+  const budget = budgetInsideTheDegradationWindow();
+  const res = run(repoRoot, ["context", "cli", "--budget", String(budget), "--concat"]);
   assert.match(res.stdout, /summarised to fit the context budget — full text: /,
-    "a degraded artifact must say so and point at what it replaced");
+    `a degraded artifact must say so and point at what it replaced (--budget ${budget})`);
 });
 
 test("an ADR summary is one sentence of the Decision section, not the whole file", () => {

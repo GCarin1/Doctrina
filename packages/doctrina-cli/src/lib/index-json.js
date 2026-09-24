@@ -64,10 +64,45 @@ export function blank(projectName, date) {
   };
 }
 
+// INSERT WHERE A REBUILD WOULD HAVE PUT IT.
+//
+// Every category here is written twice: incrementally, by the command that
+// creates the artifact, and wholesale by `index rebuild`, which walks the
+// directory — `readdirSync(...).sort()` — and writes what it finds, in that
+// order. The two agreed only by luck: appending matches a sorted walk exactly
+// when the new entry happens to sort last.
+//
+// It usually does, which is why this survived. `doctrina spec new alpha` after
+// `spec new zebra` does not, and neither does closing change 0138 after 0139 —
+// that one shipped, and turned all six test legs of CI red on a tree whose own
+// `close` had just reported green.
+//
+// `validate` cannot see it: drift of this kind is only visible by rebuilding
+// and comparing, which is `index rebuild --check`, a different gate. So the
+// tree looked healthy from inside and failed from outside.
+//
+// Each entry's `path` embeds the on-disk name the rebuild sorts by, and the
+// parent directory is constant within a category — so ordering by `path`
+// reproduces the walk exactly, without this module having to know how any
+// category is laid out.
+// The comparison has to be the SAME one: `readdirSync(dir).sort()` takes the
+// default comparator, which orders by UTF-16 code unit, and `localeCompare`
+// does not — it ignores or reweights punctuation, so `0100-a` and `0100_a`
+// can come out in the opposite order. Matching the walk means comparing the
+// way the walk compares.
+function insertInRebuildOrder(list, entry) {
+  list.push(entry);
+  list.sort((a, b) => {
+    const x = String(a.path ?? ""), y = String(b.path ?? "");
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
+  return list;
+}
+
 export function addSkill(index, entry) {
   if (!index.artifacts.skills) index.artifacts.skills = [];
   if (!index.artifacts.skills.some((s) => s.id === entry.id)) {
-    index.artifacts.skills.push(entry);
+    insertInRebuildOrder(index.artifacts.skills, entry);
   }
   return index;
 }
@@ -75,7 +110,7 @@ export function addSkill(index, entry) {
 export function addContract(index, entry) {
   if (!index.artifacts.contracts) index.artifacts.contracts = [];
   if (!index.artifacts.contracts.some((s) => s.id === entry.id)) {
-    index.artifacts.contracts.push(entry);
+    insertInRebuildOrder(index.artifacts.contracts, entry);
   }
   return index;
 }
@@ -87,14 +122,14 @@ export function touch(index, date) {
 
 export function addSpec(index, entry) {
   if (!index.artifacts.specs.some((s) => s.id === entry.id)) {
-    index.artifacts.specs.push(entry);
+    insertInRebuildOrder(index.artifacts.specs, entry);
   }
   return index;
 }
 
 export function addDecision(index, entry) {
   if (!index.artifacts.decisions.some((d) => d.id === entry.id)) {
-    index.artifacts.decisions.push(entry);
+    insertInRebuildOrder(index.artifacts.decisions, entry);
   }
   return index;
 }
@@ -110,7 +145,7 @@ export function updateDecision(index, id, mutator) {
 export function moveChangeToArchive(index, id, archiveEntry) {
   index.artifacts.changes = index.artifacts.changes.filter((c) => c.id !== id);
   if (!index.artifacts.changes_archive.some((c) => c.id === id)) {
-    index.artifacts.changes_archive.push(archiveEntry);
+    insertInRebuildOrder(index.artifacts.changes_archive, archiveEntry);
   }
   return index;
 }

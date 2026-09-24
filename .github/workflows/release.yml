@@ -29,18 +29,45 @@ jobs:
       - name: Install devDependencies
         run: npm ci
 
-      - name: Typecheck (gate)
-        run: npm run typecheck
+      # THE RELEASE GATE IS NOT WEAKER THAN THE PR GATE.
+      #
+      # This job used to run typecheck, the test suite and `validate`, and
+      # stop there — a strict subset of what every pull request already
+      # survives. A release is the last moment a defect is cheap, so it was
+      # the wrong place to be running the thinnest gate in the repository.
+      #
+      # `verify` executes the eight checks declared in .doctrina/verify.json,
+      # which is the same list the gates action runs, so this stays one
+      # declaration rather than a second copy that drifts.
+      - name: Doctrina verify (the declared build gate)
+        run: node packages/doctrina-cli/src/index.js verify
 
-      - name: Run CLI test suite (gate)
-        run: node --test
-        working-directory: packages/doctrina-cli
+      # The one gate that exercises what npm actually ships. Three defects
+      # (C1, C2, C5) were invisible from a source checkout and obvious from a
+      # packed install, and a publish is precisely where that class lands on
+      # users instead of on us.
+      - name: Packed-install harness (what the tarball really does)
+        run: node scripts/e2e-packed.mjs
 
-      - name: Self-validate (gate)
-        run: node packages/doctrina-cli/src/index.js validate
+      # The examples ship in the repository, not in the tarball, but a release
+      # is what people go read them at. Strict: a warning in an example is a
+      # defect (change 0126).
+      - name: Examples validate (strict)
+        shell: bash
+        run: |
+          for dir in examples/*/; do
+            [ -d "$dir/.doctrina" ] || continue
+            echo "──── $dir"
+            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate --strict )
+          done
 
+      # `--provenance` is why this job asks for `id-token: write`. Without the
+      # flag the permission was granted and spent on nothing; with it, npm
+      # publishes a signed attestation tying the tarball to this workflow run
+      # and this commit, which is the supply-chain claim a zero-dependency
+      # tool should be able to make.
       - name: Publish doctrina-cli
         working-directory: packages/doctrina-cli
-        run: npm publish --access public
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

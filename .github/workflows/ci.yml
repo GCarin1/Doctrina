@@ -1,10 +1,15 @@
 name: CI
 
+# `develop` is the integration branch: feature work lands there first and
+# reaches `main` through a single release pull request. Listing only `main`
+# meant a pull request INTO `develop` ran no gate at all — PR #15 merged that
+# way — so the first time anything was checked was after it had already been
+# integrated, which is the one place a gate cannot help you.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -17,7 +22,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ["20.12", "22"]
+        # The floor `engines` declares, the previous LTS, and the ACTIVE LTS.
+        # Without 24 the release most users run was the one never tested —
+        # while 20 (end of life since April 2026) was, on three OSes.
+        node: ["20.12", "22", "24"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,13 +69,20 @@ jobs:
       # by 0.10.0, and an EARS state-driven requirement in the retrofit
       # example that stated its invariant as a fact instead of a `shall`,
       # which is precisely the mistake the example exists to teach against.
-      - name: Examples validate against the installed CLI
+      #
+      # `--strict` because that EARS defect came BACK, and this step watched
+      # it happen: plain `validate` exits 0 on warnings, both examples had
+      # drifted to warnings, and the step reported green through every run
+      # for weeks. A gate that cannot reprove is a gate in name only. An
+      # example is the first tree a reader copies, so here a warning is a
+      # defect.
+      - name: Examples validate against the installed CLI (strict)
         shell: bash
         run: |
           for dir in examples/*/; do
             [ -d "$dir/.doctrina" ] || continue
             echo "──── $dir"
-            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate )
+            ( cd "$dir" && node ../../packages/doctrina-cli/src/index.js validate --strict )
           done
 
       # The context budget is a gate, not a report (ADR 0022). It fails when
@@ -127,3 +142,15 @@ jobs:
         with:
           strict: "true"
           run-prefix: node packages/doctrina-cli/src/index.js
+
+      # The composite action is generic — it runs the gates any project has.
+      # This repository declares three more in .doctrina/verify.json, and
+      # `docs-shape` ran in NO job: the release executed `doctrina verify`
+      # (all eight) while every pull request executed a hand-copied subset
+      # that had lost one. A docs defect therefore first showed up after it
+      # had been integrated, which is the one place a gate cannot help.
+      #
+      # Here rather than in the matrix job: it reads Markdown, so the
+      # operating system and the Node version cannot change its answer.
+      - name: Docs shape and accuracy (the eighth declared check)
+        run: node scripts/check-docs.js

@@ -1,5 +1,5 @@
 {
-  "$comment": "Executable definition of 'Doctrina actually works'. `doctrina verify` runs these in order; CI and the verification gate rely on them. The framework dogfoods its own build/verify command here. These MATCH the gates action.yml runs, so a green `doctrina verify` means a green CI — a local set weaker than CI's is a gate the author never runs. The `test` check carries an `expect` guard because `node --test` prints 'pass 0' and exits 0 when it matches no test files: an exit code answers 'did the runner crash', never 'did the runner run anything'.",
+  "$comment": "Executable definition of 'Doctrina actually works'. `doctrina verify` runs these in order; CI relies on them. The framework dogfoods its own build/verify command here. Every check below runs on every pull request too \u2014 some through the gates action, which is generic, and the rest as their own workflow steps; a check declared here and absent from CI is a gate that only fires after integration, which is where `docs-shape` sat. The `test` check carries an `expect` guard because `node --test` prints 'pass 0' and exits 0 when it matches no test files: an exit code answers 'did the runner crash', never 'did the runner run anything'.",
   "checks": [
     {
       "name": "typecheck",

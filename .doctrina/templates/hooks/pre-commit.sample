@@ -26,3 +26,13 @@ $DOCTRINA validate --fix || exit 1
 if [ -f .doctrina/index.json ]; then
   git add .doctrina/index.json
 fi
+
+# ...and then check that the index this commit carries describes THIS COMMIT.
+#
+# Everything above reads the working tree. index.json is derived from the
+# whole tree, so it cannot describe a subset of one: stage part of
+# .doctrina/ and the index that just got staged names artifacts the commit
+# does not contain. On your disk they are all still there, so `validate`,
+# `index rebuild --check` and the close all pass — and the checkout in CI
+# fails with "index.json references missing artifact".
+$DOCTRINA index rebuild --check --staged || exit 1

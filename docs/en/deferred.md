@@ -1,7 +1,7 @@
-# Deferred at v0.1.0
+# Deferred
 
 A register of features Doctrina considered and chose not to ship
-at v0.1.0. Each item names a trigger that would justify
+(the register opened at v0.1.0 and grows with each release). Each item names a trigger that would justify
 revisiting. The list exists so future contributors and external
 users can distinguish "we have not done X" from "we considered X
 and these are the reasons we did not."
@@ -130,6 +130,34 @@ narrower than renormalising:
 fixture — the CLI itself, or an adopting team's artifacts, behaving
 differently by platform. Until then the assumption is linted and the
 bytes are left alone.
+
+## The macOS + Node 20.12 context-pack failure
+
+**Status:** resolved — the cause was the CLI truncating its own output,
+fixed in change 0134.
+
+Four tests failed on macOS with Node 20.12 and on no other leg of the
+matrix, red since at least 2026-08-06. All four were `--concat` runs
+asserting on content near the end of a long output.
+
+**What it was.** The entrypoint ended in `process.exit()`. Node buffers
+writes to a pipe, and `process.exit()` discards whatever has not yet
+reached the operating system — so the tail of a long output was simply
+lost. Pipe buffers differ per platform, which is exactly how the defect
+picked one leg of the matrix and hid on the others.
+
+It was never about macOS, and never about the context pack. Any consumer
+reading this CLI through a pipe could receive a truncated answer with a
+`0` beside it.
+
+**How it was found.** Change 0130 removed a hardcoded budget and change
+0133 took the opaque assertion apart into its five links. The next macOS
+run then reported the decisive fact: `product.md` was on disk AND in the
+pack listing, and `--concat` had printed exactly one section. Assembly was
+fine; the output was being cut.
+
+**Confirmed green:** the full matrix, nine jobs including macOS on Node
+20.12, on the first run carrying change 0134.
 
 ## Other items deferred or scoped out
 

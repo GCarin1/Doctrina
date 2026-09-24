@@ -272,6 +272,35 @@ function classifyOrchestration(criterion, n, projectRoot) {
 }
 
 // Decide whether a single criterion is covered, conditional, dangling, or bare.
+// Where a criterion stops DESCRIBING and starts CITING.
+//
+// The tree's grammar for an acceptance criterion is "<observable signal> —
+// verified by `<proof>`", and 212 of them across ten specs follow it. Both
+// halves can contain backtick paths, and they mean opposite things: the paths
+// after the marker are what the criterion offers as proof; the paths before it
+// are the SCENARIO it describes.
+//
+// Change 0106 taught this module to report a cited path that does not resolve
+// even when another one does — right, because one proof resolving does not
+// make a second one true. But it could not see the halves, so a criterion that
+// describes bad input by name was read as claiming that input as evidence.
+// Criterion 72 of the gates spec says a loose `specs/legacy.md` draws a
+// warning; those files exist only inside the test, and coverage reported them
+// as unresolvable proof on every single run.
+//
+// A gate that always prints the same complaint teaches its reader to skip the
+// line it prints it on, which costs more than the check was ever worth.
+//
+// Returns null for a criterion with no marker — then every backtick path is a
+// claim, exactly as before, which is what a project not using this grammar
+// gets.
+const EVIDENCE_MARKER = /\b(?:verified|proven|evidenced|demonstrated)\s+by\b|\bverificad[oa]\s+por\b/i;
+
+function evidenceClause(criterion) {
+  const m = EVIDENCE_MARKER.exec(criterion);
+  return m ? criterion.slice(m.index) : null;
+}
+
 function classify(criterion, n, projectRoot, specDir) {
   // An orchestration criterion is judged on its GUARD, not on whether a
   // cited file exists — the whole point is that existence proves nothing here.
@@ -333,8 +362,18 @@ function classify(criterion, n, projectRoot, specDir) {
   // `missing` rides along on a covered row: one citation resolving does
   // not make the other one true, and the report names it (change 0106).
   if (hasRealProof) {
+    // A `missing` entry may carry its reason — "x.md (a directory, not a
+    // file)" — so recover the bare token before asking where it was written.
+    const clause = evidenceClause(criterion);
+    const isClaimed = (entry) => {
+      if (clause === null) return true;
+      const token = entry.replace(/\s+\([^)]*\)$/, "");
+      return clause.includes(`\`${token}\``);
+    };
     const claims = missing.filter((m) =>
-      !mentions.some((d) => m.startsWith(`${d} `)) && /[\\/]/.test(m) && !/[\\/]$/.test(m));
+      !mentions.some((d) => m.startsWith(`${d} `))
+      && /[\\/]/.test(m) && !/[\\/]$/.test(m)
+      && isClaimed(m));
     return { kind: "covered", n, evidence, unverified, missing: claims };
   }
   return { kind: "conditional", n, skipped: resolved.map((r) => r.token), evidence: [], unverified, missing };

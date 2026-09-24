@@ -83,6 +83,36 @@ export function round(x) {
 }
 
 
+const WINDOW_UNIT = /^(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago$/i;
+
+/**
+ * The git `--since` value for a `--since` flag, or null when the flag is not
+ * a window this can check.
+ *
+ * git never refuses a date: "abc" parses as NOW (an empty window, reported
+ * as "nothing to measure") and "2026-13-45" as some other day. Handing it
+ * free text turned a typo into a confident, wrong answer, so only the forms
+ * whose meaning is certain pass: a day count, a calendar date
+ * (YYYY-MM-DD), or "<n> <unit>s ago".
+ *
+ * @param {string} raw
+ * @returns {string | null}
+ */
+export function sinceWindow(raw) {
+  const s = String(raw ?? "").trim();
+  if (/^\d+$/.test(s)) return Number(s) > 0 ? `${Number(s)} days ago` : null;
+  const date = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (date) {
+    const [y, m, d] = date.slice(1).map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d));
+    const real = t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+    return real ? s : null;
+  }
+  const rel = s.match(WINDOW_UNIT);
+  if (rel) return Number(rel[1]) > 0 ? s.replace(/\s+/g, " ") : null;
+  return null;
+}
+
 /**
  * A snapshot for a window, or null when there is no history to read.
  *

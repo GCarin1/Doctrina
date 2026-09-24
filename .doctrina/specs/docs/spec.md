@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC5
-**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`
-**Last updated:** 2026-08-06
-**Version:** 0.6.0
+**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
+**Last updated:** 2026-09-11
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -36,6 +36,7 @@ this spec; humans and agents do.
 - The system shall reject a CLI reference that documents a command absent from the catalog, as well as a catalog command absent from the reference, so drift is caught in both directions.
 - The system shall reject a README whose stated command or operation count differs from the catalog.
 - The system shall check every stated count of the command surface and of the decision set against the catalog and the decisions directory that own them, in the root READMEs and in every Markdown file under `docs/`, in both languages.
+- The system shall open each README, in English and in Portuguese, with the install command ahead of the flow diagram, and shall link every user guide of its language from one unbroken documentation list, so that a reader reaches any guide without knowing its file name.
 
 ### Event-driven
 
@@ -104,6 +105,9 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
 13. [verified] Every project under `examples/` validates against the installed CLI — the "Examples validate" job in `.github/workflows/ci.yml`.
 14. [verified] An upgrade guide exists in both languages and states what `upgrade` does and does not touch — `docs/en/upgrading.md`, `docs/pt/upgrading.md`.
 15. [verified] A stale operation count, a stale count in a page under `docs/`, and an ADR range that stops short of the highest decision on disk are each reported, and this repository's own counts agree with its catalog — verified by `packages/doctrina-cli/test/check-docs.test.js`.
+16. [verified] No page in `docs/en/` or `docs/pt/` describes the closing sequence as fewer steps than the CLI declares — verified by `packages/doctrina-cli/test/a-sequencia-tem-um-autor-so.test.js`.
+17. [verified] No page in `docs/en/` or `docs/pt/` spells out what the pre-commit hook runs while naming fewer invocations than the shipped hook template makes — verified by `packages/doctrina-cli/test/o-que-um-driver-roda-tem-um-autor.test.js`.
+18. [verified] Both READMEs carry the install command before the flow diagram, link every guide of their language except the named exemptions, and strand no guide after the project-policy line — verified by `packages/doctrina-cli/test/o-readme-leva-a-cada-guia.test.js`.
 
 ## Out of scope for this spec
 

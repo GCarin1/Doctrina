@@ -130,6 +130,7 @@ natural; a inteligência mora no agente executor (ver ADR 0005).
 doctrina intake descricao.md
 doctrina intake --text "Uma loja com login, catálogo e checkout"
 doctrina intake                       # reimprime o playbook de um intake pendente
+doctrina intake --converted           # encerra o bootstrap
 ```
 
 | Flag | Função |
@@ -148,10 +149,11 @@ continua sendo erro. O `doctrina init --intake` segue a mesma regra, com o
 Os passos do playbook: ler o intake, preencher cada seção de
 `product.md`, derivar a lista de capabilities e rodar `spec new` +
 escrever EARS por capability, registrar quaisquer ADRs forçados, rodar
-`clarify --all` e `validate`, e então virar o cabeçalho do intake para
-`Status: converted`. Após a conversão as specs são a única fonte de
-verdade — o intake nunca é editado para mudar requisitos. Sai com 1
-quando nenhuma fonte é dada e nenhum intake existe.
+`clarify --all` e `validate`, e então encerrar o bootstrap com
+`doctrina intake --converted`. O `next` decide por esse cabeçalho, então
+quem o escreve é o CLI e não a mão. Após a conversão as specs são a única
+fonte de verdade — o intake nunca é editado para mudar requisitos. Sai
+com `3` quando nenhuma fonte é dada e nenhum intake existe.
 
 ## `doctrina triage ["<prompt>"]`
 
@@ -624,6 +626,12 @@ alvo `proposed` é recusado com o estado nomeado (uma proposta que caiu vira
 `rejected` ou é apagada), e um título só de dígitos é recusado como a
 ordem dos argumentos trocada.
 
+O novo ADR herda o `Scope:` do antigo — um substituto decide o mesmo
+assunto, então começa com o mesmo alcance. Sem isso o sucessor saía sem
+escopo, e um ADR sem escopo é global: aceitar o refinamento de uma decisão
+que governava uma capability o carregava em todo pack. O comando avisa
+quando carregou um escopo; edite o header para ampliá-lo de propósito.
+
 ## `doctrina decision accept <number>`
 
 Vira um ADR `proposed` para `accepted`.
@@ -1045,12 +1053,15 @@ ambiente como override. Um `doctrina` solto no PATH pode ser uma release
 mais velha, e uma release mais velha reconstruindo o índice reescrevia o
 carimbo `framework_version` para trás a cada commit.
 
-O hook roda `doctrina validate --fix`: ele regenera o `index.json`
-a partir da árvore (curando a falha de gate mais comum — um header
-editado à mão que dessincronizou o índice — e re-stageando o índice
-reparado) e ainda bloqueia o commit em erros que um rebuild não cura.
-O CLI recusa rodar fora de um repositório git e recusa sobrescrever
-um hook existente sem `--force`. O hook instalado é um shell script
+O hook roda duas checagens. O `doctrina validate --fix` regenera o
+`index.json` a partir da árvore (curando a falha de gate mais comum —
+um header editado à mão que dessincronizou o índice — e re-stageando o
+índice reparado) e ainda bloqueia o commit em erros que um rebuild não
+cura. Depois o `doctrina index rebuild --check --staged` pergunta se o
+índice que este commit carrega descreve *este commit*: o passo acima lê
+a árvore de trabalho, onde um `.doctrina/` staged pela metade continua
+parecendo inteiro. O CLI recusa instalar fora de um repositório git e
+recusa sobrescrever um hook existente sem `--force`. O hook instalado é um shell script
 POSIX curto; edite à vontade depois da instalação (o CLI não
 sobrescreve sem `--force`) — por exemplo, troque a linha por um
 `doctrina validate` puro para gatekeep sem auto-reparo (estilo CI,
@@ -1168,6 +1179,13 @@ Checagens:
                    "message": "produto white-label; use placeholder genérico" } ] }
     ```
 
+    Uma regra cujo `paths` não alcança arquivo nenhum **avisa**: a restrição
+    fica declarada e nunca é aplicada, que é o mesmo achado que o `validate`
+    já faz sobre um glob `**Source:**` e o `contract check` sobre um seletor
+    — uma declaração que não casa com nada lê como cobertura e não entrega
+    nenhuma. Omitir `paths` não é escopo morto; a regra simplesmente cobre a
+    árvore.
+
 28. **Requisitos de pipeline ordenados.** Uma spec pode declarar um bloco
     opcional `### Pipeline`: passos numerados e o artefato que cada um
     entrega adiante. O EARS declara cada requisito event-driven de forma
@@ -1195,8 +1213,11 @@ Checagens:
     nada concreto — nenhuma palavra-chave, path, comando ou string de erro
     — gera warning. O `context` ranqueia skills casando a tarefa contra
     esse gatilho, então um gatilho escrito em prosa pura ("sempre que
-    parecer relevante") nunca dispara, e a skill só é carregada por quem já
-    sabia que ela existia.
+    parecer relevante", "whenever it seems relevant") nunca dispara, e a
+    skill só é carregada por quem já sabia que ela existia. As listas de
+    frases são espelhadas por língua e casadas com o texto dobrado, e as
+    palavras de conteúdo são contadas pelo léxico compartilhado, então um
+    gatilho recebe a mesma leitura em qualquer das duas.
 
 30. **Referências fantasmas.** Um `Depends on:` de spec que nomeia uma
     capability sem spec é erro (o pack, o grafo e o review leem esse
@@ -1227,11 +1248,21 @@ instalado roda isso. `--runtime` roda adicionalmente o gate de runtime — a
 fiação, os enums e os seletores declarados checados contra os workflows e
 o código que deveriam honrá-los (os mesmos checks do `contract check`),
 para que uma chamada cubra as duas metades da verdade. É opt-in porque lê
-arquivos fora de `.doctrina/`. `--json` emite `{ ok, errors, warnings }`
-para agentes e pipelines de CI.
+arquivos fora de `.doctrina/`. `--json` emite
+`{ ok, errors, warnings, strict }` para agentes e pipelines de CI.
 
-Sai 0 sem erros, 1 caso contrário. Warnings não falham a
-validação.
+`--strict` faz warnings contarem contra o código de saída, como
+`coverage --strict` e `trace --strict` já fazem. O padrão continua
+leniente de propósito: um warning é conselho, e conselho que bloqueia
+commit deixa de ser lido. Mas quem precisa poder *reprovar* quer um
+veredito, não conselho — o passo de CI que valida os exemplos publicados
+rodava `validate` puro, os dois exemplos derivaram para warnings, e o
+passo reportou verde por semanas enquanto um defeito de EARS morava
+justamente no exemplo que existe para ensinar a evitá-lo. Passe
+`--strict` onde um warning for um defeito.
+
+Sai 0 sem erros, 1 caso contrário. Warnings não falham a validação, a
+menos que `--strict` seja passado.
 
 ## `doctrina coverage`
 
@@ -1271,6 +1302,25 @@ dangling com o motivo, enquanto um diretório citado ao lado de uma prova
 real é menção em prosa e fica em silêncio. Um critério que cita um
 caminho que resolve e um que não resolve está coberto, e o relatório
 nomeia o que não resolve.
+
+**Descrever não é citar.** Um critério tem duas metades — o sinal
+observável e depois a prova — e a gramática separa as duas com
+`verified by` (também valem `proven by`, `evidenced by`,
+`demonstrated by` e o português `verificado por`). Só os caminhos
+**depois** dessa marca são lidos como reivindicação de evidência. Um
+caminho nomeado antes dela é o cenário que o critério descreve, não uma
+segunda prova que ele ofereceu:
+
+```
+1. [verified] Um `specs/legacy.md` solto tira um warning
+   — verified by `test/a-spec-off-the-path-is-named.test.js`.
+```
+
+`specs/legacy.md` só existe dentro daquele teste, e o relatório fica
+quieto sobre ele. Cite dois caminhos depois da marca e um quebrado
+continua sendo apontado. Um critério sem marca mantém a regra anterior,
+em que todo caminho citado é reivindicação — então um projeto que não usa
+esta gramática não perde nada.
 
 ### Critérios de orquestração
 
@@ -1555,7 +1605,7 @@ Sai 1 em erros, 0 só com warnings.
 Regenera `.doctrina/index.json` a partir dos artefatos em disco.
 
 ```
-doctrina index rebuild [--check]
+doctrina index rebuild [--check] [--staged]
 ```
 
 Os arquivos são a fonte de verdade; o index é artefato derivado.
@@ -1568,6 +1618,16 @@ metadata do product — são preservados do index existente.
 Com `--check` o comando não escreve nada, imprime um resumo do
 drift por categoria de artefato e sai 1 quando o index não bate
 mais com a árvore. Conecte ao CI ao lado do `validate`.
+
+`--check --staged` faz a mesma pergunta ao **commit** em vez de ao
+disco: todo artefato que o index staged nomeia tem de estar no commit,
+e todo artefato staged tem de estar no index. O index é derivado da
+árvore inteira, então não consegue descrever um pedaço dela — stage
+parte de `.doctrina/` e o index que vai junto nomeia pastas que o
+commit não carrega, enquanto todo outro gate lê a árvore de trabalho,
+onde essas pastas continuam lá. O hook de pre-commit instalado roda
+isso. Não escreve nada (sem `--check` é erro de invocação) e sai 0
+quando nada relevante está staged, ou fora de um repositório git.
 
 ## `doctrina next`
 
@@ -1703,8 +1763,9 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Dirige analyze → **checkpoint de ADR** (advisory: os ADRs aceitos cujo
 texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
-**review** (consultivo) → `change apply` → **runtime** → verify → `coverage --strict` → trace →
-**docs** → `change archive` → validate → **skill suggest** (advisory:
+**review** (consultivo) → `change apply` → **runtime** → implementation
+(consultivo) → verify → `coverage --strict` → trace → **docs** →
+`change archive` → **index drift** → validate → **skill suggest** (advisory:
 lições fix-shaped ainda não capturadas, sugeridas enquanto estão
 frescas), parando na primeira falha com o comando exato para reexecutar.
 O gate de coverage é **escopado às capabilities que os deltas da change
@@ -1762,6 +1823,46 @@ são os que você vai RODAR, que é a razão de a checklist do template já ser
 subtraída. Sem isso, uma change que só reorganizava cabeçalhos foi recusada
 pelos dois comandos que a própria proposta citava para descrever o achado, e
 teve de fechar com `--force`.
+
+Essas duas cobrem os casos comuns, não o geral. Uma proposta explica, e
+explicar nomeia coisas: «o `coverage` não sabe que este teste existe»
+descreve um efeito, e uma linha de `## Scope boundaries` dizendo «não toca
+`verify`» descreve uma *ausência* — e as duas se leem, para o gate,
+exatamente como uma change que altera o comando. Três closes numa mesma
+sessão foram forçados por isso, e um gate que se força com frequência
+deixa de ser gate: o ledger enche de gaps que nunca foram gaps, e um gap
+de verdade para de saltar aos olhos.
+
+Nenhuma extração mais esperta resolve, porque a diferença é semântica e o
+ADR 0005 mantém semântica fora de um gate determinístico. Então quem
+escreve declara, no registro, na gramática que a árvore já usa para o
+`Realizes:`:
+
+```
+- **Documented surface:** n/a — nomeia dois comandos para explicar um efeito; não altera nenhum
+```
+
+`none` se lê igual a `n/a`. Um `n/a` **pelado** não silencia nada: a razão
+é obrigatória, exatamente como em `Realizes: n/a — <porquê>` e como no
+adiamento que o `coverage` honra. Nem silencia uma declaração dentro de
+**comentário HTML** — anotação não é coisa que alguém escreveu, que é a
+mesma regra que o gate aplica a tudo o mais que lê, e é o que permite ao
+template de proposta carregar um exemplo comentado do cabeçalho sem se
+desarmar. O cabeçalho é uma declaração na proposta, visível no diff e no
+`review` — não um interruptor que desliga o gate.
+
+A recusa nomeia os dois remédios, para que nenhum precise ser lembrado:
+
+<!-- illustrative -->
+
+```
+error: this change alters a documented surface but no docs/ or README change accompanies it:
+  - commands: coverage
+hint: document it in docs/en/, docs/pt/ — whichever this change belongs in.
+      if the names above are only MENTIONED, say so on the record: add
+      `- **Documented surface:** n/a — <why>` to the proposal.
+      or pass --force to close anyway (records the gap).
+```
 
 **O que conta como superfície é você quem declara.** O gate lê os nomes que
 os seus `.doctrina/contracts/` afirmam — as tabelas Ports, Environment,
@@ -1870,7 +1971,7 @@ doctrina metrics [--since <dias|data>] [--save]
 
 | Flag | Default | Função |
 |------|---------|--------|
-| `--since <n\|data>` | `90` | Janela: contagem de dias ou qualquer data que o git parseie (`2026-01-01`, `"3 months ago"`). |
+| `--since <n\|data>` | `90` | Janela: contagem de dias, data de calendário (`2026-01-01`) ou `"<n> <unit>s ago"` (`"3 months ago"`). Qualquer outra coisa sai com `2`: o git lê qualquer texto como data (`abc` vira agora), então um erro de digitação mediria a janela errada. |
 | `--save` | off | Escreve `.doctrina/metrics/YYYY-MM-DD.json` e imprime os deltas contra o snapshot anterior mais recente. |
 
 Reporta contagem de commits, reverts e taxa, share de `fix`
@@ -1902,7 +2003,8 @@ Skills são listadas à parte como nome + description apenas: são
 on-demand por design, o corpo carrega só quando a tarefa casa. O
 archive de changes e ADRs não-aceitos ficam de fora.
 
-Cada arquivo carrega uma estimativa de tokens (chars/4), e o pack é
+Cada arquivo carrega uma estimativa de tokens (chars/4, com a quebra de
+linha contada como um caractere em qualquer sistema), e o pack é
 **montado para caber num orçamento de tokens** em vez de apenas ser
 medido contra um (ADR 0022). O orçamento resolve como `--budget` >
 `config.context_budget` no `index.json` > `15000`.

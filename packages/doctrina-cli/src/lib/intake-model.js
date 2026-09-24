@@ -10,6 +10,8 @@ import { exists, isFile, read, relPath, write } from "./fs-ops.js";
 import { assessBrief } from "./clarity.js";
 import { c } from "./colors.js";
 import { printPlaybookTemplate } from "./playbook.js";
+import { getHeader, setHeader } from "./doc-model.js";
+import { stateWord } from "./spec-ops.js";
 // Clarification gate (review Topic A). A description too thin to spec from is
 // the moment to ask the user, not to let the agent invent requirements. Prints
 // the specific gaps before the bootstrap playbook; advisory, never blocking —
@@ -47,8 +49,51 @@ export function warnIfThinIntake(body) {
   console.log("");
 }
 
+// THE INTAKE'S STATUS IS A CONTROL VALUE, SO IT GETS AN ENUM AND AN OWNER.
+//
+// `next` branches on it: pending means the bootstrap is unfinished, and every
+// other artifact's status in this framework is both written by a command and
+// checked against an enum — `spec set` refuses "Status: nonsense", and
+// `validate` calls it an error. The intake was the one header the playbook
+// told an agent to edit BY HAND, and the one nothing read back.
+//
+// So any token that was not exactly "converted" meant pending, in silence:
+// "convertido" typed in a Portuguese project, "done", or an empty value left
+// by a botched edit. `validate` exited 0 on all of them and `next` went on
+// asking for a bootstrap that had already happened.
+export const INTAKE_STATUSES = ["pending", "converted"];
+
+/** The intake's status word, note stripped and folded. Defaults to pending. */
+export function intakeStatus(text) {
+  const raw = getHeader(String(text ?? ""), "Status");
+  if (raw === null) return "pending";
+  return stateWord(raw) || "";
+}
+
+/** null when the intake's status is a declared value; otherwise the error. */
+export function intakeStatusError(text) {
+  const word = intakeStatus(text);
+  if (INTAKE_STATUSES.includes(word)) return null;
+  const got = getHeader(String(text ?? ""), "Status");
+  return `Status must be one of ${INTAKE_STATUSES.join("|")} `
+    + `(got "${String(got ?? "").trim()}") — every other value reads as pending, in silence`;
+}
+
+/**
+ * Flip the stored intake to `converted`. Returns the path written, or null
+ * when there is no intake (or no Status header) to flip.
+ */
+export function markIntakeConverted(projectRoot) {
+  const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
+  if (!exists(intakePath)) return null;
+  const next = setHeader(read(intakePath), "Status", "converted");
+  if (next === null) return null;
+  write(intakePath, next, { force: true });
+  return intakePath;
+}
+
 // Shared with `init --intake`. Writes the intake verbatim under a small
-// status header; the agent flips Status to converted at the end of the
+// status header; `doctrina intake --converted` flips it at the end of the
 // playbook, which is how `next` knows the bootstrap is done.
 export function writeIntakeFile(projectRoot, { body, source, projectName, date, force = false }) {
   const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
@@ -61,7 +106,7 @@ export function writeIntakeFile(projectRoot, { body, source, projectName, date, 
     "",
     "<!-- Raw project intent, stored verbatim. The bootstrap playbook",
     "     (doctrina intake) converts it into product.md and capability",
-    "     specs, then flips Status to converted. After conversion the",
+    "     specs. Close it with `doctrina intake --converted`; after that the",
     "     specs are the only source of truth; never edit this file to",
     "     change requirements. -->",
     "",

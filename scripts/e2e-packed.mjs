@@ -24,7 +24,7 @@
 //   node scripts/e2e-packed.mjs --quick    # skip the per-adapter sweep
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import process from "node:process";
@@ -60,9 +60,58 @@ function fail(what, detail) {
   if (detail) console.log(String(detail).split("\n").map((l) => `      ${l}`).join("\n"));
 }
 
+// Print the tally, remove the scratch tree, and leave with the right code.
+// Every exit from this harness goes through here, so the summary and the
+// cleanup cannot be skipped by an early one.
+function finish() {
+  console.log("");
+  if (failures === 0) console.log(`ok  ${checks} checks passed against a packed install`);
+  else console.log(`fail  ${failures} of ${checks} checks failed against a packed install`);
+  rmSync(scratch, { recursive: true, force: true });
+  process.exit(failures === 0 ? 0 : 1);
+}
+
+// THE HARNESS IS SEQUENTIAL AND STATEFUL: step N builds on the project step
+// N-1 left behind. So a failed assertion is not one red line among many, it
+// is the point where every later step stops meaning anything — and running
+// them anyway is how a real diagnosis gets buried. When the delta path went
+// missing, this file printed "✗ work scaffolded a prefilled delta" and kept
+// going, and two lines later an unguarded readFileSync threw. CI showed a
+// node:fs stack trace, no tally and a leaked scratch directory; the sentence
+// naming the actual defect scrolled past above it.
+//
+// `assert` therefore stops at the first failure. Use `assertIndependent` for
+// checks that genuinely do not feed the next one — the per-adapter sweep,
+// where each agent gets its own throwaway project.
 function assert(cond, what, detail) {
+  if (cond) { ok(what); return; }
+  fail(what, detail);
+  console.log("\n  (stopping here — every later step reads the state this one just disproved)");
+  finish();
+}
+
+function assertIndependent(cond, what, detail) {
   if (cond) ok(what);
   else fail(what, detail);
+}
+
+// An exception from outside an assertion — a genuine bug in the harness, or a
+// CLI that died in a way no check anticipated — must not cost the tally and
+// the cleanup either.
+process.on("uncaughtException", (err) => {
+  fail("the harness itself threw", err?.stack ?? String(err));
+  finish();
+});
+
+// The change ids currently open in a project, sorted. `archive/` holds closed
+// history and the dotfiles are git's, so neither is an open change.
+function openChangeIds(projectDir) {
+  const dir = path.join(projectDir, ".doctrina", "changes");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && e.name !== "archive" && !e.name.startsWith("."))
+    .map((e) => e.name)
+    .sort();
 }
 
 function run(cmd, args, cwd, opts = {}) {
@@ -147,7 +196,17 @@ assert(doctrina(["spec", "new", "billing"], proj).status === 0, "spec new billin
 const work = doctrina(["work", "add refunds", "--capability", "billing", "--quiet"], proj);
 assert(work.status === 0, "work --capability --quiet", work.out);
 
-const changeId = "0001-add-refunds";
+// The id is DISCOVERED, never spelled out here. `work` derives the slug from
+// the prompt, and that derivation is the CLI's to change: change 0070 taught
+// it to drop stopwords, so "add refunds" started yielding `0001-refunds` and
+// a hardcoded "0001-add-refunds" in this file kept the whole pipeline red for
+// weeks over a rule the CLI was right to adopt. Asking the tree which change
+// `work` just opened tests the thing that matters — that exactly one was —
+// and survives the next slug rule without a second outage.
+const changeId = openChangeIds(proj)[0];
+assert(openChangeIds(proj).length === 1 && Boolean(changeId),
+  "work opened exactly one change", `found: ${JSON.stringify(openChangeIds(proj))}`);
+
 const deltaPath = path.join(proj, ".doctrina", "changes", changeId, "specs", "billing", "delta.md");
 assert(existsSync(deltaPath), "work scaffolded a prefilled delta");
 assert(/\*\*Operation:\*\* MODIFIED/.test(readFileSync(deltaPath, "utf8")),
@@ -257,7 +316,9 @@ if (!quick) {
       continue;
     }
     const tc = doctrina(["templates", "check"], p);
-    assert(tc.status === 0, `init --agent ${agent} then templates check`, tc.out);
+    // Each agent gets its own throwaway project, so one bad adapter says
+    // nothing about the next: sweep them all and report the whole set.
+    assertIndependent(tc.status === 0, `init --agent ${agent} then templates check`, tc.out);
   }
 } else {
   console.log("\n5. per-adapter sweep skipped (--quick)");
@@ -265,11 +326,4 @@ if (!quick) {
 
 // ---------------------------------------------------------------- report
 
-console.log("");
-if (failures === 0) {
-  console.log(`ok  ${checks} checks passed against a packed install`);
-} else {
-  console.log(`fail  ${failures} of ${checks} checks failed against a packed install`);
-}
-rmSync(scratch, { recursive: true, force: true });
-process.exit(failures === 0 ? 0 : 1);
+finish();

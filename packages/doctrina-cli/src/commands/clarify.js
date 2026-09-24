@@ -37,7 +37,14 @@ const RULES_EN = [
     // hid the one real finding among them ("name some of them", which said
     // nothing about how many). A gate that cries wolf teaches people to
     // ignore it.
-    re: /(?<!\bhow\s+)\b(many|few|some|several)\b(?!\s+\d)/gi,
+    //
+    // The quality adjectives sit here for the same reason the quantifiers do:
+    // "robust" names no threshold, so it cannot be met or missed. They were
+    // in the Portuguese lexicon and nowhere in this one, so the SAME sentence
+    // translated came back with three smells in one language and none in the
+    // other — and this project keeps its own pages in both. A smell test that
+    // answers differently per language is not testing the writing.
+    re: /(?<!\bhow\s+)\b(many|few|some|several|adequate|robust|scalable)\b(?!\s+\d)/gi,
     hint: "quantify (use a number or a precise scope)",
   },
   {

@@ -1,5 +1,6 @@
 // @ts-check
 import { getHeader, getSection, parseChangeTitle } from "./doc-model.js";
+import { projectName } from "./project.js";
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
@@ -9,6 +10,7 @@ import { load } from "./index-json.js";
 import { parseFrontmatter } from "./doc-model.js";
 import { parseCapabilityFromDelta } from "./doc-model.js";
 import { parseOperation } from "./doc-model.js";
+import { git, gitLines, isRepo, GIT_STATE } from "./git.js";
 
 // Header reading lives in ONE place now (lib/doc-model.js, audit item M3).
 // These two names survive because dozens of call sites use them and the
@@ -178,7 +180,7 @@ export function deriveIndex(projectRoot, current) {
 
   const out = {
     $schema_version: current?.$schema_version ?? "0.1.0",
-    project: current?.project ?? path.basename(projectRoot),
+    project: projectName(projectRoot, current),
     framework_version: current?.framework_version ?? "0.0.0",
     last_updated: current?.last_updated ?? date,
     // Project settings, carried over verbatim. `deriveIndex` rebuilds the
@@ -486,4 +488,94 @@ export function dependentsOf(projectRoot, caps) {
     if (deps.length > 0) out.push({ capability: cap, dependsOn: deps });
   }
   return out;
+}
+
+// ---------------------------------------------------------------- staged
+
+/**
+ * The same question as `collectIndexDrift`, asked of the COMMIT instead of
+ * the disk.
+ *
+ * `index.json` is derived from the whole tree, so it cannot describe a
+ * subset of it. Stage some of `.doctrina/` and the index that rides along
+ * names artifacts the commit does not carry — and every gate that would
+ * catch it reads the working tree, where those artifacts are still present.
+ * Four commits of this repository shipped that way, each green locally and
+ * each red on checkout: `index.json references missing artifact`.
+ *
+ * Read with git plumbing, never from disk: `:<path>` is the staged blob and
+ * `ls-files --cached` is the file list the commit will have.
+ *
+ * @param {string} projectRoot
+ * @returns {{ok: boolean, applicable: boolean, missing: string[], unindexed: string[], reason: string|null}}
+ */
+export function collectStagedIndexDrift(projectRoot) {
+  const nothing = { ok: true, applicable: false, missing: [], unindexed: [], reason: null };
+  if (!isRepo(projectRoot)) return { ...nothing, reason: "not a git repository" };
+
+  const blob = git(projectRoot, ["show", ":.doctrina/index.json"]);
+  if (blob.state !== GIT_STATE.OK || !blob.stdout.trim()) {
+    // Not staged at all — this commit does not carry an index, so it cannot
+    // carry one that disagrees with itself.
+    return { ...nothing, reason: "no staged .doctrina/index.json" };
+  }
+
+  let staged;
+  try {
+    staged = JSON.parse(blob.stdout);
+  } catch {
+    return { ok: false, applicable: true, missing: [], unindexed: [],
+      reason: "the staged .doctrina/index.json is not valid JSON" };
+  }
+
+  const files = new Set(gitLines(projectRoot, ["ls-files", "--cached", "--", ".doctrina"]));
+  // An entry's path is a file for specs, ADRs, skills and contracts, and a
+  // DIRECTORY for changes — a directory is in the commit when any file under
+  // it is.
+  const inCommit = (p) => files.has(p) || [...files].some((f) => f.startsWith(`${p}/`));
+
+  const artifacts = staged.artifacts ?? {};
+  const missing = [];
+  for (const [kind, entries] of Object.entries(artifacts)) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      const p = String(entry?.path ?? "");
+      if (p && !inCommit(p)) missing.push(`${kind}: ${p}`);
+    }
+  }
+
+  // The mirror case: an artifact staged into the commit that the staged index
+  // never heard of. Same shapes `index rebuild` derives entries from.
+  const indexed = new Set();
+  for (const entries of Object.values(artifacts)) {
+    if (Array.isArray(entries)) for (const e of entries) indexed.add(String(e?.path ?? ""));
+  }
+  const unindexed = [];
+  for (const f of [...files].sort()) {
+    const owner = artifactPathOf(f);
+    if (owner && !indexed.has(owner)) unindexed.push(owner);
+  }
+
+  const unique = [...new Set(unindexed)];
+  return {
+    ok: missing.length === 0 && unique.length === 0,
+    applicable: true,
+    missing,
+    unindexed: unique,
+    reason: null,
+  };
+}
+
+// The index entry a staged file belongs to, or null when the file is not an
+// artifact (templates, config.json, product.md, the index itself).
+function artifactPathOf(file) {
+  let m = /^\.doctrina\/specs\/[^/]+\/spec\.md$/.exec(file);
+  if (m) return file;
+  m = /^\.doctrina\/(?:decisions|skills|contracts)\/[^/]+\.md$/.exec(file);
+  if (m) return file;
+  m = /^(\.doctrina\/changes\/archive\/[^/]+)\/proposal\.md$/.exec(file);
+  if (m) return m[1];
+  m = /^(\.doctrina\/changes\/(?!archive\/)[^/]+)\/proposal\.md$/.exec(file);
+  if (m) return m[1];
+  return null;
 }

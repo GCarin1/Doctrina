@@ -7,11 +7,11 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint, acceptedDecisionCount } from "../lib/adr-guard.js";
-import { docsRemedy, checkDocsImpact } from "../lib/docs-impact.js";
+import { docsRemedy, checkDocsImpact, checkChangelogImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
 import { specHeader, dependentsOf } from "../lib/scan.js";
-import { sequence, stepRerun } from "../lib/gates.js";
+import { sequence, sequenceLabels, stepRerun } from "../lib/gates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
@@ -19,6 +19,7 @@ import * as verify from "./verify.js";
 import * as coverage from "./coverage.js";
 import * as trace from "./trace.js";
 import * as validate from "./validate.js";
+import * as indexRebuild from "./index-rebuild.js";
 import { appendLedgerLine, docsGapLine, ledgerPath as ledgerFile } from "../lib/ledger.js";
 import * as review from "./review.js";
 import * as skill from "./skill.js";
@@ -257,10 +258,24 @@ async function closeOne(projectRoot, id, flags) {
     // escape hatch archive offers, and records the gap in the ledger.
     docs: {
       run: async () => {
-        const r = checkDocsImpact(projectRoot, path.join(projectRoot, ".doctrina", "changes", id));
+        const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+        const r = checkDocsImpact(projectRoot, changeDir);
         if (r.ok) {
           console.log(c.green("ok") + ` ${r.reason}`);
-          return 0;
+          // Documentation says how it works; the changelog says that it
+          // changed. Asking only the first is how thirteen changes closed in
+          // one session with an empty `## [Unreleased]` behind them.
+          const log = checkChangelogImpact(projectRoot, changeDir);
+          if (log.ok) {
+            console.log(c.green("ok") + ` ${log.reason}`);
+            return 0;
+          }
+          console.error(c.red("error:") + ` this change ${log.reason}:`);
+          for (const s of log.signals) console.error(`  - ${s}`);
+          console.error(c.gray("hint: ") + "add an entry under the changelog's unreleased heading" +
+            ", or pass --force to close anyway (records the gap)");
+          docsGap = log;
+          return 1;
         }
         console.error(c.red("error:") + ` this change ${r.reason}:`);
         for (const s of r.signals) console.error(`  - ${s}`);
@@ -268,8 +283,21 @@ async function closeOne(projectRoot, id, flags) {
         // Doctrina's own repository (change 0058): an adopting project with
         // no `docs/` was being told to write English AND Portuguese and to
         // read a skill it does not have.
-        console.error(c.gray("hint: ") + docsRemedy(projectRoot) +
-          ", or pass --force to close anyway (records the gap)");
+        console.error(c.gray("hint: ") + docsRemedy(projectRoot) + ".");
+        // THE SECOND ANSWER, NAMED WHERE IT IS NEEDED.
+        //
+        // The gate reads names, and a name is all it can see: a change that
+        // explains an effect, or a Scope boundaries line saying what it does
+        // NOT touch, reads exactly like one that alters the command. When the
+        // only remedy on offer was `--force`, an author looking at a false
+        // positive took the worst of the two exits — the ledger fills with
+        // gaps that were never gaps, and a real one stops standing out.
+        //
+        // The declaration exists for precisely this (change 0139) and was
+        // named nowhere the author would be looking.
+        console.error(c.gray("      ") + "if the names above are only MENTIONED, say so on the record: " +
+          "add `- **Documented surface:** n/a — <why>` to the proposal.");
+        console.error(c.gray("      ") + "or pass --force to close anyway (records the gap).");
         docsGap = r;
         return 1;
       },
@@ -279,6 +307,10 @@ async function closeOne(projectRoot, id, flags) {
       rerun: `doctrina change archive ${id}${force ? " --force" : ""}`,
       run: () => change.run(["archive", id], archiveFlags),
     },
+
+    // In-process, like every other runner here: the close starts no subprocess
+    // of its own binary, and a criterion holds it to that.
+    "index-drift": { run: () => indexRebuild.run(["rebuild"], new Map([["check", true]])) },
 
     validate: { run: () => validate.run([], new Map()) },
   };
@@ -459,15 +491,35 @@ function touchedCapabilities(projectRoot, id) {
   return [...caps].sort();
 }
 
+// The sequence is DECLARED once, in lib/gates.js, and rendered here. It used
+// to be typed out in this string, which is how the help came to name ten
+// steps of thirteen — review, implementation, docs and the index-drift check
+// were added over time and the paragraph was not.
+const SEQUENCE = wrapArrows(sequenceLabels("close"), 70, "  ");
+
+function wrapArrows(labels, width, indent) {
+  const lines = [];
+  let line = "";
+  for (const label of labels) {
+    const piece = line === "" ? label : `${line} → ${label}`;
+    if (piece.length + indent.length > width && line !== "") {
+      lines.push(indent + line + " →");
+      line = label;
+    } else line = piece;
+  }
+  if (line !== "") lines.push(indent + line);
+  return lines.join("\n");
+}
+
 export const help = `
 Usage: doctrina close <id...> [--force]
 
 Run the whole closing sequence for a change in one pass, stopping at the
 first failure with the exact command to rerun:
 
-  analyze → ADR checkpoint (advisory) → change apply → runtime → verify →
-  coverage --strict (scoped to the change's touched capabilities) → trace →
-  change archive → validate → skill suggest (advisory)
+${SEQUENCE}
+
+then a closing skill-suggest listing (advisory).
 
 The coverage gate is scoped to the capabilities the change's deltas touch,
 so a deliberately deferred spec elsewhere cannot block an unrelated close;
@@ -481,7 +533,7 @@ trace, the ADR checkpoint
 (accepted ADRs citing the touched capabilities — amend via \`decision
 supersede\`, not silence), and the closing skill-suggest listing are
 advisory (reports, never blockers). This is a driver over the existing
-commands so the agent makes one call instead of nine and the human
+commands so the agent makes one call instead of thirteen and the human
 approves once.
 
 Multiple ids close in sequence, each independently; the exit code is the

@@ -124,11 +124,13 @@ executing agent (see ADR 0005).
 doctrina intake description.md
 doctrina intake --text "A shop with login, catalog, and checkout"
 doctrina intake                       # reprint the playbook for a pending intake
+doctrina intake --converted           # close the bootstrap
 ```
 
 | Flag | Purpose |
 |------|---------|
 | `--text "<description>"` | Inline description instead of a file. |
+| `--converted` | Mark the stored intake converted, ending the bootstrap. Nothing else writes that header, and `validate` refuses any value but `pending` or `converted` — every other word used to read as pending in silence. Exits `3` when there is no intake to mark. |
 | `--force` | Overwrite an existing `.doctrina/intake.md` that is still `pending`. A **converted** intake is never reopened — `--force` refuses with exit `3` and points at `doctrina intent add` (new intent) and `doctrina work` (a change of behaviour). |
 
 The positional takes either. A value that cannot be a path — a sentence,
@@ -142,10 +144,11 @@ as its explicit form.
 The playbook steps: read the intake, fill every `product.md` section,
 derive the capability list and run `spec new` + author EARS per
 capability, record any forced ADRs, run `clarify --all` and `validate`,
-then flip the intake header to `Status: converted`. After conversion
-the specs are the only source of truth — the intake is never edited to
-change requirements. Exits 1 when no source is given and no intake
-exists.
+then close the bootstrap with `doctrina intake --converted`. `next`
+branches on that header, so it is written by the CLI rather than by
+hand. After conversion the specs are the only source of truth — the
+intake is never edited to change requirements. Exits `3` when no source
+is given and no intake exists.
 
 ## `doctrina triage ["<prompt>"]`
 
@@ -605,6 +608,13 @@ superseded: a proposed target is refused naming its state (a proposal that
 fell is set to `rejected` or deleted), and a title that is only digits is
 refused as the argument order swapped.
 
+The new ADR inherits the old one's `Scope:` — a replacement decides the
+same subject, so it starts with the same reach. Without it the successor
+was unscoped, and an unscoped ADR is global: accepting the refinement of a
+decision that governed one capability loaded it into every pack. The
+command says when it carried a scope; edit the header to widen it on
+purpose.
+
 ## `doctrina decision accept <number>`
 
 Flip a `proposed` ADR to `accepted`.
@@ -1020,12 +1030,16 @@ clone, so it names that CLI's entrypoint by absolute path and reads
 PATH may be an older release, and an older release rebuilding the index
 used to rewrite the `framework_version` stamp backwards on every commit.
 
-The hook runs `doctrina validate --fix`: it regenerates
+The hook runs two checks. `doctrina validate --fix` regenerates
 `index.json` from the tree (healing the most common gate failure —
 a hand-edited header that drifted the index — and re-staging the
 repaired index) and still blocks the commit on errors a rebuild
-cannot heal. The CLI refuses to run outside a git repository and
-refuses to overwrite an existing hook unless `--force` is supplied.
+cannot heal. Then `doctrina index rebuild --check --staged` asks
+whether the index this commit carries describes *this commit*: the
+step above reads the working tree, where a partially staged
+`.doctrina/` still looks whole. The CLI refuses to install outside a
+git repository and refuses to overwrite an existing hook unless
+`--force` is supplied.
 The installed hook is a short POSIX shell script; edit it freely
 after install (the CLI will not overwrite without `--force`), e.g.
 swap the line for a bare `doctrina validate` to gate without
@@ -1136,6 +1150,13 @@ Checks performed:
                    "message": "white-label product; use a generic placeholder" } ] }
     ```
 
+    A rule whose `paths` reach no file at all **warns**: the constraint is
+    declared and never enforced, which is the same finding `validate`
+    already makes about a `**Source:**` glob and `contract check` about a
+    selector — a declaration that matches nothing reads as coverage and
+    provides none. Omitting `paths` is not a dead scope; the rule simply
+    covers the tree.
+
 28. **Ordered pipeline requirements.** A spec may declare an optional
     `### Pipeline` block: numbered steps and the artifact each hands on.
     EARS states every event-driven requirement independently and says
@@ -1160,8 +1181,11 @@ Checks performed:
 29. **Skill triggers.** A skill whose frontmatter `when:` names nothing
     concrete — no keyword, path, command or error string — warns. `context`
     ranks skills by matching a task against that trigger, so a trigger
-    written as pure prose ("whenever it seems relevant") can never fire,
-    and the skill is loaded only by someone who already knew it existed.
+    written as pure prose ("whenever it seems relevant", "quando fizer
+    sentido") can never fire, and the skill is loaded only by someone who
+    already knew it existed. The phrase lists are mirrored per language and
+    matched folded, and the content words are counted by the shared lexicon,
+    so a trigger reads the same in either language.
 
 30. **Ghost references.** A spec's `Depends on:` naming a capability with
     no spec is an error (the pack, the graph and the review all read that
@@ -1192,10 +1216,20 @@ migrated) rather than reported — the shipped pre-commit hook runs this.
 enums and selectors checked against the workflows and code meant to
 honour them (the same checks as `contract check`), so one call covers
 both halves of the truth. It is opt-in because it reads files outside
-`.doctrina/`. `--json` emits `{ ok, errors, warnings }` for agents and CI
-pipelines.
+`.doctrina/`. `--json` emits `{ ok, errors, warnings, strict }` for agents
+and CI pipelines.
 
-Exits 0 on no errors, 1 otherwise. Warnings do not fail validation.
+`--strict` counts warnings against the exit code, the way `coverage
+--strict` and `trace --strict` already do. The default stays lenient on
+purpose: a warning is advice, and advice that blocks a commit stops being
+read. But a caller that must be able to *reprove* needs a verdict, not
+advice — the CI step that validates the shipped examples ran plain
+`validate`, both examples drifted to warnings, and the step reported green
+for weeks while an EARS defect sat in the example that exists to teach
+against it. Pass `--strict` wherever a warning is a defect.
+
+Exits 0 on no errors, 1 otherwise. Warnings do not fail validation unless
+`--strict` is given.
 
 ## `doctrina coverage`
 
@@ -1234,6 +1268,23 @@ the reason, while a directory named next to a real proof is a prose
 mention and stays silent. A criterion that cites one path that resolves
 and one that does not is covered, and the report names the one that
 does not.
+
+**Describing is not citing.** A criterion has two halves — the observable
+signal, then the proof — and the grammar separates them with `verified
+by` (`proven by`, `evidenced by`, `demonstrated by` and the Portuguese
+`verificado por` count too). Only paths **after** that marker are read as
+claims of evidence. A path named before it is the scenario the criterion
+describes, not a second proof it offered:
+
+```
+1. [verified] A loose `specs/legacy.md` draws one warning
+   — verified by `test/a-spec-off-the-path-is-named.test.js`.
+```
+
+`specs/legacy.md` exists only inside that test, and the report stays
+quiet about it. Cite two paths after the marker and a broken one is still
+named. A criterion with no marker keeps the older rule, where every cited
+path is a claim — so a project not using this grammar loses nothing.
 
 ### Orchestration criteria
 
@@ -1509,7 +1560,7 @@ Exits 1 on errors, 0 on warnings only.
 Regenerate `.doctrina/index.json` from the artifacts on disk.
 
 ```
-doctrina index rebuild [--check]
+doctrina index rebuild [--check] [--staged]
 ```
 
 The files are the source of truth; the index is a derived artifact.
@@ -1522,6 +1573,16 @@ over from the existing index.
 With `--check` the command writes nothing, prints a drift summary
 per artifact category, and exits 1 when the index no longer
 matches the tree. Wire it into CI next to `validate`.
+
+`--check --staged` asks the same question of the **commit** instead of
+the disk: every artifact the staged index names must be in the commit,
+and every staged artifact must be in the index. The index is derived
+from the whole tree, so it cannot describe a subset of one — stage part
+of `.doctrina/` and the index riding along names folders the commit does
+not carry, while every other gate reads the working tree, where those
+folders are still present. The installed pre-commit hook runs it. It
+writes nothing (without `--check` it is a usage error) and exits 0 when
+nothing relevant is staged, or outside a git repository.
 
 ## `doctrina next`
 
@@ -1653,8 +1714,9 @@ doctrina close 0001-add-login 0002-rate-limit 0003-audit
 Drives analyze → **ADR checkpoint** (advisory: the accepted ADRs whose
 text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
-**review** (advisory) → `change apply` → **runtime** → verify → `coverage --strict` → trace →
-**docs** → `change archive` → validate → **skill suggest** (advisory:
+**review** (advisory) → `change apply` → **runtime** → implementation
+(advisory) → verify → `coverage --strict` → trace → **docs** →
+`change archive` → **index drift** → validate → **skill suggest** (advisory:
 fix-shaped lessons not yet captured, surfaced while they are fresh),
 stopping at the first failure with the exact command to rerun. The
 coverage gate is **scoped to the capabilities the change's deltas touch**
@@ -1711,6 +1773,45 @@ it names are the ones you will RUN, which is why the template's own
 checklist was already subtracted. Without these, a change that only
 reorganised headings was refused for the two commands its proposal cited
 to describe the finding, and had to close with `--force`.
+
+Those two cover the common cases and not the general one. A proposal
+explains, and explaining names things: "`coverage` no longer knows this
+test exists" describes an effect, and a `## Scope boundaries` line saying
+"does not touch `verify`" describes an *absence* — both read to the gate
+exactly like a change that alters the command. Three closes in one session
+were forced for that reason, and a gate that is routinely forced stops
+being a gate: the ledger fills with gaps that were never gaps, and a real
+one stops standing out.
+
+No smarter extraction settles it, because the difference is semantic and
+ADR 0005 keeps semantics out of a deterministic gate. So the author says
+so, on the record, in the grammar the tree already uses for `Realizes:`:
+
+```
+- **Documented surface:** n/a — names two commands to explain an effect; alters neither
+```
+
+`none` reads the same as `n/a`. A **bare** `n/a` does not silence
+anything: a reason is required, exactly as it is for `Realizes: n/a —
+<why>` and for the deferral `coverage` honours. Nor does a declaration
+inside an **HTML comment** — annotation is not something a person wrote,
+which is the same rule the gate applies to everything else it reads, and
+what lets the proposal template carry a commented example of the header
+without disarming itself. The header is a declaration in the proposal,
+visible in the diff and in `review` — not a switch that turns the gate off.
+
+The refusal names both remedies, so neither has to be remembered:
+
+<!-- illustrative -->
+
+```
+error: this change alters a documented surface but no docs/ or README change accompanies it:
+  - commands: coverage
+hint: document it in docs/en/, docs/pt/ — whichever this change belongs in.
+      if the names above are only MENTIONED, say so on the record: add
+      `- **Documented surface:** n/a — <why>` to the proposal.
+      or pass --force to close anyway (records the gap).
+```
 
 **What counts as surface is yours to declare.** The gate reads the names
 your `.doctrina/contracts/` state — the Ports, Environment, Wiring and
@@ -1816,7 +1917,7 @@ doctrina metrics [--since <days|date>] [--save]
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `--since <n\|date>` | `90` | Window: a day count or any git-parseable date (`2026-01-01`, `"3 months ago"`). |
+| `--since <n\|date>` | `90` | Window: a day count, a calendar date (`2026-01-01`) or `"<n> <unit>s ago"` (`"3 months ago"`). Anything else exits `2`: git reads any text as a date (`abc` as now), so a typo would measure the wrong window. |
 | `--save` | off | Write `.doctrina/metrics/YYYY-MM-DD.json` and print deltas against the most recent prior snapshot. |
 
 Reports commit count, revert count and rate, Conventional-Commit
@@ -1847,7 +1948,8 @@ separately as name + description only: they are on-demand by
 design, the body loads only when the task matches. The change
 archive and non-accepted ADRs are excluded.
 
-Every file carries a token estimate (chars/4), and the pack is
+Every file carries a token estimate (chars/4, line endings counted as
+one character on every OS), and the pack is
 **assembled to fit a token budget** rather than merely measured
 against one (ADR 0022). The budget resolves as `--budget` >
 `config.context_budget` in `index.json` > `15000`.

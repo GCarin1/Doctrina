@@ -155,8 +155,12 @@ function specSet(args, flags) {
   let text = read(specPath);
   const applied = [];
   const errors = [];
+  // An error names what to correct: the INVOCATION (a value out of domain, a
+  // criterion that does not exist, a malformed flag) or the SPEC (a header
+  // or section it lacks). Only the second is fixed by editing the work.
+  const refused = (msg) => errors.push({ msg, argument: true });
   const apply = (res) => {
-    if (res.error) errors.push(res.error);
+    if (res.error) errors.push({ msg: res.error, argument: res.cause === "argument" });
     else { text = res.text; applied.push(res.summary); }
   };
   // Order: headers, then version, then criterion — independent edits, all or
@@ -173,7 +177,7 @@ function specSet(args, flags) {
       const derivedValue = derivedImplementations(projectRoot, { only: new Set([capability]) })
         .get(capability)?.derived;
       if (!derivedValue) {
-        errors.push(`--implementation auto needs acceptance criteria to derive from; ${capability} declares none`);
+        errors.push({ msg: `--implementation auto needs acceptance criteria to derive from; ${capability} declares none`, argument: false });
       } else {
         apply(setHeader(text, "Implementation", derivedValue));
       }
@@ -182,23 +186,25 @@ function specSet(args, flags) {
     }
   }
   if (bump !== undefined) {
-    if (!["major", "minor", "patch"].includes(bump)) errors.push(`--bump needs major|minor|patch (got "${bump}")`);
+    if (!["major", "minor", "patch"].includes(bump)) refused(`--bump needs major|minor|patch (got "${bump}")`);
     else apply(bumpVersion(text, bump));
   }
   if (versionExplicit !== undefined) {
-    if (!/^\d+\.\d+\.\d+$/.test(versionExplicit)) errors.push(`--version needs semver X.Y.Z (got "${versionExplicit}")`);
+    if (!/^\d+\.\d+\.\d+$/.test(versionExplicit)) refused(`--version needs semver X.Y.Z (got "${versionExplicit}")`);
     else apply(setHeader(text, "Version", versionExplicit));
   }
   if (criterion !== undefined) {
     const m = String(criterion).match(/^(\d+)\s*:\s*(.+)$/);
-    if (!m) errors.push(`--criterion needs "<n>:<mark>" (got "${criterion}")`);
+    if (!m) refused(`--criterion needs "<n>:<mark>" (got "${criterion}")`);
     else apply(setCriterionMark(text, Number(m[1]), m[2].trim()));
   }
 
   if (errors.length > 0) {
     console.error(c.red("error:") + ` ${errors.length} operation error${errors.length === 1 ? "" : "s"} — spec left untouched:`);
-    for (const e of errors) console.error(`  - ${e}`);
-    return 1;
+    for (const e of errors) console.error(`  - ${e.msg}`);
+    // Retrying an invocation error unchanged never succeeds (ADR 0018), so
+    // one in the list is enough to answer USAGE.
+    return errors.some((e) => e.argument) ? EXIT.USAGE : EXIT.GATE;
   }
 
   // Stamp Last updated when the header exists (best-effort, never an error).

@@ -16,6 +16,8 @@
 import path from "node:path";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./fs-ops.js";
+import { fold, terms } from "./lexicon.js";
+import { intakeStatusError } from "./intake-model.js";
 import * as idx from "./index-json.js";
 import { SCHEMA_VERSION } from "./index-json.js";
 import { cliVersion, newestVersion } from "./version.js";
@@ -143,6 +145,21 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   // 2. product.md
   const productMd = path.join(projectRoot, ".doctrina", "product.md");
   if (!isFile(productMd)) errors.push(".doctrina/product.md missing");
+
+  // 2b. intake.md's status, when there is one.
+  //
+  // `next` branches on this value to decide whether the bootstrap is done,
+  // and the playbook has the agent write it BY HAND — so it is the one
+  // control value in the tree that nothing read back. Anything but the two
+  // declared words meant "pending" in silence: "convertido" typed in a
+  // Portuguese project, or an empty value left by a botched edit, both left
+  // `next` asking forever for a bootstrap that had already happened.
+  // A spec's Status gets an enum and an error; so does this one.
+  const intakeMd = path.join(projectRoot, ".doctrina", "intake.md");
+  if (isFile(intakeMd)) {
+    const badStatus = intakeStatusError(read(intakeMd));
+    if (badStatus) errors.push(`.doctrina/intake.md: ${badStatus}`);
+  }
 
   // Header repair (M3). One grammar means a non-canonical header can be
   // REWRITTEN, not just reported: `- **Status**: x` becomes
@@ -732,10 +749,25 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
     const productPath = path.join(projectRoot, ".doctrina", "product.md");
     if (isFile(productPath)) {
       const seen = new Map();
+      // The mirror case: ONE intent under TWO ids. Realize either and the
+      // other stays "dropped" forever, so `trace --strict` — a CI gate —
+      // fails on a gap nobody can close. Compared folded, so case, accents
+      // and spacing do not hide a twin.
+      const seenText = new Map();
       const lines = read(productPath).split(/\r?\n/);
       for (let i = 0; i < lines.length; i++) {
-        const m = lines[i].match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+/);
+        const m = lines[i].match(/^\s*[-*]\s+\[([A-Z]+\d+)\]\s+(.*)$/);
         if (!m) continue;
+        const key = intentKey(m[2]);
+        if (key && seenText.has(key) && seenText.get(key).id !== m[1]) {
+          const first = seenText.get(key);
+          warnings.push(
+            `.doctrina/product.md:${i + 1} intent [${m[1]}] states the same intent as [${first.id}] (line ${first.line}) — ` +
+              `realizing one leaves the other dropped, so \`trace --strict\` fails on a gap nobody can close; delete the twin`,
+          );
+        } else if (key && !seenText.has(key)) {
+          seenText.set(key, { id: m[1], line: i + 1 });
+        }
         if (seen.has(m[1])) {
           errors.push(
             `.doctrina/product.md:${i + 1} intent anchor [${m[1]}] is declared twice (first at line ${seen.get(m[1])}) — ` +
@@ -1012,7 +1044,9 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   // rule is a forbid-regex over glob-scoped paths; a match is an ERROR with
   // the rule's own message. Deterministic, zero-deps, and the instruction
   // survives sessions because it is an artifact, not a memory.
-  for (const line of checkProjectRules(projectRoot)) errors.push(line);
+  const ruleFindings = checkProjectRules(projectRoot);
+  for (const line of ruleFindings.errors) errors.push(line);
+  for (const line of ruleFindings.warnings) warnings.push(line);
   for (const key of loadConfig(projectRoot).unknown) {
     warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules (a typo here is a setting that never applied)`);
   }
@@ -1043,27 +1077,46 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
 // something concrete — a path or glob, a command, a quoted error string, a
 // file extension, an ALL_CAPS identifier, or simply enough distinctive
 // keywords to match on.
-const VAGUE_TRIGGER = /^(?:when(?:ever)?\s+)?(?:it|this|you|the agent)?\s*(?:is\s+)?(?:seems?|feels?|looks?)?\s*(?:relevant|appropriate|needed|necessary|useful|applicable|as needed|if needed)\.?$/i;
+// One list per language, because this framework runs on Portuguese projects
+// too — and the vagueness it exists to catch is written in the project's own
+// language. Change 0158 found the same split in `clarify`'s lexicons; this is
+// the same asymmetry one module over. Matched against the FOLDED text, so
+// "necessário" and "necessario" are one phrase.
+const VAGUE_TRIGGER_EN = /^(?:when(?:ever)?\s+)?(?:it|this|you|the agent)?\s*(?:is\s+)?(?:seems?|feels?|looks?|makes?)?\s*(?:relevant|appropriate|needed|necessary|useful|applicable|sense|right|as needed|if needed)\.?$/i;
+const VAGUE_TRIGGER_PT =
+  /^(?:(?:sempre\s+)?que|quando|se)?\s*(?:isso|isto|voce|o agente)?\s*(?:for|foi|parecer|fizer|achar|julgar)?\s*(?:relevante|apropriad[oa]|necessari[oa]|util|aplicavel|preciso|sentido|cert[oa])\.?$/i;
+
+function looksVague(text) {
+  const folded = fold(text).trim();
+  if (folded === "") return true;
+  return VAGUE_TRIGGER_EN.test(folded) || VAGUE_TRIGGER_PT.test(folded);
+}
 
 /** A value still wrapped in the template's angle brackets: `<one-sentence …>`. */
 export function isScaffoldValue(value) {
   return /^<[^<>]*>$/.test(String(value ?? "").trim());
 }
 
+/** An intent's text, folded for comparison: case, accents and spacing ignored. */
+export function intentKey(text) {
+  return fold(String(text ?? "")).replace(/\s+/g, " ").replace(/[.;:!\s]+$/, "").trim();
+}
+
 export function hasDetectableTrigger(when) {
   const text = String(when ?? "").trim();
-  if (text === "" || VAGUE_TRIGGER.test(text)) return false;
+  if (looksVague(text)) return false;
   // The scaffold's own placeholder has enough words to rank on and names
   // nothing (change 0111): a trigger nobody wrote fires for nobody.
   if (isScaffoldValue(text)) return false;
   // Anything structural is inherently matchable.
-  if (/[\/\]|\*|`|"|'|\.\w{2,4}|[A-Z][A-Z0-9_]{2,}/.test(text)) return true;
-  // Otherwise: enough distinctive words to rank on. Stopwords do not count.
-  const STOP = new Set(["when", "whenever", "the", "a", "an", "is", "are", "you", "your",
-    "it", "its", "this", "that", "and", "or", "to", "of", "in", "on", "for", "with",
-    "any", "some", "need", "needs", "needed", "should", "must", "at", "as", "by", "be"]);
-  const words = text.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) ?? [];
-  return words.filter((w) => !STOP.has(w)).length >= 2;
+  if (/[\/\]|\*|`|"|'|\.\w{2,4}|[A-Z][A-Z0-9_]{2,}/.test(text)) return true;
+  // Otherwise: enough distinctive words to rank on — counted by the SHARED
+  // lexicon, which folds and carries the connective tissue of both languages.
+  // The private stop list here was English-only, so every Portuguese function
+  // word ("quando", "que", "para") counted as distinctive and a two-word
+  // Portuguese phrase cleared the bar on grammar alone. One lexicon, the way
+  // `work` and `context` already read text (audit findings F5/F6).
+  return terms(text).length >= 2;
 }
 
 // Enforce the project's rules — permanent constraints as forbid-regexes over
@@ -1073,9 +1126,16 @@ export function hasDetectableTrigger(when) {
 //                  "message": "white-label product; use a generic placeholder" } ] }
 // Declared in .doctrina/config.json; still read from the legacy
 // .doctrina/rules.json when that is where a project put them (change 0047).
-// Returns error strings (one per offending file+rule, capped per rule so a
-// mass violation stays readable). No rules → nothing to enforce; a malformed
-// file is reported once, by the reader. Binary-ish and vendored dirs are
+// Returns { errors, warnings }: an error per offending file+rule (capped per
+// rule so a mass violation stays readable), and a warning for a rule that
+// reached no file at all. No rules → nothing to enforce; a malformed file is
+// reported once, by the reader.
+//
+// The dead-scope warning is the same finding 8h makes about a `**Source:**`
+// glob and RT05 makes about a selector: a declaration that matches nothing
+// reads as coverage and provides none. A rule is the strongest of the three
+// — a permanent constraint the project believes is enforced — and it was the
+// one that said nothing, while `doctor` went on counting it as configured. Binary-ish and vendored dirs are
 // skipped by the same bounded walk validate already uses elsewhere.
 const RULES_SKIP_DIRS = new Set([
   ".git", "node_modules", "vendor", "dist", "build", "out", "target",
@@ -1086,6 +1146,7 @@ const RULES_MAX_HITS_PER_RULE = 10;
 function checkProjectRules(projectRoot) {
   const cfg = loadConfig(projectRoot);
   const out = [...cfg.errors];
+  const warn = [];
   const where = cfg.sources.rules === SOURCES.config ? CONFIG_REL : RULES_REL;
   const compiled = [];
   for (const r of cfg.rules) {
@@ -1100,10 +1161,16 @@ function checkProjectRules(projectRoot) {
       out.push(`${where}: rule "${r.id ?? r.forbid}" has an invalid regex: ${err.message}`);
       continue;
     }
-    const paths = Array.isArray(r.paths) && r.paths.length ? r.paths : ["**"];
-    compiled.push({ id: r.id ?? r.forbid, re, matchers: paths.map(globToRegExp), message: r.message ?? "", hits: 0 });
+    const declared = Array.isArray(r.paths) && r.paths.length ? r.paths : null;
+    const paths = declared ?? ["**"];
+    compiled.push({
+      id: r.id ?? r.forbid, re, matchers: paths.map(globToRegExp),
+      message: r.message ?? "", hits: 0,
+      // Only a DECLARED scope can be dead; the implicit `**` is not a claim.
+      declared, scanned: 0,
+    });
   }
-  if (compiled.length === 0) return out;
+  if (compiled.length === 0) return { errors: out, warnings: warn };
 
   // One bounded walk; each text file is read at most once.
   const stack = [projectRoot];
@@ -1123,7 +1190,11 @@ function checkProjectRules(projectRoot) {
       }
       const rel = relPath(projectRoot, full).replace(/\\/g, "/");
       if (rel === ".doctrina/rules.json") continue; // the rule text itself always matches
-      const applicable = compiled.filter((cr) => cr.hits < RULES_MAX_HITS_PER_RULE && cr.matchers.some((m) => m.test(rel)));
+      // Count the reach BEFORE the hit cap: a rule that stopped reporting
+      // because it hit the cap has plainly reached files.
+      const inScope = compiled.filter((cr) => cr.matchers.some((m) => m.test(rel)));
+      for (const cr of inScope) cr.scanned += 1;
+      const applicable = inScope.filter((cr) => cr.hits < RULES_MAX_HITS_PER_RULE);
       if (applicable.length === 0) continue;
       let text;
       try {
@@ -1145,8 +1216,15 @@ function checkProjectRules(projectRoot) {
     if (cr.hits >= RULES_MAX_HITS_PER_RULE) {
       out.push(`rule "${cr.id}": more matches suppressed after ${RULES_MAX_HITS_PER_RULE} files`);
     }
+    if (cr.declared && cr.scanned === 0) {
+      warn.push(
+        `${where}: rule "${cr.id}" scopes to ${cr.declared.map((g) => `\`${g}\``).join(", ")}, ` +
+          "which matches no file — the constraint is declared and never enforced; " +
+          "correct the paths or drop the rule",
+      );
+    }
   }
-  return out;
+  return { errors: out, warnings: warn };
 }
 
 // Minimal glob → RegExp: ** crosses directories, * stays within a segment.

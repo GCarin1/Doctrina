@@ -20,7 +20,7 @@ import { collectValidation } from "../lib/validation-model.js";
 // wrap it in the generic envelope.
 export const jsonNative = true;
 
-export const flags = { boolean: ["fix", "json", "runtime"], string: [] };
+export const flags = { boolean: ["fix", "json", "runtime", "strict"], string: [] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -34,10 +34,26 @@ export async function run(_positional, flags) {
     runtime: flagBool(flags, "runtime", false),
   });
 
+  // --strict makes a warning count against the exit code, matching what
+  // `--strict` already means on `coverage` and `trace`: fail on any gap.
+  //
+  // The default has to stay lenient — a warning is advice, and advice that
+  // blocks a commit stops being read. But that leniency left a gate that
+  // COULD NOT REPROVE: the CI step that validates the shipped examples runs
+  // this command, both examples had drifted to warnings, and the step passed
+  // green through every run. The EARS defect the retrofit example exists to
+  // teach against was reintroduced and sat there, twice, because nothing
+  // downstream of `validate` could say no.
+  //
+  // So the choice belongs to the caller. A human at a terminal wants the
+  // advice; a gate wants a verdict.
+  const strict = flagBool(flags, "strict", false);
+  const failed = errors.length > 0 || (strict && warnings.length > 0);
+
   // Output
   if (flagBool(flags, "json", false)) {
-    emitJson("validate", { errors, warnings });
-    return errors.length === 0 ? 0 : 1;
+    emitJson("validate", { errors, warnings, strict });
+    return failed ? 1 : 0;
   }
   // The repairs print first and in the order they were made: --fix changes
   // the tree, and what it changed must be visible before what it then found.
@@ -50,17 +66,21 @@ export async function run(_positional, flags) {
     console.log(c.green("ok") + " all validation checks passed");
   } else {
     const summary = `${errors.length} error${errors.length === 1 ? "" : "s"}, ${warnings.length} warning${warnings.length === 1 ? "" : "s"}`;
-    console.log((errors.length === 0 ? c.green("ok") : c.red("fail")) + " " + summary);
+    console.log((failed ? c.red("fail") : c.green("ok")) + " " + summary);
+    // Say WHY a run with no errors is failing, or the exit code reads as a bug.
+    if (strict && errors.length === 0 && warnings.length > 0) {
+      console.log(c.gray("       --strict: warnings count against the exit code"));
+    }
   }
-  return errors.length === 0 ? 0 : 1;
+  return failed ? 1 : 0;
 }
 
 export const help = `
-Usage: doctrina validate [--fix] [--runtime] [--json]
+Usage: doctrina validate [--fix] [--runtime] [--strict] [--json]
 
 Run schema, artifact-existence, and structural checks against the
 .doctrina/ tree in the current working directory. Exits 0 if no errors
-(warnings allowed), 1 otherwise.
+(warnings allowed), 1 otherwise. With --strict, a warning fails it too.
 
 Two structural checks worth naming:
 
@@ -84,5 +104,9 @@ Flags:
               selectors checked against the workflows and code that are
               supposed to honour them (the same checks as \`contract check\`).
               Opt-in because it reads files outside .doctrina/.
-  --json      Emit { ok, errors, warnings } as JSON (stable shape for agents/CI).
+  --strict    Treat warnings as failures, the way \`coverage --strict\` and
+              \`trace --strict\` already do. The default stays lenient because
+              a warning is advice; a GATE wants a verdict, so anything that
+              must be able to reprove passes this.
+  --json      Emit { ok, errors, warnings, strict } as JSON (stable shape for agents/CI).
 `;

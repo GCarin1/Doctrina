@@ -43,7 +43,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>ambiguity smell-test"]
     end
 
-    close["doctrina close (id...)<br/>analyze → ADR checkpoint → apply → runtime → verify → coverage → trace → docs → archive → validate → skill suggest"]
+    close["doctrina close (id...)<br/>analyze → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>then skill suggest (advisory)"]
 
     subgraph GOV["Decisions & integration surface"]
         direction TB
@@ -83,7 +83,7 @@ flowchart TD
     subgraph OPS["Maintenance / setup"]
         direction TB
         doctor["doctrina doctor<br/>aggregate diagnostic + fixes"]
-        hooks["doctrina hooks install<br/>pre-commit = validate --fix"]
+        hooks["doctrina hooks install<br/>pre-commit = validate --fix + index rebuild --check --staged"]
         indexrebuild["doctrina index rebuild"]
         templates["doctrina templates list/check/update"]
         upgradecmd["doctrina upgrade<br/>bring the project up after an npm update"]
@@ -146,10 +146,15 @@ flowchart TD
 - `doctrina clarify [--all]` — ambiguity smell-test on Markdown.
 
 **One-shot close.**
-- `doctrina close <id...>` — runs analyze → ADR checkpoint (advisory) →
-  apply → **runtime** → verify → coverage → trace → **docs** → archive →
-  validate → skill suggest (advisory) in one pass, stopping at the first
-  failure. Takes multiple ids. The runtime gate holds each contract's
+- `doctrina close <id...>` — runs the whole declared sequence in one pass,
+  stopping at the first failure:
+  analyze → ADR checkpoint (advisory) → review (advisory) → apply →
+  **runtime** → implementation (advisory) → verify → coverage →
+  trace (advisory) → **docs** (forceable) → archive → index drift →
+  validate, then skill suggest (advisory). The sequence has one author —
+  `packages/doctrina-cli/src/lib/gates.js` — and `doctrina close --help`
+  prints it from there, so check it against the command, never against a
+  copy like this one. Takes multiple ids. The runtime gate holds each contract's
   declared wiring, enums and selectors to the implementation (RT01-RT05):
   an error blocks, a warning is reported and the close continues. The docs
   gate refuses a change that alters a documented surface with no
@@ -182,7 +187,8 @@ flowchart TD
 
 **Maintenance / setup.**
 - `doctrina doctor` — aggregate diagnostic with per-finding remediation.
-  `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
+  `doctrina hooks install` — pre-commit = `validate --fix` then `index rebuild
+  --check --staged`. `doctrina index
   rebuild` — regenerate the index from the tree. `doctrina templates
   list|check|update` — inspect/refresh the shipped templates.
   `doctrina upgrade` (`--write`) — bring an existing project up to the

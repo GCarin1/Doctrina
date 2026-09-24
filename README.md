@@ -17,6 +17,17 @@
 **Status:** v0.16.0 — released.
 **Read this in [Portuguese](./README.pt.md).**
 
+## Install
+
+```
+npm install -g doctrina-cli     # Node.js 20.12+; the command it installs is `doctrina`
+cd your-repo && doctrina init   # AGENTS.md + .doctrina/, asks for a project description
+```
+
+From there your agent drives: `doctrina prime` at the start of a session,
+`doctrina work "<prompt>"` for each request, `doctrina close <id>` to finish
+it. Full walkthrough: [Getting started](./docs/en/getting-started.md).
+
 ---
 
 ## How it works
@@ -101,7 +112,7 @@ governs how a body of agents acts.
 - Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Ten capability specs and the ADRs 0001–0027 that describe the framework
+- Eleven capability specs and the ADRs 0001–0028 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as
@@ -151,7 +162,7 @@ User-facing documentation lives under [`docs/`](./docs/):
 - [Getting started](./docs/en/getting-started.md) — install, init, first feature.
 - [Workflow](./docs/en/workflow.md) — propose → apply → archive.
 - [CLI reference](./docs/en/cli-reference.md) — every command and flag.
-- [Adapters](./docs/en/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue.
+- [Adapters](./docs/en/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules.
 - [Local LLMs](./docs/en/local-llms.md) — wire Doctrina to LLaMA, Mistral, Qwen, DeepSeek, or any OpenAI-compatible endpoint.
 - [Multi-agent model](./docs/en/multi-agent.md) — how Doctrina coordinates tools, phases, and humans without parallel writers.
 - [Skills](./docs/en/skills.md) — on-demand procedural memory: specialised "how to do X" knowledge loaded only when relevant.
@@ -161,16 +172,21 @@ User-facing documentation lives under [`docs/`](./docs/):
 - [Comparison](./docs/en/comparison.md) — honest positioning vs Spec Kit, Kiro, OpenSpec, BMAD, SpecWeave.
 - [Migration](./docs/en/migration.md) — practical mappings from Spec Kit, OpenSpec, BMAD, Kiro, SpecWeave.
 - [Benchmarks](./docs/en/benchmarks.md) — synthetic numbers for `validate` and `clarify` across project sizes.
-- [Deferred](./docs/en/deferred.md) — what we deliberately did not ship at v0.1.0 and why.
+- [Adoption playbook](./docs/en/adoption-playbook.md) — Doctrina in an existing multi-agent project.
+- [CI integration](./docs/en/ci.md) — the gates in your pipeline.
+- [Templates](./docs/en/templates.md) — the override chain.
+- [Exit codes](./docs/en/exit-codes.md) — the five classes an agent branches on.
+- [Upgrading](./docs/en/upgrading.md) — moving a project to a newer CLI.
+- [Antipatterns](./docs/en/antipatterns.md) — documented failure modes.
+- [Validation](./docs/en/validation.md) — empirical A/B protocol to decide if Doctrina is paying for itself.
+- [Glossary](./docs/en/glossary.md) — EARS, ADR, MADR, capability, etc.
+- [Deferred](./docs/en/deferred.md) — what Doctrina deliberately does not ship, and what would change that.
 
 Two reference projects live under [`examples/`](./examples/): a
 Python FastAPI greenfield demo and a TypeScript Express brownfield
 retrofit.
 
 Project policy: [CONTRIBUTING.md](./CONTRIBUTING.md) · [CHANGELOG.md](./CHANGELOG.md) · [SECURITY.md](./SECURITY.md).
-- [Antipatterns](./docs/en/antipatterns.md) — documented failure modes.
-- [Validation](./docs/en/validation.md) — empirical A/B protocol to decide if Doctrina is paying for itself.
-- [Glossary](./docs/en/glossary.md) — EARS, ADR, MADR, capability, etc.
 
 Portuguese translations are at [`docs/pt/`](./docs/pt/).
 

@@ -19,6 +19,7 @@ import { collectFindings, agentsSectionCost, AGENTS_SECTIONS, PRODUCT_SECTIONS, 
 // too (audit finding F7); this command renders and fixes them.
 export { collectFindings } from "../lib/templates-model.js";
 import { suggest } from "../lib/suggest.js";
+import { ensureDoctrinaProject } from "../lib/project.js";
 
 const SUBCOMMANDS = ["list", "check", "update"];
 
@@ -50,10 +51,7 @@ export async function run(positional, flags) {
 function updateTemplates(flags) {
   const writeMode = flagBool(flags, "write", false);
   const projectRoot = process.cwd();
-  if (!isDir(path.join(projectRoot, ".doctrina"))) {
-    console.error(c.red("error:") + " not a Doctrina project (no .doctrina/ in cwd)");
-    return 1;
-  }
+  ensureDoctrinaProject(projectRoot);
 
   const plan = [];
   // Updates this run declines to make, each with the reason and the number.
@@ -287,11 +285,7 @@ function listTemplates() {
 
 function checkTemplates() {
   const projectRoot = process.cwd();
-  if (!isDir(path.join(projectRoot, ".doctrina"))) {
-    console.error(c.red("error:") + " not a Doctrina project (no .doctrina/ in cwd)");
-    console.error(c.gray("hint: ") + "run `doctrina init` first");
-    return 1;
-  }
+  ensureDoctrinaProject(projectRoot);
   const { findings, ok } = collectFindings(projectRoot);
 
   return report(findings, ok);

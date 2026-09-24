@@ -189,3 +189,28 @@ export function slugFromPrompt(prompt, { words = SLUG_WORDS } = {}) {
   // A prompt of nothing but stopwords ("do it now") still needs an id.
   return slug || slugify(prompt).split("-").slice(0, words).join("-");
 }
+
+// A SKILL SLUG IS FOLDED, NOT SHREDDED.
+//
+// `skill suggest` names a lesson from text a person wrote — a change id, a
+// commit subject, the seed tokens of an error. That name became a filename,
+// and it was built by stripping everything outside `[a-z0-9-]` from the raw
+// text. On Portuguese input the strip is destructive rather than normalising:
+// every capital is DELETED and every accented letter becomes a hyphen, so
+// "Corrigir A Validação" came out "orrigir-alida-o" and a real run wrote
+// `.doctrina/skills/o-modelo-de-documento-n-o-l-cabe-alho-de.md`.
+//
+// The tell was already in this module: SLUG_NOISE lists "nao", a token the
+// old pipeline could never produce. So the slug goes through `slugify`, the
+// same fold every other slug in the tree uses.
+//
+// The leading numeric run goes with it. The source is often a change id
+// ("0049-fix-tela-preta"), the digits identify nothing about the lesson, and
+// the skills spec requires a filename slug to start with a letter.
+export const SKILL_SLUG_MAX = 40;
+
+export function skillSlug(text, { max = SKILL_SLUG_MAX } = {}) {
+  const slug = slugify(text).replace(/^\d+(?:-|$)/, "");
+  const capped = slug.length > max ? slug.slice(0, max).replace(/-+$/g, "") : slug;
+  return capped || "lesson";
+}

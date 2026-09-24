@@ -17,6 +17,347 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The README says how to install, and reaches every guide.** It never
+  showed `npm install -g doctrina-cli`, three guides were stranded after
+  the project-policy line, seven (among them exit codes and upgrading)
+  were not listed, the adapters item named 8 of 12, and the Portuguese
+  README described a Pages setup the workflow no longer uses. The
+  `deferred` register drops its "at v0.1.0" title. (0172)
+- **The context budget no longer depends on line endings.** The chars/4
+  estimate counted the CR of every CRLF line, so a Windows checkout paid
+  about 2% more for the same pack, and the budget gate CI runs on every OS
+  could pass on Linux and fail on Windows for one tree. A line ending now
+  counts as one character everywhere. (0170)
+- **A malformed flag value is refused instead of reinterpreted.**
+  `metrics --since` handed free text to git, which reads anything as a
+  date: `abc` became *now* ("nothing to measure", exit 0) and `2026-13-45`
+  another day. `report --since`, `status --view report --since` and
+  `context --budget` read `7x` as 7 and `1.5` as 1, and `--budget -5` was
+  parsed as a flag named `5`. Each now exits `2` naming the value;
+  `metrics --since` takes a day count, a calendar date or
+  `"<n> <unit>s ago"`. (0169)
+- **`spec set` answers USAGE to an error in the invocation.** Every
+  operation error answered `1` (GATE, "fix the work and retry"), including
+  `--status banana`, `--criterion 9=verified` and a criterion the spec does
+  not declare — cases no edit to the spec can make pass, and ones the
+  exit-code guide already promised as `2`. The command now answers `2` when
+  any error lies in the invocation and `1` only when the spec itself lacks
+  what the operation needs. (0168)
+- **`intent add` refuses an intent that is already anchored.** It refused
+  only a colliding pinned id, so the same sentence added twice became two
+  anchors for one goal: once a spec realized one, the twin stayed `dropped`
+  and `trace --strict` failed on a gap no spec could close. The text is now
+  compared folded (case, accents, spacing, trailing punctuation), the
+  refusal names the anchor that already states it, and `validate` warns on
+  a twin written by hand. (0166)
+- **A superseding ADR inherits its predecessor's scope.** `decision
+  supersede` built the successor from the bare template and injected only
+  `Supersedes:`, so the successor had no `Scope:` — and an unscoped ADR is
+  global. Refining a decision that governed one capability, then accepting the
+  refinement, loaded it into every capability's context pack, including ones
+  the original never governed, with nothing saying so. The successor now
+  carries the predecessor's scope, and the command says when it did; a global
+  predecessor still yields a global successor. (0165)
+
+- **A vague skill trigger is vague in both languages.** `context` ranks skills
+  by matching a task against the `when:` trigger, so a trigger naming nothing
+  concrete can never fire — and the check for that saw English only: one
+  hardcoded phrase list, plus a private stop list of English function words.
+  In a Portuguese project, which this framework supports and detects per file,
+  "quando fizer sentido" and "sempre que parecer útil" sailed through as
+  concrete triggers, and grammar words like "quando" and "que" counted as
+  distinctive, so a two-word Portuguese phrase cleared the rankability bar on
+  function words alone. The phrase lists are mirrored per language and matched
+  folded, and the content words are counted by the shared lexicon that already
+  carried both. Change 0158 found the same split in `clarify`; this is it one
+  module over. (0164)
+
+- **A project rule that reaches no file says so.** Point a rule's `paths` at
+  a directory that does not exist and it never ran: `validate` exited 0 and
+  `doctor` went on counting it among the configured options, so the project
+  believed a permanent constraint was enforced on every run while nothing
+  enforced it. This framework had already ruled on that question twice, with
+  the reasoning written into the code both times — a `**Source:**` glob
+  matching no file and an RT05 selector matching no target each "read as
+  coverage and provide none". The rule is the strongest of the three and was
+  the one that said nothing. It now warns, at the same severity, counting its
+  reach before the per-rule hit cap so a suppressed rule is never mistaken for
+  a dead one. Omitting `paths` is not a dead scope. (0163)
+
+- **The intake's Status is a control value, so it gets an owner and a gate.**
+  `next` branches on it to decide whether the bootstrap is finished, and the
+  playbook told an agent to flip it BY HAND — the one metadata header in this
+  framework written manually, against its own standing rule, and the one
+  nothing read back. Every token that was not exactly `converted` meant
+  pending, silently: `convertido` typed in a Portuguese project, `done`, or an
+  empty value left by a botched edit. `validate` exited 0 on all three while
+  `next` went on asking for a bootstrap that had already happened. The value
+  now has the enum and the error a spec's Status has always had, and
+  `doctrina intake --converted` writes it. The reference also claimed exit 1
+  where the command answers 3. (0162)
+
+- **A project has one name, and every surface reads it from the same place.**
+  `doctrina adapter add` substituted the WORKING DIRECTORY's name into every
+  file it installed, never the name recorded at `init` — so
+  `init --project-name "Minha Carteira" --agent claude` greeted the agent
+  correctly while `adapter add cursor`, the command the listing tells you to
+  run to add a second agent, wrote the folder's name instead. Same templates,
+  same tokens, two callers, two answers; and the adapter files are an
+  adopter's first contact with the framework. Four modules asked the question
+  privately — one of them a function literally named `projectName` inside
+  `constitution` — and they now read it from `lib/project.js`. (0161)
+
+- **A prohibition negates its own modal.** The must-not grammar check asked
+  whether "not", "no" or "never" appeared anywhere in the requirement — and
+  "no" is an ordinary determiner, so a positive obligation carrying it passed
+  the check for the one section whose entire job is to forbid. Two of this
+  repository's own requirements were exactly that: they said what the system
+  reports, filed under must-not. The check now reads the modal — `shall not`,
+  `shall never`, or the object the verb negates directly (`shall do no work`)
+  — with a one-word gap, because a two-word gap lets `shall report when no
+  contracts are declared` back in. Both requirements now forbid what they
+  always meant. (0160)
+
+- **What a driver runs is held to its declaration, in prose too.** Change 0150
+  fixed the close sequence after four copies had drifted to four lists; the
+  same shape was one driver over. Eleven passages said the pre-commit hook
+  runs `validate --fix` — since 0156 it runs that and `index rebuild --check
+  --staged`, and the docs gate was satisfied by the unrelated page that
+  shipped with it, because it asks whether docs moved, not whether the right
+  one did. The `system` contract's Interfaces section, which is what an
+  external consumer integrates against, named five of the composite action's
+  six steps. Both now match their declaration — the shipped hook template and
+  the declared CI sequence — and a test matches on the whole invocation, so a
+  passage that merely says "install the hook" stays free. (0159)
+
+- **A smell test does not change its answer with the language.** `clarify`
+  carries one lexicon per language, and the Portuguese one flagged the quality
+  adjectives that name no threshold — `robusto`, `escalavel`, `adequado` —
+  while the English one had no counterpart at all. The same sentence,
+  translated, came back with three smells on one side and none on the other,
+  in a project that keeps every page in both and gates on this command. The
+  categories now match on both sides, and a test holds them there; the
+  divergences that are deliberate — bare `TODO` is the Portuguese pronoun,
+  `may` is EARS Optional grammar — keep their reason beside them. (0158)
+
+- **One condition, one sentence, one class.** Walked in full — every command,
+  outside a project — `not a Doctrina project (no .doctrina/ in cwd)` came back
+  with three different exit codes. One cause: the multi-id driver behind
+  `change apply|archive|check` caught every thrown error and flattened it to 1,
+  losing the class the error carries and its `hint:` line, so the same refusal
+  `change new` reported as a precondition read as a failed gate one switch arm
+  away — and an agent told to "fix your work and retry" retries something that
+  never clears. A typed error now crosses the driver intact. `templates
+  check|update` carried the last two hand-written copies of that message,
+  `change.js` a seventh private copy of the shared helper, `analyze` asked for
+  the reference before the project, and `hooks install` answered 1 with no hint
+  where the git repository it needs did not exist. The spec's rule also named
+  three exceptions where the CLI has seven. (0157)
+
+- **The index is checked against the commit, not only against the disk.**
+  `index.json` is derived from the whole tree, so it cannot describe a subset
+  of one: stage part of `.doctrina/` and the index riding along names folders
+  the commit does not carry. Every gate that could catch it reads the working
+  tree, where those folders are still present — so `validate`, `index rebuild
+  --check` and the whole close all pass, and the checkout fails with
+  "index.json references missing artifact". Four consecutive commits of this
+  repository shipped that way. `index rebuild --check --staged` asks the
+  question of the commit, and the pre-commit hook runs it right after the step
+  that stages the index. (0156)
+
+- **The docs gate's sensitivity sentinel measures a fixed sample.** It took a
+  ratio over every archived change with a fixed threshold, so it fell on its
+  own as the tree grew: a proposal carrying `Documented surface: n/a — <why>`
+  is silent BY DESIGN, and counting the escape hatch as lost sensitivity, plus
+  the ordinary product changes that touch no documented surface, walked the
+  number down to exactly the threshold. `close` could not have caught it
+  either — `verify` runs six steps before `archive`, so the sample the suite
+  measures never includes the change being closed. It now reads a chronological
+  prefix of the archive and skips declared proposals, so only a weakened
+  extractor can move it. (0155)
+
+- **The ownership gate asks about the declaration, not about any owner.** The
+  test meant to enforce ADR 0027 asked `rankCapabilitiesByDiff` whether a file
+  had "an owning capability" — and that function falls back to inferences on
+  purpose, so a project that has declared nothing still gets a hint. A file no
+  spec named therefore came back owned, scored 5 instead of 10, and the test
+  could not tell the two apart. Asked properly, two files turned out to be
+  undeclared: `lib/names.js`, the name grammar behind `spec new`, `contract
+  new` and `skill new`, and the packed-install harness. Both are declared now,
+  and a mention no longer reads as a declaration. (0153)
+
+- **The `insight` spec describes the CLI that exists.** Split out of `gates`
+  with its requirement text carried over, it kept two sentences the CLI had
+  already moved past: `search` "shall exit 0 when matches exist and 1
+  otherwise", and `show` "exiting 1 for an unresolvable reference". The CLI
+  exits 0 and 2, and the `cli` spec says so in its own words — so the tree held
+  two specs contradicting each other about the same command with every gate
+  green, because coverage asks whether a criterion cites evidence, never
+  whether a requirement is true. No behaviour changed; the spec did. (0152)
+
+- **Every declared check runs before integration, not after it.**
+  `.doctrina/verify.json` declares eight checks; the release job ran all eight
+  through `doctrina verify`, while every pull request ran a hand-copied subset
+  that had lost `docs-shape` — so a docs defect was first measured on a
+  release, after it had already been integrated. The file's own comment
+  claimed the two sets matched; nothing asked. The missing step is in the
+  workflow, the comment says what is true, and a test now reads the
+  declaration against both workflow files. (0151)
+
+- **The closing sequence has one author, and the surfaces render it.** It was
+  typed out by hand in four places and all four had drifted to a different
+  list: `close --help` named ten steps of thirteen, the flow page eleven, and
+  the two adapter command files four — "verify → coverage → archive →
+  validate", which is not even the order the close runs. `review`,
+  `implementation`, `docs` and the index-drift check were added over three
+  changes and no copy moved. The help now renders the declaration, the adapter
+  files point at the command that prints it, and a test holds any prose that
+  still spells the chain out to the whole of it — which is how the two
+  `cli-reference` pages turned out to be stale as well. (0150)
+
+- **The packaging chain that carries the templates is held, and 0149 is
+  undone.** `packages/doctrina-cli/templates/` is not a second authored copy:
+  it is gitignored, absent from a fresh checkout, and written by the `prepack`
+  hook from `.doctrina/templates/` before the tarball is built. 0149 read a
+  stale generated copy in a working tree as evidence that a fix had missed the
+  package, "fixed" a divergence that cannot exist, and left a test reading a
+  directory CI does not have. The spec now states the invariant nobody had
+  written — one authored tree, one packaging step — and the test holds the
+  chain that really can break in silence: drop the hook or drop `templates`
+  from `files` and the published package installs with no templates at all.
+  (0154, undoing 0149)
+
+- **The handoff note is valid Markdown in both states of the tree.** With an
+  open change the section ended in a blank line; with none, `- none — the tree
+  is at rest` ran straight into `## Next actions`, which a parser then reads as
+  more list text rather than a heading. A note written on a tree at rest is
+  exactly the note nobody proofreads before pasting it into the next session.
+  The shape is now checked over the whole document — every heading of every
+  Markdown view, with work open and with none. (0148)
+
+- **A skill name folds the accent instead of deleting the letter.** The
+  skills module named its files by stripping everything outside `[a-z0-9-]`
+  from raw text — a class that does not normalise but destroys: capitals
+  vanish and each accented letter becomes a hyphen, so "Corrigir A Validação"
+  came out `orrigir-alida-o`. Its own noise list gave it away, listing `nao`,
+  a token the pipeline could not produce. Slug, seed tokens and keyword
+  extraction now go through the one shared fold, and the generated slug
+  finally matches the `[a-z][a-z0-9-]*` shape the skills spec has always
+  required — the change id's digits name the change, not the lesson. (0147)
+
+- **The document model never reads a header out of a comment.** It owns that
+  rule for the whole tree and did not apply it to its own readers, so an
+  EXAMPLE header in a template's guidance counted as one the author wrote —
+  and the two readers disagreed about it, because one scans the document and
+  the other the preamble. A round-trip test over the real tree caught it the
+  moment the proposal template gained such an example. `setHeader` now writes
+  by offset, so it can never overwrite the example instead of the header.
+  (0146)
+- **The playbooks name the gates that ask you to write something.** `close`
+  has required a changelog entry since 0135 and offered the mention
+  declaration since 0139, and neither appeared in the work playbook an agent
+  executes, nor in the `add-cli-command` skill — so the rule existed only at
+  the moment of refusal. The same step also restated the closing sequence
+  from a copy that had gone stale by four steps; it now points at the command
+  that prints the declared one. (0145)
+- **The mention declaration is named where it is needed, and ignored where it
+  is not.** `Documented surface: n/a — <why>` existed in the code and the CLI
+  reference and nowhere an author would look: not in the proposal template,
+  and not in the refusal itself, which offered only `--force` — the worse of
+  the two exits. Both now name it. It is also read from authored text only: a
+  declaration inside an HTML comment counted, so the template's own example
+  would have disarmed the gate for every change scaffolded from it. (0144)
+- **`close` checks the index it just wrote.** The drift check ran inside
+  `verify`, five steps before `archive` — and `archive` is the last step that
+  rewrites the index, so the close certified something that had not been
+  written yet. A gate placed before the step it guards cannot guard it; the
+  check now runs after the archive, where `validate` cannot stand in for it.
+  (0143)
+- **The index is written the same way twice.** Commands that create an
+  artifact appended it to `index.json`, while `index rebuild` writes what the
+  directory walk finds, in sorted order — so the two disagreed whenever a new
+  entry did not sort last. `doctrina spec new alpha` after `spec new zebra` was
+  enough, and so was closing change 0138 after 0139: that one shipped, and all
+  six test legs of CI went red on a tree whose own `close` had just reported
+  green. `validate` cannot see this class of drift, which is why it stayed
+  invisible from the inside. (0142)
+- **The CLI no longer exits before it has finished printing.** The entrypoint
+  ended in `process.exit()`, which discards whatever stdout has not yet handed
+  to the operating system — so any consumer reading through a pipe could get a
+  truncated answer with a `0` beside it. Pipe buffers differ per platform,
+  which is how this stayed invisible everywhere except macOS on Node 20.12,
+  where four `--concat` tests had been red for five weeks. (0134)
+- **`replace-requirement` replaces the whole requirement.** It wrote only the
+  bullet's first line, leaving the previous version's wrapped prose underneath
+  the new one — so a spec stated a contract and contradicted it two lines
+  down. Four requirements in this repository's own tree had rotted that way:
+  a closing sequence missing its review and runtime steps, a doctor set
+  missing its runtime row, a manual verify gate missing its commit record, and
+  a `prime --rules` in an older shape. All four are corrected. (0131)
+- **`coverage` reads a criterion's citation, not its prose.** Any backticked
+  path counted as a claim of evidence, so a criterion that names bad input by
+  name — "a loose `specs/legacy.md` draws one warning" — was reported as
+  citing proof that does not resolve, on every run forever. Only paths after
+  the citation marker are claims now. (0129)
+- **The packed-install harness stops at the first failure**, and discovers the
+  change id instead of hardcoding it. A hardcoded `0001-add-refunds` went
+  stale when slug derivation learned to drop stopwords, and the soft assertion
+  let execution run on until an unrelated `ENOENT` buried the real message.
+  (0122, 0123)
+- The shipped examples validate cleanly again: both index stamps were two
+  releases behind, and the retrofit example carried the exact EARS mistake it
+  exists to teach against. (0125)
+- `package-lock.json` records the CLI at its real version, so `npm install`
+  no longer dirties the tree and `review` no longer reports nine false
+  breaks. (0121)
+
+### Added
+
+- **A change can declare that it only *mentions* a surface.**
+  `Documented surface: n/a — <why>` in a proposal tells the docs gate that the
+  command names in its prose are context, not a change — the same grammar as
+  `Realizes: n/a — <why>`, and a bare `n/a` silences nothing. Three closes in
+  one session had been forced over names that appeared only in an explanation
+  or in a Scope boundaries line, and a gate that is routinely forced stops
+  being a gate. (0139)
+- **`validate --strict`** treats warnings as failures, the way `coverage
+  --strict` and `trace --strict` already do. The default stays lenient,
+  because a warning is advice; a gate wants a verdict. The CI step that
+  validates the shipped examples uses it — it had reported green for weeks
+  over an example defect it had no way to reprove. (0126)
+- **The release gate is no longer weaker than the pull-request gate.**
+  Publishing now runs `verify`, the packed-install harness and the strict
+  example check, and publishes with `--provenance` — which is what the
+  `id-token: write` permission it already requested was for. (0127)
+- **CI runs on `develop`,** the branch feature work actually lands on. It
+  triggered only on `main`, so a pull request into `develop` ran no gate at
+  all. (0128)
+- **`close` asks the changelog, not only the docs.** A change that alters a
+  documented surface now has to record that it changed, as well as describe
+  how it works — two obligations, because prose about new behaviour reads
+  exactly like prose that always described it. Blocking, with `--force` and a
+  ledger line like every other gate, and silent for a project that keeps no
+  `CHANGELOG.md`.
+
+### Changed
+
+- **`validate` moved out of the `gates` spec into a new `structure`
+  capability** (ADR 0028). `gates` had crossed its 400-line cap a second
+  time; three split axes were measured against the tree and only this one
+  resolved it, taking the spec from 427 lines to 331. The split follows a
+  real seam: `validate` answers whether the tree is well-formed, asked before
+  anything answers whether it is proven. (0132)
+- `SECURITY.md` describes the subprocesses the CLI actually runs. It claimed
+  none beyond the pre-commit hook, while eleven modules query `git` and
+  `verify` runs shell commands a project declares — so it described a
+  narrower trust boundary than the real one, which is the one documentation
+  error with a security consequence. (0124)
+- The context-degradation test measures its budget instead of hardcoding one,
+  and the context-pack test reports which link broke rather than one missing
+  regex. (0130, 0133)
+
 ## [0.16.0] — 2026-09-09
 
 ### Fixed

@@ -7,7 +7,7 @@ import { listHeader, parseDependsOn, parseAdrScope, adrSummary, knownCapabilitie
 import { suggest } from "../lib/suggest.js";
 import { checklistProgress, getTitle, getSectionParagraph } from "../lib/doc-model.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
-import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
+import { flagBool, flagString, flagGivenWithoutValue, parsePositiveInt } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { loadConfig, DEFAULTS } from "../lib/config.js";
 import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
@@ -466,16 +466,18 @@ function capabilitiesInPlay(projectRoot) {
   return [...caps];
 }
 
+// Line endings are not content: a Windows checkout stores every line with a
+// CR, which added ~2% to the same pack, so the budget gate — run on every OS
+// in CI — could pass on Linux and fail on Windows for the same tree.
 function estimateTokens(text) {
-  return Math.round(text.length / TOKEN_DIVISOR);
+  return Math.round(text.replace(/\r\n/g, "\n").length / TOKEN_DIVISOR);
 }
 
 // Flag beats project config beats the built-in default. Returns null for a
 // malformed --budget so the caller can report a usage error.
 function resolveBudget(projectRoot, budgetRaw) {
   if (budgetRaw !== undefined) {
-    const n = Number.parseInt(budgetRaw, 10);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    return parsePositiveInt(budgetRaw);
   }
   // One configuration reader (lib/config.js, change 0047): `.doctrina/
   // config.json` is the declared home and index.json's `config` block is

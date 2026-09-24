@@ -10,6 +10,7 @@ import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { projectName } from "../lib/project.js";
 
 // `doctrina adapter` — add, remove, and inventory agent adapters (audit
 // item C1).
@@ -96,7 +97,7 @@ function adapterAdd(projectRoot, name, cmdFlags) {
 
   const force = flagBool(cmdFlags, "force", false);
   const tokens = {
-    PROJECT_NAME: path.basename(projectRoot),
+    PROJECT_NAME: projectName(projectRoot),
     PROJECT_DESCRIPTION: "",
     DATE: today(),
   };
@@ -145,7 +146,7 @@ function adapterRemove(projectRoot, name, cmdFlags) {
   // Only delete files this adapter created AND that still match what it
   // would write. A file the user edited is theirs now; --force overrides.
   const force = flagBool(cmdFlags, "force", false);
-  const tokens = { PROJECT_NAME: path.basename(projectRoot), PROJECT_DESCRIPTION: "", DATE: today() };
+  const tokens = { PROJECT_NAME: projectName(projectRoot), PROJECT_DESCRIPTION: "", DATE: today() };
   let removed = 0;
   let kept = 0;
   // Directories a removed file lived in, innermost first. Only these are

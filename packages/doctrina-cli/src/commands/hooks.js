@@ -10,6 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
+import { EXIT } from "../lib/exit-codes.js";
 
 const SUBCOMMANDS = ["install"];
 
@@ -33,8 +34,12 @@ export async function run(positional, flags) {
   const projectRoot = process.cwd();
 
   if (!exists(path.join(projectRoot, ".git"))) {
+    // A PRECONDITION, not a gate: nothing was measured and found wanting,
+    // the place to put the hook simply does not exist yet. Class 1 told an
+    // agent to fix its work and retry the same command, which never clears.
     console.error(c.red("error:") + " not a git repository (no .git/ in cwd)");
-    return 1;
+    console.error(c.gray("hint: ") + "run `git init` here, then `doctrina hooks install`");
+    return EXIT.PRECONDITION;
   }
 
   const hooksDir = path.join(projectRoot, ".git", "hooks");

@@ -127,3 +127,59 @@ One line per archived change, newest last. Appended by
 - 2026-09-09 — 0101-clarify-inexistente-e-erro-de-uso — clarify inexistente e erro de uso (specs: gates MODIFIED)
 - 2026-09-09 — 0119-a-politica-de-fim-de-linha-fica-registada — a politica de fim de linha fica registada
 - 2026-09-09 — 0120-cortar-a-0-16-0 — cortar a 0.16.0
+- 2026-09-11 — 0121-regravar-lockfile-versao-workspace — regravar o lockfile para a versao 0.16.0 do workspace doctrina-cli
+- 2026-09-11 — 0122-harness-e2e-descobre-id — o harness e2e descobre o id da change em vez de fixar um literal
+- 2026-09-11 — 0123-harness-e2e-aborta-primeira — o harness e2e aborta na primeira falha em vez de seguir com estado inválido
+- 2026-09-11 — 0124-security-md-descreve-subprocessos — SECURITY.md descreve os subprocessos que o CLI realmente executa
+- 2026-09-11 — 0125-recuperar-stamps-ears-exemplos — recuperar os stamps e o EARS dos exemplos publicados
+- 2026-09-11 — 0126-validate-ganha-modo-estrito — abandoned — capacidade errada: a superficie de comando do validate pertence a gates
+- 2026-09-11 — 0126-validate-ganha-modo-estrito — validate ganha um modo estrito que trata warning como erro, para o passo de CI dos exemplos poder reprovar (specs: gates MODIFIED)
+- 2026-09-11 — 0127-declarar-gate-release-pode — declarar que o gate de release nao pode ser mais fraco que o gate de PR e faze-lo rodar verify e o harness empacotado (specs: gates MODIFIED)
+- 2026-09-11 — 0128-ci-dispara-tambem-pull — o CI dispara também em pull request para develop
+- 2026-09-11 — 0129-coverage-so-cobra-como — coverage so cobra como prova os caminhos citados na clausula de evidencia, nao os nomeados na prosa do criterio (specs: gates MODIFIED)
+- 2026-09-11 — 0130-teste-degradacao-mede-orcamento — o teste de degradação mede o orçamento em vez de fixar 13000
+- 2026-09-11 — 0131-dividir-spec-gates-drivers — abandoned — achado maior primeiro: replace-requirement deixa prosa orfa, e isso corrompeu quatro requisitos em specs ativas
+- 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — replace-requirement substitui o bullet inteiro, nao so a primeira linha, e a prosa orfa que ele deixou sai das specs (specs: authoring MODIFIED)
+  - 2026-09-11 — 0131-replace-requirement-substitui-bullet-inteiro — docs gap: closed with --force; declared surface: verify; flags: --force, --rules, --signoff documented nowhere
+- 2026-09-11 — 0132-drivers-sequenciam-gates-viram — os drivers que sequenciam os gates viram a capacidade closing, tirando a spec gates do teto de 400 linhas (specs: gates MODIFIED, structure MODIFIED)
+- 2026-09-11 — 0133-teste-pacote-contexto-diz — o teste do pacote de contexto diz qual elo quebrou
+- 2026-09-11 — 0134-cli-pode-sair-antes — o CLI nao pode sair antes de ter escrito o que imprimiu, senao a saida trunca em pipe (specs: cli MODIFIED)
+- 2026-09-11 — 0135-close-cobra-mudanca-superficie — o close cobra que uma mudanca de superficie chegue ao changelog, nao so a documentacao (specs: gates MODIFIED)
+- 2026-09-11 — 0136-registrar-changelog-changes-fecharam — registrar no changelog as changes que fecharam antes do gate existir
+- 2026-09-11 — 0137-declarar-qual-capacidade-possui — declarar qual capacidade possui os arquivos de raiz que hoje nao pertencem a nenhuma (specs: cli MODIFIED, docs MODIFIED, gates MODIFIED)
+  - 2026-09-11 — 0137-declarar-qual-capacidade-possui — docs gap: closed with --force; commands: ci, review; declared surface: action.yml, coverage, trace, verify; flags: --emit, --force documented nowhere
+- 2026-09-11 — 0139-change-pode-declarar-citou — uma change pode declarar que citou uma superficie sem alterar, em vez de forcar o close (specs: gates MODIFIED)
+- 2026-09-11 — 0138-invariante-onde-ci-roda — o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao (specs: gates MODIFIED)
+- 2026-09-11 — 0140-exemplo-divisao-spec-playbook — o exemplo de divisão de spec no playbook conta as três divisões
+- 2026-09-11 — 0141-fechar-entrada-deferred-sobre — fechar a entrada de deferred sobre macOS
+- 2026-09-11 — 0142-indice-guarda-cada-categoria — o indice guarda cada categoria na mesma ordem que o rebuild produz, em vez de acrescentar no fim (specs: scaffolding MODIFIED)
+- 2026-09-11 — 0143-close-checa-deriva-indice — o close checa a deriva de indice depois do passo que a escreve, nao antes (specs: gates MODIFIED)
+- 2026-09-11 — 0144-declaracao-superficie-citada-aparece — a declaracao de superficie citada aparece onde o autor escreve e onde o gate recusa (specs: gates MODIFIED)
+- 2026-09-11 — 0146-modelo-documento-le-cabecalho — o modelo de documento nao le cabecalho dentro de comentario (specs: validation MODIFIED)
+- 2026-09-11 — 0145-playbooks-skill-comando-avisam — os playbooks e a skill de comando avisam do changelog antes do close cobrar (specs: templates MODIFIED)
+- 2026-09-11 — 0147-modulo-skills-normaliza-nomes — o slug de skill dobra o acento em vez de apagá-lo (specs: skills MODIFIED)
+- 2026-09-11 — 0148-handoff-com-cabecalho-colado — handoff com cabecalho colado (specs: insight MODIFIED)
+- 2026-09-11 — 0149-declaracao-so-existe-na-copia-do-repo — declaracao so existe na copia do repo (specs: templates MODIFIED)
+- 2026-09-11 — 0154-desfazer-a-premissa-falsa-da-0149 — desfazer a premissa falsa da 0149 (specs: templates MODIFIED)
+- 2026-09-11 — 0150-sequencia-de-close-repetida-de-copia-velha — sequencia de close repetida de copia velha (specs: docs MODIFIED, gates MODIFIED)
+- 2026-09-11 — 0151-gate-de-pr-cobre-toda-checagem-declarada — gate de pr cobre toda checagem declarada (specs: gates MODIFIED)
+- 2026-09-11 — 0152-insight-descreve-saidas-que-o-cli-nao-tem — insight descreve saidas que o cli nao tem (specs: insight MODIFIED)
+- 2026-09-11 — 0153-names-js-sem-dono-declarado — names.js sem dono declarado (specs: authoring MODIFIED, gates MODIFIED)
+- 2026-09-11 — 0155-sentinela-do-gate-de-docs-mede-conteudo-vivo — sentinela do gate de docs mede conteudo vivo (specs: gates MODIFIED)
+- 2026-09-22 — 0156-o-indice-e-conferido-contra-o-disco-nao-o-commit — o indice e conferido contra o disco nao o commit (specs: scaffolding MODIFIED)
+- 2026-09-22 — 0157-duas-saidas-fora-do-contrato-de-classe — duas saidas fora do contrato de classe (specs: cli MODIFIED)
+- 2026-09-22 — 0158-os-dois-lexicons-do-clarify-divergem — os dois lexicons do clarify divergem (specs: gates MODIFIED)
+- 2026-09-22 — 0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas — enumeracoes do que um driver roda ficaram velhas (specs: docs MODIFIED, gates MODIFIED)
+- 2026-09-23 — 0160-a-negacao-do-must-not-e-procurada-na-frase-toda — a negacao do must-not e procurada na frase toda (specs: gates MODIFIED, structure MODIFIED, validation MODIFIED)
+- 2026-09-23 — 0161-o-adapter-nomeia-o-diretorio-nao-o-projeto — o adapter nomeia o diretorio nao o projeto (specs: scaffolding MODIFIED)
+- 2026-09-23 — 0162-o-status-do-intake-nao-tem-dono-nem-gate — o status do intake nao tem dono nem gate (specs: authoring MODIFIED, structure MODIFIED)
+- 2026-09-23 — 0163-regra-de-projeto-com-glob-morto-e-silenciosa — regra de projeto com glob morto e silenciosa (specs: structure MODIFIED)
+- 2026-09-23 — 0164-gatilho-de-skill-so-enxerga-vagueza-em-ingles — gatilho de skill so enxerga vagueza em ingles (specs: structure MODIFIED)
+- 2026-09-23 — 0165-supersede-descarta-o-escopo-da-adr — supersede descarta o escopo da adr (specs: authoring MODIFIED)
+- 2026-09-23 — 0166-intent-add-aceita-a-mesma-intencao-duas-vezes — intent add aceita a mesma intencao duas vezes (specs: authoring MODIFIED, gates MODIFIED)
+- 2026-09-23 — 0167-teste-adr-substituta-falha — o teste da ADR substituta falha no Windows
+- 2026-09-23 — 0168-spec-set-responde-gate-a-erro-de-invocacao — spec set responde GATE a erro de invocacao (specs: authoring MODIFIED)
+- 2026-09-23 — 0169-valor-de-flag-malformado-reinterpretado — valor de flag malformado reinterpretado (specs: cli MODIFIED)
+- 2026-09-24 — 0170-estimativa-de-tokens-conta-o-cr — estimativa de tokens conta o CR (specs: insight MODIFIED)
+- 2026-09-24 — 0171-ci-nao-testa-o-node-24 — CI nao testa o Node 24
+- 2026-09-24 — 0172-readme-sem-instalacao-e-lista-quebrada — README sem instalacao e lista quebrada (specs: docs MODIFIED)

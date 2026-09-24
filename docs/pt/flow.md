@@ -46,7 +46,7 @@ flowchart TD
         clarify["doctrina clarify --all<br/>smell-test de ambiguidade"]
     end
 
-    close["doctrina close (id...)<br/>analyze → checkpoint de ADR → apply → runtime → verify → coverage → trace → docs → archive → validate → skill suggest"]
+    close["doctrina close (id...)<br/>analyze → ADR checkpoint (advisory) → review (advisory) → apply → runtime → implementation (advisory) → verify → coverage → trace (advisory) → docs (forceable) → archive → index drift → validate<br/>depois skill suggest (advisory)"]
 
     subgraph GOV["Decisões & superfície de integração"]
         direction TB
@@ -86,7 +86,7 @@ flowchart TD
     subgraph OPS["Manutenção / setup"]
         direction TB
         doctor["doctrina doctor<br/>diagnóstico agregado + correções"]
-        hooks["doctrina hooks install<br/>pre-commit = validate --fix"]
+        hooks["doctrina hooks install<br/>pre-commit = validate --fix + index rebuild --check --staged"]
         indexrebuild["doctrina index rebuild"]
         templates["doctrina templates list/check/update"]
         upgradecmd["doctrina upgrade<br/>atualiza o projeto após um npm update"]
@@ -151,10 +151,14 @@ flowchart TD
 - `doctrina clarify [--all]` — smell-test de ambiguidade em Markdown.
 
 **Fechamento em uma passada.**
-- `doctrina close <id...>` — roda analyze → checkpoint de ADR (advisory) →
-  apply → **runtime** → verify → coverage → trace → **docs** → archive →
-  validate → skill suggest (advisory) numa passada, parando na primeira
-  falha. Aceita vários ids. O gate de runtime cobra da implementação o
+- `doctrina close <id...>` — roda a sequência declarada inteira numa
+  passada, parando na primeira falha:
+  analyze → ADR checkpoint (advisory) → review (advisory) → apply →
+  **runtime** → implementation (advisory) → verify → coverage →
+  trace (advisory) → **docs** (forceable) → archive → index drift →
+  validate, e depois skill suggest (advisory). A sequência tem um autor só
+  — `packages/doctrina-cli/src/lib/gates.js` — e `doctrina close --help` a
+  imprime de lá; confira pelo comando, nunca por uma cópia como esta. Aceita vários ids. O gate de runtime cobra da implementação o
   wiring, os enums e os seletores que cada contrato declara (RT01-RT05):
   um erro bloqueia, um aviso é reportado e o close segue. O gate de docs
   recusa uma change que altera uma superfície documentada sem documentação
@@ -188,7 +192,8 @@ flowchart TD
 
 **Manutenção / setup.**
 - `doctrina doctor` — diagnóstico agregado com correção por achado.
-  `doctrina hooks install` — pre-commit = `validate --fix`. `doctrina index
+  `doctrina hooks install` — pre-commit = `validate --fix` e depois `index
+  rebuild --check --staged`. `doctrina index
   rebuild` — regenera o índice a partir da árvore. `doctrina templates
   list|check|update` — inspeciona/atualiza os templates distribuídos.
   `doctrina upgrade` (`--write`) — traz um projeto existente para o CLI

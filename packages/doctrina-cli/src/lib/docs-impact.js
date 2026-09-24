@@ -163,6 +163,40 @@ export function documentedSurfaceSignals(changeDir, projectRoot = null) {
     // the finding — and had to close with --force (change 0088).
     if (/chore/i.test(listHeader(text, "Lane") ?? "")) return signals;
 
+    // THE AUTHOR MAY DECLARE THAT A NAME IS A MENTION, NOT A CHANGE.
+    //
+    // Everything below reads NAMES out of the authored text, and a name is
+    // all it can see: a change that says "coverage no longer knows this
+    // test exists" is describing an effect, and one whose Scope boundaries
+    // say "does not touch `verify`" is describing an absence, but both read
+    // to this gate exactly like a change that alters the command. Three
+    // closes in one session were forced for that reason, and a gate that is
+    // routinely forced stops being a gate — the ledger fills with gaps that
+    // were never gaps, and a real one stops standing out.
+    //
+    // No smarter extraction settles it, because the difference is semantic
+    // and ADR 0005 puts semantics outside a deterministic gate. So the
+    // author declares it, in the grammar the tree already uses for exactly
+    // this — `Realizes: n/a — <why>`: a bare `n/a` is an assertion nobody
+    // wrote, and only `n/a` WITH a reason is a decision.
+    // Read it from AUTHORED text only. An HTML comment is annotation — the
+    // rule this module already applies everywhere else, and the one this
+    // header shipped without: a `Documented surface:` line inside a comment
+    // counted, so the example in the proposal template silenced the gate for
+    // every change scaffolded from it. A declaration nobody wrote is not a
+    // declaration, exactly as a bare `n/a` is not one.
+    const declaredNone = listHeader(maskComments(text), "Documented surface");
+    if (declaredNone !== null) {
+      // The separator is punctuation, not a reason: "n/a —" says no more than
+      // "n/a". Strip the word, then the dash, and require words to remain.
+      const rest = declaredNone.trim()
+        .replace(/^(n\/a|none)\b/i, (m) => (m ? "" : m))
+        .replace(/^\s*[—–-]+\s*/, "")
+        .trim();
+      const word = declaredNone.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+      if ((word === "n/a" || word === "none") && rest.length > 0) return signals;
+    }
+
     sources.push(authored(withoutVerification(text)));
   }
   for (const p of walk(path.join(changeDir, "specs"))) {
@@ -264,6 +298,46 @@ export function docsTouched(projectRoot) {
 export function isGitRepo(projectRoot) {
   return isRepo(projectRoot);
 }
+
+// A CHANGELOG IS A DIFFERENT OBLIGATION FROM DOCUMENTATION.
+//
+// The docs gate asks "can a reader learn how this works". The changelog asks
+// "can a reader learn that it changed" — and the second is not answered by
+// the first, because prose describing the new behaviour reads exactly like
+// prose that always described it.
+//
+// Nothing asked for it, so it drifted immediately: thirteen changes landed in
+// one session, every one of them through `close`, and `## [Unreleased]` was
+// still empty at the end of it. The file's own first line says every notable
+// change is recorded there.
+//
+// Silent for a project that keeps no CHANGELOG.md — this gate reports a
+// promise the project made, and never invents one it did not.
+export function checkChangelogImpact(projectRoot, changeDir) {
+  const signals = documentedSurfaceSignals(changeDir, projectRoot);
+  if (signals.length === 0) {
+    return { ok: true, signals, touched: [], reason: "touches no documented surface" };
+  }
+  if (!isFile(path.join(projectRoot, CHANGELOG))) {
+    return { ok: true, signals, touched: [], reason: `no ${CHANGELOG} in this project` };
+  }
+  if (!isRepo(projectRoot)) {
+    return { ok: true, signals, touched: [], reason: "not a git repository — cannot tell what moved" };
+  }
+  const touched = changedFiles(projectRoot, { mergeBase: true })
+    .files.filter((f) => f === CHANGELOG);
+  if (touched.length > 0) {
+    return { ok: true, signals, touched, reason: `recorded in ${CHANGELOG}` };
+  }
+  return {
+    ok: false,
+    signals,
+    touched,
+    reason: `alters a documented surface but ${CHANGELOG} does not say so`,
+  };
+}
+
+const CHANGELOG = "CHANGELOG.md";
 
 // Where THIS project keeps its documentation, read off its own tree.
 //

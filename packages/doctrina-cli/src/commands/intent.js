@@ -2,6 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isFile, read, relPath, write } from "../lib/fs-ops.js";
+import { intentKey } from "../lib/validation-model.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
@@ -102,9 +103,21 @@ function intentAdd(projectRoot, textArg) {
   let id = null;
   let text = textArg;
   const pinned = textArg.match(/^([A-Z]+)(\d+)\s*:\s*(.+)$/);
+  if (pinned) text = pinned[3].trim();
+
+  // The same intent twice is two anchors for one goal: realize either and the
+  // other stays "dropped", so `trace --strict` fails on a gap nobody can
+  // close. An agent re-running a playbook step is enough to do it. Compared
+  // folded, so case, accents and spacing do not slip a twin past.
+  const twin = anchors.find((a) => intentKey(a.text) === intentKey(text));
+  if (twin) {
+    console.error(c.red("error:") + ` [${twin.id}] already states this intent in product.md`);
+    console.error(c.gray("hint: ") + `realize [${twin.id}] with a spec's \`Realizes:\` header, or reword this one if it is a different goal`);
+    return 1;
+  }
+
   if (pinned) {
     id = pinned[1] + pinned[2];
-    text = pinned[3].trim();
     if (anchors.some((a) => a.id === id)) {
       console.error(c.red("error:") + ` anchor [${id}] already exists in product.md`);
       return 1;

@@ -44,6 +44,31 @@ export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
   return ranked.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, limit);
 }
 
+/**
+ * The capabilities whose `Source:` header CLAIMS a file — ADR 0027's question
+ * asked directly, with no inference in the answer.
+ *
+ * `rankCapabilitiesByDiff` deliberately falls back to inferences so a project
+ * that has not declared anything still gets a hint. That makes it the wrong
+ * function to enforce the declaration with: a file no spec names still comes
+ * back with an owner, scored 5 instead of 10, and a test asking "does this
+ * have an owner" cannot tell the two apart. `lib/names.js` sat undeclared
+ * behind exactly that.
+ */
+export function declaredOwners(projectRoot, file) {
+  const specsDir = path.join(projectRoot, ".doctrina", "specs");
+  if (!isDir(specsDir)) return [];
+  const norm = String(file).replace(/\\/g, "/");
+  const owners = [];
+  for (const cap of readdirSync(specsDir).sort()) {
+    const specPath = path.join(specsDir, cap, "spec.md");
+    if (!isFile(specPath)) continue;
+    const globs = parseSourceGlobs(read(specPath)).map((g) => globToRegExp(g));
+    if (globs.some((re) => re.test(norm))) owners.push(cap);
+  }
+  return owners;
+}
+
 // Deterministic term overlap: fold prompt and spec text with the SHARED
 // lexicon, then score. This is a hint for the agent, never a decision
 // (ADR 0005).

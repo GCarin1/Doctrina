@@ -179,6 +179,20 @@ export const SEQUENCES = {
     { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
     { id: "docs", label: "docs", level: "forceable", argv: null, rerun: "document the change, then rerun" },
     { id: "archive", label: "archive", level: "blocking", argv: ["change", "archive", "<id>"] },
+    // AFTER the archive, because the archive is the last step that WRITES the
+    // index, and a gate placed before the step it guards cannot guard it.
+    //
+    // The drift check already ran, inside `verify` — and that is exactly why
+    // it missed: `verify` is five steps earlier, so it certified an index the
+    // archive had not yet rewritten. Change 0138 closed green on a tree whose
+    // index had drifted, the commit shipped, and all six test legs of CI went
+    // red on the next push. The close was not wrong about what it checked; it
+    // checked before the damage.
+    //
+    // `validate` cannot stand in for it: drift of that kind is only visible by
+    // rebuilding the index and comparing, which validate deliberately does not
+    // do.
+    { id: "index-drift", label: "index drift", level: "blocking", argv: ["index", "rebuild", "--check"] },
     { id: "validate", label: "validate", level: "blocking", argv: ["validate"] },
   ],
 
@@ -263,6 +277,31 @@ export function sequence(name) {
   const steps = SEQUENCES[name];
   if (!steps) throw new Error(`unknown gate sequence "${name}" (declared: ${Object.keys(SEQUENCES).join(", ")})`);
   return steps;
+}
+
+/**
+ * The sequence as a reader sees it: each step's label, in order, with the
+ * forceable ones marked the way the advisory ones already are in their own
+ * labels.
+ *
+ * Every surface that SHOWS the sequence renders it from here. Four copies of
+ * the close sequence were written out by hand — `close --help`, two adapter
+ * command files, and the flow page in both languages — and all four had gone
+ * stale, each to a different list: one named four steps of thirteen, another
+ * eleven. A sequence a reader can count is a sequence a reader will trust, so
+ * it has exactly one author.
+ */
+export function sequenceLabels(name) {
+  // The marker comes from `level`, never from the label text: labels had
+  // already drifted among themselves — `trace` is advisory and did not say so
+  // while `ADR checkpoint` did — so any marker already written in is stripped
+  // and re-derived. One rule, applied to every step.
+  return sequence(name).map((s) => {
+    const base = s.label.replace(/\s*\((?:advisory|forceable)\)\s*$/, "");
+    if (s.level === "advisory") return `${base} (advisory)`;
+    if (s.level === "forceable") return `${base} (forceable)`;
+    return base;
+  });
 }
 
 /**

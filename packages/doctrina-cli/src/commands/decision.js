@@ -152,8 +152,20 @@ function decisionSupersede(args) {
   });
   // Inject Supersedes link
   body = body.replace(/(\*\*Supersedes:\*\*)\s+—/, `$1 ${padded}`);
+  // Carry the predecessor's Scope. A successor built from the bare template
+  // had none, so it was GLOBAL: refining a decision that governed one
+  // capability, then accepting the refinement, loaded it into every
+  // capability's pack — ones the original never governed — and nothing said
+  // so. A replacement decides the same subject; its scope starts where the
+  // predecessor's was, written into the file where the author can widen it
+  // on purpose (ADR 0022: a pack is retrieval, not a dump).
+  const inheritedScope = parseAdrScope(oldText);
+  if (inheritedScope.length > 0) body = insertScopeHeader(body, inheritedScope) ?? body;
   write(newPath, body, { force: false });
   console.log(c.green("created") + ` ${relPath(projectRoot, newPath)}`);
+  if (inheritedScope.length > 0) {
+    console.log(c.gray("scope: ") + `inherited from ${padded} — ${inheritedScope.join(", ")} (edit the Scope: header to change it)`);
+  }
 
   // Mutate ONLY the Status: and Superseded by: headers of the old ADR.
   // Both go through the document model, so an ADR written with a slightly

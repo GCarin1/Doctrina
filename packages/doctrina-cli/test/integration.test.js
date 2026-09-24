@@ -376,8 +376,11 @@ test("hooks install fails outside a git repository", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const r = runCli(["hooks", "install"], { cwd: tmp });
-    assert.equal(r.status, 1);
+    // A PRECONDITION, not a gate: the place to put the hook does not exist
+    // yet. Class 1 told an agent to fix its work and retry the same command.
+    assert.equal(r.status, 3);
     assert.match(r.stderr, /not a git repository/);
+    assert.match(r.stderr, /hint:.*git init/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -1436,19 +1439,54 @@ test("context prints the read-order pack and lists skills on demand", () => {
   }
 });
 
+// THIS TEST FAILS ON macOS WITH NODE 20.12 AND NOWHERE ELSE.
+//
+// Not on Linux, not on Windows, not on macOS with Node 22 — only that one
+// intersection, and it has been red in CI since at least 2026-08-06. What the
+// log showed was a pack that ended after AGENTS.md, with no `.doctrina/
+// product.md` section, and a one-line assertion failure that could not say
+// which of five possible links had broken: init, the file on disk, the scoped
+// run, the concat run, or the rendering.
+//
+// A symlinked working directory — the obvious suspect, since macOS resolves
+// `/var/folders/...` to `/private/var/...` — was reproduced on Linux and did
+// NOT reproduce the failure, so that hypothesis is ruled out.
+//
+// Without a macOS runner the cause cannot be settled here. What CAN be done is
+// make the next macOS run name it: every link is checked in order, and the
+// first broken one says what it is and what it found. The assertions below are
+// the same promise as before, taken apart.
 test("context excludes non-accepted ADRs and --concat prints contents", () => {
   const tmp = makeTempProject();
   try {
-    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    const init = runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    assert.equal(init.status, 0, `init failed: ${init.stdout}${init.stderr}`);
+
+    // Link 1: the pack cannot carry what was never written.
+    const productPath = path.join(tmp, ".doctrina", "product.md");
+    assert.ok(existsSync(productPath),
+      `init wrote no .doctrina/product.md; the tree is: ${readdirSync(path.join(tmp, ".doctrina")).join(", ")}`);
+
     runCli(["decision", "new", "Still proposed"], { cwd: tmp });
     const r = runCli(["context"], { cwd: tmp });
-    assert.equal(r.status, 0);
+    assert.equal(r.status, 0, r.stderr || r.stdout);
     assert.ok(!r.stdout.includes("still-proposed"), "proposed ADRs stay out of the pack");
 
+    // Link 2: the scoped listing must already name product.md. If it does not,
+    // the fault is in ASSEMBLY and --concat is downstream of it.
+    assert.match(r.stdout, /product\.md/,
+      `the pack listing omits product.md entirely:\n${r.stdout}`);
+
     const concat = runCli(["context", "--concat"], { cwd: tmp });
-    assert.equal(concat.status, 0);
-    assert.match(concat.stdout, /===== AGENTS\.md \(root rules\) =====/);
-    assert.match(concat.stdout, /===== \.doctrina\/product\.md/);
+    assert.equal(concat.status, 0, concat.stderr || concat.stdout);
+
+    // Link 3: rendering. Compare the section headers the pack actually printed,
+    // so a failure shows the list instead of one missing regex.
+    const headers = concat.stdout.split("\n").filter((l) => l.startsWith("====="));
+    assert.match(concat.stdout, /===== AGENTS\.md \(root rules\) =====/,
+      `sections printed: ${JSON.stringify(headers)}`);
+    assert.match(concat.stdout, /===== \.doctrina\/product\.md/,
+      `product.md is on disk and in the listing, but --concat printed: ${JSON.stringify(headers)}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -2925,7 +2963,11 @@ test("skill suggest surfaces fix-shaped lessons and --write scaffolds them", () 
 
     const written = runCli(["skill", "suggest", "--write"], { cwd: tmp });
     assert.equal(written.status, 0, written.stderr || written.stdout);
-    assert.ok(existsSync(path.join(tmp, ".doctrina", "skills", "0003-fix-parsing.md")));
+    // The candidate keeps the change id it came from; the FILENAME drops the
+    // numeric prefix, because the skills spec requires a slug matching
+    // `[a-z][a-z0-9-]*` and the digits identify the change, not the lesson.
+    assert.ok(existsSync(path.join(tmp, ".doctrina", "skills", "fix-parsing.md")),
+      `expected .doctrina/skills/fix-parsing.md; got ${readdirSync(path.join(tmp, ".doctrina", "skills")).join(", ")}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -4560,6 +4602,72 @@ test("the close self-reviews: a spec left still while its code moved is reported
     assert.ok(stepAt("review") < stepAt("apply"), "the review must run before the apply");
     assert.equal(r.status, 0, "an advisory review must not change the close's exit code");
     assert.match(r.stdout, /closed/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// A gate must be able to REPROVE. `validate` exits 0 on warnings by design —
+// a warning is advice, and advice that blocks a commit stops being read — but
+// that left the CI step which validates the shipped examples unable to say no:
+// both examples drifted to warnings and the step reported green for weeks,
+// with the EARS defect sitting in the example that teaches against it. The
+// verdict is the caller's to ask for.
+//
+// The fixture is a freshly scaffolded spec: its placeholder acceptance
+// criterion is a WARNING and nothing here is an error, which is exactly the
+// shape the examples had rotted into.
+function projectWithOneWarning() {
+  const tmp = makeTempProject();
+  runCli(["init", "--non-interactive", "--project-name", "Acme",
+    "--project-description", "A fixture project"], { cwd: tmp });
+  runCli(["spec", "new", "billing"], { cwd: tmp });
+  return tmp;
+}
+
+test("--strict makes a warning fail validate, and changes nothing without it", () => {
+  const tmp = projectWithOneWarning();
+  try {
+    const lenient = runCli(["validate"], { cwd: tmp });
+    assert.match(lenient.stdout, /warn:/, "the fixture must actually produce a warning");
+    assert.doesNotMatch(lenient.stdout, /error:/, "the fixture must produce NO error");
+    assert.match(lenient.stdout, /^ok /m, "without --strict a warning still reads as ok");
+    assert.equal(lenient.status, 0, "warnings must not fail the default run");
+
+    const strict = runCli(["validate", "--strict"], { cwd: tmp });
+    assert.equal(strict.status, 1, "--strict must fail on a warning");
+    assert.match(strict.stdout, /^fail /m, "--strict must say fail, not ok");
+    assert.match(strict.stdout, /--strict: warnings count against the exit code/,
+      "a run with zero errors that fails must say why");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("--strict invents no failure: a tree with nothing to say still passes", () => {
+  const tmp = makeTempProject();
+  try {
+    runCli(["init", "--non-interactive", "--project-name", "Acme",
+      "--project-description", "A fixture project"], { cwd: tmp });
+    const clean = runCli(["validate", "--strict"], { cwd: tmp });
+    assert.doesNotMatch(clean.stdout, /warn:|error:/, clean.stdout);
+    assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("--strict rides along with --json and is reported in the payload", () => {
+  const tmp = projectWithOneWarning();
+  try {
+    const r = runCli(["validate", "--strict", "--json"], { cwd: tmp });
+    const payload = JSON.parse(r.stdout);
+    assert.equal(payload.strict, true, r.stdout);
+    assert.ok(payload.warnings.length > 0, r.stdout);
+    assert.equal(r.status, 1, "--json must carry the same verdict as the text output");
+
+    const lenient = JSON.parse(runCli(["validate", "--json"], { cwd: tmp }).stdout);
+    assert.equal(lenient.strict, false, "the payload must report the mode it ran in");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -224,3 +224,60 @@ test("validate --fix repairs a non-canonical header end to end", () => {
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// AN HTML COMMENT IS ANNOTATION, NOT A HEADER.
+//
+// This module owns that rule for the whole tree, and `readAllHeaders` did not
+// apply it. The preamble is exactly where a template puts its guidance, so an
+// EXAMPLE header written to show an author the form counted as one the author
+// wrote — and it showed as a DISAGREEMENT rather than a wrong answer, because
+// `readHeader` takes the first match in the document while this one collects
+// every match in the preamble.
+test("a header inside an HTML comment is not a header", () => {
+  const text = [
+    "# Change 0001-x — a change",
+    "",
+    "- **Status:** proposed",
+    "- **Lane:** product",
+    "",
+    "<!--",
+    "Optional. When the names below are only mentioned, say so:",
+    "- **Documented surface:** n/a — names a command to explain an effect",
+    "-->",
+    "",
+    "## Why",
+    "",
+    "Because.",
+    "",
+  ].join("\n");
+
+  const names = readAllHeaders(text).map((h) => h.name);
+  assert.deepEqual(names, ["Status", "Lane"],
+    `an example in a comment must not be collected; got ${JSON.stringify(names)}`);
+  assert.equal(getHeader(text, "Documented surface"), null,
+    "and the single reader must agree that it is absent");
+});
+
+test("the two readers agree once a real header is written beside the example", () => {
+  const text = [
+    "# Change 0001-x — a change",
+    "",
+    "- **Status:** proposed",
+    "- **Documented surface:** n/a — the real one, authored",
+    "",
+    "<!--",
+    "- **Documented surface:** n/a — the example, annotated",
+    "-->",
+    "",
+    "## Why",
+    "",
+    "Because.",
+    "",
+  ].join("\n");
+
+  const collected = readAllHeaders(text).filter((h) => h.name === "Documented surface");
+  assert.equal(collected.length, 1, "the example must not double the real header");
+  assert.equal(collected[0].value, "n/a — the real one, authored");
+  assert.equal(getHeader(text, "Documented surface"), collected[0].value,
+    "getHeader and readAllHeaders must return the same value");
+});

@@ -256,7 +256,10 @@ export function setHeader(text, name, value) {
   // has a lifecycle of its own (proposed -> applied, accepted, superseded).
   const listForm = /^\s*-/.test(text.match(re)?.[1] ?? "");
   const domain = listForm ? null : headerValueError(name, value);
-  if (domain) return { error: `set-header: ${domain}` };
+  // `cause: "argument"` marks an error about the value supplied, not about
+  // the document: `spec set` answers it as USAGE, a delta as a defect of
+  // the work (ADR 0018).
+  if (domain) return { error: `set-header: ${domain}`, cause: "argument" };
   const next = text.replace(re, (_m, prefix) => `${prefix} ${value}`.replace(/\s+$/, ""));
   return { text: next, summary: `set ${name}: ${value}` };
 }
@@ -309,10 +312,10 @@ export function setCriterionMark(text, n, markRaw) {
   const loc = locateCriteria(text);
   if (!loc) return { error: "set-criterion: spec has no '## Acceptance criteria' section" };
   const item = loc.items.find((it) => it.n === n);
-  if (!item) return { error: `set-criterion: no criterion #${n} found` };
+  if (!item) return { error: `set-criterion: no criterion #${n} found`, cause: "argument" };
   const mark = markRaw.replace(/^\[|\]$/g, "").trim();
   const domain = criterionMarkError(mark);
-  if (domain) return { error: `set-criterion: ${domain}` };
+  if (domain) return { error: `set-criterion: ${domain}`, cause: "argument" };
   const line = loc.lines[item.lineIndex];
   let next;
   if (/\[[^\]]*\]/.test(line)) {
@@ -481,8 +484,24 @@ export function replaceRequirement(text, section, n, value) {
   if (n > real.length) {
     return { error: `replace-requirement: section "${section}" has ${real.length} requirement${real.length === 1 ? "" : "s"}, no #${n}` };
   }
-  const indent = loc.lines[real[n - 1]].match(/^(\s*)/)[1];
-  loc.lines[real[n - 1]] = `${indent}- ${value}`;
+  // REPLACE THE WHOLE ITEM, continuation lines included.
+  //
+  // Writing only the first line leaves the old bullet's wrapped prose sitting
+  // under the new one, indented, reading as part of it. That is not cosmetic:
+  // the orphan is the PREVIOUS version of the requirement, so the spec ends up
+  // stating a contract and then contradicting it two lines later, and a spec
+  // is the one artifact this framework asks everyone to trust.
+  //
+  // It had already happened four times in this repository's own tree before
+  // anyone noticed — twice in `gates` (a closing sequence missing its review
+  // and runtime steps, a doctor set missing its runtime row) and once in
+  // `insight`, all three describing older behaviour beside the current one.
+  //
+  // `append-requirement` learned this in 0.13.0 and got `endOfItem`; this verb
+  // was written afterwards and never picked it up.
+  const start = real[n - 1];
+  const indent = loc.lines[start].match(/^(\s*)/)[1];
+  loc.lines.splice(start, endOfItem(loc.lines, start) - start + 1, `${indent}- ${value}`);
   return { text: loc.lines.join("\n"), summary: `replace-requirement ${section} ${n}` };
 }
 

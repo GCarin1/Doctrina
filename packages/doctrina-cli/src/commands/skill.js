@@ -12,7 +12,7 @@ import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { parseFrontmatter } from "../lib/doc-model.js";
 import { git, GIT_STATE } from "../lib/git.js";
-import { FIX_SHAPED, FIX_SHAPED_SUBJECT } from "../lib/lexicon.js";
+import { FIX_SHAPED, FIX_SHAPED_SUBJECT, fold, skillSlug } from "../lib/lexicon.js";
 import { artifactNameError } from "../lib/names.js";
 
 const SUBCOMMANDS = ["new", "list", "sync", "suggest"];
@@ -104,7 +104,7 @@ export function draftFromError(text) {
   // Distinctive words, most frequent first — the fallback when an error
   // carries no structure at all.
   const counts = new Map();
-  for (const w of raw.toLowerCase().match(/[a-z][a-z0-9_-]{3,}/g) ?? []) {
+  for (const w of fold(raw).match(/[a-z][a-z0-9_-]{3,}/g) ?? []) {
     if (ERROR_STOP.has(w)) continue;
     counts.set(w, (counts.get(w) ?? 0) + 1);
   }
@@ -125,8 +125,8 @@ export function draftFromError(text) {
   // also mentions do not both land in the name.
   const seedTokens = [];
   const seenToken = new Set();
-  for (const token of [...identifiers.map((i) => i.toLowerCase()), ...keywords]) {
-    const norm = token.replace(/[^a-z0-9]/g, "");
+  for (const token of [...identifiers.map((i) => fold(i)), ...keywords]) {
+    const norm = fold(token).replace(/[^a-z0-9]/g, "");
     if (norm === "" || seenToken.has(norm)) continue;
     seenToken.add(norm);
     seedTokens.push(token);
@@ -400,16 +400,9 @@ function gitFixCommits(projectRoot, { since, limit }) {
 }
 
 // Derive a skill slug from a commit subject: drop a conventional-commit
-// "type(scope): " prefix, then reuse skillSlug for the lowercase/hyphenate/cap.
+// "type(scope): " prefix and hand the rest to the shared slug, which folds.
 function commitSlug(subject) {
-  const stripped = subject.replace(/^[a-z]+(?:\([^)]*\))?!?\s*:\s*/i, "");
-  return skillSlug(stripped.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""));
-}
-
-function skillSlug(id) {
-  // Reuse the change id as the skill slug, trimmed to a sane length.
-  const slug = id.replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-  return slug.length > 40 ? slug.slice(0, 40).replace(/-+$/g, "") : (slug || "lesson");
+  return skillSlug(subject.replace(/^[a-z]+(?:\([^)]*\))?!?\s*:\s*/i, ""));
 }
 
 // Token-overlap similarity between two kebab slugs (Jaccard over meaningful

@@ -6,8 +6,8 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
-**Last updated:** 2026-08-06
-**Version:** 0.7.0
+**Last updated:** 2026-09-11
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -31,6 +31,8 @@ authoring commands, and the conventions every command shares.
 - The system shall carry index.json's config block through an index rebuild, since it has no on-disk source to be rederived from.
 - The system shall read every project configuration option — the language, the context budget, and the project rules — through one reader, resolving each option from `.doctrina/config.json` first, then from the legacy location for that option, then from the built-in default, and shall report which of the three each effective value came from.
 - The system shall write the pre-commit hook so that it invokes the CLI that installed it, by absolute path, and shall honour a `DOCTRINA` environment variable as the override, because `.git/hooks/` is local to the clone and a `doctrina` found on the PATH may be an older release.
+- The system shall write an artifact into the index in the position a full rebuild would give it, comparing the way the directory walk compares, so that the incremental write and the rebuild never disagree.
+- The system shall substitute a project's recorded name into every file it scaffolds for an agent, falling back to the working directory's name only for a tree that recorded none, so that two commands writing from the same templates cannot introduce two different projects.
 
 ### Event-driven
 
@@ -186,6 +188,7 @@ authoring commands, and the conventions every command shares.
 - When `doctrina init --intake-text "<text>"` runs, the system shall store the text verbatim as the project's intake, recording that its source was inline, and shall otherwise behave exactly as `--intake <file>` does.
 - When `doctrina init` receives both `--intake` and `--intake-text`, the system shall report a usage error naming the two as alternatives, and scaffold nothing.
 - When a project declares no capability spec and has no intake awaiting conversion, the system shall recommend the bootstrap command, naming the code-first alternative for a project adopting an existing codebase.
+- When `doctrina index rebuild --check --staged` runs, the system shall compare the staged index against the staged tree rather than the working tree — reporting every artifact the staged index names that the commit does not carry, and every staged artifact the index does not name — writing nothing, and exiting successfully when no index is staged or the project is not a git repository.
 
 ### State-driven
 
@@ -218,6 +221,9 @@ Project scaffolding is spec-compliant when:
 10. [verified] Immediately after `init`, `next` and `prime` name the bootstrap command, the hub's stated trigger matches what `init` writes, the action closes as soon as a capability exists, and a pending or converted intake never fires it — verified by `packages/doctrina-cli/test/bootstrap-door.test.js`.
 11. [verified] A directory holding a kept file or a file the adapter never wrote survives the removal, and the pruning never escapes or removes the project root — verified by `packages/doctrina-cli/test/adapter-leaves-no-trace.test.js`.
 12. [verified] The installed hook names the installing CLI's entrypoint and reads `DOCTRINA` first — verified by `packages/doctrina-cli/test/the-stamp-does-not-regress.test.js`.
+13. [verified] A spec, a skill and an archived change that sort before an existing entry each land in walk order and leave `index rebuild --check` clean, punctuation included — verified by `packages/doctrina-cli/test/the-index-is-written-once.test.js`.
+14. [verified] A partial commit of `.doctrina/` is refused by name while a whole-tree commit passes, and the installed pre-commit hook asks that question after the step that stages the index — verified by `packages/doctrina-cli/test/o-indice-descreve-o-commit.test.js`.
+15. [verified] Adding an adapter after `init` writes the recorded name rather than the directory's, both installation paths agree, and no module resolves the name on its own — verified by `packages/doctrina-cli/test/o-projeto-tem-um-nome-so.test.js`.
 
 ## Out of scope for this spec
 

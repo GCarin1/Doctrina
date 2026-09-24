@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.16.0",
-  "last_updated": "2026-09-09",
+  "last_updated": "2026-09-24",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,28 +15,29 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.15.0",
-        "last_updated": "2026-09-07",
+        "version": "0.19.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
           "cli"
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria}.js"
+          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.48.0",
-        "last_updated": "2026-08-06",
+        "version": "0.51.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/index.js",
           "packages/doctrina-cli/src/commands/next.js",
-          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js"
+          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js",
+          "tsconfig.json"
         ]
       },
       {
@@ -58,8 +59,8 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.6.0",
-        "last_updated": "2026-08-06",
+        "version": "0.7.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
           "SC3",
@@ -69,27 +70,32 @@
           "docs/**",
           "scripts/check-docs.js",
           "CHANGELOG.md",
-          "README*.md"
+          "README*.md",
+          "SECURITY.md",
+          "CONTRIBUTING.md",
+          "CONVENTIONS.md"
         ]
       },
       {
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.27.1",
-        "last_updated": "2026-08-06",
+        "version": "1.41.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/{validate,coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
-          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,ears,reproducibility,signoff,pipeline,runtime,docs-impact}.js",
-          "scripts/bench.js"
+          "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js",
+          "scripts/bench.js",
+          "scripts/e2e-packed.mjs",
+          "action.yml"
         ]
       },
       {
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.9.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -101,8 +107,8 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.7.0",
-        "last_updated": "2026-08-06",
+        "version": "0.10.0",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
           "cli"
@@ -116,7 +122,7 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
@@ -124,14 +130,27 @@
         ]
       },
       {
+        "id": "structure",
+        "path": ".doctrina/specs/structure/spec.md",
+        "status": "active",
+        "version": "0.5.0",
+        "last_updated": "2026-09-11",
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/commands/validate.js",
+          "packages/doctrina-cli/src/lib/{ears,pipeline}.js"
+        ]
+      },
+      {
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.20.0",
-        "last_updated": "2026-08-06",
+        "version": "0.22.1",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js",
+          "packages/doctrina-cli/scripts/copy-templates.js",
           ".doctrina/templates/**"
         ]
       },
@@ -139,8 +158,8 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.14.1",
-        "last_updated": "2026-08-06",
+        "version": "0.15.1",
+        "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
           "SC1",
@@ -242,6 +261,7 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/coverage.js`, `packages/doctrina-cli/src/commands/verify.js`",
         "scope": [
           "gates",
+          "structure",
           "validation"
         ],
         "summary": "Make both gates honest about their own limits, with cheap static checks:"
@@ -255,6 +275,7 @@
         "landed": "2026-06-22 — `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/commands/spec.js`",
         "scope": [
           "gates",
+          "structure",
           "validation"
         ],
         "summary": "Make `validate` the single place that says whether the project is OK, by"
@@ -270,7 +291,8 @@
           "cli",
           "docs",
           "authoring",
-          "gates"
+          "gates",
+          "structure"
         ],
         "summary": "Add four targeted ergonomics, all opt-in, all deterministic:"
       },
@@ -325,6 +347,7 @@
         "scope": [
           "cli",
           "gates",
+          "structure",
           "templates",
           "authoring",
           "scaffolding"
@@ -502,6 +525,18 @@
           "validation"
         ],
         "summary": "A capability spec declares the code it owns, in an optional `Source:`"
+      },
+      {
+        "id": "0028",
+        "path": ".doctrina/decisions/0028-um-gate-de-forma-e-um-gate-de-prova-validate-sai-de-gates-para-structure.md",
+        "title": "Um gate de forma e um gate de prova: validate sai de gates para structure",
+        "status": "accepted",
+        "date": "2026-09-11",
+        "scope": [
+          "gates",
+          "structure"
+        ],
+        "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
     "changes": [],
@@ -2127,6 +2162,657 @@
         "status": "applied",
         "applied": "2026-09-09",
         "specs_affected": []
+      },
+      {
+        "id": "0121-regravar-lockfile-versao-workspace",
+        "title": "regravar o lockfile para a versao 0.16.0 do workspace doctrina-cli",
+        "path": ".doctrina/changes/archive/2026-09-11-0121-regravar-lockfile-versao-workspace",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0122-harness-e2e-descobre-id",
+        "title": "o harness e2e descobre o id da change em vez de fixar um literal",
+        "path": ".doctrina/changes/archive/2026-09-11-0122-harness-e2e-descobre-id",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0123-harness-e2e-aborta-primeira",
+        "title": "o harness e2e aborta na primeira falha em vez de seguir com estado inválido",
+        "path": ".doctrina/changes/archive/2026-09-11-0123-harness-e2e-aborta-primeira",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0124-security-md-descreve-subprocessos",
+        "title": "SECURITY.md descreve os subprocessos que o CLI realmente executa",
+        "path": ".doctrina/changes/archive/2026-09-11-0124-security-md-descreve-subprocessos",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0125-recuperar-stamps-ears-exemplos",
+        "title": "recuperar os stamps e o EARS dos exemplos publicados",
+        "path": ".doctrina/changes/archive/2026-09-11-0125-recuperar-stamps-ears-exemplos",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0126-validate-ganha-modo-estrito",
+        "title": "validate ganha um modo estrito que trata warning como erro, para o passo de CI dos exemplos poder reprovar",
+        "path": ".doctrina/changes/archive/2026-09-11-0126-validate-ganha-modo-estrito",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0127-declarar-gate-release-pode",
+        "title": "declarar que o gate de release nao pode ser mais fraco que o gate de PR e faze-lo rodar verify e o harness empacotado",
+        "path": ".doctrina/changes/archive/2026-09-11-0127-declarar-gate-release-pode",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0128-ci-dispara-tambem-pull",
+        "title": "o CI dispara também em pull request para develop",
+        "path": ".doctrina/changes/archive/2026-09-11-0128-ci-dispara-tambem-pull",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0129-coverage-so-cobra-como",
+        "title": "coverage so cobra como prova os caminhos citados na clausula de evidencia, nao os nomeados na prosa do criterio",
+        "path": ".doctrina/changes/archive/2026-09-11-0129-coverage-so-cobra-como",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0130-teste-degradacao-mede-orcamento",
+        "title": "o teste de degradação mede o orçamento em vez de fixar 13000",
+        "path": ".doctrina/changes/archive/2026-09-11-0130-teste-degradacao-mede-orcamento",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0131-replace-requirement-substitui-bullet-inteiro",
+        "title": "replace-requirement substitui o bullet inteiro, nao so a primeira linha, e a prosa orfa que ele deixou sai das specs",
+        "path": ".doctrina/changes/archive/2026-09-11-0131-replace-requirement-substitui-bullet-inteiro",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0132-drivers-sequenciam-gates-viram",
+        "title": "os drivers que sequenciam os gates viram a capacidade closing, tirando a spec gates do teto de 400 linhas",
+        "path": ".doctrina/changes/archive/2026-09-11-0132-drivers-sequenciam-gates-viram",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0133-teste-pacote-contexto-diz",
+        "title": "o teste do pacote de contexto diz qual elo quebrou",
+        "path": ".doctrina/changes/archive/2026-09-11-0133-teste-pacote-contexto-diz",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0134-cli-pode-sair-antes",
+        "title": "o CLI nao pode sair antes de ter escrito o que imprimiu, senao a saida trunca em pipe",
+        "path": ".doctrina/changes/archive/2026-09-11-0134-cli-pode-sair-antes",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0135-close-cobra-mudanca-superficie",
+        "title": "o close cobra que uma mudanca de superficie chegue ao changelog, nao so a documentacao",
+        "path": ".doctrina/changes/archive/2026-09-11-0135-close-cobra-mudanca-superficie",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0136-registrar-changelog-changes-fecharam",
+        "title": "registrar no changelog as changes que fecharam antes do gate existir",
+        "path": ".doctrina/changes/archive/2026-09-11-0136-registrar-changelog-changes-fecharam",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0137-declarar-qual-capacidade-possui",
+        "title": "declarar qual capacidade possui os arquivos de raiz que hoje nao pertencem a nenhuma",
+        "path": ".doctrina/changes/archive/2026-09-11-0137-declarar-qual-capacidade-possui",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0138-invariante-onde-ci-roda",
+        "title": "o invariante de onde o CI roda ganha criterio, para a prova deixar de ser um teste orfao",
+        "path": ".doctrina/changes/archive/2026-09-11-0138-invariante-onde-ci-roda",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0139-change-pode-declarar-citou",
+        "title": "uma change pode declarar que citou uma superficie sem alterar, em vez de forcar o close",
+        "path": ".doctrina/changes/archive/2026-09-11-0139-change-pode-declarar-citou",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0140-exemplo-divisao-spec-playbook",
+        "title": "o exemplo de divisão de spec no playbook conta as três divisões",
+        "path": ".doctrina/changes/archive/2026-09-11-0140-exemplo-divisao-spec-playbook",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0141-fechar-entrada-deferred-sobre",
+        "title": "fechar a entrada de deferred sobre macOS",
+        "path": ".doctrina/changes/archive/2026-09-11-0141-fechar-entrada-deferred-sobre",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": []
+      },
+      {
+        "id": "0142-indice-guarda-cada-categoria",
+        "title": "o indice guarda cada categoria na mesma ordem que o rebuild produz, em vez de acrescentar no fim",
+        "path": ".doctrina/changes/archive/2026-09-11-0142-indice-guarda-cada-categoria",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0143-close-checa-deriva-indice",
+        "title": "o close checa a deriva de indice depois do passo que a escreve, nao antes",
+        "path": ".doctrina/changes/archive/2026-09-11-0143-close-checa-deriva-indice",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0144-declaracao-superficie-citada-aparece",
+        "title": "a declaracao de superficie citada aparece onde o autor escreve e onde o gate recusa",
+        "path": ".doctrina/changes/archive/2026-09-11-0144-declaracao-superficie-citada-aparece",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0145-playbooks-skill-comando-avisam",
+        "title": "os playbooks e a skill de comando avisam do changelog antes do close cobrar",
+        "path": ".doctrina/changes/archive/2026-09-11-0145-playbooks-skill-comando-avisam",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0146-modelo-documento-le-cabecalho",
+        "title": "o modelo de documento nao le cabecalho dentro de comentario",
+        "path": ".doctrina/changes/archive/2026-09-11-0146-modelo-documento-le-cabecalho",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0147-modulo-skills-normaliza-nomes",
+        "title": "o slug de skill dobra o acento em vez de apagá-lo",
+        "path": ".doctrina/changes/archive/2026-09-11-0147-modulo-skills-normaliza-nomes",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0148-handoff-com-cabecalho-colado",
+        "title": "handoff com cabecalho colado",
+        "path": ".doctrina/changes/archive/2026-09-11-0148-handoff-com-cabecalho-colado",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0149-declaracao-so-existe-na-copia-do-repo",
+        "title": "declaracao so existe na copia do repo",
+        "path": ".doctrina/changes/archive/2026-09-11-0149-declaracao-so-existe-na-copia-do-repo",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0150-sequencia-de-close-repetida-de-copia-velha",
+        "title": "sequencia de close repetida de copia velha",
+        "path": ".doctrina/changes/archive/2026-09-11-0150-sequencia-de-close-repetida-de-copia-velha",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0151-gate-de-pr-cobre-toda-checagem-declarada",
+        "title": "gate de pr cobre toda checagem declarada",
+        "path": ".doctrina/changes/archive/2026-09-11-0151-gate-de-pr-cobre-toda-checagem-declarada",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0152-insight-descreve-saidas-que-o-cli-nao-tem",
+        "title": "insight descreve saidas que o cli nao tem",
+        "path": ".doctrina/changes/archive/2026-09-11-0152-insight-descreve-saidas-que-o-cli-nao-tem",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0153-names-js-sem-dono-declarado",
+        "title": "names.js sem dono declarado",
+        "path": ".doctrina/changes/archive/2026-09-11-0153-names-js-sem-dono-declarado",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0154-desfazer-a-premissa-falsa-da-0149",
+        "title": "desfazer a premissa falsa da 0149",
+        "path": ".doctrina/changes/archive/2026-09-11-0154-desfazer-a-premissa-falsa-da-0149",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0155-sentinela-do-gate-de-docs-mede-conteudo-vivo",
+        "title": "sentinela do gate de docs mede conteudo vivo",
+        "path": ".doctrina/changes/archive/2026-09-11-0155-sentinela-do-gate-de-docs-mede-conteudo-vivo",
+        "status": "applied",
+        "applied": "2026-09-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0156-o-indice-e-conferido-contra-o-disco-nao-o-commit",
+        "title": "o indice e conferido contra o disco nao o commit",
+        "path": ".doctrina/changes/archive/2026-09-22-0156-o-indice-e-conferido-contra-o-disco-nao-o-commit",
+        "status": "applied",
+        "applied": "2026-09-22",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0157-duas-saidas-fora-do-contrato-de-classe",
+        "title": "duas saidas fora do contrato de classe",
+        "path": ".doctrina/changes/archive/2026-09-22-0157-duas-saidas-fora-do-contrato-de-classe",
+        "status": "applied",
+        "applied": "2026-09-22",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0158-os-dois-lexicons-do-clarify-divergem",
+        "title": "os dois lexicons do clarify divergem",
+        "path": ".doctrina/changes/archive/2026-09-22-0158-os-dois-lexicons-do-clarify-divergem",
+        "status": "applied",
+        "applied": "2026-09-22",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas",
+        "title": "enumeracoes do que um driver roda ficaram velhas",
+        "path": ".doctrina/changes/archive/2026-09-22-0159-enumeracoes-do-que-um-driver-roda-ficaram-velhas",
+        "status": "applied",
+        "applied": "2026-09-22",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0160-a-negacao-do-must-not-e-procurada-na-frase-toda",
+        "title": "a negacao do must-not e procurada na frase toda",
+        "path": ".doctrina/changes/archive/2026-09-23-0160-a-negacao-do-must-not-e-procurada-na-frase-toda",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0161-o-adapter-nomeia-o-diretorio-nao-o-projeto",
+        "title": "o adapter nomeia o diretorio nao o projeto",
+        "path": ".doctrina/changes/archive/2026-09-23-0161-o-adapter-nomeia-o-diretorio-nao-o-projeto",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0162-o-status-do-intake-nao-tem-dono-nem-gate",
+        "title": "o status do intake nao tem dono nem gate",
+        "path": ".doctrina/changes/archive/2026-09-23-0162-o-status-do-intake-nao-tem-dono-nem-gate",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0163-regra-de-projeto-com-glob-morto-e-silenciosa",
+        "title": "regra de projeto com glob morto e silenciosa",
+        "path": ".doctrina/changes/archive/2026-09-23-0163-regra-de-projeto-com-glob-morto-e-silenciosa",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0164-gatilho-de-skill-so-enxerga-vagueza-em-ingles",
+        "title": "gatilho de skill so enxerga vagueza em ingles",
+        "path": ".doctrina/changes/archive/2026-09-23-0164-gatilho-de-skill-so-enxerga-vagueza-em-ingles",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0165-supersede-descarta-o-escopo-da-adr",
+        "title": "supersede descarta o escopo da adr",
+        "path": ".doctrina/changes/archive/2026-09-23-0165-supersede-descarta-o-escopo-da-adr",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0166-intent-add-aceita-a-mesma-intencao-duas-vezes",
+        "title": "intent add aceita a mesma intencao duas vezes",
+        "path": ".doctrina/changes/archive/2026-09-23-0166-intent-add-aceita-a-mesma-intencao-duas-vezes",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0167-teste-adr-substituta-falha",
+        "title": "o teste da ADR substituta falha no Windows",
+        "path": ".doctrina/changes/archive/2026-09-23-0167-teste-adr-substituta-falha",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": []
+      },
+      {
+        "id": "0168-spec-set-responde-gate-a-erro-de-invocacao",
+        "title": "spec set responde GATE a erro de invocacao",
+        "path": ".doctrina/changes/archive/2026-09-23-0168-spec-set-responde-gate-a-erro-de-invocacao",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0169-valor-de-flag-malformado-reinterpretado",
+        "title": "valor de flag malformado reinterpretado",
+        "path": ".doctrina/changes/archive/2026-09-23-0169-valor-de-flag-malformado-reinterpretado",
+        "status": "applied",
+        "applied": "2026-09-23",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0170-estimativa-de-tokens-conta-o-cr",
+        "title": "estimativa de tokens conta o CR",
+        "path": ".doctrina/changes/archive/2026-09-24-0170-estimativa-de-tokens-conta-o-cr",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0171-ci-nao-testa-o-node-24",
+        "title": "CI nao testa o Node 24",
+        "path": ".doctrina/changes/archive/2026-09-24-0171-ci-nao-testa-o-node-24",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": []
+      },
+      {
+        "id": "0172-readme-sem-instalacao-e-lista-quebrada",
+        "title": "README sem instalacao e lista quebrada",
+        "path": ".doctrina/changes/archive/2026-09-24-0172-readme-sem-instalacao-e-lista-quebrada",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
       }
     ],
     "skills": [

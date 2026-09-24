@@ -257,6 +257,58 @@ test("replaceRequirement swaps the nth real bullet and bounds-checks", () => {
   assert.match(replaceRequirement(EARS_SPEC, "event", 5, "x").error, /has 1 requirement, no #5/);
 });
 
+// A WRAPPED BULLET IS ONE REQUIREMENT, NOT A LINE PLUS SOME TEXT.
+//
+// Replacing only the first line leaves the old bullet's continuation sitting
+// under the new one, indented, reading as part of it — so the spec states a
+// contract and then contradicts it two lines down, with the STALE half
+// carrying the older behaviour. Four requirements in this repository's own
+// tree had rotted that way before anyone read them side by side.
+//
+// `appendRequirement` learned this in 0.13.0; this verb was written afterwards
+// and never picked up the same helper.
+const WRAPPED_SPEC = [
+  "# Spec — billing",
+  "",
+  "**Version:** 0.2.0",
+  "",
+  "## Requirements (EARS)",
+  "",
+  "### Ubiquitous",
+  "",
+  "- The system shall record every charge.",
+  "- The system shall settle in the card's own currency,",
+  "  converting at the rate quoted when the charge was",
+  "  authorised, never at the rate on settlement day.",
+  "- The system shall retain receipts for seven years.",
+  "",
+].join("\n");
+
+test("replaceRequirement replaces the whole bullet, continuation lines included", () => {
+  const r = replaceRequirement(WRAPPED_SPEC, "ubiquitous", 2,
+    "The system shall settle in the merchant's currency.");
+  assert.match(r.text, /- The system shall settle in the merchant's currency\./);
+  assert.ok(!r.text.includes("converting at the rate"),
+    "the old bullet's wrapped prose must go with the bullet it belonged to");
+  assert.ok(!r.text.includes("authorised"),
+    "no line of the replaced requirement may survive");
+  // The bullets around it are untouched, and the count is unchanged.
+  assert.match(r.text, /- The system shall record every charge\./);
+  assert.match(r.text, /- The system shall retain receipts for seven years\./);
+  assert.equal(r.text.split("\n").filter((l) => l.startsWith("- ")).length, 3,
+    "replacing must not add or lose a requirement");
+});
+
+test("replaceRequirement still numbers by bullet after a wrapped one", () => {
+  // The third requirement is the third BULLET, not the third line: a verb that
+  // counted lines would rewrite the continuation of the second one.
+  const r = replaceRequirement(WRAPPED_SPEC, "ubiquitous", 3,
+    "The system shall retain receipts for ten years.");
+  assert.match(r.text, /- The system shall retain receipts for ten years\./);
+  assert.match(r.text, /converting at the rate quoted/,
+    "the untouched wrapped requirement must survive intact");
+});
+
 test("applyOps runs criteria and requirement verbs together", () => {
   const ops = extractOps([
     "```ops",
