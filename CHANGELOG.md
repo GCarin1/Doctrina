@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`intake --converted` refuses while `validate` fails.** It converted
+  over a tree with an error — a hand-edited spec that drifted the index —
+  so the specs became the source of truth while `validate` said they were
+  not well-formed. It now lists the errors and exits 1; `--force` converts
+  anyway. (0194)
 - **`next` puts a drifted index first.** It listed index drift last, below
   advisory nudges, though `validate` reports it as an error, the close
   blocks on it, one runnable command fixes it, and the actions below it

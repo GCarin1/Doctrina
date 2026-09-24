@@ -204,3 +204,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0191-slug-mantem-numeros — slug mantém números (specs: authoring MODIFIED)
 - 2026-09-24 — 0192-lane-sobrevive-ao-arquivamento — lane sobrevive ao arquivamento (specs: insight MODIFIED)
 - 2026-09-24 — 0193-next-corrige-o-indice-primeiro — next corrige o índice primeiro (specs: cli MODIFIED)
+- 2026-09-24 — 0194-intake-converte-so-com-validate-limpo — intake converte só com validate limpo (specs: authoring MODIFIED)

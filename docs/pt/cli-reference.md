@@ -142,7 +142,8 @@ doctrina intake --converted           # encerra o bootstrap
 | Flag | Função |
 |------|--------|
 | `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
-| `--force` | Sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
+| `--converted` | Marca o intake armazenado como convertido, encerrando o bootstrap. Nada mais escreve esse cabeçalho, e o `validate` recusa qualquer valor além de `pending` ou `converted`. Recusa com saída `1` enquanto o `validate` reporta erro, listando-os — converter é afirmar que o bootstrap terminou; `--force` converte mesmo assim. Sai `3` quando não há intake para marcar. |
+| `--force` | Com `--converted`, converte mesmo com o `validate` falhando. Fora isso, sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
 
 O positional aceita os dois. Um valor que não pode ser um caminho — uma
 frase, com espaços e sem separador nem extensão de documento — é lido como a

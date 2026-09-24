@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.22.1
+**Version:** 0.23.0
 
 ## Purpose
 
@@ -292,6 +292,7 @@ keep the checks and the read path.
 - The system shall not create an ADR whose title is only digits; `decision supersede` refuses it and names the grammar `supersede <number> "<title>"`.
 - The system shall not overwrite an intake whose Status is `converted`, even under `--force`; `intake` refuses with the precondition class and points at `intent add` for new intent and `work` for a change of behaviour, while an intake still `pending` may be replaced.
 - The system shall not record a forced transition that wrote nothing, so the ledger never claims an event that did not occur.
+- The system shall not mark the stored intake converted while `doctrina validate` reports an error; it shall list the errors, name `doctrina validate --fix` for index drift, exit with the gate class and write nothing, and shall convert anyway only under `--force`, because converting makes the specs the source of truth and an error says they are not yet well-formed.
 
 ## Acceptance criteria
 
@@ -336,6 +337,7 @@ The authoring commands are v0 spec-compliant when:
 37. [verified] The chore playbook and its opening line name `doctrina close` and neither `change apply` nor `change archive`, and a chore done by its playbook closes in one pass in a fresh project — verified by `packages/doctrina-cli/test/a-chore-fecha-como-toda-change.test.js`.
 38. [verified] `work --design` writes the design.md that `change new --design` writes for the same title, and `work` without the flag writes none — verified by `packages/doctrina-cli/test/o-work-esboca-o-design.test.js`.
 39. [verified] Prompts carrying a version or a number keep it in the slug, and one-letter words are still dropped — verified by `packages/doctrina-cli/test/change-title.test.js`.
+40. [verified] Over a tree whose hand-edited spec drifted the index, `intake --converted` exits 1 naming the errors and the fix and leaves the intake pending; with `--force` it converts — verified by `packages/doctrina-cli/test/o-status-do-intake-tem-dono.test.js`.
 
 ## Out of scope for this spec
 

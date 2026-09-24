@@ -41,7 +41,8 @@ Execute in order, in a single linear pass:
        doctrina intake --converted
    `next` branches on that header and `validate` refuses any other
    value, because every word but the two declared ones used to read
-   as pending in silence.
+   as pending in silence. It refuses while `validate` reports an
+   error — the step-6 gates are what "done" means.
 
 8. doctrina next — follow the recommendation. Implementation then
    flows through doctrina work "<brief prompt>", one change at a time.

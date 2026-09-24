@@ -14,6 +14,7 @@ import { looksLikePath, markIntakeConverted, printBootstrapPlaybook, warnIfThinI
 // `init --intake` performs the same operations; they live in
 // lib/intake-model.js so neither command imports out of the other (F7).
 export { warnIfThinIntake, writeIntakeFile, printBootstrapPlaybook } from "../lib/intake-model.js";
+import { collectValidation } from "../lib/validation-model.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 
 // `intake` is the first half of the no-ceremony path (ADR 0005): store the
@@ -39,6 +40,22 @@ export async function run(positional, flags) {
   // a bootstrap that was already done.
   if (flagBool(flags, "converted", false)) {
     ensureDoctrinaProject(projectRoot);
+    // Converting is the claim that the bootstrap is done — step 6 of the
+    // playbook, "fix everything the gates report", made checkable (change
+    // 0194). It used to convert over a tree `validate` failed, so the specs
+    // became "the source of truth" while an error still said they were not
+    // well-formed. --force converts anyway, for a tree whose errors are not
+    // the bootstrap's to fix.
+    if (isFile(path.join(projectRoot, ".doctrina", "intake.md")) && !flagBool(flags, "force", false)) {
+      const { errors } = collectValidation(projectRoot);
+      if (errors.length > 0) {
+        console.error(c.red("error:") + ` the bootstrap is not done — \`doctrina validate\` reports ${errors.length} error${errors.length === 1 ? "" : "s"}:`);
+        for (const e of errors.slice(0, 5)) console.error("  - " + e);
+        if (errors.length > 5) console.error(`  … and ${errors.length - 5} more`);
+        console.error(c.gray("hint: ") + "fix them (`doctrina validate --fix` heals index drift), then rerun; `--force` converts anyway");
+        return EXIT.GATE;
+      }
+    }
     const written = markIntakeConverted(projectRoot);
     if (!written) {
       console.error(c.red("error:") + " no intake to mark converted at .doctrina/intake.md");
@@ -154,9 +171,11 @@ Forms:
 
 Options:
   --text "<description>"   Inline description instead of a file
-  --force                  Overwrite an existing .doctrina/intake.md
+  --force                  Overwrite an existing .doctrina/intake.md; with
+                           --converted, convert although validate fails
   --converted              Mark the stored intake converted (ends the
-                           bootstrap; nothing else writes that header)
+                           bootstrap; nothing else writes that header).
+                           Refuses (exit 1) while validate reports an error
 
 Close the bootstrap with \`doctrina intake --converted\` rather than editing
 the header by hand: \`next\` branches on that value, and \`validate\` reports a

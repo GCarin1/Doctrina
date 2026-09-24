@@ -61,6 +61,10 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // said "analyze and close refuse a change whose scaffold placeholders..."
 // now says "`change check` and close". The work, pinned, thin and ANSI
 // goldens were re-captured for that one line.
+//
+// Change 0194 made `intake --converted` refuse while `validate` reports an
+// error, and step 7 of the bootstrap playbook says so in two added lines.
+// The bootstrap golden was re-captured with the test's own invocation.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
