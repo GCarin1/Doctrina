@@ -516,6 +516,12 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.17.0": [
+    "Preview a close with `doctrina change check <id>` (it exits 1 while a Verification box is open), then run `doctrina close <id>` — do not run `analyze`, `change apply` or `change archive` by hand; a chore closes the same way.",
+    "Deprecated names still run with a notice — use the replacement: `analyze` → `change check`, `report` → `status --view report`, `skill sync` → `index rebuild`, `templates check|update` → `upgrade [--write]`. `constitution` and `change diff` are removed (exit 2).",
+    "`doctrina upgrade` now reports an installed slash command that still teaches a retired command; run the fix it prints (`doctrina adapter add <agent> --force`).",
+    "`doctrina work \"<prompt>\" --design` also scaffolds design.md — no need to fall back to `change new` for a change with non-trivial choices.",
+  ],
   "0.16.0": [
     "A reference or path that does not resolve now answers exit 2 (USAGE) everywhere — `clarify`, `show`, `why`, `analyze`, `context`, `change check`, `spec set`, `decision accept|scope`. Correct the invocation; retrying it unchanged never succeeds.",
     "The `--json` envelope names the OPERATION in `command` and carries arguments in `args` — branch on those two, not on a joined string. An undeclared flag now answers with `{ok: false, exit_code: 2}` instead of an empty stdout.",

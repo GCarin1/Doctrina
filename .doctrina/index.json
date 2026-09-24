@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.16.0",
+  "framework_version": "0.17.0",
   "last_updated": "2026-09-24",
   "artifacts": {
     "product": {
@@ -539,16 +539,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0189-cortar",
-        "title": "cortar a 0.17.0",
-        "path": ".doctrina/changes/0189-cortar",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (uncertain) — opened as chore"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -3045,6 +3036,14 @@
             "operation": "MODIFIED"
           }
         ]
+      },
+      {
+        "id": "0189-cortar",
+        "title": "cortar a 0.17.0",
+        "path": ".doctrina/changes/archive/2026-09-24-0189-cortar",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": []
       },
       {
         "id": "0190-chore-sem-fantasmas-no-affects",

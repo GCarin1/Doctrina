@@ -17,6 +17,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-09-24
+
+### Upgrading from 0.16
+
+- Run `doctrina upgrade --write`. It regenerates the AGENTS.md command
+  surface and "What changed" blocks and re-stamps the index.
+- If `upgrade` still exits 1 naming a slash command under
+  `.claude/commands/` or `.cursor/commands/`, run the fix it prints
+  (`doctrina adapter add <agent> --force`): the 0.16 `/doctrina-work` ran
+  `analyze` → `change apply` before the close.
+- `doctrina constitution` and `doctrina change diff` are gone (exit 2,
+  naming the replacement). `analyze`, `report`, `skill sync` and
+  `templates check|update` still run, with a notice on stderr naming what
+  replaces them; move scripts over before a later minor removes them.
+- Regenerate shell completion (`doctrina completion <shell>`).
+
 ### Added
 
 - **`doctrina work --design`.** `work` opens its change through `change
@@ -24,12 +40,48 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   had to leave the recommended door for the manual one. It now scaffolds
   the same `design.md`. (0186)
 
-### Removed
+- **A change can declare that it only *mentions* a surface.**
+  `Documented surface: n/a — <why>` in a proposal tells the docs gate that the
+  command names in its prose are context, not a change — the same grammar as
+  `Realizes: n/a — <why>`, and a bare `n/a` silences nothing. Three closes in
+  one session had been forced over names that appeared only in an explanation
+  or in a Scope boundaries line, and a gate that is routinely forced stops
+  being a gate. (0139)
+- **`validate --strict`** treats warnings as failures, the way `coverage
+  --strict` and `trace --strict` already do. The default stays lenient,
+  because a warning is advice; a gate wants a verdict. The CI step that
+  validates the shipped examples uses it — it had reported green for weeks
+  over an example defect it had no way to reprove. (0126)
+- **The release gate is no longer weaker than the pull-request gate.**
+  Publishing now runs `verify`, the packed-install harness and the strict
+  example check, and publishes with `--provenance` — which is what the
+  `id-token: write` permission it already requested was for. (0127)
+- **CI runs on `develop`,** the branch feature work actually lands on. It
+  triggered only on `main`, so a pull request into `develop` ran no gate at
+  all. (0128)
+- **`close` asks the changelog, not only the docs.** A change that alters a
+  documented surface now has to record that it changed, as well as describe
+  how it works — two obligations, because prose about new behaviour reads
+  exactly like prose that always described it. Blocking, with `--force` and a
+  ledger line like every other gate, and silent for a project that keeps no
+  `CHANGELOG.md`.
 
-- **`doctrina constitution` and `doctrina change diff`**, deprecated since
-  0.16.0. Use `doctrina prime --rules` and `doctrina change check <id>
-  --verbose`, which print the same output. Typing a removed name exits `2`
-  naming its replacement, instead of "unknown command" and a guess. (0175)
+### Changed
+
+- **`validate` moved out of the `gates` spec into a new `structure`
+  capability** (ADR 0028). `gates` had crossed its 400-line cap a second
+  time; three split axes were measured against the tree and only this one
+  resolved it, taking the spec from 427 lines to 331. The split follows a
+  real seam: `validate` answers whether the tree is well-formed, asked before
+  anything answers whether it is proven. (0132)
+- `SECURITY.md` describes the subprocesses the CLI actually runs. It claimed
+  none beyond the pre-commit hook, while eleven modules query `git` and
+  `verify` runs shell commands a project declares — so it described a
+  narrower trust boundary than the real one, which is the one documentation
+  error with a security consequence. (0124)
+- The context-degradation test measures its budget instead of hardcoding one,
+  and the context-pack test reports which link broke rather than one missing
+  regex. (0130, 0133)
 
 ### Deprecated
 
@@ -60,6 +112,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   collector now feeds both, and `report --agent-changelog` is
   `status --view agent-changelog`. The old name still works, with a notice
   on stderr, until a later minor removes it. (0176)
+
+### Removed
+
+- **`doctrina constitution` and `doctrina change diff`**, deprecated since
+  0.16.0. Use `doctrina prime --rules` and `doctrina change check <id>
+  --verbose`, which print the same output. Typing a removed name exits `2`
+  naming its replacement, instead of "unknown command" and a guess. (0175)
 
 ### Fixed
 
@@ -424,51 +483,6 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `package-lock.json` records the CLI at its real version, so `npm install`
   no longer dirties the tree and `review` no longer reports nine false
   breaks. (0121)
-
-### Added
-
-- **A change can declare that it only *mentions* a surface.**
-  `Documented surface: n/a — <why>` in a proposal tells the docs gate that the
-  command names in its prose are context, not a change — the same grammar as
-  `Realizes: n/a — <why>`, and a bare `n/a` silences nothing. Three closes in
-  one session had been forced over names that appeared only in an explanation
-  or in a Scope boundaries line, and a gate that is routinely forced stops
-  being a gate. (0139)
-- **`validate --strict`** treats warnings as failures, the way `coverage
-  --strict` and `trace --strict` already do. The default stays lenient,
-  because a warning is advice; a gate wants a verdict. The CI step that
-  validates the shipped examples uses it — it had reported green for weeks
-  over an example defect it had no way to reprove. (0126)
-- **The release gate is no longer weaker than the pull-request gate.**
-  Publishing now runs `verify`, the packed-install harness and the strict
-  example check, and publishes with `--provenance` — which is what the
-  `id-token: write` permission it already requested was for. (0127)
-- **CI runs on `develop`,** the branch feature work actually lands on. It
-  triggered only on `main`, so a pull request into `develop` ran no gate at
-  all. (0128)
-- **`close` asks the changelog, not only the docs.** A change that alters a
-  documented surface now has to record that it changed, as well as describe
-  how it works — two obligations, because prose about new behaviour reads
-  exactly like prose that always described it. Blocking, with `--force` and a
-  ledger line like every other gate, and silent for a project that keeps no
-  `CHANGELOG.md`.
-
-### Changed
-
-- **`validate` moved out of the `gates` spec into a new `structure`
-  capability** (ADR 0028). `gates` had crossed its 400-line cap a second
-  time; three split axes were measured against the tree and only this one
-  resolved it, taking the spec from 427 lines to 331. The split follows a
-  real seam: `validate` answers whether the tree is well-formed, asked before
-  anything answers whether it is proven. (0132)
-- `SECURITY.md` describes the subprocesses the CLI actually runs. It claimed
-  none beyond the pre-commit hook, while eleven modules query `git` and
-  `verify` runs shell commands a project declares — so it described a
-  narrower trust boundary than the real one, which is the one documentation
-  error with a security consequence. (0124)
-- The context-degradation test measures its budget instead of hardcoding one,
-  and the context-pack test reports which link broke rather than one missing
-  regex. (0130, 0133)
 
 ## [0.16.0] — 2026-09-09
 
