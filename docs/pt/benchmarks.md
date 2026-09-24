@@ -39,7 +39,7 @@ O que benchmarks sintéticos **não** respondem:
 
 Para cada tamanho, o script roda `doctrina validate` e
 `doctrina clarify` cinco vezes e reporta o tempo mediano em
-milissegundos. `doctrina analyze` é excluído do loop sintético
+milissegundos. `doctrina change check` é excluído do loop sintético
 porque requer uma pasta de change aberta (não arquivada), e
 semear uma realisticamente enviesaria o bench para custo de
 geração de artefatos em vez de custo de CLI.
@@ -52,7 +52,7 @@ sobre a árvore de desenvolvimento da 0.17.0:
 ```
 Doctrina bench — 5 iterations per size
 
-size     specs  ADRs  archived  validate  analyze*  clarify**
+size     specs  ADRs  archived  validate    check*  clarify**
 -------  -----  ----  --------  --------  --------  ---------
 small        1     1         1   ~137 ms        n/a   ~126 ms
 medium      10     5        10   ~148 ms        n/a   ~135 ms

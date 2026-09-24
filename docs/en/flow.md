@@ -127,9 +127,10 @@ flowchart TD
   order, with token estimates. Run it for any task, not only `work`
   (`--budget <n>` gates the size; `--diff <ref>` is the resume-session pack).
 - `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
-  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
-  bulk-check the boxes, dry-run everything close would refuse (with
-  `--verbose`, the per-delta preview too), pre-flight, merge deltas into
+  `change apply <id...>` → `change archive <id...>` —
+  bulk-check the boxes, dry-run everything close would refuse (the
+  structural pre-flight first; with `--verbose`, the per-delta preview
+  too), merge deltas into
   specs (ops blocks cover headers, criteria, and EARS requirement bullets),
   then archive (which refuses unchecked work).
   apply/archive/check take multiple ids. `change abandon <id>` discards.

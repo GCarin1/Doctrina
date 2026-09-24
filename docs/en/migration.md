@@ -41,7 +41,7 @@ What does **not** carry over:
 | `/speckit.implement` slash command | The implementation step in the workflow (no dedicated command) |
 | `/clarify` quality gate | `doctrina clarify <path>` |
 | `/checklist` quality gate | The `## Acceptance criteria` section in every Doctrina spec |
-| `/analyze` quality gate | `doctrina analyze <change-id>` |
+| `/analyze` quality gate | `doctrina change check <change-id>` (the structural pre-flight, then everything the close would refuse) |
 
 Migration sketch:
 

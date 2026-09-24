@@ -43,7 +43,7 @@ test("every declared sequence step carries the fields the surfaces render", () =
 
 test("the change id reaches the steps that need it, and only those", () => {
   const close = sequence("close");
-  assert.equal(stepRerun(close.find((s) => s.id === "analyze"), "0007-x"), "doctrina analyze 0007-x");
+  assert.equal(stepRerun(close.find((s) => s.id === "analyze"), "0007-x"), "doctrina change check 0007-x");
   assert.equal(stepRerun(close.find((s) => s.id === "validate"), "0007-x"), "doctrina validate");
   // The docs gate is not one command, so it keeps its own literal line — and
   // that line names no directory, because the checked project's own

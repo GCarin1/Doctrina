@@ -50,7 +50,6 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina skill new|list|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
 - `doctrina intent add|list` — append and list product intent anchors. *When:* new product intent appears after the intake.
 **Gate**
-- `doctrina analyze` — structural pre-flight on a change folder. *When:* before applying a change.
 - `doctrina clarify --all (--lang pt|en)` — smell-test Markdown for ambiguity. *When:* before applying, or before opening a PR.
 - `doctrina validate (--fix)` — schema, structure, EARS, and index drift. *When:* after any artifact edit, and before considering work done.
 - `doctrina coverage --strict` — acceptance criteria against cited evidence. *When:* before claiming a capability is proven.

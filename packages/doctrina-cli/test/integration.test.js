@@ -1139,7 +1139,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     assert.match(r.stdout, /open task/);
     assert.match(r.stdout, /0001-x\/tasks\.md/);
 
-    // Tasks done + a delta present: suggests analyze/apply.
+    // Tasks done + a delta present: suggests the check, then the close.
     planTasks(tmp, "0001-x");
     const tasksPath = path.join(tmp, ".doctrina", "changes", "0001-x", "tasks.md");
     writeFileSync(tasksPath, readFileSync(tasksPath, "utf8").replaceAll("- [ ]", "- [x]"));
@@ -1150,7 +1150,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
       "# Spec Delta — capability: core\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/core/spec.md`\n\n---\n\n# Spec — Core\n\nbody\n",
     );
     r = runCli(["next"], { cwd: tmp });
-    assert.match(r.stdout, /doctrina change apply 0001-x/);
+    assert.match(r.stdout, /doctrina change check 0001-x, then doctrina close 0001-x/);
 
     // Applied but not archived.
     planTasks(tmp, "0001-x");

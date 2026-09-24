@@ -200,12 +200,12 @@ export function computeActions(projectRoot, gates = {}) {
       if (deltas.length > 0) {
         actions.push(action({
           id: "change-apply-ready",
-          command: "analyze",
+          command: "change check",
           args: [id],
           gate: "structure",
           runnable: true,
           why: `tasks done, ${deltas.length} delta${deltas.length === 1 ? "" : "s"} ready`,
-          text: `doctrina analyze ${id}, then doctrina change apply ${id} — ` +
+          text: `doctrina change check ${id}, then doctrina close ${id} — ` +
             `tasks done, ${deltas.length} delta${deltas.length === 1 ? "" : "s"} ready`,
         }));
       } else {

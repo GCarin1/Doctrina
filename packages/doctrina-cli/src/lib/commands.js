@@ -255,6 +255,11 @@ const SURFACE_HINTS = {
 // leaves the surface block — an agent should not reach for it, and the block
 // is the list of things to reach for. Removal is a later, separate change.
 export const DEPRECATED = Object.freeze({
+  "analyze": {
+    since: "0.17.0",
+    use: "doctrina change check",
+    why: "check reports the same structural checks first, then the ops dry-run and the archive-gate preview — it answers 'would the close pass?', so it also exits 1 while a Verification box is open; `change apply` still refuses what analyze refused",
+  },
   "report": {
     since: "0.17.0",
     use: "doctrina status --view report",

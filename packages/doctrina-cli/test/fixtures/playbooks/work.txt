@@ -52,7 +52,7 @@ Execute in order, in a single linear pass:
 4. Replace the placeholder tasks in .doctrina/changes/0001-billing-invoice-export/tasks.md
    with small, checkable implementation tasks (a few hours each, max),
    and record the change's What/Scope in its proposal.md. Do this BEFORE
-   implementing — analyze and close refuse a change whose scaffold
+   implementing — `change check` and close refuse a change whose scaffold
    placeholders were never replaced, and `change tick` will not tick them.
 
 5. Implement task by task, checking each box as it lands. Advance the

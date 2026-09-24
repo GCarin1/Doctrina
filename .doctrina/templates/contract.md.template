@@ -107,8 +107,8 @@ Example (Behave): features/**/*.feature with pattern @([a-z0-9_-]+)
 <!--
 Ceilings that are a CONTRACT, not a preference: token limits, payload
 caps, timeouts. Direction distinguishes what goes IN from what comes
-OUT, because they fail differently — and `doctrina analyze` refuses a
-change that "fixes" an overflow by raising an OUTPUT ceiling, which
+OUT, because they fail differently — and `doctrina change check` and the
+close refuse a change that "fixes" an overflow by raising an OUTPUT ceiling, which
 buys headroom by truncating what mattered rather than sending less.
 -->
 

@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.41.0",
+        "version": "1.42.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -539,16 +539,7 @@
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
       }
     ],
-    "changes": [
-      {
-        "id": "0182-analyze-fundido-no-change-check",
-        "title": "analyze fundido no change check",
-        "path": ".doctrina/changes/0182-analyze-fundido-no-change-check",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (confident; signals: change, deve)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -2952,6 +2943,19 @@
         "specs_affected": [
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0182-analyze-fundido-no-change-check",
+        "title": "analyze fundido no change check",
+        "path": ".doctrina/changes/archive/2026-09-24-0182-analyze-fundido-no-change-check",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ]

@@ -26,6 +26,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Deprecated
 
+- **`doctrina analyze <id>` → `doctrina change check <id>`.** The check's
+  first section was already every line analyze printed, followed by the
+  ops dry-run and the archive-gate preview. One difference is stated, not
+  hidden: the check answers "would the close pass?", so it exits 1 while a
+  Verification box is open, where analyze exited 0; `change apply` still
+  refuses what analyze refused. `next` now recommends `change check` then
+  `close`, and a close stopped on its structural step names `change check`
+  as the rerun. (0182)
 - **`doctrina templates check` / `templates update` → `doctrina upgrade`
   / `upgrade --write`.** The upgrade's first step was already the update,
   and the check was that step without the power to fix — but the check also

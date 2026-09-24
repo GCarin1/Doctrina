@@ -28,7 +28,7 @@ Orient      prime · next · status · context · show · search · why · hando
 Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon
             contract new|list|check · decision new|accept|land|supersede|list|scope
             skill new|list|suggest · intent add|list
-Gate        analyze · clarify · validate · coverage · trace · review · verify · close · doctor
+Gate        clarify · validate · coverage · trace · review · verify · close · doctor
 Maintain    upgrade · index rebuild · hooks install · watch · metrics · completion · ci · templates list
 ```
 

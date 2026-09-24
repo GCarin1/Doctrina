@@ -132,9 +132,10 @@ flowchart TD
   `work` (`--budget <n>` limita o tamanho; `--diff <ref>` é o pack de
   retomada de sessão).
 - `doctrina change tick <id> [--all]` → `change check <id> [--verbose]` →
-  `analyze <id>` → `change apply <id...>` → `change archive <id...>` —
-  marca as caixas em lote, dry-run de tudo que o close recusaria (com
-  `--verbose`, também o preview por delta), pré-checa, funde deltas nas specs
+  `change apply <id...>` → `change archive <id...>` —
+  marca as caixas em lote, dry-run de tudo que o close recusaria (a
+  pré-checagem estrutural primeiro; com `--verbose`, também o preview por
+  delta), funde deltas nas specs
   (blocos ops cobrem headers, critérios e os bullets EARS de requisito) e
   arquiva (recusando trabalho aberto).
   apply/archive/check aceitam vários ids. `change abandon <id>` descarta.

@@ -85,14 +85,19 @@ test("an action carries the command and its arguments, not a sentence to parse",
 
     const a = actionsOf(dir).find((x) => x.id === "change-apply-ready");
     assert.ok(a, "expected the apply-ready action");
-    assert.equal(a.command, "analyze");
+    // `change check`, not the deprecated `analyze` (change 0182): the same
+    // structural checks first, and still read-only, so still runnable.
+    assert.equal(a.command, "change check");
     assert.deepEqual(a.args, ["0001-x"]);
     assert.equal(a.gate, "structure");
     assert.equal(a.severity, "blocking");
     assert.equal(a.runnable, true);
 
     // The whole point: re-issue from the fields, with no string parsing.
-    const reissued = run(dir, [a.command, ...a.args]);
+    // `change check` previews the close, so the proposal's Verification
+    // boxes count too; with them ticked the change is ready to close.
+    run(dir, ["change", "tick", "0001-x", "--all"]);
+    const reissued = run(dir, [...a.command.split(" "), ...a.args]);
     assert.equal(reissued.status, 0, reissued.stderr || reissued.stdout);
   } finally {
     rmSync(dir, { recursive: true, force: true });

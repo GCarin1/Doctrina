@@ -846,12 +846,21 @@ pin one with the `SC15:` form). The follow-up is printed: declare
 closes the loop. `list` prints every anchor in document order. The CLI
 allocates and appends; the intent's wording is yours, verbatim (ADR 0005).
 
-## `doctrina analyze <change-id>`
+## `doctrina analyze <change-id>` — deprecated
+
+> **Deprecated** (0.17.0). Use `doctrina change check <change-id>`, which
+> reports every check below first, then the ops dry-run and the archive-gate
+> preview. It answers "would the close pass?", so it also exits 1 while a
+> `## Verification` box is still open — where `analyze` answered "would the
+> apply pass?". `doctrina change apply` still refuses everything `analyze`
+> refused. The old name still works, warns on stderr, carries a `deprecated`
+> field in its `--json` envelope, and will be removed in a later minor.
 
 Inspect a change folder before applying it.
 
 ```
-doctrina analyze 0042-add-saml
+doctrina change check 0042-add-saml   # preferred
+doctrina analyze 0042-add-saml        # deprecated alias
 ```
 
 Reports per-line:

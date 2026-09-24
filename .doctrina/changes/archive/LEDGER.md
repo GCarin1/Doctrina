@@ -192,3 +192,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0179-documentacao-defasada — documentacao defasada (specs: docs MODIFIED)
 - 2026-09-24 — 0180-playbook-de-chore-sem-close — playbook de chore sem close (specs: authoring MODIFIED)
 - 2026-09-24 — 0181-slash-commands-com-passos-redundantes — slash commands com passos redundantes (specs: templates MODIFIED)
+- 2026-09-24 — 0182-analyze-fundido-no-change-check — analyze fundido no change check (specs: gates MODIFIED)

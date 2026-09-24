@@ -45,8 +45,7 @@ flowchart TD
     W --> C["doctrina context --concat<br/>(read pack)"]
     C --> E["spec delta → tasks → implement"]
     E --> CK["doctrina change check<br/>(pre-close dry-run)"]
-    CK --> AN["doctrina analyze"]
-    AN -- "structural gate" --> AP["doctrina change apply"]
+    CK -- "structural gate" --> AP["doctrina change apply"]
     AP --> GATE{"gates green?<br/>verify · coverage · trace · review"}
     GATE -- "red" --> E
     GATE -- "green" --> AR["doctrina change archive → validate"]
@@ -102,7 +101,7 @@ governs how a body of agents acts.
   `skills/`, `templates/`, and `index.json`.
 - The `doctrina` CLI (Node.js, zero runtime dependencies) with 37 commands
   and 59 operations covering init, intake, adapter, work, prime, spec,
-  change, decision, contract, skill, intent, analyze, clarify, context,
+  change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,
   metrics, report, completion, and upgrade. Both counts are checked

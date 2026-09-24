@@ -45,7 +45,7 @@ O que **não** se mantém:
 | `/speckit.implement` slash command | O passo de implementação no workflow (sem comando dedicado) |
 | `/clarify` quality gate | `doctrina clarify <path>` |
 | `/checklist` quality gate | A seção `## Acceptance criteria` em toda spec Doctrina |
-| `/analyze` quality gate | `doctrina analyze <change-id>` |
+| `/analyze` quality gate | `doctrina change check <change-id>` (a pré-checagem estrutural, depois tudo que o close recusaria) |
 
 Esboço da migração:
 

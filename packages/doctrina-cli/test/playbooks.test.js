@@ -56,6 +56,11 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // `doctrina close`, like the work playbook, and so does the "Chore opened"
 // line above it. The chore golden was
 // re-captured; every other line in it is the original.
+//
+// Change 0182 deprecated `doctrina analyze`, so the work playbook's step that
+// said "analyze and close refuse a change whose scaffold placeholders..."
+// now says "`change check` and close". The work, pinned, thin and ANSI
+// goldens were re-captured for that one line.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");

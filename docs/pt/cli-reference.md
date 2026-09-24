@@ -866,12 +866,22 @@ fixe um com a forma `SC15:`). O follow-up é impresso: declare
 loop. `list` imprime cada âncora em ordem de documento. O CLI aloca e
 anexa; o texto da intenção é o seu, verbatim (ADR 0005).
 
-## `doctrina analyze <change-id>`
+## `doctrina analyze <change-id>` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina change check <change-id>`, que
+> reporta primeiro cada checagem abaixo, depois o dry-run das ops e o preview
+> do gate de arquivamento. Ele responde "o close passaria?", então também
+> sai com 1 enquanto houver uma caixa de `## Verification` aberta — onde o
+> `analyze` respondia "o apply passaria?". O `doctrina change apply` continua
+> recusando tudo o que o `analyze` recusava. O nome antigo continua
+> funcionando, avisa no stderr, traz um campo `deprecated` no envelope do
+> `--json` e será removido num minor futuro.
 
 Inspeciona uma pasta de change antes de aplicar.
 
 ```
-doctrina analyze 0042-add-saml
+doctrina change check 0042-add-saml   # preferido
+doctrina analyze 0042-add-saml        # alias depreciado
 ```
 
 Reporta por linha:
