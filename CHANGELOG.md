@@ -17,6 +17,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+
+- **`doctrina constitution` and `doctrina change diff`**, deprecated since
+  0.16.0. Use `doctrina prime --rules` and `doctrina change check <id>
+  --verbose`, which print the same output. Typing a removed name exits `2`
+  naming its replacement, instead of "unknown command" and a guess. (0175)
+
 ### Deprecated
 
 - **`doctrina templates check` / `templates update` → `doctrina upgrade`

@@ -29,14 +29,28 @@ function runCli(args, cwd) {
   });
 }
 
-test("`constitution` prints exactly what `prime --rules` prints", () => {
-  // The merge, demonstrated rather than asserted: the same lines, from the
-  // same collection. If they ever diverge, the deprecation was a loss.
-  const a = runCli(["constitution"], repoRoot);
+test("a removed name answers with its replacement, not a guess", () => {
+  // `constitution` and `change diff` were deprecated in 0.16.0 and removed in
+  // 0.17.0 (change 0175). Typing either still teaches the one thing needed:
+  // usage class, the replacement named, nothing run.
+  for (const [argv, use] of [
+    [["constitution"], "doctrina prime --rules"],
+    [["change", "diff", "0001-x"], "doctrina change check --verbose"],
+  ]) {
+    const r = runCli(argv, repoRoot);
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /was removed in 0\.17\.0/);
+    assert.ok(r.stderr.includes(use), r.stderr);
+    assert.equal(r.stdout, "");
+  }
+  const json = JSON.parse(runCli(["constitution", "--json"], repoRoot).stdout);
+  assert.equal(json.ok, false);
+  assert.equal(json.exit_code, 2);
+});
+
+test("prime --rules prints the standing rules the removed constitution printed", () => {
   const b = runCli(["prime", "--rules"], repoRoot);
-  assert.equal(a.status, 0, a.stderr);
   assert.equal(b.status, 0, b.stderr);
-  assert.equal(a.stdout, b.stdout);
   assert.match(b.stdout, /Standing rules/);
   assert.match(b.stdout, /Principles/);
   assert.match(b.stdout, /Non-goals/);
@@ -46,7 +60,7 @@ test("`constitution` prints exactly what `prime --rules` prints", () => {
   assert.doesNotMatch(primer, /Standing rules/);
 });
 
-test("`change check --verbose` prints what `change diff` printed", () => {
+test("change check --verbose prints the per-delta preview the removed change diff printed", () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "doctrina-deprecate-"));
   try {
     assert.equal(runCli(["init", "--non-interactive", "--project-name", "Acme"], dir).status, 0);
@@ -59,20 +73,12 @@ test("`change check --verbose` prints what `change diff` printed", () => {
       "**Target spec on apply:** `.doctrina/specs/billing/spec.md`\n\n---\n\n" +
       "## Purpose\n\nInvoices and statements.\n");
 
-    const diff = runCli(["change", "diff", "0001-x"], dir);
     const check = runCli(["change", "check", "0001-x", "--verbose"], dir);
-
-    // Everything the diff showed is inside the verbose check: the target, the
-    // operation, and the line diff itself.
-    const body = diff.stdout.split("\n").filter((l) => l.trim() !== "");
-    for (const line of body) {
-      assert.ok(check.stdout.includes(line),
-        `change check --verbose is missing a line change diff printed: ${JSON.stringify(line)}`);
-    }
     assert.match(check.stdout, /deltas in full \(--verbose\)/);
+    assert.match(check.stdout, /MODIFIED \.doctrina\/specs\/billing\/spec\.md/);
+    assert.match(check.stdout, /^\+Invoices and statements\.$/m, "the line diff itself");
     // And without the flag it stays the summary it was.
-    const quiet = runCli(["change", "check", "0001-x"], dir);
-    assert.doesNotMatch(quiet.stdout, /deltas in full/);
+    assert.doesNotMatch(runCli(["change", "check", "0001-x"], dir).stdout, /deltas in full/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -81,13 +87,13 @@ test("`change check --verbose` prints what `change diff` printed", () => {
 test("a deprecated name keeps working and says so, on stderr", () => {
   // The warning must not touch stdout: a warning that corrupts the output it
   // warns about is a breaking change wearing a deprecation's clothes.
-  const r = runCli(["constitution"], repoRoot);
+  const r = runCli(["report"], repoRoot);
   assert.equal(r.status, 0);
   assert.match(r.stderr, /deprecated:/);
-  assert.match(r.stderr, /doctrina prime --rules/);
+  assert.match(r.stderr, /doctrina status --view report/);
   assert.doesNotMatch(r.stdout, /deprecated/);
 
-  const fresh = runCli(["prime", "--rules"], repoRoot);
+  const fresh = runCli(["status", "--view", "report"], repoRoot);
   assert.doesNotMatch(fresh.stderr, /deprecated:/, "the survivor must not warn");
 });
 
@@ -106,13 +112,13 @@ test("every deprecation names a replacement that exists", () => {
 });
 
 test("deprecationFor matches the operation, not a prefix of it", () => {
-  assert.ok(deprecationFor(["constitution"]));
-  assert.ok(deprecationFor(["change", "diff", "0001-x"]));
-  assert.equal(deprecationFor(["change", "check"]), null);
-  assert.equal(deprecationFor(["change"]), null);
-  assert.equal(deprecationFor(["prime", "--rules"]), null);
+  assert.ok(deprecationFor(["report"]));
+  assert.ok(deprecationFor(["skill", "sync"]));
+  assert.equal(deprecationFor(["skill", "suggest"]), null);
+  assert.equal(deprecationFor(["skill"]), null);
+  assert.equal(deprecationFor(["status", "--view", "report"]), null);
   // Flags never decide the match.
-  assert.ok(deprecationFor(["--json", "constitution"]));
+  assert.ok(deprecationFor(["--json", "report"]));
 });
 
 test("the freed lines stay freed: the block is smaller than its budget", () => {
@@ -122,6 +128,9 @@ test("the freed lines stay freed: the block is smaller than its budget", () => {
   const md = surfaceMarkdown();
   assert.doesNotMatch(md, /doctrina constitution/);
   assert.doesNotMatch(md, /check\|tick\|diff/);
+  assert.doesNotMatch(md, /doctrina report/);
+  assert.doesNotMatch(md, /skill new\|list\|sync/);
+  assert.doesNotMatch(md, /templates list\|check/);
   assert.match(md, /doctrina prime/);
   assert.match(md, /doctrina change new\|apply\|archive\|check\|tick\|abandon/);
 });
@@ -136,19 +145,19 @@ test("the freed lines stay freed: the block is smaller than its budget", () => {
 // reading JSON.
 
 test("a deprecated command carries its replacement in the JSON envelope", () => {
-  const res = runCli(["constitution", "--json"], repoRoot);
+  const res = runCli(["report", "--json"], repoRoot);
   const payload = JSON.parse(res.stdout);
   assert.ok(payload.deprecated, `no deprecation in the envelope:\n${res.stdout}`);
-  assert.equal(payload.deprecated.use, "doctrina prime --rules");
+  assert.equal(payload.deprecated.use, "doctrina status --view report");
   assert.match(payload.deprecated.since, /^\d+\.\d+\.\d+$/, payload.deprecated.since);
   assert.ok(payload.deprecated.why.length > 0);
 });
 
 test("a deprecated two-word operation carries it too", () => {
-  const res = runCli(["change", "diff", "0000-nonexistent", "--json"], repoRoot);
+  const res = runCli(["skill", "sync", "--json"], repoRoot);
   const payload = JSON.parse(res.stdout);
   assert.ok(payload.deprecated, res.stdout);
-  assert.equal(payload.deprecated.use, "doctrina change check --verbose");
+  assert.equal(payload.deprecated.use, "doctrina index rebuild");
 });
 
 test("a command that is not deprecated has no such field", () => {
@@ -162,12 +171,12 @@ test("the deprecation does not change stdout", () => {
   // The prose notice stays on stderr and the human output is untouched: a
   // warning that corrupts the output it warns about is a breaking change
   // wearing a deprecation's clothes.
-  const plain = runCli(["constitution"], repoRoot);
+  const plain = runCli(["report"], repoRoot);
   assert.equal(plain.status, 0, plain.stderr);
   assert.match(plain.stderr, /deprecated:/, plain.stderr);
   assert.doesNotMatch(plain.stdout, /deprecated:/, plain.stdout);
 
-  const json = runCli(["constitution", "--json"], repoRoot);
+  const json = runCli(["report", "--json"], repoRoot);
   const payload = JSON.parse(json.stdout);
   assert.deepEqual(payload.stdout, plain.stdout.replace(/\n$/, "").split("\n"),
     "the captured stdout must be exactly the human output, deprecation aside");

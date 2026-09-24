@@ -32,7 +32,6 @@ doctrina change new <id> "<title>"         open a change proposal
 doctrina change apply <id>                 apply spec deltas (ADDED/REMOVED auto; MODIFIED ops block applies)
 doctrina change archive <id>               archive an applied change
 doctrina change abandon <id>               delete an open change + its index entry (ledgered)
-doctrina change diff <id>                  preview spec deltas (line diff for MODIFIED)
 doctrina contract new <name>               own the integration surface (ports, env, interfaces)
 doctrina contract check                    verify port collisions, env drift, referenced specs
 doctrina decision new "<title>"            create the next sequential ADR

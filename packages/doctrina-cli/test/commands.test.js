@@ -125,7 +125,7 @@ test("validate warns when AGENTS.md references a command the CLI lacks", () => {
   }
 });
 
-test("constitution assembles accepted ADRs and product non-goals, read-only", () => {
+test("prime --rules assembles accepted ADRs and product non-goals, read-only", () => {
   const tmp = initProject();
   try {
     // One accepted ADR and one still-proposed: only the accepted is a rule.
@@ -137,7 +137,7 @@ test("constitution assembles accepted ADRs and product non-goals, read-only", ()
     const prod = path.join(tmp, ".doctrina", "product.md");
     writeFileSync(prod, "# Acme — Product\n\n## Non-goals\n\n- It is not a build tool.\n");
 
-    const r = runCli(["constitution"], { cwd: tmp });
+    const r = runCli(["prime", "--rules"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /ADR 0001/);
     assert.match(r.stdout, /Use Postgres/);

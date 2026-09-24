@@ -4,16 +4,16 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
+**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.10.0
+**Version:** 0.11.0
 
 ## Purpose
 
 Define the semantics of the READ path: how a context pack is assembled to
 fit a token budget (ADR 0022), and the read-only commands that render the
 project's state without judging it — `context`, `search`, `show`, `status`,
-`prime`, `handoff`, `report`, `why`, `constitution`.
+`prime`, `handoff`, `report`, `why`.
 
 Split out of the `gates` spec when that spec crossed its own 400-line cap
 and grew to two thirds of every capability pack it appeared in. The seam is
@@ -56,7 +56,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   implementation state, and proof ratio), and the archived changes behind
   those capabilities — read-only, erroring with the known anchors when
   the anchor does not exist.
-- When `doctrina prime --rules` runs — or the deprecated `doctrina constitution`, which prints the same lines — the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them.
+- When `doctrina prime --rules` runs, the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them; `doctrina constitution`, removed in 0.17.0, shall run nothing and refuse with the usage class, naming `doctrina prime --rules`.
 - When `doctrina context [<capability>]` runs, the system shall
   print the context pack in the documented read order — AGENTS.md,
   `product.md`, the capability spec when given (or every active spec
@@ -128,7 +128,7 @@ The read path is spec-compliant when:
 9. [verified] No command module imports a binding out of a sibling command module, and no library module depends on a command module — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 10. [verified] Every view is a pure function of the snapshot, and each renders byte-identical output whether reached by its own command or by the view flag — verified by `packages/doctrina-cli/test/one-collector.test.js`.
 11. [verified] An unknown view name exits with the usage code naming the nearest real one, and the machine-readable envelope keeps its shape whichever view is asked for — verified by `packages/doctrina-cli/test/one-collector.test.js`.
-12. [verified] `constitution` and `prime --rules` produce byte-identical output, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+12. [verified] `prime --rules` prints the standing rules in full, and the primer names the ADRs without printing the non-goal text — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 13. [verified] `prime`, `handoff` and `report` print the title of a change with a multi-word id without the id in front of it, and the index records the same — verified by `packages/doctrina-cli/test/change-title.test.js`.
 14. [verified] On a spec `doctrina spec new` has just created, `show <cap>-R1` returns the first authored requirement rather than the scaffold's EARS legend, and a spec with no authored requirement reports zero — verified by `packages/doctrina-cli/test/comment-is-not-content.test.js`.
 15. [verified] Prose, two paragraphs and bullets are each read as declared, the template comment is not, an empty section is told to be filled while a missing one is told to be created, and this repository's four non-goals are unchanged — verified by `packages/doctrina-cli/test/non-goals-in-prose.test.js`.

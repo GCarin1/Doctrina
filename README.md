@@ -100,11 +100,11 @@ governs how a body of agents acts.
   the hub, so the hub can never lag the CLI.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 38 commands
-  and 61 operations covering init, intake, adapter, work, prime, spec,
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 37 commands
+  and 59 operations covering init, intake, adapter, work, prime, spec,
   change, decision, contract, skill, intent, analyze, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
-  status, why, handoff, constitution, watch, templates, hooks, index, next,
+  status, why, handoff, watch, templates, hooks, index, next,
   metrics, report, completion, and upgrade. Both counts are checked
   against the catalog by `scripts/check-docs.js` — as is every count
   stated anywhere in this repository's documentation — so no line here

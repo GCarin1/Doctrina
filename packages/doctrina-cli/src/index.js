@@ -5,7 +5,7 @@ import { parseArgs } from "./lib/args.js";
 import { c } from "./lib/colors.js";
 import { suggest } from "./lib/suggest.js";
 import { cliVersion } from "./lib/version.js";
-import { surfaceHelp, OPERATIONS, deprecationFor } from "./lib/commands.js";
+import { surfaceHelp, OPERATIONS, deprecationFor, removalFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
 import { recordUsage, operationOf } from "./lib/usage.js";
@@ -37,7 +37,6 @@ import * as close from "./commands/close.js";
 import * as review from "./commands/review.js";
 import * as watch from "./commands/watch.js";
 import * as why from "./commands/why.js";
-import * as constitution from "./commands/constitution.js";
 import * as prime from "./commands/prime.js";
 import * as handoff from "./commands/handoff.js";
 import * as show from "./commands/show.js";
@@ -54,7 +53,7 @@ const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
   templates, skill, index: indexCmd, next, metrics, context, search,
   intake, work, coverage, verify, contract, trace,
-  status, close, review, watch, why, constitution,
+  status, close, review, watch, why,
   prime, handoff, show, doctor, report, completion,
   intent, upgrade, adapter, triage, ci,
 };
@@ -112,6 +111,17 @@ async function main(argv) {
 
   const commandName = positional[0];
   const command = COMMANDS[commandName];
+  const removed = removalFor(positional);
+  if (removed) {
+    const name = removed === removalFor([commandName]) ? commandName : positional.slice(0, 2).join(" ");
+    console.error(c.red("error:") + ` \`doctrina ${name}\` was removed in ${removed.since}`);
+    console.error(c.gray("hint: ") + `use \`${removed.use}\` — it prints what the removed command printed`);
+    if (wantsJson(flags)) {
+      emitJson(operationName(positional), { stderr: [`error: \`doctrina ${name}\` was removed in ${removed.since}`, `hint: use \`${removed.use}\``] },
+        { ok: false, exitCode: EXIT.USAGE, args: positional.slice(1) });
+    }
+    return EXIT.USAGE;
+  }
   if (!command) {
     console.error(c.red("error:") + ` unknown command "${commandName}"`);
     const guess = suggest(commandName, Object.keys(COMMANDS));

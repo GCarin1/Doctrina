@@ -21,7 +21,7 @@ import { ensureDoctrinaProject } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew } from "../lib/change-ops.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "diff", "abandon"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -42,8 +42,6 @@ export async function run(positional, flags) {
         changeCheck(id, { verbose: flagBool(flags, "verbose", false) }));
     case "tick":
       return changeTick(positional.slice(1), flags);
-    case "diff":
-      return changeDiff(positional.slice(1), flags);
     case "abandon":
       return await changeAbandon(positional.slice(1), flags);
     default:
@@ -356,7 +354,7 @@ async function changeCheck(id, { verbose = false } = {}) {
   if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
   if (opsFindings > 0) failures += 1;
 
-  // --verbose: the same per-delta preview `change diff` prints. The dry-run
+  // --verbose: the per-delta preview the removed `change diff` printed. The dry-run
   // above says whether the ops WOULD apply; this says what the file would
   // look like afterwards, which is the question the separate command existed
   // to answer (change 0049).
@@ -683,9 +681,9 @@ async function changeAbandon(args, flags) {
 // ADDED reports the body it would write, REMOVED the spec it would delete,
 // MODIFIED a line diff against the current spec.
 //
-// One renderer, two callers (change 0049): `change diff` is this and nothing
-// else, and `change check --verbose` prints it after its ops dry-run — which
-// is what makes the merge honest rather than a claim. Returns the number of
+// `change check --verbose` prints this after its ops dry-run. It was also
+// the whole of `change diff`, until that alias was retired (changes 0049,
+// 0175) — the one renderer is what made the merge honest. Returns the number of
 // deltas it could not read.
 export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
   let errors = 0;
@@ -732,33 +730,6 @@ export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
   }
   return errors;
 }
-
-function changeDiff(args, _flags) {
-  const id = args[0];
-  if (!id) {
-    console.error(c.red("error:") + " change diff requires <id>");
-    return 2;
-  }
-  const projectRoot = process.cwd();
-  ensureDoctrinaProject(projectRoot);
-
-  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
-  if (!isDir(changeDir)) {
-    console.error(c.red("error:") + ` change "${id}" not found at ${relPath(projectRoot, changeDir)}`);
-    return EXIT.USAGE;
-  }
-
-  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
-  if (deltaFiles.length === 0) {
-    console.log(c.gray("no spec deltas in this change; nothing to diff"));
-    return 0;
-  }
-
-  const errors = printDeltaPreview(projectRoot, changeDir, deltaFiles);
-  console.log("");
-  return errors > 0 ? 1 : 0;
-}
-
 
 function extractDeltaBody(text) {
   // The delta separates headers from the spec body with a `---` line.
@@ -817,8 +788,6 @@ Subcommands:
                          or every one with --all. No args = list only.
   abandon <id>           Delete an open change folder and its index entry, and
                          record the abandonment in the ledger ([--reason "..."]).
-  diff <id>              Preview every spec delta: line diff for MODIFIED,
-                         summary for ADDED/REMOVED. Read-only.
 
 apply / archive / check accept multiple ids (batch close of a backlog); the
 exit code is the worst per-id result.

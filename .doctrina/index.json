@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.19.1",
+        "version": "0.20.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.51.0",
+        "version": "0.52.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -95,11 +95,11 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.10.0",
+        "version": "0.11.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,constitution}.js",
+          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js",
           "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js"
         ]
       },
@@ -555,14 +555,6 @@
         "status": "proposed",
         "opened": "2026-09-24",
         "lane": "product (uncertain)"
-      },
-      {
-        "id": "0175-remover-constitution-e-change-diff",
-        "title": "remover constitution e change diff",
-        "path": ".doctrina/changes/0175-remover-constitution-e-change-diff",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (uncertain; signals: change)"
       },
       {
         "id": "0179-documentacao-defasada",
@@ -2843,6 +2835,27 @@
         "specs_affected": [
           {
             "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0175-remover-constitution-e-change-diff",
+        "title": "remover constitution e change diff",
+        "path": ".doctrina/changes/archive/2026-09-24-0175-remover-constitution-e-change-diff",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ]

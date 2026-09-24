@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.19.1
+**Version:** 0.20.0
 
 ## Purpose
 
@@ -170,13 +170,7 @@ keep the checks and the read path.
 
 - When the deprecated `doctrina skill sync` runs, the system shall leave the index `doctrina index rebuild` leaves — every skill on disk registered, each frontmatter `description:` mirrored, a written description never replaced by a scaffold placeholder, skills without a `description:` field reported and skipped — and shall name the rebuild on stderr.
 
-- When `doctrina change diff <id>` runs, the system shall print,
-  for each spec delta in the change: for ADDED, the target path
-  and the delta body line count; for REMOVED, the target path to
-  be deleted; for MODIFIED, a line-level diff between the current
-  target spec and the delta body, with the caveat that the delta
-  body is a fragment to merge, so context lines absent from the
-  delta are not removals. The command is strictly read-only.
+- When `doctrina change diff <id>` is invoked after its removal in 0.17.0, the system shall run nothing and refuse with the usage class, naming `doctrina change check <id> --verbose`, which prints the same per-delta preview — ADDED with its line count, REMOVED with its target, MODIFIED as a line diff against the current spec.
 
 - When `doctrina change archive <id>` runs, the system shall
   append a one-line summary (date, id, title, affected specs) to
@@ -325,7 +319,7 @@ The authoring commands are v0 spec-compliant when:
 8. [verified] The lane reaches the index, its absence is left absent rather than guessed, and a report counts an unrecorded lane as unknown — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 9. [verified] Rewriting a proposal's lane to a nonsense value changes no gate's verdict or output — verified by `packages/doctrina-cli/test/lane-record.test.js`.
 10. [verified] `work` scaffolds the winning capability's delta with `**Operation:** MODIFIED` and a guess mark when the prompt ranking has a real margin, writes nothing when it does not, and never marks a pinned delta a guess — verified by `packages/doctrina-cli/test/scaffolded-delta.test.js`.
-11. [verified] Every line `change diff` prints appears in `change check --verbose`, and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
+11. [verified] `change check --verbose` prints the per-delta preview the removed `change diff` printed — target, operation and the line diff itself — and the plain check stays the summary it was — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 12. [verified] Every decision this repository's specs cite names the citing capability, the `authoring` pack keeps all of them, a decision that names a capability outranks one it only inherits even when its number is older, and an unscoped decision is never reported as a violation — verified by `packages/doctrina-cli/test/adr-scope-follows-capability.test.js`.
 13. [verified] An untouched decision record is refused with its unwritten sections named and its Status left alone, one with a one-line decision is accepted, and accepting leaves the index in sync — verified by `packages/doctrina-cli/test/the-mould-is-not-content.test.js`.
 14. [verified] A change opened on the default path has an identifier under fifty characters while its H1 still carries the whole prompt and the parse returns it whole, `--title` decides both halves as before, and the derivation is deterministic — verified by `packages/doctrina-cli/test/change-title.test.js`.

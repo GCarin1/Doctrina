@@ -346,7 +346,7 @@ The gate surface is spec-compliant when:
   of the `.doctrina/` tree it enforces (covered by the `structure` spec).
 - Context assembly and the read-only commands that render project state —
   `context`, `search`, `show`, `status`, `prime`, `handoff`, `report`,
-  `why`, `constitution` (covered by the `insight` spec).
+  `why` (covered by the `insight` spec).
 - The command surface, exit-code conventions, and scaffolding/workflow
   commands (covered by the `cli` spec).
 - The content of `verify.json` checks — those are project-declared, not

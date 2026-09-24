@@ -1185,7 +1185,7 @@ test("next flags ADRs stuck in proposed status", () => {
   }
 });
 
-test("change diff renders a unified diff for MODIFIED deltas", () => {
+test("change check --verbose renders a unified diff for MODIFIED deltas", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
@@ -1201,8 +1201,9 @@ test("change diff renders a unified diff for MODIFIED deltas", () => {
       "# Spec Delta — capability: billing\n\n**Operation:** MODIFIED\n**Target spec on apply:** `.doctrina/specs/billing/spec.md`\n\n---\n\nThe system shall bill weekly.\n",
     );
 
-    const r = runCli(["change", "diff", "0001-tweak"], { cwd: tmp });
-    assert.equal(r.status, 0, r.stderr || r.stdout);
+    // The preview `change diff` printed until its removal (change 0175). The
+    // check may still refuse the unwritten proposal; the preview is the point.
+    const r = runCli(["change", "check", "0001-tweak", "--verbose"], { cwd: tmp });
     assert.match(r.stdout, /MODIFIED .*billing\/spec\.md/);
     assert.match(r.stdout, /@@ /);
     assert.match(r.stdout, /\+The system shall bill weekly\./);
@@ -1212,7 +1213,7 @@ test("change diff renders a unified diff for MODIFIED deltas", () => {
   }
 });
 
-test("change diff summarises ADDED deltas without diffing", () => {
+test("change check --verbose summarises ADDED deltas without diffing", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
@@ -1223,8 +1224,7 @@ test("change diff summarises ADDED deltas without diffing", () => {
       deltaPath,
       "# Spec Delta — capability: core\n\n**Operation:** ADDED\n**Target spec on apply:** `.doctrina/specs/core/spec.md`\n\n---\n\n# Spec — Core\n\nbody\n",
     );
-    const r = runCli(["change", "diff", "0001-add"], { cwd: tmp });
-    assert.equal(r.status, 0, r.stderr || r.stdout);
+    const r = runCli(["change", "check", "0001-add", "--verbose"], { cwd: tmp });
     assert.match(r.stdout, /ADDED .*core\/spec\.md \(\+\d+ lines\)/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });

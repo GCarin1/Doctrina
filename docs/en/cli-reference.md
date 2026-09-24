@@ -533,33 +533,6 @@ named no-op; an argument that is not a number is refused by name. Any
 Markdown bullet (`-`, `*`, `+`) opens a box, for `tick` and for the
 archive gate alike.
 
-## `doctrina change diff <id>` — deprecated
-
-> **Deprecated.** Use `doctrina change check <id> --verbose`, which runs
-> every ops block against the target spec *and* prints this same per-delta
-> preview. The old name still works, warns on stderr, carries a `deprecated`
-> field in its `--json` envelope, and will be removed in a later minor.
-
-Preview every spec delta in a change before applying it.
-
-```
-doctrina change check 0042-add-saml --verbose   # preferred
-doctrina change diff 0042-add-saml              # deprecated alias
-```
-
-Per delta:
-
-- **ADDED:** target path and delta body line count (flags a conflict
-  when the target already exists).
-- **REMOVED:** target path and the line count that would be deleted.
-- **MODIFIED:** a unified line diff between the current target spec
-  and the delta body. The delta body is a fragment to merge, so `-`
-  lines are current spec content absent from the delta — context,
-  not necessarily removals.
-
-Read-only; never modifies files. Pairs with `analyze`: `analyze`
-checks the change's shape, this shows its content.
-
 ## `doctrina change abandon <id>`
 
 Discard an open change cleanly — the inverse of `change new`.
@@ -1882,30 +1855,6 @@ delivers this promise?".
 
 Read-only in both directions.
 
-## `doctrina constitution` — deprecated
-
-> **Deprecated.** Use `doctrina prime --rules`, which prints exactly these
-> lines from the same collection. The old name still works, warns on stderr,
-> carries a `deprecated` field in its `--json` envelope, and will be removed
-> in a later minor.
-
-Print the project's standing rules in one read.
-
-```
-doctrina prime --rules      # preferred
-doctrina constitution       # deprecated alias
-```
-
-Assembles, read-only: the accepted ADRs (the immutable decisions that govern
-how the codebase evolves, oldest first) and the `## Non-goals` of
-`product.md`. It is the Spec Kit `constitution.md` analogue — a single place
-to see the non-negotiables — but it owns no facts of its own: to change a
-principle, supersede the ADR; to change a non-goal, edit `product.md`.
-
-A non-goal may be a bullet or a paragraph — the section's own template
-comment invites prose — and a blank line separates one from the next. The
-template's instructional comment is never read as a declared non-goal.
-
 ## `doctrina watch`
 
 Keep the project in sync and the agent oriented continuously (ADR 0012).
@@ -2046,11 +1995,13 @@ cheap enough to run every session. Read-only; always exits 0.
 
 | Flag | Purpose |
 |------|---------|
-| `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The lines `doctrina constitution` printed, from the same collection. |
+| `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The Spec Kit `constitution.md` analogue, derived rather than authored: to change a principle, supersede the ADR; to change a non-goal, edit `product.md`. (Until 0.17.0 this was also a command of its own, since removed.) |
 
 The primer keeps a fixed size on purpose — it is read at the start of
 every session — so the full non-goal text lives behind `--rules`
-rather than in the primer itself.
+rather than in the primer itself. A non-goal may be a bullet or a
+paragraph, a blank line separates one from the next, and the template's
+instructional comment is never read as a declared non-goal.
 
 ## `doctrina show <ref>`
 

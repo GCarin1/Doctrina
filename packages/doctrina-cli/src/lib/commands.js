@@ -16,7 +16,7 @@ export const COMMAND_NAMES = [
   // authoring
   "spec", "change", "contract", "decision", "skill", "intent", "adapter",
   // read / orient
-  "prime", "context", "show", "search", "status", "next", "why", "handoff", "constitution",
+  "prime", "context", "show", "search", "status", "next", "why", "handoff",
   // gates
   "analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor",
   // maintenance
@@ -46,7 +46,6 @@ export const OPERATIONS = [
   ["change archive", "Archive an applied change (batch ids ok)"],
   ["change check", "Pre-close dry-run: everything close would refuse, listed first"],
   ["change tick", "List/tick the unchecked boxes (tasks + verification; --all)"],
-  ["change diff", "Preview spec deltas (line diff for MODIFIED)"],
   ["change abandon", "Discard an open change cleanly (recorded in the ledger)"],
   ["contract new", "Own the integration surface (ports, env, interfaces)"],
   ["contract list", "List contracts with status and last-updated date"],
@@ -82,7 +81,6 @@ export const OPERATIONS = [
   ["status", "One-glance project health dashboard"],
   ["why", "Explain provenance: a capability's chain, or an anchor's (SC1)"],
   ["handoff", "Markdown handoff note: open work, task state, resume command"],
-  ["constitution", "Print the standing rules: accepted ADRs + product non-goals"],
   ["templates list", "List the templates shipped by the installed CLI"],
   ["templates check", "Compare the project against the recommended template shape"],
   ["templates update", "Additive fixer for check findings (preview; --write applies)"],
@@ -126,7 +124,6 @@ export const COMMAND_META = {
   show:         { moment: "Orient",     when: "you need one requirement, criterion, or ADR, not a file", purpose: "point-read a single artifact by reference" },
   search:       { moment: "Orient",     when: "you do not know which artifact mentions a term", purpose: "search the artifact tree, grouped by category" },
   why:          { moment: "Orient",     when: "you need to justify or trace a capability's existence", purpose: "provenance: intent, proof, ADRs, and history" },
-  constitution: { moment: "Orient",     when: "you need the standing rules before deciding something", purpose: "accepted ADRs and product non-goals" },
   handoff:      { moment: "Orient",     when: "BEFORE compaction or handing over to another session", purpose: "a resume note: open work, task state, next command" },
 
   triage:       { moment: "Change",     when: "a request arrives — BEFORE scaffolding, especially if it smells like an incident", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
@@ -219,11 +216,6 @@ const SURFACE_HINTS = {
 // leaves the surface block — an agent should not reach for it, and the block
 // is the list of things to reach for. Removal is a later, separate change.
 export const DEPRECATED = Object.freeze({
-  "constitution": {
-    since: "0.16.0",
-    use: "doctrina prime --rules",
-    why: "prime renders the same standing-rules view, from the same collection",
-  },
   "report": {
     since: "0.17.0",
     use: "doctrina status --view report",
@@ -244,12 +236,22 @@ export const DEPRECATED = Object.freeze({
     use: "doctrina upgrade --write",
     why: "the upgrade's first step is this update, previewed without --write and applied with it",
   },
-  "change diff": {
-    since: "0.16.0",
-    use: "doctrina change check --verbose",
-    why: "check runs every ops block against the target spec and now prints the same per-delta preview",
-  },
 });
+
+// A deprecated operation that has since been REMOVED. Typing the old name
+// answers with its replacement instead of "unknown command, did you mean
+// ...?" — whoever still has it in a script or a habit learns the one thing
+// they need. Usage class: the fix is the invocation (ADR 0018).
+export const REMOVED = Object.freeze({
+  "constitution": { since: "0.17.0", use: "doctrina prime --rules" },
+  "change diff": { since: "0.17.0", use: "doctrina change check --verbose" },
+});
+
+/** The removal record for an invocation, or null. */
+export function removalFor(argv) {
+  const words = argv.filter((a) => !a.startsWith("-"));
+  return REMOVED[words.slice(0, 2).join(" ")] ?? REMOVED[words[0] ?? ""] ?? null;
+}
 
 /** The deprecation record for an invocation, or null. */
 export function deprecationFor(argv) {

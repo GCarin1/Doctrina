@@ -94,10 +94,10 @@ como um corpo de agentes age.
   comandos pelo hub, então o hub nunca fica atrás do CLI.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 38 comandos
-  e 61 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 37 comandos
+  e 59 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
   skill, intent, analyze, clarify, context, show, search, validate, coverage,
-  trace, review, verify, close, doctor, status, why, handoff, constitution,
+  trace, review, verify, close, doctor, status, why, handoff,
   watch, templates, hooks, index, next, metrics, report, completion e
   upgrade. As duas contagens são verificadas contra o catálogo pelo
   `scripts/check-docs.js` — como toda contagem afirmada na documentação

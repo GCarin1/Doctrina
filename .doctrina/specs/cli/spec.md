@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.51.0
+**Version:** 0.52.0
 
 ## Purpose
 
@@ -138,6 +138,7 @@ command shares (git, the lexicon, the usage log).
 - When a command is given a reference that does not resolve — a capability, a change id, an ADR number, a requirement or an acceptance criterion — the system shall report the usage class and name the reference, because the invocation is what has to change.
 - When `close` is given a change id that does not resolve, the system shall refuse with the usage class before sequencing any step, as every other command that takes a change id does.
 - When an invocation is refused for an undeclared flag and JSON output was requested, the system shall emit the envelope reporting the refusal and its exit code rather than an empty payload.
+- When an invocation names an operation removed from the catalog, the system shall run nothing and answer with the usage class, naming the version that removed it and the command that replaces it — in the `--json` envelope too — rather than "unknown command" and a guess.
 
 ### State-driven
 
@@ -255,12 +256,13 @@ The CLI is v0 spec-compliant when:
 41. [verified] A long `--concat` pack arrives whole through a pipe, byte for byte identical to the same pack written to a file, and the entrypoint sets an exit code rather than calling `process.exit` — verified by `packages/doctrina-cli/test/the-output-survives-the-exit.test.js`.
 42. [verified] Every command answers the precondition class with one message outside a project, the declared exceptions answer with their own output instead, and a typed error crossing a multi-id driver keeps its class — verified by `packages/doctrina-cli/test/a-fronteira-da-precondicao.test.js`.
 43. [verified] A window git would misread, a count with trailing text or a fraction, and a negative number after a value-taking flag each answer the usage class naming the value, while the documented forms still run — verified by `packages/doctrina-cli/test/um-valor-malformado-e-recusado.test.js`.
+44. [verified] `constitution` and `change diff` answer the usage class naming `prime --rules` and `change check --verbose`, print nothing on stdout, and return `{ok: false, exit_code: 2}` under `--json` — verified by `packages/doctrina-cli/test/deprecation.test.js`.
 
 ## Out of scope for this spec
 
 - Gate and insight command semantics (`analyze`, `clarify`, `validate`,
-  `coverage`, `trace`, `review`, `verify`, `close`, `status`, `why`,
-  `constitution`) — covered by the `gates` capability spec.
+  `coverage`, `trace`, `review`, `verify`, `close`, `status`, `why`)
+  — covered by the `gates` capability spec.
 
 - Remote operations, network calls, telemetry.
 

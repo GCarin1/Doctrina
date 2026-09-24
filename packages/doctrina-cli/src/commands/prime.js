@@ -29,8 +29,8 @@ export async function run(_positional, flags) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
-  // --rules: the standing rules in full, which is what `constitution` printed
-  // (change 0049). The primer names the ADRs and counts the non-goals; this
+  // --rules: the standing rules in full, which is what the removed
+  // `constitution` printed (changes 0049, 0175). The primer names the ADRs and counts the non-goals; this
   // prints both lists, from the same collection, so the two cannot disagree.
   const view = flagBool(flags, "rules", false) ? "rules" : "prime";
   for (const line of renderView(view, collectSnapshot(projectRoot))) console.log(line);
@@ -49,9 +49,8 @@ The same view as \`doctrina status --view prime\`; both render one
 collection of the tree, so they cannot disagree.
 
   --rules   Print the standing rules in full instead of the primer: every
-            accepted ADR and every declared non-goal. The same lines
-            \`doctrina constitution\` printed, from the same collection —
-            that command is deprecated and delegates here.
+            accepted ADR and every declared non-goal — what the removed
+            \`doctrina constitution\` printed, from the same collection.
 
 Read-only; always exits 0. Deeper reads: \`doctrina context\`,
 \`doctrina why <cap>\`, \`doctrina show <ref>\`.

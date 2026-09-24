@@ -63,7 +63,7 @@ doctrina context billing --concat | <seu agente>
 **5. Aplique, verifique, arquive:**
 
 ```sh
-doctrina change diff 0001-late-fees    # preview de todo delta
+doctrina change check 0001-late-fees --verbose  # preview de todo delta
 doctrina change apply 0001-late-fees   # ADDED/REMOVED auto, MODIFIED manual
 doctrina validate                      # 18 checagens estruturais
 doctrina change archive 0001-late-fees # história fora do caminho de leitura
@@ -83,7 +83,7 @@ ciclo propor → aplicar → arquivar em profundidade.
 
 ## A superfície de comandos
 
-38 comandos, 61 operações, zero dependências — veja a
+37 comandos, 59 operações, zero dependências — veja a
 **[Referência do CLI](cli-reference.md)** para todos. Esses dois números
 são verificados contra o catálogo do próprio CLI, então esta página não
 consegue ficar para trás em silêncio. Os que você vai
