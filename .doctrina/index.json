@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.22.0",
+        "version": "0.22.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -3054,6 +3054,19 @@
         "specs_affected": [
           {
             "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0191-slug-mantem-numeros",
+        "title": "slug mantém números",
+        "path": ".doctrina/changes/archive/2026-09-24-0191-slug-mantem-numeros",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ]

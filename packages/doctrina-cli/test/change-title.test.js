@@ -151,6 +151,17 @@ test("a prompt of nothing but stopwords still yields an id", () => {
   assert.match(slug, /^[a-z0-9][a-z0-9-]*$/);
 });
 
+// A version or a number is content in an id (change 0191): the slug used to
+// share retrieval's tokenizer, which keeps only words that start with a
+// letter, so "cortar a 0.17.0" opened `0189-cortar`.
+test("slugFromPrompt keeps versions and numbers, and still drops one-letter words", () => {
+  assert.equal(slugFromPrompt("cortar a 0.17.0"), "cortar-0-17-0");
+  assert.equal(slugFromPrompt("migrar para Node 24"), "migrar-node-24");
+  assert.equal(slugFromPrompt("subir a versão para 1.2.3"), "subir-versao-1-2-3");
+  assert.equal(slugFromPrompt("usar Python 3"), "usar-python-3");
+  assert.equal(slugFromPrompt("o id derivado do prompt perde números"), "id-derivado-prompt-perde");
+});
+
 test("slugFromPrompt is deterministic", () => {
   const p = "reconcile a bank credit against an open invoice";
   assert.equal(slugFromPrompt(p), slugFromPrompt(p));

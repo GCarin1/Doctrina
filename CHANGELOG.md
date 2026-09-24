@@ -17,6 +17,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A derived change id keeps the prompt's numbers.** The slug shared the
+  search tokenizer, which keeps only words that start with a letter, so
+  `work "cortar a 0.17.0"` opened `0189-cortar`. Versions and numbers now
+  stay (`cortar-0-17-0`, `migrar-node-24`). (0191)
+
 ## [0.17.0] — 2026-09-24
 
 ### Upgrading from 0.16

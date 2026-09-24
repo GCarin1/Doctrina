@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.22.0
+**Version:** 0.22.1
 
 ## Purpose
 
@@ -48,6 +48,7 @@ keep the checks and the read path.
 - The system shall treat a task line opened by any Markdown bullet marker (`-`, `*`, `+`) as a box, for `change tick` and for the archive gate alike.
 - The system shall classify a prompt into its lane after folding it (accents stripped, case folded) and with signal lists that carry both English and Portuguese vocabularies, so that a request phrased in either language is read into the same lane.
 - The system shall validate the name of a new spec, contract or skill against one shared grammar, defined once in `packages/doctrina-cli/src/lib/names.js` — lowercase letters, digits and hyphens, starting with a letter, no trailing or doubled hyphen, at most 64 characters, never a Windows reserved device name (con, prn, aux, nul, com1-com9, lpt1-lpt9) — and shall name the rule that failed.
+- The system shall keep a version or a number from the prompt in a derived change slug — "cortar a 0.17.0" slugs to `cortar-0-17-0`, "migrar para Node 24" to `migrar-node-24` — reading the slug's own tokens rather than the retrieval tokenizer's letter-first words, while still dropping stopwords and one-letter words.
 
 ### Event-driven
 
@@ -334,6 +335,7 @@ The authoring commands are v0 spec-compliant when:
 36. [verified] An out-of-domain value, a malformed flag and a missing criterion answer the usage class and leave the spec untouched, a spec lacking the header the operation needs answers the gate class and passes once repaired, and both at once answer the usage class — verified by `packages/doctrina-cli/test/spec-set-diz-o-que-corrigir.test.js`.
 37. [verified] The chore playbook and its opening line name `doctrina close` and neither `change apply` nor `change archive`, and a chore done by its playbook closes in one pass in a fresh project — verified by `packages/doctrina-cli/test/a-chore-fecha-como-toda-change.test.js`.
 38. [verified] `work --design` writes the design.md that `change new --design` writes for the same title, and `work` without the flag writes none — verified by `packages/doctrina-cli/test/o-work-esboca-o-design.test.js`.
+39. [verified] Prompts carrying a version or a number keep it in the slug, and one-letter words are still dropped — verified by `packages/doctrina-cli/test/change-title.test.js`.
 
 ## Out of scope for this spec
 
