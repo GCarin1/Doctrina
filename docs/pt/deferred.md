@@ -73,7 +73,7 @@ agente e editor.
 
 ## Mecanismo de auto-update para templates
 
-**Status:** levantado — `doctrina templates update` shipped, com a
+**Status:** levantado — `doctrina templates update` shipped (desde 0.17.0 é o passo 1 do `doctrina upgrade --write`), com a
 barra exata que este registro definiu: preview é o default (o
 comando não escreve nada e sai 1 enquanto há updates pendentes),
 `--write` é o opt-in, e as mudanças são só-aditivas (seções stub

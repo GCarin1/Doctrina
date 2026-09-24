@@ -1379,12 +1379,12 @@ test("templates update previews by default and applies with --write", () => {
     const preview = runCli(["templates", "update"], { cwd: tmp });
     assert.equal(preview.status, 1);
     assert.match(preview.stdout, /would.*AGENTS\.md: append stub section "## Conventions and boundaries"/);
-    assert.ok(!readFileSync(agentsPath, "utf8").includes("added by doctrina templates update"));
+    assert.ok(!readFileSync(agentsPath, "utf8").includes("added by doctrina upgrade"));
 
     const applied = runCli(["templates", "update", "--write"], { cwd: tmp });
     assert.equal(applied.status, 0, applied.stderr || applied.stdout);
     const body = readFileSync(agentsPath, "utf8");
-    assert.match(body, /## Conventions and boundaries\n\n<!-- added by doctrina templates update — fill in -->/);
+    assert.match(body, /## Conventions and boundaries\n\n<!-- added by doctrina upgrade — fill in -->/);
 
     const check = runCli(["templates", "check"], { cwd: tmp });
     assert.equal(check.status, 0, check.stdout);

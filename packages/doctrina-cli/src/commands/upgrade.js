@@ -9,6 +9,7 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { today } from "../lib/dates.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { collectFindings } from "../lib/templates-model.js";
 import * as templates from "./templates.js";
 import * as validate from "./validate.js";
 
@@ -56,10 +57,22 @@ export async function run(_positional, flags) {
   // 2. Additive template updates (missing recommended sections in AGENTS.md /
   //    product.md, missing index.json fields). Reuses `templates update`
   //    verbatim: preview without --write, apply with it.
-  console.log(c.gray("──── 1/3 scaffold shape (templates update)"));
+  console.log(c.gray("──── 1/3 scaffold shape"));
   const tplFlags = writeMode ? new Map([["write", true]]) : new Map();
   const tplCode = await templates.run(["update"], tplFlags);
   if (tplCode !== 0 && !writeMode) pending += 1; // preview exits 1 when updates are pending
+
+  // What the additive update cannot fix — a drifted adapter, a broken
+  // playbook, an index schema it does not know — used to be visible only to
+  // `templates check`. Printed here, each with its own remedy, so the one
+  // command that brings a project up to date also says what is left for a
+  // person (change 0178: the check and the update became this step).
+  const manual = collectFindings(projectRoot).findings
+    .filter((f) => !/upgrade --write|index rebuild/.test(f.remedy ?? ""));
+  for (const f of manual) {
+    console.log(c.yellow("✗ ") + f.message);
+    console.log(c.gray("    fix: ") + (f.remedy ? c.cyan(f.remedy) : c.gray("manual repair — no command can fix this")));
+  }
 
   // 3. Index: rebuild from the tree, which also migrates the framework stamp.
   console.log("");
@@ -101,13 +114,21 @@ export async function run(_positional, flags) {
   const vCode = await validate.run([], vFlags);
 
   console.log("");
+  if (manual.length > 0) {
+    console.log(c.yellow("manual") + ` ${manual.length} finding${manual.length === 1 ? "" : "s"} the upgrade cannot repair — see step 1`);
+  }
   if (!writeMode) {
-    if (pending > 0) {
+    if (pending > 0 || manual.length > 0) {
+      if (pending === 0) return 1;
       console.log(c.yellow("pending") + ` upgrade steps found — apply them: ${c.cyan("doctrina upgrade --write")}`);
       return 1;
     }
     console.log(c.green("ok") + " nothing to upgrade — the project matches the installed CLI");
     return vCode;
+  }
+  if (vCode === 0 && manual.length > 0) {
+    console.log(c.yellow(`upgraded to ${running} with manual repairs left`) + " — each finding in step 1 names its fix.");
+    return 1;
   }
   if (vCode === 0) {
     console.log(c.green(`✓ project upgraded to ${running}`) + c.gray(" — review any warnings above; new commands: `doctrina --help`."));
@@ -125,16 +146,20 @@ Bring an existing project up to the installed CLI after an npm update.
 The project keeps the scaffold of the version that init-ed it; this is
 the one command that closes the gap, orchestrating the existing pieces:
 
-  1. templates update   — regenerate the AGENTS.md doctrina:surface block
+  1. scaffold shape     — regenerate the AGENTS.md doctrina:surface block
                           from the installed command catalog (the block is
                           CLI-owned, ADR 0015 — this is how agents reading
-                          the hub discover commands added since init), and
+                          the hub discover commands added since init),
                           append missing recommended sections / index.json
-                          fields (additive-only outside the block)
+                          fields (additive-only outside the block), and
+                          list what no command can repair (a drifted
+                          adapter, a broken playbook), each with its fix
   2. index rebuild      — regenerate index.json from the tree and migrate
                           the framework_version stamp to the running CLI
   3. validate (--fix)   — surface anything the upgrade cannot fix
                           (hand-authored drift, new validate checks)
 
-Preview by default (exits 1 when steps are pending); --write applies.
+Preview by default (exits 1 when steps are pending or a manual repair is
+left); --write applies. The preview is what \`templates check\` reported
+and --write what \`templates update --write\` did — both deprecated.
 `;

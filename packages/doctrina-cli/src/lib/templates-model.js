@@ -111,16 +111,16 @@ export function collectFindings(projectRoot) {
             : ` — the ${missingSections.length} missing stub(s) cost ${budget.cost} lines and ` +
               `AGENTS.md has ${budget.slack} left of its declared ceiling`),
         remedy: budget.fits
-          ? "doctrina templates update --write"
-          : `cut ${budget.over} line(s) of prose from AGENTS.md, then \`doctrina templates update --write\``,
+          ? "doctrina upgrade --write"
+          : `cut ${budget.over} line(s) of prose from AGENTS.md, then \`doctrina upgrade --write\``,
       });
     }
     // Command-surface block: present and current vs the installed catalog.
     const block = findSurfaceBlock(text);
     if (!block) {
-      findings.push({ message: "AGENTS.md has no doctrina:surface block — agents discover commands through this file", remedy: "doctrina templates update --write" });
+      findings.push({ message: "AGENTS.md has no doctrina:surface block — agents discover commands through this file", remedy: "doctrina upgrade --write" });
     } else if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(surfaceBlock())) {
-      findings.push({ message: "AGENTS.md doctrina:surface block is stale vs the installed CLI", remedy: "doctrina templates update --write" });
+      findings.push({ message: "AGENTS.md doctrina:surface block is stale vs the installed CLI", remedy: "doctrina upgrade --write" });
     } else {
       ok.push("AGENTS.md: doctrina:surface block current");
     }
@@ -134,7 +134,7 @@ export function collectFindings(projectRoot) {
     const text = read(productPath);
     for (const heading of PRODUCT_SECTIONS) {
       if (hasHeading(text, heading)) ok.push(`product.md: ${heading}`);
-      else findings.push({ message: `.doctrina/product.md missing recommended section "${heading}"`, remedy: "doctrina templates update --write" });
+      else findings.push({ message: `.doctrina/product.md missing recommended section "${heading}"`, remedy: "doctrina upgrade --write" });
     }
   } else {
     findings.push({ message: ".doctrina/product.md missing", remedy: "doctrina init --force" });
@@ -195,7 +195,7 @@ export function collectFindings(projectRoot) {
       const idx = JSON.parse(read(indexPath));
       for (const field of INDEX_FIELDS) {
         if (idx[field] !== undefined) ok.push(`index.json: ${field}`);
-        else findings.push({ message: `.doctrina/index.json missing field "${field}"`, remedy: "doctrina templates update --write" });
+        else findings.push({ message: `.doctrina/index.json missing field "${field}"`, remedy: "doctrina upgrade --write" });
       }
       if (idx.$schema_version && idx.$schema_version !== "0.1.0") {
         findings.push({ message: `.doctrina/index.json $schema_version is "${idx.$schema_version}" (expected "0.1.0")`, remedy: null });

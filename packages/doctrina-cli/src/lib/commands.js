@@ -234,6 +234,16 @@ export const DEPRECATED = Object.freeze({
     use: "doctrina index rebuild",
     why: "the rebuild registers every skill and mirrors its description, keeping a written one over a scaffold placeholder",
   },
+  "templates check": {
+    since: "0.17.0",
+    use: "doctrina upgrade",
+    why: "the upgrade preview reports every template finding, each with its fix, and exits 1 while one is left",
+  },
+  "templates update": {
+    since: "0.17.0",
+    use: "doctrina upgrade --write",
+    why: "the upgrade's first step is this update, previewed without --write and applied with it",
+  },
   "change diff": {
     since: "0.16.0",
     use: "doctrina change check --verbose",

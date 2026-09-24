@@ -174,7 +174,7 @@ function updateTemplates(flags) {
           let updated = read(filePath);
           if (!updated.endsWith("\n")) updated += "\n";
           for (const h of missing) {
-            updated += `\n${h}\n\n<!-- added by doctrina templates update — fill in -->\n`;
+            updated += `\n${h}\n\n<!-- added by doctrina upgrade — fill in -->\n`;
           }
           write(filePath, updated, { force: true });
         },

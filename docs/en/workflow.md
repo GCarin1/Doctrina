@@ -66,7 +66,7 @@ the command to read the current playbook, and drop your own file in
 `.doctrina/templates/playbooks/` to adapt it to your team's process — an
 extra review step, a different close. This page deliberately does not
 repeat the steps, because a procedure written in two places is a
-procedure that will disagree with itself; `doctrina templates check`
+procedure that will disagree with itself; `doctrina upgrade`
 verifies each playbook still resolves and is well-formed.
 
 In practice the bootstrap is one command: run

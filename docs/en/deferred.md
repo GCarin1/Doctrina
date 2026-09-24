@@ -68,7 +68,7 @@ layer; IDE integration belongs to the agent and editor vendors.
 
 ## Auto-update mechanism for templates
 
-**Status:** lifted — `doctrina templates update` shipped, with the
+**Status:** lifted — `doctrina templates update` shipped (since 0.17.0 it is step 1 of `doctrina upgrade --write`), with the
 exact bar this register set: preview is the default (the command
 writes nothing and exits 1 while updates are pending), `--write`
 is the opt-in, and changes are additive-only (stub sections

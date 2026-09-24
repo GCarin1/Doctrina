@@ -974,13 +974,20 @@ diretório de templates do framework e a contagem de linhas. Útil
 para descobrir o que `init`, `spec new`, `change new` e
 `decision new` vão esqueletar.
 
-## `doctrina templates check`
+## `doctrina templates check` — depreciado
+
+> **Depreciado** (0.17.0). Use `doctrina upgrade`: o preview dele reporta
+> todo achado abaixo, cada um com sua correção — os que ele consegue reparar
+> como passos pendentes, o resto como reparo manual — e sai com 1 enquanto
+> sobrar algum. O nome antigo continua funcionando, avisa no stderr, traz um
+> campo `deprecated` no envelope do `--json` e será removido num minor futuro.
 
 Compara o projeto atual contra a forma de template recomendada
 shippada nesta versão do CLI.
 
 ```
-doctrina templates check
+doctrina upgrade             # preferido (preview)
+doctrina templates check     # alias depreciado
 ```
 
 Caminha por `AGENTS.md`, `.doctrina/product.md` e
@@ -1005,18 +1012,24 @@ achado sumiu — um remédio que o CLI não consegue executar e verificar não
 recomendada está presente, 1 caso contrário.
 
 Distinto de `validate`: `validate` responde "esta é uma árvore
-Doctrina bem-formada?"; `templates check` responde "esta árvore
+Doctrina bem-formada?"; o preview do upgrade responde "esta árvore
 ainda segue a forma que os templates do CLI atual recomendam?"
 Rode após `npm install -g doctrina-cli@latest` para ver se novas
 formas de template adicionaram seções que seus arquivos
 existentes ainda não adotaram.
 
-## `doctrina templates update`
+## `doctrina templates update` — depreciado
 
-Corretor para o que o `templates check` reporta.
+> **Depreciado** (0.17.0). Use `doctrina upgrade --write`, cujo primeiro
+> passo é esta atualização (com preview em `doctrina upgrade`). O nome
+> antigo continua funcionando, avisa no stderr, traz um campo `deprecated`
+> no envelope do `--json` e será removido num minor futuro.
+
+Corretor para o que o `doctrina upgrade` reporta.
 
 ```
-doctrina templates update [--write]
+doctrina upgrade [--write]            # preferido
+doctrina templates update [--write]   # alias depreciado
 ```
 
 Preview é o default: o comando imprime o plano de update — seções
@@ -1025,7 +1038,7 @@ campos de schema ou categorias de artefato faltando no
 `index.json`, e o estado do **bloco doctrina:surface** do AGENTS.md —
 não escreve nada e sai 1 enquanto há updates pendentes. Com `--write`
 ele anexa seções stub (marcadas com
-`<!-- added by doctrina templates update — fill in -->`), adiciona os
+`<!-- added by doctrina upgrade — fill in -->`), adiciona os
 campos faltantes e **regenera o bloco surface** a partir do catálogo
 do CLI instalado: um bloco desatualizado é reescrito no lugar; uma
 seção legada `## Doctrina command surface` escrita à mão (esqueleto de
@@ -1038,8 +1051,8 @@ sendo decisão humana.
 **A recomendação de seções diz o que custa.** O `AGENTS.md` tem um teto de
 linhas declarado (`agents-md-lines`), e é um budget de OUTPUT, então o
 `analyze` recusa uma change que resolva um estouro subindo o teto. Quando os
-stubs que faltam não cabem, o `templates check` nomeia o preço e o corte a
-fazer antes, e o `templates update --write` **segura** aquele item — imprime
+stubs que faltam não cabem, o `upgrade` nomeia o preço e o corte a
+fazer antes, e o `upgrade --write` **segura** aquele item — imprime
 o que recusou e por quê, deixa o arquivo intocado e aplica as outras
 atualizações normalmente. Abrir o espaço que ele pede e rodar de novo limpa
 a retenção. Sem isso, um gate advisory resolvia o próprio finding entrando
@@ -2181,7 +2194,7 @@ duas, não uma delas isolada. Ambos são declarados como budgets de
 subindo o teto; a linha reporta a folga *antes* de ela acabar, enquanto
 ainda há escolha sobre o que cortar. Os dois números vêm do seu dono
 (`agentsMdBudget`, `surfaceBudget`), então esta linha nunca cita um
-tamanho de que o `validate` ou o `templates check` discordem.
+tamanho de que o `validate` ou o `upgrade` discordem.
 
 | Flag | Função |
 |------|--------|
@@ -2303,7 +2316,7 @@ doctrina upgrade --write    # aplica
 
 Um orquestrador sobre as peças que já existem, em ordem:
 
-1. `templates update` — **regenera o bloco doctrina:surface do
+1. **Forma do scaffold** — **regenera o bloco doctrina:surface do
    AGENTS.md** a partir do catálogo do CLI instalado (o bloco é
    propriedade do CLI, ADR 0015 — é assim que agentes lendo o hub
    descobrem comandos adicionados desde o init; uma seção de superfície
@@ -2313,7 +2326,7 @@ Um orquestrador sobre as peças que já existem, em ordem:
 
    O bloco carrega um **gatilho por comando** — o que ele faz e o momento
    em que você o usa (ADR 0020) — e tem um orçamento declarado de 40 linhas
-   que o `templates check` cobra. Ao lado dele, um bloco gerado
+   que o preview do upgrade cobra. Ao lado dele, um bloco gerado
    `## What changed in <versão>` de três a seis linhas diz apenas o que
    altera o comportamento do agente, para que um agente lendo o AGENTS.md
    após um upgrade descubra o que é novo sem que ninguém mande olhar.
@@ -2335,8 +2348,9 @@ Um único `upgrade --write` cobre **todos os agentes instalados**: os
 adapters (CLAUDE.md, GEMINI.md, `.cursor/rules/…`, …) são ponteiros
 finos para o AGENTS.md e não carregam superfície de comandos própria,
 então atualizar o bloco do hub É atualizar o que todo agente lê. O
-`templates check` (passo 1) verifica que cada adapter instalado ainda
-aponta para o hub.
+passo 1 verifica que cada adapter instalado ainda aponta para o hub e
+nomeia `adapter add <nome> --force` para o que não aponta — um reparo que
+ele lista, sem fazer.
 
 ## Variáveis de ambiente
 

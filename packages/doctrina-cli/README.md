@@ -52,8 +52,7 @@ doctrina trace                             intent provenance: product intent -> 
 doctrina verify                            run project typecheck/test/build checks (the real gate)
 doctrina verify --clean                    reproducibility lint: clean-checkout footguns (dist/codegen)
 doctrina templates list                    enumerate shipped templates
-doctrina templates check                   compare project against recommended template shape
-doctrina templates update                  additive fixer for check findings (preview; --write applies)
+doctrina upgrade                           project vs installed CLI: template shape, index, validate (--write applies)
 doctrina hooks install                     install pre-commit hook
 doctrina index rebuild                     regenerate index.json from the files (--check for CI)
 doctrina next                              print the recommended next workflow actions

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.22.1
+**Version:** 0.23.0
 
 ## Purpose
 
@@ -89,6 +89,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - When the agent-facing changelog is drafted, the system shall propose one candidate bullet per archived change in the window that touched a documented surface, newest first, capped at the block's bullet limit, and shall name the window it used and every candidate that did not fit.
 - When an archived change in the window touched no documented surface, the system shall propose no bullet for it and shall say that it proposed none, rather than emitting an empty block.
 - When a playbook describes closing a change, the system shall name every gate that asks the author to WRITE something — the documentation, the changelog entry, and the declaration that a named surface is only mentioned — before the close refuses for want of it.
+- When `doctrina upgrade` runs, the system shall report, in its scaffold-shape step, every finding `templates check` reports — the ones the additive update repairs as pending steps, and each one no command repairs (a hub pointer that lost AGENTS.md, a broken playbook) with its named fix — and shall exit with the gate class while any is left, with or without `--write`, because "nothing to upgrade" over a project the check fails is a green light on red.
+- When the deprecated `doctrina templates check` or `doctrina templates update` runs, the system shall behave as before and name `doctrina upgrade` (or `doctrina upgrade --write`) on stderr.
 
 ### State-driven
 
@@ -177,6 +179,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 27. [verified] Without room `templates update --write` stands down leaving the file untouched, and making the room it asks for clears the hold — verified by `packages/doctrina-cli/test/a-recommendation-states-its-cost.test.js`.
 28. [verified] The work playbook names the writing gates and no longer restates the closing sequence, and every playbook variant still renders byte for byte against its golden — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 29. [verified] The packaging chain holds end to end — the canonical tree is the one in version control, the pack hook writes the packaged tree from it after clearing it, and the package's `files` ships the result — verified by `packages/doctrina-cli/test/o-template-que-envia-e-o-que-vale.test.js`.
+30. [verified] Over a project with one repairable and one manual finding, the upgrade preview reports every finding the check reported and exits 1, `upgrade --write` writes what `templates update --write` wrote and stays red until the named fix is run, and both templates operations warn naming the upgrade — verified by `packages/doctrina-cli/test/o-upgrade-cobre-o-templates.test.js`.
 
 ## Out of scope for this spec
 

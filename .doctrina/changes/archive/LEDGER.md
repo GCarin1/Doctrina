@@ -185,3 +185,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0172-readme-sem-instalacao-e-lista-quebrada — README sem instalacao e lista quebrada (specs: docs MODIFIED)
 - 2026-09-24 — 0176-report-diverge-de-status-view-report — report diverge de status view report (specs: insight MODIFIED)
 - 2026-09-24 — 0177-skill-sync-fundido-no-index-rebuild — skill sync fundido no index rebuild (specs: authoring MODIFIED, skills MODIFIED, structure MODIFIED)
+- 2026-09-24 — 0178-templates-check-e-update-fundidos-no-upgrade — templates check e update fundidos no upgrade (specs: templates MODIFIED)

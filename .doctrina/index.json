@@ -145,7 +145,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.22.1",
+        "version": "0.23.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -563,14 +563,6 @@
         "status": "proposed",
         "opened": "2026-09-24",
         "lane": "product (uncertain; signals: change)"
-      },
-      {
-        "id": "0178-templates-check-e-update-fundidos-no-upgrade",
-        "title": "templates check e update fundidos no upgrade",
-        "path": ".doctrina/changes/0178-templates-check-e-update-fundidos-no-upgrade",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "chore (confident; signals: upgrade)"
       },
       {
         "id": "0179-documentacao-defasada",
@@ -2885,6 +2877,19 @@
           },
           {
             "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0178-templates-check-e-update-fundidos-no-upgrade",
+        "title": "templates check e update fundidos no upgrade",
+        "path": ".doctrina/changes/archive/2026-09-24-0178-templates-check-e-update-fundidos-no-upgrade",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

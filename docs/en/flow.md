@@ -190,9 +190,9 @@ flowchart TD
   `doctrina hooks install` — pre-commit = `validate --fix` then `index rebuild
   --check --staged`. `doctrina index
   rebuild` — regenerate the index from the tree. `doctrina templates
-  list|check|update` — inspect/refresh the shipped templates.
+  list` — where each shipped template resolves from.
   `doctrina upgrade` (`--write`) — bring an existing project up to the
-  installed CLI after an npm update (templates update → index/stamp →
+  installed CLI after an npm update (scaffold shape → index/stamp →
   validate). `doctrina metrics` — git-derived adoption signals.
   `doctrina status --view report` — Markdown digest of the period.
   `doctrina completion bash|zsh|pwsh` — shell completions generated from

@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Deprecated
 
+- **`doctrina templates check` / `templates update` → `doctrina upgrade`
+  / `upgrade --write`.** The upgrade's first step was already the update,
+  and the check was that step without the power to fix — but the check also
+  reported what no command repairs (a hub pointer that lost AGENTS.md, a
+  broken playbook), and the upgrade said "nothing to upgrade" over it. The
+  upgrade now lists those with their fixes and exits 1 while one is left.
+  (0178)
 - **`doctrina skill sync` → `doctrina index rebuild`.** The rebuild already
   registered every skill and mirrored its description; `sync` added one
   rule, that a scaffold `<...>` description never overwrites a written one.

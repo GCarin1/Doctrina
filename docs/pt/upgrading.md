@@ -19,7 +19,7 @@ doctrina upgrade --write     # o projeto
 Três passos, cada um delegando para um comando que já existe, para
 que haja uma única definição de cada:
 
-1. **Forma do scaffold** (`templates update`) — adiciona seções
+1. **Forma do scaffold** — adiciona seções
    recomendadas que estejam faltando e regenera os dois blocos que a
    CLI é dona no `AGENTS.md`: a superfície de comandos e o changelog
    voltado ao agente. **Só aditivo.** Nunca reescreve uma linha sua.

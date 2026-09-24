@@ -205,7 +205,7 @@ export const SEQUENCES = {
     { id: "coverage", label: "coverage", level: "advisory", argv: ["coverage"] },
     { id: "trace", label: "trace", level: "advisory", argv: ["trace"] },
     { id: "clean-checkout", label: "clean-checkout", level: "blocking", argv: ["verify", "--clean"] },
-    { id: "templates", label: "templates", level: "advisory", argv: ["templates", "check"] },
+    { id: "templates", label: "templates", level: "advisory", argv: ["upgrade"] },
     { id: "runtime", label: "runtime", level: "blocking", argv: ["contract", "check"] },
     { id: "local-env", label: "local .env", level: "blocking", argv: null, rerun: "doctrina doctor --env", flag: "env" },
     { id: "verify-config", label: "verify config", level: "blocking", argv: ["verify", "--init"] },
