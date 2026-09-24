@@ -2242,7 +2242,8 @@ doctrina completion pwsh >> $PROFILE
 ```
 
 Completa comandos e seus subcomandos (flags não são completadas).
-Saída estática — regenere após atualizar o CLI.
+Operações depreciadas ficam de fora: continuam rodando, mas o tab oferece
+só os substitutos. Saída estática — regenere após atualizar o CLI.
 
 ## `doctrina ci --emit <target>`
 

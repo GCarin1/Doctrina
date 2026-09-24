@@ -63,6 +63,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Tab completion offers the live surface.** The bash, zsh and pwsh
+  scripts were generated from the whole catalog and kept offering
+  `analyze`, `report`, `skill sync` and `templates check|update` beside
+  their replacements. Deprecated names still run; they are no longer
+  suggested. Regenerate with `doctrina completion <shell>`. (0188)
 - **`upgrade` sees the slash command the last CLI left behind.** A command
   shim is copied into a project once, so a project scaffolded by 0.16 kept
   a `/doctrina-work` that ran `analyze` → `change apply`, and `upgrade`

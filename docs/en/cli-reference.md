@@ -2181,7 +2181,8 @@ doctrina completion pwsh >> $PROFILE
 ```
 
 Completes commands and their subcommands (flags are not completed).
-Static output — regenerate after upgrading the CLI.
+Deprecated operations are left out: they still run, but tab offers only
+their replacements. Static output — regenerate after upgrading the CLI.
 
 ## `doctrina ci --emit <target>`
 
