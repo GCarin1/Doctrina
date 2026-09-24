@@ -145,7 +145,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.23.0",
+        "version": "0.24.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -540,14 +540,6 @@
       }
     ],
     "changes": [
-      {
-        "id": "0181-slash-commands-com-passos-redundantes",
-        "title": "slash commands com passos redundantes",
-        "path": ".doctrina/changes/0181-slash-commands-com-passos-redundantes",
-        "status": "proposed",
-        "opened": "2026-09-24",
-        "lane": "product (uncertain)"
-      },
       {
         "id": "0182-analyze-fundido-no-change-check",
         "title": "analyze fundido no change check",
@@ -2947,6 +2939,19 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ]
+      },
+      {
+        "id": "0181-slash-commands-com-passos-redundantes",
+        "title": "slash commands com passos redundantes",
+        "path": ".doctrina/changes/archive/2026-09-24-0181-slash-commands-com-passos-redundantes",
+        "status": "applied",
+        "applied": "2026-09-24",
+        "specs_affected": [
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ]

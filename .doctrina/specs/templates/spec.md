@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.23.0
+**Version:** 0.24.0
 
 ## Purpose
 
@@ -116,6 +116,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall not write the agent-facing changelog from the draft, and shall not raise the block's bullet cap to fit more candidates; the draft proposes and a person decides.
 - If appending the recommended stub sections would take AGENTS.md past its declared line ceiling, the system shall not append them, and shall report the shortfall instead of resolving one gate's recommendation by breaching another gate's refusal.
 - The system shall not restate a declared sequence inside a playbook; a playbook shall point at the command that prints it, so a reader never meets a second copy that has gone stale.
+- The system shall not install an adapter file that hands the agent `doctrina analyze`, `doctrina change apply` or `doctrina change archive` as manual steps; the work commands an adapter installs shall preview with `doctrina change check <id>` and finish with `doctrina close <id>`, the one definition of done.
 
 ### Optional
 
@@ -180,6 +181,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 28. [verified] The work playbook names the writing gates and no longer restates the closing sequence, and every playbook variant still renders byte for byte against its golden — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 29. [verified] The packaging chain holds end to end — the canonical tree is the one in version control, the pack hook writes the packaged tree from it after clearing it, and the package's `files` ships the result — verified by `packages/doctrina-cli/test/o-template-que-envia-e-o-que-vale.test.js`.
 30. [verified] Over a project with one repairable and one manual finding, the upgrade preview reports every finding the check reported and exits 1, `upgrade --write` writes what `templates update --write` wrote and stays red until the named fix is run, and both templates operations warn naming the upgrade — verified by `packages/doctrina-cli/test/o-upgrade-cobre-o-templates.test.js`.
+31. [verified] With every adapter installed, no installed file names a manual analyze, apply or archive, and each `/doctrina-work` command previews with `change check` and finishes with `close` — verified by `packages/doctrina-cli/test/os-slash-commands-fecham-pelo-close.test.js`.
 
 ## Out of scope for this spec
 

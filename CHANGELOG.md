@@ -48,6 +48,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The `/doctrina-work` slash commands leave the lifecycle to the close.**
+  The Claude Code and Cursor adapters told the agent to run `analyze` →
+  `change apply` before `close` — two steps the close runs itself. They now
+  preview with `change check <id>` and finish with `close <id>`. Refresh an
+  installed copy with `doctrina adapter add <agent> --force`. (0181)
 - **A chore closes the way every change closes.** The chore playbook, and
   the line `work --chore` prints on opening, ended with a hand-run
   `change apply`, `change archive` and `validate` — skipping the close's

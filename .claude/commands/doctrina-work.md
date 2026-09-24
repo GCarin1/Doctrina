@@ -9,7 +9,8 @@ Drive the Doctrina spec-driven workflow for **Doctrina**.
    (No prompt, but you already edited code? Use `doctrina work --from-diff`.)
 2. Execute the printed playbook in order: read the pack with
    `doctrina context <capability> --concat`, write the spec delta, fill
-   `tasks.md`, implement, then `doctrina analyze <id>` → `doctrina change apply <id>`.
+   `tasks.md`, implement. `doctrina change check <id>` previews everything
+   the close would refuse.
 3. Close it: `doctrina close <id>` — one attested pass over every gate. The
    sequence is declared in one place and printed by `doctrina close --help`;
    read it there rather than from a copy. Resolve every `error:` before
