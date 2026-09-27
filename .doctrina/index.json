@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.17.0",
-  "last_updated": "2026-09-24",
+  "last_updated": "2026-09-27",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -3285,6 +3285,15 @@
         "path": ".doctrina/changes/archive/2026-09-24-0197-0-17-0-inclui-0191-a-0196",
         "status": "applied",
         "applied": "2026-09-24",
+        "specs_affected": [],
+        "lane": "chore — opened as chore"
+      },
+      {
+        "id": "0198-repository-url-bate-com-a-provenance",
+        "title": "repository url bate com a provenance",
+        "path": ".doctrina/changes/archive/2026-09-27-0198-repository-url-bate-com-a-provenance",
+        "status": "applied",
+        "applied": "2026-09-27",
         "specs_affected": [],
         "lane": "chore — opened as chore"
       }

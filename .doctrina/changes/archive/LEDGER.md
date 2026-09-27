@@ -208,3 +208,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0195-closing-steps-saem-do-tasks — closing steps saem do tasks (specs: authoring MODIFIED)
 - 2026-09-24 — 0196-id-de-change-e-um-nome-nao-um-caminho — id de change é um nome, não um caminho (specs: authoring MODIFIED)
 - 2026-09-24 — 0197-0-17-0-inclui-0191-a-0196 — 0.17.0 inclui 0191 a 0196
+- 2026-09-27 — 0198-repository-url-bate-com-a-provenance — repository url bate com a provenance
