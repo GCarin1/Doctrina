@@ -15,7 +15,7 @@
   ],
   "type": "module",
   "bin": {
-    "doctrina": "./src/index.js"
+    "doctrina": "src/index.js"
   },
   "scripts": {
     "test": "node --test",
@@ -32,7 +32,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gcarin1/doctrina.git",
+    "url": "git+https://github.com/GCarin1/Doctrina.git",
     "directory": "packages/doctrina-cli"
   },
   "publishConfig": {

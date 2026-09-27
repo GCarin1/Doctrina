@@ -122,6 +122,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The published manifest matches the provenance.** With `--provenance`,
+  npm requires `repository.url` to name the repository exactly as the
+  GitHub attestation does; the manifest said `gcarin1/doctrina` and the
+  publish was refused (E422). It now reads
+  `git+https://github.com/GCarin1/Doctrina.git`, and `bin` no longer needs
+  npm's auto-correction. (0198)
 - **A change is named by its folder, never by a path.** `change archive
   ../../victim --force` moved the project's own `victim/` directory into
   the archive and wrote it into the ledger and the index: only `change new`

@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gcarin1/doctrina.git"
+    "url": "git+https://github.com/GCarin1/Doctrina.git"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
