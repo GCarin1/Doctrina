@@ -213,3 +213,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0200-review-do-close-olha-a-change — review do close olha a change (specs: gates MODIFIED)
 - 2026-10-25 — 0201-close-avisa-change-esquecida — close avisa change esquecida (specs: cli MODIFIED, gates MODIFIED, insight MODIFIED)
 - 2026-10-25 — 0202-close-nao-se-repete — close nao se repete (specs: gates MODIFIED, skills MODIFIED)
+- 2026-10-25 — 0203-verify-verde-nao-roda-duas-vezes — verify verde nao roda duas vezes (specs: gates MODIFIED, insight MODIFIED)

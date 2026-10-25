@@ -1581,8 +1581,26 @@ cita como prova — veja [`doctrina coverage`](#doctrina-coverage).
 | `--list` | Imprime as checagens configuradas sem executá-las. |
 | `--clean` | Linta package.json por footguns de reprodutibilidade em vez de rodar as checagens. |
 | `--strict` | Falha o gate quando uma checagem manual está pendente de sign-off. |
+| `--reuse` | Pula as checagens quando a última execução toda verde cobriu um código byte a byte idêntico (veja abaixo). O `close` roda o verify assim. |
 | `--signoff "<nome>=<nota>"` | Registra o sign-off de hoje para uma checagem manual e sai. |
 | `--force` | Com `--init`, sobrescreve uma config existente. |
+
+**Uma execução verde não se repete sobre o mesmo código.** Toda execução
+toda verde (toda checagem passou, nenhuma manual pendente) é lembrada contra
+uma impressão digital do código de onde partiu: a working tree — arquivos
+rastreados, não rastreados e editados, respeitando o `.gitignore` — menos o
+`.doctrina/`, mais o `verify.json` e a versão do CLI. O `verify --reuse`, e
+portanto o `close`, pula as checagens quando a impressão bate, e diz isso.
+Assim a suíte que o agente roda à mão logo antes do `doctrina close` não
+roda uma segunda vez, e um close em lote a roda uma vez em vez de uma por
+id — entre os ids só o `.doctrina/` muda. O `.doctrina/` fica fora da
+impressão de propósito: o apply e o archive do close o alteram, e a árvore
+de artefatos é provada pelos passos do próprio close (coverage, trace,
+index drift e validate), que sempre rodam. Qualquer outra diferença — um
+byte de código, um arquivo novo, um `verify.json` editado — roda tudo. Um
+`doctrina verify` simples sempre roda. O registro fica no diretório do git
+(`doctrina-verify-green.json`), nunca na árvore; fora de um repositório git
+nada é lembrado.
 
 ## `doctrina contract new <name>` / `list` / `check`
 
@@ -1812,7 +1830,9 @@ inteira depois de cada close era a mesma lista, close após close), parando na p
 O gate de coverage é **escopado às capabilities que os deltas da change
 tocam** (`--only` por baixo), então uma spec deliberadamente adiada em
 outro canto da árvore não bloqueia um close que nunca a tocou; uma change
-sem deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
+sem deltas gateia na árvore inteira. O verify roda com `--reuse`, então uma execução verde sobre código idêntico —
+a que o agente acabou de rodar, ou a do id anterior de um lote — não se
+repete; ele é pulado (com aviso) quando
 não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
 driver sobre os comandos existentes — adiciona uma checagem própria, o
 gate de docs — então o agente faz uma chamada em vez de nove.

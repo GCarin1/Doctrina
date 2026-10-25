@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
+**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.45.0
+**Version:** 1.46.0
 
 ## Purpose
 
@@ -202,6 +202,7 @@ codes, zero-deps, no-network).
 - When a change has its tasks done and a delta to merge, `doctrina next` shall recommend `doctrina change check <id>` followed by `doctrina close <id>`, and when the close stops on its structural step it shall name `doctrina change check <id>` as the rerun instead of the deprecated `analyze`.
 - When `review` runs for a change — `--change <id>`, as `close` runs it — the system shall count the capabilities that change's deltas target as updated, and shall report code under capabilities the change carries no delta for in one finding naming them all.
 - When a close finishes, whatever its outcome, the system shall list the other open changes — one line each for a change that looks finished (applied, or every task ticked) and was never closed, with its close command, and for one open 7 days or more, with its age — and count the rest, without moving the exit code.
+- When `verify --reuse` runs — as `close` runs it — and the last run in which every check passed started from a byte-identical fingerprint of the code (the working tree minus `.doctrina/`, plus the verify configuration and the CLI version), the system shall skip the checks and say which run it reused; any difference shall run every check, and a plain `verify` shall always run them.
 
 ### State-driven
 
@@ -349,6 +350,7 @@ The gate surface is spec-compliant when:
 87. [verified] A file claimed by one spec's `**Source:**` is owned by that spec alone even when other specs mention its basename, and `review --change <id>` names neither the change's own capability nor more than one line for the other changed capabilities, while plain `review` keeps one break per capability and an unknown or path-shaped id exits 2 — verified by `packages/doctrina-cli/test/o-review-do-close-olha-a-change.test.js`.
 88. [verified] Closing one change prints the other open changes, naming the finished-but-open and the 20-day-old ones and counting the recent one, never the change being closed — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 89. [verified] Closing two changes in one run prints one skills section naming the just-closed fix-shaped change and counting three older candidates without listing them, and the docs step prints its line once — verified by `packages/doctrina-cli/test/o-close-nao-se-repete.test.js`.
+90. [verified] After a green `verify`, `verify --reuse` runs no check while a plain `verify` runs again; an edited file, a new file or a red run makes `--reuse` run everything; `.doctrina/` and ignored files do not move the fingerprint; and `close` passes `--reuse` — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
 
 ## Out of scope for this spec
 

@@ -294,7 +294,10 @@ async function closeOne(projectRoot, id, flags) {
     // verify is conditional: skipped with a loud note when no verify.json is
     // declared, because a project may not have wired the real gate yet.
     verify: verifyConfigured
-      ? { run: () => verify.run([], new Map()) }
+      // --reuse (change 0203): the suite the agent just ran by hand, or the
+      // one the previous id of this batch ran, on byte-identical code, is
+      // not run a second time. Anything that differs runs everything.
+      ? { run: () => verify.run([], new Map([["reuse", true]])) }
       : { skip: "no .doctrina/verify.json — declare the real gate with `doctrina verify --init`" },
 
     coverage: {

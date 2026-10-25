@@ -11,6 +11,7 @@ import { c } from "../lib/colors.js";
 import { loadSignoffs, saveSignoffs, recordSignoff, signoffState, short, SIGNOFF_REL } from "../lib/signoff.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
+import { verifyFingerprint, recordGreen, reusableGreen } from "../lib/verify-cache.js";
 
 // The build/verify gate `validate` is not. `validate` checks the shape of
 // the artifact tree; it never runs the project, so a repo that does not
@@ -40,7 +41,7 @@ const STARTER = {
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "clean", "force", "init", "list", "strict"], string: ["signoff"] };
+export const flags = { boolean: ["json", "clean", "force", "init", "list", "strict", "reuse"], string: ["signoff"] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -182,6 +183,21 @@ export async function run(_positional, flags) {
   }
 
   const strict = flagBool(flags, "strict", false);
+  // The fingerprint of the code these checks are about to run on, taken
+  // BEFORE they run (change 0203): what a green run proves is the tree it
+  // started from. Null outside git — then nothing is remembered or reused.
+  const fingerprint = verifyFingerprint(projectRoot, read(configPath));
+  if (flagBool(flags, "reuse", false) && fingerprint !== null) {
+    const green = reusableGreen(projectRoot, fingerprint);
+    if (green) {
+      console.log(c.bold("doctrina verify") + c.gray(` — ${checks.length} check${checks.length === 1 ? "" : "s"} from ${CONFIG_REL}`));
+      console.log("");
+      console.log(c.green("ok") + ` reused the green run of ${green.at.replace("T", " ").slice(0, 16)} UTC — ` +
+        `the code and ${CONFIG_REL} are byte-identical to what it ran on (${green.checks.join(", ")})`);
+      console.log(c.gray("   `doctrina verify` runs the checks again"));
+      return 0;
+    }
+  }
   console.log(c.bold("doctrina verify") + c.gray(` — ${checks.length} check${checks.length === 1 ? "" : "s"} from ${CONFIG_REL}`));
   const results = [];
   for (const ch of checks) {
@@ -290,6 +306,11 @@ export async function run(_positional, flags) {
   const pendNote = pending.length > 0 ? c.gray(` (${pending.length} manual pending)`) : "";
   if (!failGate) {
     console.log(c.green("ok") + ` ${passed}/${results.length} checks passed${pendNote}`);
+    // Remembered only when EVERY check passed — a run green with a manual
+    // check still pending is a report, not something a close may stand on.
+    if (fingerprint !== null && pending.length === 0) {
+      recordGreen(projectRoot, fingerprint, results.map((r) => r.name));
+    }
     return 0;
   }
   const reasons = [];
@@ -403,7 +424,7 @@ function renderReproducibility(projectRoot) {
 }
 
 export const help = `
-Usage: doctrina verify [--list] [--init] [--clean] [--strict] [--signoff "<name>=<note>"] [--force]
+Usage: doctrina verify [--list] [--init] [--clean] [--strict] [--reuse] [--signoff "<name>=<note>"] [--force]
 
 Run the project-declared build/verify checks from ${CONFIG_REL} in order,
 streaming their output, and exit non-zero if any check fails. This is the
@@ -450,6 +471,10 @@ Flags:
              prepare/prepack; a Prisma dep with no generate on install) so
              "verify green" can't hide a clean checkout that won't build.
   --strict   Fail the gate when a manual check is still pending sign-off
+  --reuse    Skip the checks when the last fully green run covered this exact
+             code: the working tree (tracked, untracked, edits) minus
+             .doctrina/, plus ${CONFIG_REL}, are byte-identical. \`close\` runs
+             verify this way; a plain \`doctrina verify\` always runs them.
   --signoff "<name>=<note>"
              Record today's sign-off for a manual check, then exit
   --force    With --init, overwrite an existing config

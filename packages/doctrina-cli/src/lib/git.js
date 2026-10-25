@@ -1,5 +1,10 @@
 // @ts-check
 import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import os from "node:os";
+import path from "node:path";
+import process from "node:process";
 
 // One place that knows how to ask git a question and how to interpret not
 // getting an answer (audit item C8).
@@ -32,8 +37,13 @@ export const GIT_STATE = Object.freeze({
 
 // Run a git command. Never throws. Returns
 // { state, stdout, lines, stderr, code }.
-export function git(cwd, args) {
-  const r = spawnSync("git", args, { cwd, encoding: "utf8" });
+/**
+ * @param {string} cwd
+ * @param {string[]} args
+ * @param {{ env?: Record<string, string> }} [opts]
+ */
+export function git(cwd, args, { env } = {}) {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", ...(env ? { env: { ...process.env, ...env } } : {}) });
   if (r.error) {
     // ENOENT here means the binary is missing, not that the command failed.
     return { state: GIT_STATE.ABSENT, stdout: "", lines: [], stderr: String(r.error.message ?? ""), code: null };
@@ -226,4 +236,45 @@ export function lastTagDate(cwd) {
     "--format=%(creatordate:short)", "refs/tags"]);
   const date = tags[0] ?? "";
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+}
+
+/**
+ * A content fingerprint of the working tree under `cwd` — tracked AND
+ * untracked files, .gitignore respected, uncommitted edits included — with
+ * the top-level entries named in `exclude` left out (change 0203). Null when
+ * git cannot answer.
+ *
+ * Built from git's own object model rather than by reading files: the real
+ * index is copied to a scratch one, `git add -A` stages the whole tree into
+ * the copy (reusing the stat cache, so only changed files are hashed), and
+ * `git write-tree` names the result. The real index, HEAD and the working
+ * tree are never touched; the only side effect is loose objects for changed
+ * files, which `git gc` reclaims.
+ *
+ * @param {string} cwd
+ * @param {{ exclude?: string[] }} [opts]
+ * @returns {string | null}
+ */
+export function worktreeFingerprint(cwd, { exclude = [] } = {}) {
+  const top = git(cwd, ["rev-parse", "--show-toplevel"]);
+  const dir = git(cwd, ["rev-parse", "--absolute-git-dir"]);
+  if (top.state !== GIT_STATE.OK || dir.state !== GIT_STATE.OK) return null;
+  const root = top.stdout.trim();
+  const scratch = path.join(os.tmpdir(), `doctrina-fingerprint-${process.pid}-${Date.now()}`);
+  try {
+    const real = path.join(dir.stdout.trim(), "index");
+    if (existsSync(real)) copyFileSync(real, scratch);
+    const env = { GIT_INDEX_FILE: scratch };
+    if (git(root, ["add", "-A", "--", "."], { env }).state !== GIT_STATE.OK) return null;
+    const tree = git(root, ["write-tree"], { env });
+    if (tree.state !== GIT_STATE.OK) return null;
+    const prefix = path.relative(root, path.resolve(cwd)).replaceAll("\\", "/");
+    const listing = git(root, ["ls-tree", prefix ? `${tree.stdout.trim()}:${prefix}` : tree.stdout.trim()]);
+    if (listing.state !== GIT_STATE.OK) return null;
+    const skip = new Set(exclude);
+    const kept = listing.lines.filter((l) => !skip.has(l.split("\t")[1]));
+    return createHash("sha256").update(kept.join("\n")).digest("hex");
+  } finally {
+    rmSync(scratch, { force: true });
+  }
 }

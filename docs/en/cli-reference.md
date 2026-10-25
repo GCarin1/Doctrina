@@ -1535,8 +1535,26 @@ cites as its proof — see [`doctrina coverage`](#doctrina-coverage).
 | `--list` | Print the configured checks without running them. |
 | `--clean` | Lint package.json files for reproducibility footguns instead of running checks. |
 | `--strict` | Fail the gate when a manual check is still pending sign-off. |
+| `--reuse` | Skip the checks when the last fully green run covered byte-identical code (see below). `close` runs verify this way. |
 | `--signoff "<name>=<note>"` | Record today's sign-off for a manual check, then exit. |
 | `--force` | With `--init`, overwrite an existing config. |
+
+**A green run is not repeated on the same code.** Every fully green run
+(every check passed, no manual check pending) is remembered against a
+fingerprint of the code it started from: the working tree — tracked,
+untracked and edited files, `.gitignore` respected — minus `.doctrina/`,
+plus `verify.json` and the CLI version. `verify --reuse`, and therefore
+`close`, skips the checks when the fingerprint matches, and says so. So the
+suite an agent runs by hand right before `doctrina close` is not run a
+second time, and a batch close runs it once rather than once per id —
+between ids only `.doctrina/` moves. `.doctrina/` is outside the
+fingerprint on purpose: the close's apply and archive change it, and the
+artifact tree is proven by the close's own coverage, trace, index-drift and
+validate steps, which always run. Anything else that differs — one byte of
+code, a new file, an edited `verify.json` — runs everything. A plain
+`doctrina verify` always runs. The record lives in the git directory
+(`doctrina-verify-green.json`), never in the tree; outside a git repository
+nothing is remembered.
 
 ## `doctrina contract new <name>` / `list` / `check`
 
@@ -1762,7 +1780,9 @@ stopping at the first failure with the exact command to rerun. The
 coverage gate is **scoped to the capabilities the change's deltas touch**
 (`--only` under the hood), so a deliberately deferred spec elsewhere in
 the tree cannot block an unrelated close; a change with no deltas gates
-on the whole tree. verify is skipped (with a note) when no `verify.json`
+on the whole tree. verify runs with `--reuse`, so a green run on
+byte-identical code — the one the agent just ran, or the previous id of a
+batch — is not repeated; it is skipped (with a note) when no `verify.json`
 is declared; trace and both advisories never block. A driver over the
 existing commands — it adds one check of its own, the docs gate — so
 the agent makes one call instead of nine.

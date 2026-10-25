@@ -17,6 +17,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `verify --reuse` skips the checks when the last fully green run covered
+  byte-identical code (working tree minus `.doctrina/`, plus `verify.json`
+  and the CLI version); `close` runs verify this way. The suite an agent
+  just ran by hand is not repeated by the close, and a batch close runs it
+  once instead of once per id. A plain `verify` always runs (change 0203).
+
 ### Fixed
 
 - `close` no longer prints the whole `skill suggest` listing after every

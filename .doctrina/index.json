@@ -80,12 +80,12 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.45.0",
+        "version": "1.46.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
-          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js",
           "scripts/bench.js",
           "scripts/e2e-packed.mjs",
           "action.yml"
@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.13.0",
+        "version": "0.14.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -3361,6 +3361,24 @@
           },
           {
             "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0203-verify-verde-nao-roda-duas-vezes",
+        "title": "verify verde nao roda duas vezes",
+        "path": ".doctrina/changes/archive/2026-10-25-0203-verify-verde-nao-roda-duas-vezes",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ],
