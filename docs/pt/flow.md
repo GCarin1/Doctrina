@@ -139,6 +139,7 @@ flowchart TD
   (blocos ops cobrem headers, critérios e os bullets EARS de requisito) e
   arquiva (recusando trabalho aberto).
   apply/archive/check aceitam vários ids. `change abandon <id>` descarta.
+  `change delta <id> <cap>` escreve as linhas de ops por você.
 
 **Gates (verdade-base).**
 - `doctrina validate` (`--fix`) — schema, estrutura, EARS e drift do índice

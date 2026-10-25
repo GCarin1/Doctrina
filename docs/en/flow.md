@@ -134,6 +134,7 @@ flowchart TD
   specs (ops blocks cover headers, criteria, and EARS requirement bullets),
   then archive (which refuses unchecked work).
   apply/archive/check take multiple ids. `change abandon <id>` discards.
+  `change delta <id> <cap>` writes ops lines for you.
 
 **Gates (ground truth).**
 - `doctrina validate` (`--fix`) — schema, structure, EARS, and index drift

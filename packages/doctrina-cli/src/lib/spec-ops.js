@@ -117,6 +117,40 @@ function matchOpsBlock(text) {
   return null;
 }
 
+/** One op line, parsed by the grammar `apply` reads: `{ verb, ... }` or `{ verb, error }`. */
+export function parseOp(line) {
+  return parseOpLine(String(line).trim());
+}
+
+/**
+ * Append op lines to a delta's live `ops` block — creating the block at the
+ * end when there is none (change 0205). A `bump-version` line replaces the
+ * block's existing one instead of stacking a second bump on it. Pure.
+ *
+ * @param {string} deltaText
+ * @param {string[]} lines  already validated with `parseOp`
+ * @returns {string}
+ */
+export function insertOps(deltaText, lines) {
+  const ranges = commentRanges(deltaText);
+  const fenceRe = /^([ \t]*```[ \t]*ops[ \t]*\r?\n)([\s\S]*?)(^[ \t]*```[ \t]*$)/gm;
+  const bumps = lines.some((l) => parseOp(l).verb === "bump-version");
+  let m;
+  while ((m = fenceRe.exec(deltaText))) {
+    if (isInsideComment(ranges, m.index)) continue;
+    const kept = m[2].split(/\r?\n/).filter((l) => l.trim() !== "")
+      .filter((l) => !(bumps && parseOp(l).verb === "bump-version"));
+    // The bump goes last, where a reader looks for it.
+    const ordered = [...kept, ...lines].sort((a, b) =>
+      Number(parseOp(a).verb === "bump-version") - Number(parseOp(b).verb === "bump-version"));
+    const block = `${m[1]}${ordered.join("\n")}\n${m[3]}`;
+    return deltaText.slice(0, m.index) + block + deltaText.slice(m.index + m[0].length);
+  }
+  const ordered = [...lines].sort((a, b) =>
+    Number(parseOp(a).verb === "bump-version") - Number(parseOp(b).verb === "bump-version"));
+  return `${deltaText.replace(/\s*$/, "")}\n\n\`\`\`ops\n${ordered.join("\n")}\n\`\`\`\n`;
+}
+
 function parseOpLine(line) {
   // `<verb> <rest>` — the verb is the first whitespace-delimited token.
   const sp = line.indexOf(" ");

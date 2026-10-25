@@ -48,6 +48,9 @@ Execute in order, in a single linear pass:
    append-* ops number/position at APPLY time, so concurrent changes
    appending to the same spec never collide. Only free-prose rewrites
    (Purpose, Maturity, ...) stay a by-hand merge.
+   Or let the CLI write the lines and dry-run them against the spec:
+       doctrina change delta 0001-billing-invoice-export <capability> --requirement "event: ..." \
+         --criterion "[unverified] ... — verified by `...`" --bump minor
 
 4. Replace the placeholder tasks in .doctrina/changes/0001-billing-invoice-export/tasks.md
    with small, checkable implementation tasks (a few hours each, max),

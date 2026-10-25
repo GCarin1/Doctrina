@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.47.0
+**Version:** 1.47.1
 
 ## Purpose
 
@@ -250,7 +250,7 @@ codes, zero-deps, no-network).
 ### Optional
 
 - Where a wiring row declares its source as `<origin>:<source>`, the system may treat an export reading that source as intended and report no name mismatch, while still reporting an origin mismatch as an error.
-- Where `verify --affected` is given, the system shall run a check that declares `paths` only when the uncommitted work touches one of them, run every check that declares none, name the checks it skipped, and never remember such a run as green; `close` shall never pass it.
+- Where `verify --affected` is given, the system may skip a check that declares `paths` when the uncommitted work touches none of them — running every check that declares none, naming the checks it skipped, and never remembering such a run as green — and `close` shall never pass it.
 
 ## Acceptance criteria
 

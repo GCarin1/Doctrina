@@ -40,6 +40,9 @@ Execute in order, in a single linear pass:
 [[g]]   append-* ops number/position at APPLY time, so concurrent changes[[/g]]
 [[g]]   appending to the same spec never collide. Only free-prose rewrites[[/g]]
 [[g]]   (Purpose, Maturity, ...) stay a by-hand merge.[[/g]]
+[[g]]   Or let the CLI write the lines and dry-run them against the spec:[[/g]]
+[[g]]       doctrina change delta {{CHANGE_ID}} <capability> --requirement "event: ..." \[[/g]]
+[[g]]         --criterion "[unverified] ... — verified by `...`" --bump minor[[/g]]
 {{FROM_DIFF_DELTA_NOTE}}
 
 4. Replace the placeholder tasks in .doctrina/changes/{{CHANGE_ID}}/tasks.md

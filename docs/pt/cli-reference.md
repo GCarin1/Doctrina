@@ -586,6 +586,36 @@ Sem `--force`, o `abandon` lista os arquivos que deletaria, diz que a
 deleção não pode ser desfeita, e pergunta. Num stdin não interativo não há
 a quem perguntar, então ele recusa (saída `2`) em vez de prosseguir.
 
+## `doctrina change delta <id> <capability>`
+
+Acrescenta um requisito, um critério ou um bump de versão ao delta MODIFIED
+de uma change sem escrever o bloco `ops` à mão.
+
+```
+doctrina change delta 0042-add-login auth \
+  --requirement "event: When a token expires, the system shall refuse the request." \
+  --criterion "[unverified] an expired token is refused — verified by \`test/auth.test.js\`" \
+  --bump minor
+doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The system shall hash passwords.
+```
+
+Cada flag vira uma linha de op — `--requirement` um `append-requirement`,
+`--criterion` um `append-criterion`, `--bump` um `bump-version`, e
+`--op "<linha>"` (ou as palavras depois da capability) qualquer verbo de op
+como escrito. As linhas são lidas pela gramática que o `apply` lê, e o bloco
+inteiro — o que já havia mais o que entra — é executado em memória contra a
+spec antes de qualquer escrita: uma op que não aplicaria é recusada agora
+(saída `1`, nada escrito), não no close. O delta é criado a partir do
+template quando a change não tem um para a capability; um segundo `--bump`
+substitui o primeiro em vez de subir a versão duas vezes.
+
+| Caso | Saída |
+|------|-------|
+| Escrito; o bloco aplica limpo | `0` |
+| O bloco não aplicaria à spec (ex.: um número de requisito que não existe) | `1` |
+| Op malformada, nada a acrescentar, change desconhecida, ou capability sem spec (uma nova é um delta ADDED) | `2` |
+| O delta é ADDED ou REMOVED — ops só se aplicam a MODIFIED | `3` |
+
 ## `doctrina decision new "<title>"`
 
 Cria o próximo ADR sequencial a partir do template.

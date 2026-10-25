@@ -25,7 +25,7 @@ surface, by the moment you reach for it:
 ```
 Bootstrap   init · intake · adapter list|add|remove
 Orient      prime · next · status · context · show · search · why · handoff
-Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon
+Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|delta
             contract new|list|check · decision new|accept|land|supersede|list|scope
             skill new|list|suggest · intent add|list
 Gate        clarify · validate · coverage · trace · review · verify · close · doctor
@@ -79,7 +79,9 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
   arbitrary prose is the kind of implicit decision Doctrina avoids.
 
 On any spec write, the index is rebuilt from the tree so it never drifts
-from the applied spec. `doctrina change abandon <id>` is the inverse of
+from the applied spec. `doctrina change delta <id> <capability>` writes the
+ops lines for you (`--requirement`, `--criterion`, `--bump`), dry-run
+against the spec before anything is written. `doctrina change abandon <id>` is the inverse of
 `change new`: it deletes an open change and its index entry and ledgers
 the abandonment. `doctrina close <id>` runs apply together with verify,
 coverage, archive and validate in one attested pass — the definition of

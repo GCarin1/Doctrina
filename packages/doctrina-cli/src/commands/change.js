@@ -19,14 +19,14 @@ import { confirm, isInteractive } from "../lib/prompt.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
-import { changeNew } from "../lib/change-ops.js";
+import { changeNew, addDeltaOps } from "../lib/change-ops.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason"] };
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason", "requirement", "criterion", "bump", "op"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -44,6 +44,8 @@ export async function run(positional, flags) {
       return changeTick(positional.slice(1), flags);
     case "abandon":
       return await changeAbandon(positional.slice(1), flags);
+    case "delta":
+      return changeDelta(positional.slice(1), flags);
     default:
       console.error(c.red("error:") + ` unknown change subcommand "${sub ?? ""}"`);
       const guess = suggest(sub, SUBCOMMANDS);
@@ -398,6 +400,49 @@ async function changeCheck(id, { verbose = false } = {}) {
 // `tick <id> --all` checks everything (tasks.md + the proposal's
 // ## Verification). Ticking is a claim of completion — the honest gate is
 // still archive/verify; this only removes the mechanical friction.
+// `change delta <id> <capability> [ops]` — write ops lines into the change's
+// MODIFIED delta through the grammar `apply` reads (change 0205). Rendering
+// only; lib/change-ops.js decides.
+function changeDelta(args, flags) {
+  const [id, capability, ...rest] = args;
+  if (!id || !capability) {
+    console.error(c.red("error:") + " change delta requires <id> <capability> and at least one operation");
+    console.error(c.gray("hint: ") + "doctrina change delta <id> <capability> --requirement \"event: When <trigger>, the system shall <action>.\" --criterion \"[unverified] <signal> — verified by `<test>`\" --bump minor");
+    return EXIT.USAGE;
+  }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  if (!isDir(path.join(projectRoot, ".doctrina", "changes", id))) {
+    console.error(c.red("error:") + ` change "${id}" not found at .doctrina/changes/${id}`);
+    return EXIT.USAGE;
+  }
+  // In the order a reader expects them: requirement, criterion, any raw op,
+  // and the bump last.
+  const lines = [];
+  const requirement = flagString(flags, "requirement");
+  const criterion = flagString(flags, "criterion");
+  const raw = flagString(flags, "op") ?? (rest.length > 0 ? rest.join(" ") : undefined);
+  const bump = flagString(flags, "bump");
+  if (requirement) lines.push(`append-requirement ${requirement}`);
+  if (criterion) lines.push(`append-criterion ${criterion}`);
+  if (raw) lines.push(raw);
+  if (bump) lines.push(`bump-version ${bump}`);
+
+  const r = addDeltaOps(projectRoot, id, capability, lines);
+  if (r.code !== EXIT.OK) {
+    console.error(c.red("error:") + ` ${r.error}`);
+    for (const d of r.details ?? []) console.error(`  - ${d}`);
+    if (r.hint) console.error(c.gray("hint: ") + r.hint);
+    return r.code;
+  }
+  console.log(c.green(r.created ? "created" : "updated") + ` ${r.deltaRel}` +
+    c.gray(` — ${lines.length} op${lines.length === 1 ? "" : "s"} added; the block now holds ${r.block.length} (${r.block.join(", ")}), and applies cleanly`));
+  console.log(c.gray("Preview the merge: ") + c.cyan(`doctrina change check ${id} --verbose`));
+  return EXIT.OK;
+}
+
 function changeTick(args, flags) {
   const id = args[0];
   if (!id) {
@@ -768,6 +813,13 @@ Subcommands:
                          or every one with --all. No args = list only.
   abandon <id>           Delete an open change folder and its index entry, and
                          record the abandonment in the ledger ([--reason "..."]).
+  delta <id> <capability> [--requirement "<section>: <text>"] [--criterion "<text>"]
+        [--bump major|minor|patch] [--op "<op line>" | <op line>]
+                         Write ops into the change's MODIFIED delta for the
+                         capability — created from the template when absent —
+                         parsed by the grammar apply reads and dry-run against
+                         the spec first: nothing is written unless the whole
+                         block applies. A second --bump replaces the first.
 
 apply / archive / check accept multiple ids (batch close of a backlog); the
 exit code is the worst per-id result.
@@ -782,7 +834,8 @@ A MODIFIED delta may carry a fenced operations block that \`apply\` executes:
   replace-requirement ubiquitous 2: The system shall <action>.
   \`\`\`
 append-* ops resolve numbering/position at apply time, so concurrent open
-changes appending to the same spec cannot collide.
+changes appending to the same spec cannot collide. \`change delta\` writes
+these lines for you, one call per addition.
 
 Options:
   --force                Overwrite existing files (where applicable)

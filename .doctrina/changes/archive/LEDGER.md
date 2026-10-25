@@ -215,3 +215,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0202-close-nao-se-repete — close nao se repete (specs: gates MODIFIED, skills MODIFIED)
 - 2026-10-25 — 0203-verify-verde-nao-roda-duas-vezes — verify verde nao roda duas vezes (specs: gates MODIFIED, insight MODIFIED)
 - 2026-10-25 — 0204-verify-afetado — verify afetado (specs: gates MODIFIED)
+- 2026-10-25 — 0205-change-delta — change delta (specs: authoring MODIFIED, gates MODIFIED)

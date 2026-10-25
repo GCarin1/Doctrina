@@ -19,6 +19,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `change delta <id> <capability>` writes `append-requirement`,
+  `append-criterion`, `bump-version` (or any op line) into the change's
+  MODIFIED delta, through the grammar `apply` reads and dry-run against the
+  spec before anything is written (change 0205).
 - `verify --affected` runs a check that declares `paths` only when the
   uncommitted work touches one of them — the inner loop of a change; checks
   with no `paths` always run, and `close` always runs the whole suite

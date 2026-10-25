@@ -95,7 +95,7 @@ como um corpo de agentes age.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
 - O CLI `doctrina` (Node.js, zero deps de runtime) com 37 comandos
-  e 59 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
+  e 60 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
   skill, intent, clarify, context, show, search, validate, coverage,
   trace, review, verify, close, doctor, status, why, handoff,
   watch, templates, hooks, index, next, metrics, report, completion e

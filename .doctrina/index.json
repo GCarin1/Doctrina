@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.25.0",
+        "version": "0.26.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.47.0",
+        "version": "1.47.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3397,6 +3397,24 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0205-change-delta",
+        "title": "change delta",
+        "path": ".doctrina/changes/archive/2026-10-25-0205-change-delta",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
       }
     ],
     "skills": [

@@ -47,6 +47,7 @@ export const OPERATIONS = [
   ["change check", "Pre-close dry-run: everything close would refuse, listed first"],
   ["change tick", "List/tick the unchecked boxes (tasks + verification; --all)"],
   ["change abandon", "Discard an open change cleanly (recorded in the ledger)"],
+  ["change delta", "Add a requirement/criterion/bump to a change's delta (ops written for you)"],
   ["contract new", "Own the integration surface (ports, env, interfaces)"],
   ["contract list", "List contracts with status and last-updated date"],
   ["contract check", "Verify port collisions, env drift, referenced specs"],
