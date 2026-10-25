@@ -9,7 +9,7 @@ import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
-import { changeNew, reindexChange } from "../lib/change-ops.js";
+import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
 import { specShape } from "../lib/spec-ops.js";
@@ -227,6 +227,12 @@ export async function run(positional, flags) {
   const scaffolded = chore || !capability || (!pinned && !guess)
     ? null
     : scaffoldDelta(projectRoot, { id, capability, guess, runnerUp: promptMatches[1] ?? null });
+
+  // A guessed delta names the capability as surely as a pinned one: the
+  // header says what the folder says (change 0207). It stayed empty for
+  // every unpinned `work`, so the proposal claimed no spec while its delta
+  // targeted one.
+  if (scaffolded) addAffectedSpec(projectRoot, id, scaffolded.capability);
 
   // The proposal is written in two passes — `changeNew` scaffolds it, the
   // lines above stamp the lane and the pinned specs — so its index entry is

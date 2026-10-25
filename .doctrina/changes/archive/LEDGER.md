@@ -217,3 +217,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0204-verify-afetado — verify afetado (specs: gates MODIFIED)
 - 2026-10-25 — 0205-change-delta — change delta (specs: authoring MODIFIED, gates MODIFIED)
 - 2026-10-25 — 0206-spec-tambem-encolhe — spec tambem encolhe (specs: authoring MODIFIED, templates MODIFIED, validation MODIFIED)
+- 2026-10-25 — 0207-proposal-nomeia-a-spec-do-delta — proposal nomeia a spec do delta (specs: authoring MODIFIED)

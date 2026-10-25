@@ -190,5 +190,36 @@ export function addDeltaOps(projectRoot, id, capability, lines) {
   }
   mkdirp(path.dirname(deltaPath));
   write(deltaPath, next, { force: true });
+  addAffectedSpec(projectRoot, id, capability);
   return { code: EXIT.OK, deltaRel: relPath(projectRoot, deltaPath), created, block: extractOps(next).map((o) => o.verb) };
+}
+
+/**
+ * Name `capability` in the proposal's `Affects specs:` header when the
+ * header does not already (change 0207). A change whose delta targets a
+ * capability affects that spec, and a header left empty while the delta
+ * folder said otherwise was the one fact `prime`, `status` and the review
+ * of the proposal disagreed on. A chore's "(none — chore)" is left alone:
+ * that is a declaration, and the structure gate is where a chore carrying a
+ * delta gets questioned.
+ *
+ * @param {string} projectRoot
+ * @param {string} id
+ * @param {string} capability
+ * @returns {boolean} whether the header changed
+ */
+export function addAffectedSpec(projectRoot, id, capability) {
+  const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
+  if (!isFile(proposalPath)) return false;
+  const text = read(proposalPath);
+  const m = text.match(/^(-[ \t]+\*\*Affects specs:\*\*)([^\r\n]*)/m);
+  if (!m) return false;
+  const current = m[2].trim();
+  if (/^\(none/i.test(current)) return false;
+  const named = current.split(",").map((s) => s.trim().replace(/`/g, "")).filter(Boolean);
+  if (named.includes(capability)) return false;
+  const value = [...named, capability].join(", ");
+  write(proposalPath, text.replace(m[0], `${m[1]} ${value}`), { force: true });
+  reindexChange(projectRoot, id);
+  return true;
 }

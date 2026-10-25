@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.27.0
+**Version:** 0.28.0
 
 ## Purpose
 
@@ -265,6 +265,7 @@ keep the checks and the read path.
 - When `doctrina work` runs with `--design`, the system shall also scaffold the change's `design.md`, identical to the one `doctrina change new --design` writes, and without the flag shall scaffold none, so a change that needs a design document never has to leave the recommended door for the manual one.
 - When `change delta <id> <capability>` is given a requirement, a criterion, a bump or an op line, the system shall write them into the change's MODIFIED delta for that capability — creating it from the template when absent — parsed by the grammar `apply` reads, with a later bump replacing an earlier one, and shall write nothing unless the whole block applies to the spec.
 - When `work --consolidate <capability>` is run, the system shall open a change pinned to that capability with a MODIFIED delta scaffolded and print the spec's measured shape — lines, requirements per EARS subsection, criteria — with a consolidation playbook, leaving what is redundant for the agent to decide (ADR 0005).
+- When a change's delta targets a capability — scaffolded by `work`, pinned or ranked, or written by `change delta` — the system shall name that capability in the proposal's `Affects specs:` header once, leaving a chore's declared none untouched.
 
 ### Unwanted-behavior (must-not)
 
@@ -345,6 +346,7 @@ The authoring commands are v0 spec-compliant when:
 43. [verified] `change delta` turns --requirement, --criterion, --bump and a raw op line into one block that `change check` applies cleanly, replaces a second bump, writes nothing for a block that would not apply (exit 1), refuses a malformed op, an unknown change or a capability with no spec (exit 2) and an ADDED delta (exit 3), and never writes into an example block inside a comment — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
 44. [verified] `remove-requirement` and `remove-criterion` delete the whole item and renumber the criteria after it, `replace-criterion` replaces a wrapped criterion without leaving its old tail, and a removal naming nothing refuses — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
 45. [verified] `work --consolidate auth` opens `0001-consolidate-auth` affecting `auth`, prints its measured shape and the `change delta` removal commands, and an unknown capability exits 2 — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
+46. [verified] An unpinned `work` whose ranked delta targets `health` writes `Affects specs: health`, and two `change delta` calls for `cloud` add it once, with the index following — verified by `packages/doctrina-cli/test/o-proposal-nomeia-a-spec-do-delta.test.js`.
 
 ## Out of scope for this spec
 

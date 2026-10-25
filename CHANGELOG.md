@@ -40,6 +40,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `work` names the capability of a ranked delta in the proposal's
+  `Affects specs:` (only a pinned one did), and `change delta` adds the
+  capability it writes to (change 0207).
 - `replace-criterion` replaces a criterion wrapped over several lines
   whole; it kept the old criterion's continuation lines under the new one
   (change 0206).

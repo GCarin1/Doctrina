@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.27.0",
+        "version": "0.28.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -3433,6 +3433,20 @@
           },
           {
             "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0207-proposal-nomeia-a-spec-do-delta",
+        "title": "proposal nomeia a spec do delta",
+        "path": ".doctrina/changes/archive/2026-10-25-0207-proposal-nomeia-a-spec-do-delta",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ],

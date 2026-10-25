@@ -626,7 +626,9 @@ inteiro — o que já havia mais o que entra — é executado em memória contra
 spec antes de qualquer escrita: uma op que não aplicaria é recusada agora
 (saída `1`, nada escrito), não no close. O delta é criado a partir do
 template quando a change não tem um para a capability; um segundo `--bump`
-substitui o primeiro em vez de subir a versão duas vezes.
+substitui o primeiro em vez de subir a versão duas vezes. A capability entra
+no `Affects specs:` do proposal quando ainda não está nomeada lá — como o
+`work` faz para o delta que esqueletiza, fixado ou ranqueado.
 
 | Caso | Saída |
 |------|-------|

@@ -607,7 +607,9 @@ what was there plus what is added — is executed in memory against the spec
 before anything is written: an op that would not apply is refused now
 (exit `1`, nothing written), not at the close. The delta is created from
 the template when the change has none for the capability; a second
-`--bump` replaces the first rather than bumping twice.
+`--bump` replaces the first rather than bumping twice. The capability is
+added to the proposal's `Affects specs:` when it is not named there yet —
+as `work` does for the delta it scaffolds, pinned or ranked.
 
 | Case | Exit |
 |------|------|
