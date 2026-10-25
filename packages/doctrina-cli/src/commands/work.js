@@ -12,6 +12,7 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew, reindexChange } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
+import { specShape } from "../lib/spec-ops.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
@@ -29,14 +30,36 @@ export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "chore", "design", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "id", "resume", "title"] };
+export const flags = { boolean: ["json", "chore", "design", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "consolidate", "id", "resume", "title"] };
 
 export async function run(positional, flags) {
-  const prompt = positional.join(" ").trim();
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
+  // --consolidate <cap> (change 0206): a spec only ever grew — every change
+  // appended, nothing took a requirement out — and a field review of 0.17
+  // asked for "a command to consolidate a spec from time to time". It is an
+  // ordinary change pinned to the capability, with its own playbook: the
+  // agent decides what is redundant or superseded (ADR 0005), and the ops
+  // take it out.
+  const consolidate = flags.has("consolidate") ? flagString(flags, "consolidate") : null;
+  if (consolidate !== null) {
+    if (!consolidate || /** @type {unknown} */ (consolidate) === true || !/^[a-z][a-z0-9-]*$/.test(consolidate)) {
+      console.error(c.red("error:") + " --consolidate needs the capability whose spec to consolidate");
+      return EXIT.USAGE;
+    }
+    if (!isFile(path.join(projectRoot, ".doctrina", "specs", consolidate, "spec.md"))) {
+      console.error(c.red("error:") + ` capability "${consolidate}" has no spec at .doctrina/specs/${consolidate}/spec.md`);
+      return EXIT.USAGE;
+    }
+    flags.set("capability", consolidate);
+    flags.set("force", true);
+    if (!flags.has("title")) flags.set("title", `consolidate ${consolidate}`);
+  }
+  const prompt = consolidate
+    ? `Consolidate the ${consolidate} spec: merge requirements and criteria that say the same thing, drop what a later one superseded — no behaviour changes.`
+    : positional.join(" ").trim();
 
   // --resume <id>: reprint the playbook for an existing open change rather than
   // open a new one (review G1 — `work "continue"` used to slug the word and
@@ -223,7 +246,9 @@ export async function run(positional, flags) {
   }
 
   console.log("");
-  if (chore) {
+  if (consolidate) {
+    printConsolidatePlaybook(projectRoot, { id, capability: consolidate });
+  } else if (chore) {
     printChorePlaybook(projectRoot, { id, prompt: effPrompt });
   } else {
     printPlaybook(projectRoot, {
@@ -440,6 +465,21 @@ export function slugify(text) {
 // part that is not prose: computing the variable blocks. Each is PRE-RENDERED
 // into a token, so `substitute` stays a plain string map and the template
 // stays a document rather than a language with conditionals in it.
+// The consolidation playbook: the spec's shape, measured, then the steps.
+// Measuring is the CLI's part; deciding which requirement is redundant is
+// the agent's (ADR 0005).
+function printConsolidatePlaybook(projectRoot, { id, capability }) {
+  const text = read(path.join(projectRoot, ".doctrina", "specs", capability, "spec.md"));
+  const shape = specShape(text);
+  const sections = Object.entries(shape.sections).map(([k, n]) => `${k} ${n}`).join(" · ");
+  printPlaybookTemplate(projectRoot, "consolidate", {
+    CHANGE_ID: id,
+    CAPABILITY: capability,
+    SHAPE: `${shape.lines} lines · ${shape.requirements} requirements (${sections || "none"}) · ` +
+      `${shape.criteria} acceptance criteria`,
+  });
+}
+
 function printChorePlaybook(projectRoot, { id, prompt }) {
   printPlaybookTemplate(projectRoot, "chore", { CHANGE_ID: id, PROMPT: prompt });
 }
@@ -543,6 +583,10 @@ Options:
   --resume <id>        Reprint the playbook for an open change; create nothing
   --from-diff          Backfill: scaffold from the working-tree changes (no
                        prompt needed) and print a code-first playbook (F8)
+  --consolidate <cap>  Open a change that consolidates <cap>'s spec — merge
+                       what says the same thing, remove what was superseded
+                       (remove-requirement / remove-criterion) — with its own
+                       playbook; no prompt needed, no behaviour changes
   --chore, --no-spec   Open a spec-less chore change (infra/docs/build) with a
                        playbook that skips the spec-delta steps (F9)
   --design             Also scaffold design.md, for a change with non-trivial

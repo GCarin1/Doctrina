@@ -6,7 +6,7 @@
 **Realizes:** SC1, SC2, SC3
 **Source:** `packages/doctrina-cli/src/lib/{doc-model,validation-model}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.15.1
+**Version:** 0.15.2
 
 ## Purpose
 
@@ -102,6 +102,7 @@ treatment cohorts using the same definition in each cohort.
 - The system's tests shall not assert against a fixture transformation without first establishing that the transformation occurred, so a pattern that matches nothing fails rather than passing quietly.
 - The system shall not read a numbered item inside a fenced code block as an acceptance criterion, nor its citations as that criterion's proof.
 - The system shall not read a metadata header out of an HTML comment, in any reader or writer of the document model, because annotation is not something the author wrote.
+- The system shall not warn that a spec passed its size cap without naming the command that consolidates it.
 
 ### Optional
 
@@ -190,6 +191,7 @@ The validation capability is delivered when:
 28. [verified] A spec, and an index.json, saved with a byte-order mark are read exactly as the same files without one — verified by `packages/doctrina-cli/test/a-byte-order-mark-is-not-content.test.js`.
 29. [verified] Marking every always-read artifact in a tree changes no gate's verdict, and a mark in the middle of a file is left alone — verified by `packages/doctrina-cli/test/a-byte-order-mark-is-not-content.test.js`.
 30. [verified] A header inside a comment is collected by neither reader and written over by neither writer, and a real header beside a commented example is the one both return — verified by `packages/doctrina-cli/test/doc-model.test.js`.
+31. [verified] The consolidation command that the size-cap warning names opens a change for that capability — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
 
 ## Out of scope for this spec
 

@@ -72,7 +72,8 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
 - **REMOVED:** deletes the target spec.
 - **MODIFIED:** when the delta carries a fenced ` ```ops ` block
   (`set-header` / `bump-version` / `set-criterion` / `replace-criterion`
-  / `append-criterion` / `append-requirement` / `replace-requirement`),
+  / `append-criterion` / `append-requirement` / `replace-requirement` /
+  `remove-requirement` / `remove-criterion`),
   applies it mechanically to the target spec — all
   ops or none — and regenerates the index (ADR 0007). Without an ops
   block it prints a manual-merge pointer and does not write: auto-merging

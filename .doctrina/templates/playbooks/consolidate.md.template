@@ -1,0 +1,28 @@
+[[b]]Consolidation playbook — change {{CHANGE_ID}}[[/b]][[g]] — agent-executed (ADR 0005); the spec shrinks, the behaviour does not change.[[/g]]
+
+Capability: [[c]]{{CAPABILITY}}[[/c]] — {{SHAPE}}
+
+Execute in order, in a single linear pass:
+
+1. Read the spec and its history:
+       [[c]]doctrina context {{CAPABILITY}} --concat[[/c]]
+       [[c]]doctrina why {{CAPABILITY}}[[/c]]
+2. Find what the spec says more than once: a requirement a later one
+   superseded, two requirements stating the same rule, a criterion proven
+   by another one, a bullet describing behaviour that no longer exists.
+   You decide; the CLI only measures. Keep every rule the code still
+   honours — consolidating removes words, never guarantees.
+3. Write the delta with the ops (the scaffold is at
+   .doctrina/changes/{{CHANGE_ID}}/specs/{{CAPABILITY}}/delta.md):
+       [[c]]doctrina change delta {{CHANGE_ID}} {{CAPABILITY}} --op "remove-requirement <section> <n>: <why>"[[/c]]
+       [[c]]doctrina change delta {{CHANGE_ID}} {{CAPABILITY}} --op "replace-requirement <section> <n>: <merged text>"[[/c]]
+       [[c]]doctrina change delta {{CHANGE_ID}} {{CAPABILITY}} --op "remove-criterion <n>: <why>"[[/c]]
+       [[c]]doctrina change delta {{CHANGE_ID}} {{CAPABILITY}} --bump minor[[/c]]
+[[g]]   Ops run in order and a removal renumbers what follows it: write the[[/g]]
+[[g]]   removals of one section highest number first. Every kept criterion[[/g]]
+[[g]]   must still cite proof that exists — coverage gates the close.[[/g]]
+[[g]]   Preview the merged spec: [[/g]][[c]]doctrina change check {{CHANGE_ID}} --verbose[[/c]]
+4. Fill the proposal's What (what was merged or removed, and why each) and
+   replace the placeholder tasks; no code changes.
+5. Close in one attested pass:
+       [[c]]doctrina close {{CHANGE_ID}}[[/c]]

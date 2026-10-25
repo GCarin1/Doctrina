@@ -832,6 +832,8 @@ A MODIFIED delta may carry a fenced operations block that \`apply\` executes:
   append-criterion [unverified] new signal — verified by \`test/x.test.ts\`
   append-requirement event: When <trigger>, the system shall <action>.
   replace-requirement ubiquitous 2: The system shall <action>.
+  remove-requirement state 1: superseded by event 3
+  remove-criterion 4: proven by criterion 2 since 0.9
   \`\`\`
 append-* ops resolve numbering/position at apply time, so concurrent open
 changes appending to the same spec cannot collide. \`change delta\` writes

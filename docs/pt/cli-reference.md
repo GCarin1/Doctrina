@@ -257,8 +257,22 @@ arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
+| `--consolidate <cap>` | Abre uma change que consolida a spec de `<cap>`, com playbook próprio (abaixo). Não precisa de prompt. |
 | `--design` | Também esboça o `design.md`, para um change com escolhas não triviais (opt-in, como em `change new --design`). |
 | `--force` | Sobrescreve uma pasta de change existente, e passa pela retenção de raia descrita abaixo. |
+
+**`--consolidate <cap>`: uma spec pode encolher.** Toda change acrescenta,
+então uma spec só crescia — nada tirava um requisito. O `work
+--consolidate auth` abre uma change comum fixada em `auth` (delta MODIFIED
+esqueletizado) e imprime a forma medida da spec — linhas, requisitos por
+subseção EARS, critérios — e um playbook: ler a spec e sua história, achar
+o que ela diz duas vezes ou o que uma regra posterior substituiu, e
+escrever o delta com o `change delta` e as ops de remoção
+(`remove-requirement`, `remove-criterion`, `replace-requirement` para fundir
+dois em um). Decidir o que é redundante é do agente (ADR 0005); o CLI mede e
+aplica. Nenhum comportamento muda, e o gate de coverage do close continua
+exigindo prova de cada critério mantido. O aviso de 400 linhas do
+`validate` cita este comando.
 
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
 raia (veja [`doctrina triage`](#doctrina-triage-prompt)). Um prompt que
@@ -443,7 +457,12 @@ Semântica:
   requisito (`append-requirement <seção>: <texto>` /
   `replace-requirement <seção> <n>: <texto>`, seções
   `ubiquitous|event|state|unwanted|optional`), então um delta típico
-  aplica de ponta a ponta sem merge manual. Ops `append-*` resolvem
+  aplica de ponta a ponta sem merge manual. Dois verbos tiram algo —
+  `remove-requirement <seção> <n>` e `remove-criterion <n>` (os
+  critérios depois dele são renumerados), cada um aceitando um
+  `: <por quê>` opcional — para que uma spec possa encolher além de
+  crescer (veja `work --consolidate`). Um replace ou uma remoção leva o
+  item inteiro, linhas de continuação incluídas. Ops `append-*` resolvem
   numeração/posição na hora do apply, então changes abertas
   concorrentes anexando à mesma spec nunca colidem. A sintaxe vive no
   template do delta e no playbook do work.

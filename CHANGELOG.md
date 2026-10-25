@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A spec can shrink: `remove-requirement <section> <n>` and
+  `remove-criterion <n>` ops (criteria after it renumber), and
+  `work --consolidate <cap>`, which opens a change pinned to the capability
+  with the spec's measured shape and a consolidation playbook. `validate`'s
+  400-line warning names it (change 0206).
 - `change delta <id> <capability>` writes `append-requirement`,
   `append-criterion`, `bump-version` (or any op line) into the change's
   MODIFIED delta, through the grammar `apply` reads and dry-run against the
@@ -35,6 +40,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `replace-criterion` replaces a criterion wrapped over several lines
+  whole; it kept the old criterion's continuation lines under the new one
+  (change 0206).
 - `close` no longer prints the whole `skill suggest` listing after every
   close (per id, in a batch): once per run, it names the candidate a
   just-closed fix-shaped change produced and counts the rest. The docs step

@@ -24,6 +24,8 @@ typical delta applies mechanically end to end; only free-prose rewrites
   ```
 
 Requirement sections: ubiquitous | event | state | unwanted | optional.
+To take one out: `remove-requirement <section> <n>` / `remove-criterion <n>`
+(the criteria after it renumber; write removals highest number first).
 append-* ops resolve numbering/position at APPLY time, so several open
 changes appending to the same spec never collide on numbers — order of
 application decides.

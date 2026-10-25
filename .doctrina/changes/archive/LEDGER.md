@@ -216,3 +216,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0203-verify-verde-nao-roda-duas-vezes — verify verde nao roda duas vezes (specs: gates MODIFIED, insight MODIFIED)
 - 2026-10-25 — 0204-verify-afetado — verify afetado (specs: gates MODIFIED)
 - 2026-10-25 — 0205-change-delta — change delta (specs: authoring MODIFIED, gates MODIFIED)
+- 2026-10-25 — 0206-spec-tambem-encolhe — spec tambem encolhe (specs: authoring MODIFIED, templates MODIFIED, validation MODIFIED)

@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.26.0",
+        "version": "0.27.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -146,7 +146,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.25.0",
+        "version": "0.26.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -159,7 +159,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.15.1",
+        "version": "0.15.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -3415,6 +3415,28 @@
           }
         ],
         "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0206-spec-tambem-encolhe",
+        "title": "spec tambem encolhe",
+        "path": ".doctrina/changes/archive/2026-10-25-0206-spec-tambem-encolhe",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: spec)"
       }
     ],
     "skills": [

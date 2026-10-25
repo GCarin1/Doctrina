@@ -248,8 +248,22 @@ prompt ranking scaffolds; `--from-diff` and `--chore` do not.
 | `--quiet` | Register the change and print one line — no playbook. For backlog entry ("record 19 works now, start none"); reprint later with `--resume <id>`. |
 | `--id <id>` | Override the derived change id. |
 | `--chore`, `--no-spec` | Open a spec-less chore change (infra/docs/build) whose playbook skips the spec-delta steps. |
+| `--consolidate <cap>` | Open a change that consolidates `<cap>`'s spec, with its own playbook (below). No prompt needed. |
 | `--design` | Also scaffold `design.md`, for a change with non-trivial choices (opt-in, as with `change new --design`). |
 | `--force` | Overwrite an existing change folder, and proceed past the lane hold below. |
+
+**`--consolidate <cap>`: a spec can shrink.** Every change appends, so a
+spec only grew — nothing took a requirement out. `work --consolidate
+auth` opens an ordinary change pinned to `auth` (MODIFIED delta
+scaffolded) and prints the spec's measured shape — lines, requirements per
+EARS subsection, criteria — and a playbook: read the spec and its history,
+find what it says twice or what a later rule superseded, and write the
+delta with `change delta` and the removal ops (`remove-requirement`,
+`remove-criterion`, `replace-requirement` to merge two into one). Deciding
+what is redundant is the agent's call (ADR 0005); the CLI measures and
+applies. No behaviour changes, and the close's coverage gate still holds
+every kept criterion to its proof. `validate`'s 400-line warning names
+this command.
 
 Before anything is scaffolded, `work` consults the lane classifier (see
 [`doctrina triage`](#doctrina-triage-prompt)). A prompt that confidently
@@ -430,7 +444,12 @@ Semantics:
   bullets (`append-requirement <section>: <text>` /
   `replace-requirement <section> <n>: <text>`, sections
   `ubiquitous|event|state|unwanted|optional`), so a typical delta
-  applies end to end without a manual merge. `append-*` ops resolve
+  applies end to end without a manual merge. Two verbs take something
+  out — `remove-requirement <section> <n>` and `remove-criterion <n>`
+  (the criteria after it renumber), each accepting an optional
+  `: <why>` — so a spec can shrink as well as grow (see `work
+  --consolidate`). A replace or a removal takes the whole item,
+  continuation lines included. `append-*` ops resolve
   numbering/position at apply time, so concurrent open changes
   appending to the same spec never collide. The syntax lives in the
   delta template and the work playbook.
