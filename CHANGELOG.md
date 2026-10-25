@@ -19,6 +19,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The review inside `close` stops warning about the spec the change is
+  updating, and reports code under capabilities the change carries no delta
+  for in one line instead of one break each (`review --change <id>`). A file
+  claimed by a `**Source:**` belongs only to its declarer: a spec mentioning
+  the same basename no longer "owns" it too, and the churn note names only
+  the capabilities the change updates (change 0200).
 - A `**Source:**` glob written as a directory (`src/health/`) claims
   everything under it, as `src/health/**` does. It used to match only the
   literal path, so `validate` called it dead and `review` treated every file

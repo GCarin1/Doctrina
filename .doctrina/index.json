@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.42.1",
+        "version": "1.43.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3310,6 +3310,20 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0200-review-do-close-olha-a-change",
+        "title": "review do close olha a change",
+        "path": ".doctrina/changes/archive/2026-10-25-0200-review-do-close-olha-a-change",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
       }
     ],
     "skills": [

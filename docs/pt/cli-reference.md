@@ -1416,8 +1416,17 @@ diff contra um ref git com `--diff <ref>`.
 ```
 doctrina review
 doctrina review --diff main
+doctrina review --change 0042-add-login
 doctrina review --strict
 ```
+
+**`--change <id>` revisa a árvore como o close daquela change revisa** — e o
+close roda assim. As capabilities que os deltas da change alvejam contam como
+atualizadas, porque o `apply` as mescla um passo depois; sem isso, todo close
+avisava sobre a própria spec que estava atualizando. Código sob capabilities
+para as quais a change não traz delta é reportado em UMA linha que nomeia
+todas: ou a change esqueceu um delta, ou há outro trabalho na árvore, e o
+review não sabe dizer qual.
 
 **Um ref de `--diff` precisa resolver.** Um que não resolve é erro de uso
 (exit 2), não um diff vazio: ele reportava «no changes» e saía 0 —
@@ -1451,10 +1460,13 @@ que um padrão malformado seja reportado em vez de cobrir menos em silêncio)
 Um padrão terminado em `/` nomeia um diretório e reivindica tudo o que está
 abaixo dele: `src/health/` é o mesmo que `src/health/**`.
 
-Uma correspondência declarada supera as heurísticas de fallback (o nome da
-capability como segmento do caminho, a spec citando o caminho ou o
-basename), que ficam para um projeto que não declara nada — então uma spec
-sem o header se comporta exatamente como antes. Dois gates mantêm a
+Por arquivo, a resposta mais forte vence e uma mais fraca nunca é somada a
+ela: as specs cujo `**Source:**` reivindica o arquivo; senão as specs que
+citam o caminho exato; senão as heurísticas de fallback (o nome da
+capability como segmento do caminho, a spec citando o basename), e só de
+specs que não declaram Source — então uma spec sem o header se comporta
+exatamente como antes, e uma spec que declarou seu código nunca recebe o de
+outra por mencionar um `index.ts`. Dois gates mantêm a
 reivindicação honesta: o `validate` avisa quando um padrão não casa com
 arquivo nenhum, e o `review` nomeia os arquivos mudados que não pertencem a
 capability nenhuma **um a um**. Essa segunda metade importa: o aviso só

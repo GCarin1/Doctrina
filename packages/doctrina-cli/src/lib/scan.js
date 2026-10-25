@@ -599,3 +599,16 @@ function artifactPathOf(file) {
   if (m) return m[1];
   return null;
 }
+
+// The capabilities a change's deltas target, sorted — the change's own scope.
+// `close` gates coverage on it and `review --change` reads it as "these specs
+// are being updated by this change", because the delta merges at apply.
+export function deltaCapabilities(changeDir) {
+  const caps = new Set();
+  for (const deltaPath of walk(path.join(changeDir, "specs"))) {
+    if (!deltaPath.endsWith("delta.md")) continue;
+    const cap = parseCapabilityFromDelta(read(deltaPath), deltaPath);
+    if (cap) caps.add(cap);
+  }
+  return [...caps].sort();
+}

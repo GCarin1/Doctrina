@@ -1374,8 +1374,17 @@ against a git ref with `--diff <ref>`.
 ```
 doctrina review
 doctrina review --diff main
+doctrina review --change 0042-add-login
 doctrina review --strict
 ```
+
+**`--change <id>` reviews the tree as that change's close does** — and the
+close runs it that way. The capabilities the change's deltas target count as
+updated, because `apply` merges them one step later; without that, every
+close warned about the very spec it was updating. Code under capabilities the
+change carries no delta for is reported in ONE line naming them all: either
+the change forgot a delta, or other work is lying in the tree, and the review
+cannot tell which.
 
 **A `--diff` ref must resolve.** One that does not is a usage error (exit
 2), not an empty diff: it used to report "no changes" and exit 0 —
@@ -1409,10 +1418,13 @@ contract's Selectors use:
 A pattern ending in `/` names a directory and claims everything under it:
 `src/health/` is the same as `src/health/**`.
 
-A declared match outranks the fallback heuristics (the capability name as a
-path segment, the spec citing the path or the basename), which stay for a
-project that declares nothing — so a spec with no header behaves exactly as
-before. Two gates keep the claim honest: `validate` warns when a pattern
+Per file, the strongest answer wins and a weaker one is never added on top
+of it: the specs whose `**Source:**` claims the file; else the specs citing
+its exact path; else the fallback heuristics (the capability name as a path
+segment, the spec citing the basename), and only from specs that declare no
+Source — so a spec with no header behaves exactly as before, and a spec that
+declared its code is never handed someone else's because it mentions an
+`index.ts`. Two gates keep the claim honest: `validate` warns when a pattern
 matches no file, and `review` names the changed files that belong to no
 capability **one by one**. That second half matters: the note used to fire
 only when the whole diff matched nothing, so a single incidental hit —

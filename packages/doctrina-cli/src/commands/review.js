@@ -8,7 +8,8 @@ import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
 import { readLedger, churnByCapability } from "../lib/ledger.js";
 import { changedFiles, windowCutoff, historyState, refExists } from "../lib/git.js";
-import { dependentsOf } from "../lib/scan.js";
+import { dependentsOf, deltaCapabilities } from "../lib/scan.js";
+import { refuseChangeRef } from "../lib/project.js";
 import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import { summarize as coverageSummary } from "../lib/coverage-model.js";
 import { summarize as traceSummary } from "../lib/trace-model.js";
@@ -37,7 +38,7 @@ const CHURN_NOTABLE = 3;
 // bury every other finding under a file listing.
 const ORPHAN_LIST_LIMIT = 5;
 
-export const flags = { boolean: ["json", "strict"], string: ["diff"] };
+export const flags = { boolean: ["json", "strict"], string: ["diff", "change"] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -60,8 +61,26 @@ export async function run(_positional, flags) {
     return EXIT.USAGE;
   }
 
+  // --change <id>: review the tree AS that change's close sees it (change
+  // 0200). Its deltas are the spec updates — merged one step later, by
+  // `apply` — so the capabilities they target count as updated.
+  const changeId = flagString(flags, "change");
+  /** @type {Set<string> | null} */
+  let changeCaps = null;
+  if (changeId !== undefined) {
+    const refused = refuseChangeRef(changeId);
+    if (refused !== null) return refused;
+    const changeDir = path.join(projectRoot, ".doctrina", "changes", changeId);
+    if (!isDir(changeDir)) {
+      console.error(c.red("error:") + ` change "${changeId}" not found at .doctrina/changes/${changeId}`);
+      return EXIT.USAGE;
+    }
+    changeCaps = new Set(deltaCapabilities(changeDir));
+  }
+
   const { all, sourceFiles } = reviewScope(projectRoot, against);
-  console.log(c.bold("Review") + c.gray(against ? ` — vs ${against}` : " — working-tree changes"));
+  console.log(c.bold("Review") + c.gray(against ? ` — vs ${against}` : " — working-tree changes") +
+    (changeId ? c.gray(` · change ${changeId}`) : ""));
   console.log("");
 
   if (all.length === 0) {
@@ -85,10 +104,18 @@ export async function run(_positional, flags) {
   );
   const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity });
   const touched = new Set([...specChanged, ...ranked.map((m) => m.id)]);
-  for (const m of ranked) {
-    if (!specChanged.has(m.id)) {
-      breaks.push(`code under capability "${m.id}" changed, but its spec was not updated — confirm \`.doctrina/specs/${m.id}/spec.md\` still describes the code (update it, or note why not)`);
+  const stale = ranked.map((m) => m.id).filter((id) => !specChanged.has(id) && !changeCaps?.has(id));
+  if (changeCaps === null) {
+    for (const id of stale) {
+      breaks.push(`code under capability "${id}" changed, but its spec was not updated — confirm \`.doctrina/specs/${id}/spec.md\` still describes the code (update it, or note why not)`);
     }
+  } else if (stale.length > 0) {
+    // Reviewed as a change: code under capabilities it carries no delta for
+    // is either this change forgetting a delta or other work lying in the
+    // tree — the review cannot tell which, so it says both, ONCE. One break
+    // per capability, repeated on every close, is how the warning became
+    // noise nobody read (field review, 0.17).
+    breaks.push(`code changed under ${stale.length === 1 ? "a capability" : `${stale.length} capabilities`} this change carries no delta for: ${stale.map((id) => `"${id}"`).join(", ")} — if this change made those edits, add a delta (or note why the spec still holds); if other work did, it is not this change's (commit or stash it)`);
   }
 
   // 1b. Dependents of touched capabilities (the machine-readable
@@ -107,7 +134,10 @@ export async function run(_positional, flags) {
   if (touched.size > 0) {
     const since = windowCutoff(CHURN_WINDOW_DAYS);
     const churn = churnByCapability(readLedger(projectRoot).entries, { since })
-      .filter((row) => touched.has(row.capability) && row.changes >= CHURN_NOTABLE);
+      // Reviewed as a change, only the capabilities it updates: churn is
+      // context for the spec being changed, and four lines of it about
+      // ground the change merely stands near was more noise per close.
+      .filter((row) => (changeCaps ?? touched).has(row.capability) && row.changes >= CHURN_NOTABLE);
     for (const row of churn) {
       notes.push(`capability "${row.capability}" landed ${row.changes} changes in the last ${CHURN_WINDOW_DAYS} days (last ${row.last}) — history, not a verdict: read it as "this area is moving", not "this area is wrong"`);
     }
@@ -219,7 +249,7 @@ function runContractCheck(projectRoot) {
 }
 
 export const help = `
-Usage: doctrina review [--diff <ref>] [--strict]
+Usage: doctrina review [--diff <ref>] [--change <id>] [--strict]
 
 Deterministic conformance review of your changes against the spec / ADR /
 contract tree. By default it reviews the working-tree changes (tracked +
@@ -231,6 +261,15 @@ not updated, changed code that maps to no capability, acceptance criteria
 citing missing proof, product intent realized by no spec, and contract
 port/reference collisions. It checks conformance shape, NOT semantic
 fidelity (whether the code does what the spec says stays a human/LLM call).
+
+--change <id> reviews the tree as that change's close does: the capabilities
+its deltas target count as updated (the close merges them one step later),
+and code under capabilities it carries no delta for is reported in one line —
+this change forgot a delta, or other work is lying in the tree.
+
+A file's owner is the spec whose \`**Source:**\` claims it; failing that, the
+spec citing its exact path; failing both, the path and basename inference,
+from specs that declare no Source.
 
 Read-only. Exits 0 as a report; with --strict, exits 1 when any hard break
 exists (CI gate). Notes (advisory) never fail the gate.

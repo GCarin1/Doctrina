@@ -210,3 +210,4 @@ One line per archived change, newest last. Appended by
 - 2026-09-24 — 0197-0-17-0-inclui-0191-a-0196 — 0.17.0 inclui 0191 a 0196
 - 2026-09-27 — 0198-repository-url-bate-com-a-provenance — repository url bate com a provenance
 - 2026-10-25 — 0199-source-de-diretorio — source de diretorio (specs: gates MODIFIED)
+- 2026-10-25 — 0200-review-do-close-olha-a-change — review do close olha a change (specs: gates MODIFIED)

@@ -2,15 +2,14 @@
 import path from "node:path";
 import process from "node:process";
 import { appendFileSync } from "node:fs";
-import { exists, isDir, isFile, read, walk } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint, acceptedDecisionCount } from "../lib/adr-guard.js";
 import { docsRemedy, checkDocsImpact, checkChangelogImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
-import { specHeader, dependentsOf } from "../lib/scan.js";
+import { specHeader, dependentsOf, deltaCapabilities } from "../lib/scan.js";
 import { sequence, sequenceLabels, stepRerun } from "../lib/gates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { refuseChangeRef } from "../lib/project.js";
@@ -138,13 +137,17 @@ async function closeOne(projectRoot, id, flags) {
     },
 
     // The review runs against the working tree, which for a close IS the
-    // change's diff: the work is done and not yet archived. Its exit code is
+    // change's diff: the work is done and not yet archived. It is told which
+    // change it is reviewing (change 0200): the deltas it carries are the
+    // spec updates, merged one step later by `apply`, and code under a
+    // capability the change carries no delta for is one line, not one
+    // break per capability. Its exit code is
     // discarded on purpose — the step is declared advisory, and an advisory
     // step that could still move the close's result would be advisory in name
     // only. A crash is caught by the loop and reported the same way.
     review: {
       run: async () => {
-        await review.run([], new Map());
+        await review.run([], new Map([["change", id]]));
         return 0;
       },
     },
@@ -484,14 +487,7 @@ function reportDependentCoverage(projectRoot, touched) {
 }
 
 function touchedCapabilities(projectRoot, id) {
-  const specsDir = path.join(projectRoot, ".doctrina", "changes", id, "specs");
-  const caps = new Set();
-  for (const deltaPath of walk(specsDir)) {
-    if (!deltaPath.endsWith("delta.md")) continue;
-    const cap = parseCapabilityFromDelta(read(deltaPath), deltaPath);
-    if (cap) caps.add(cap);
-  }
-  return [...caps].sort();
+  return deltaCapabilities(path.join(projectRoot, ".doctrina", "changes", id));
 }
 
 // The sequence is DECLARED once, in lib/gates.js, and rendered here. It used

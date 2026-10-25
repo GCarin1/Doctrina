@@ -21,23 +21,43 @@ export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
   if (!files || files.length === 0 || !isDir(specsDir)) return [];
   const norm = files.map((f) => f.replace(/\\/g, "/"));
 
-  const ranked = [];
+  const specs = [];
   for (const cap of readdirSync(specsDir).sort()) {
     const specPath = path.join(specsDir, cap, "spec.md");
     if (!isFile(specPath)) continue;
-    const specText = read(specPath);
-    // A DECLARED glob outranks every inference: the spec said this code is
-    // its own, and a declaration is not a guess (change 0077).
-    const declared = parseSourceGlobs(specText).map((g) => globToRegExp(g));
-    let score = 0;
-    for (const f of norm) {
-      if (declared.some((re) => re.test(f))) score += 10;     // the spec claims it
-      if (f.split("/").includes(cap)) score += 3;            // src/<cap>/... etc.
-      if (specText.includes(f)) score += 5;                  // file cited in the spec
-      else if (specText.includes(path.basename(f))) score += 2; // filename cited
-    }
-    if (score > 0) ranked.push({ id: cap, score, path: `.doctrina/specs/${cap}/spec.md` });
+    const text = read(specPath);
+    specs.push({ cap, text, declared: parseSourceGlobs(text).map((g) => globToRegExp(g)) });
   }
+
+  // Per file, the strongest answer the tree holds wins, and a weaker one is
+  // never added on top of it (change 0200, ADR 0027):
+  //   1. the specs whose `**Source:**` claims the file — a declaration;
+  //   2. else the specs citing the exact path (a proof or a pointer);
+  //   3. else the path/basename inferences, and only from specs that declare
+  //      NO Source — a spec that stated what it owns has said all it owns.
+  // The old sum added every signal from every spec, so a file claimed by
+  // `health` still "belonged" to `cloud` because cloud's spec mentioned an
+  // `index.ts`, and every close warned about a spec the change never touched.
+  const scores = new Map();
+  const add = (cap, n) => scores.set(cap, (scores.get(cap) ?? 0) + n);
+  for (const f of norm) {
+    const claimed = specs.filter((s) => s.declared.some((re) => re.test(f)));
+    if (claimed.length > 0) {
+      for (const s of claimed) add(s.cap, 10);
+      continue;
+    }
+    const citing = specs.filter((s) => s.text.includes(f));
+    if (citing.length > 0) {
+      for (const s of citing) add(s.cap, 5);
+      continue;
+    }
+    for (const s of specs) {
+      if (s.declared.length > 0) continue;
+      if (f.split("/").includes(s.cap)) add(s.cap, 3);            // src/<cap>/... etc.
+      if (s.text.includes(path.basename(f))) add(s.cap, 2);       // filename cited
+    }
+  }
+  const ranked = [...scores].map(([id, score]) => ({ id, score, path: `.doctrina/specs/${id}/spec.md` }));
   // `limit` keeps the work-playbook hint short (top 3); review passes
   // Infinity — truncating there is how it missed 5 of 8 touched capabilities
   // in the 0.11.0 field session.
