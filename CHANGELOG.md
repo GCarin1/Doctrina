@@ -60,6 +60,8 @@ and specs only ever grew.
 
 ### Fixed
 
+- The batch-close skills test fills a CRLF proposal too, as Windows
+  scaffolds it (change 0210).
 - The `verify --reuse` fingerprint answers for a tree reached through a
   symlink — macOS's temporary directory is one — instead of giving up and
   reusing nothing (change 0209).

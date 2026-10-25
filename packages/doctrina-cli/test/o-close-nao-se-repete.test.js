@@ -42,8 +42,9 @@ test("a batch close prints one skills section: the fresh lesson by name, the res
       writeFileSync(path.join(changeDir, "tasks.md"), "# Tasks\n\n- [x] Did it\n");
       const proposal = path.join(changeDir, "proposal.md");
       writeFileSync(proposal, readFileSync(proposal, "utf8")
-        .replace(/## Why\n\n[^\n]*\n/, "## Why\n\nThe parser crashed on empty input.\n")
-        .replace(/## What\n\n<!--[^]*?-->/, "## What\n\nGuard the empty case."));
+        // CRLF-tolerant: on Windows the scaffolded proposal is CRLF.
+        .replace(/## Why\r?\n\r?\n[^\r\n]*\r?\n/, "## Why\n\nThe parser crashed on empty input.\n")
+        .replace(/## What\r?\n\r?\n<!--[^]*?-->/, "## What\n\nGuard the empty case."));
       assert.equal(run(["change", "tick", id, "--all"]).status, 0);
     };
     chore("0001-fix-parser-crash");

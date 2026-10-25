@@ -3474,6 +3474,15 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0210-teste-do-lote-aceita-crlf",
+        "title": "teste do lote aceita crlf",
+        "path": ".doctrina/changes/archive/2026-10-25-0210-teste-do-lote-aceita-crlf",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [

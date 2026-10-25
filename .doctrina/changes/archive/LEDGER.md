@@ -220,3 +220,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0207-proposal-nomeia-a-spec-do-delta — proposal nomeia a spec do delta (specs: authoring MODIFIED)
 - 2026-10-25 — 0208-cortar-0-18-0 — cortar a 0.18.0
 - 2026-10-25 — 0209-fingerprint-atravessa-symlink — fingerprint atravessa symlink (specs: insight MODIFIED)
+- 2026-10-25 — 0210-teste-do-lote-aceita-crlf — teste do lote aceita crlf
