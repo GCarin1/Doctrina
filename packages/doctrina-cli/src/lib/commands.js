@@ -517,6 +517,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.18.0": [
+    "`doctrina change delta <id> <capability> --requirement \"<section>: <text>\" --criterion \"<text>\" --bump minor` writes the ops lines for you and dry-runs them against the spec — stop hand-writing ops blocks.",
+    "`close` runs `verify --reuse`: running `doctrina verify` yourself right before `doctrina close` is no longer paid twice, and a batch close runs the suite once. Use `verify --affected` while working when checks declare `\"paths\"`.",
+    "The review inside `close` counts the change's own deltas as spec updates and reports code under other capabilities in ONE line — read it: either this change forgot a delta or other work is lying in the tree.",
+    "`close` ends by listing other open changes that look finished or are a week old; close them with the `doctrina close <id>` it prints. `next` no longer suggests `change archive`.",
+    "A spec can shrink: `remove-requirement <section> <n>` / `remove-criterion <n>`, and `doctrina work --consolidate <cap>` when a spec has grown past what it needs to say.",
+  ],
   "0.17.0": [
     "Preview a close with `doctrina change check <id>` (it exits 1 while a Verification box is open), then run `doctrina close <id>` — do not run `analyze`, `change apply` or `change archive` by hand; a chore closes the same way.",
     "Deprecated names still run with a notice — use the replacement: `analyze` → `change check`, `report` → `status --view report`, `skill sync` → `index rebuild`, `templates check|update` → `upgrade [--write]`. `constitution` and `change diff` are removed (exit 2).",

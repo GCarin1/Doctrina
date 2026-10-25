@@ -17,6 +17,26 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-10-25
+
+Driven by a field review of 0.17 from a project that ran 85 changes
+through it: the close was too slow for a small change, its warnings had
+turned into noise, a shipped change was left open with nothing saying so,
+and specs only ever grew.
+
+### Upgrading from 0.17
+
+- Run `doctrina upgrade --write`. It regenerates the AGENTS.md command
+  surface (`change … |delta`) and "What changed" blocks and re-stamps the
+  index.
+- Nothing is removed and no artifact shape changes. A project that keeps
+  its own copy of `.doctrina/templates/` gets the new consolidation
+  playbook from the bundled templates until it copies it in.
+- To use `verify --affected`, add `"paths"` (git pathspecs) to the checks
+  in `.doctrina/verify.json` that cover part of the tree; checks without
+  it keep running every time.
+- Regenerate shell completion (`doctrina completion <shell>`).
+
 ### Added
 
 - A spec can shrink: `remove-requirement <section> <n>` and
