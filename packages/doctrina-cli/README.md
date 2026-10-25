@@ -3,7 +3,7 @@
 > CLI for the Doctrina framework. The package is published as
 > `doctrina-cli`; the executable it installs is `doctrina`.
 
-**Status:** v0.17.0 — current release. Zero runtime dependencies
+**Status:** v0.18.0 — current release. Zero runtime dependencies
 (Node.js standard library only).
 
 ## Install
@@ -25,7 +25,7 @@ surface, by the moment you reach for it:
 ```
 Bootstrap   init · intake · adapter list|add|remove
 Orient      prime · next · status · context · show · search · why · handoff
-Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon
+Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|delta
             contract new|list|check · decision new|accept|land|supersede|list|scope
             skill new|list|suggest · intent add|list
 Gate        clarify · validate · coverage · trace · review · verify · close · doctor
@@ -72,14 +72,17 @@ For each spec delta found under `.doctrina/changes/<id>/specs/`:
 - **REMOVED:** deletes the target spec.
 - **MODIFIED:** when the delta carries a fenced ` ```ops ` block
   (`set-header` / `bump-version` / `set-criterion` / `replace-criterion`
-  / `append-criterion` / `append-requirement` / `replace-requirement`),
+  / `append-criterion` / `append-requirement` / `replace-requirement` /
+  `remove-requirement` / `remove-criterion`),
   applies it mechanically to the target spec — all
   ops or none — and regenerates the index (ADR 0007). Without an ops
   block it prints a manual-merge pointer and does not write: auto-merging
   arbitrary prose is the kind of implicit decision Doctrina avoids.
 
 On any spec write, the index is rebuilt from the tree so it never drifts
-from the applied spec. `doctrina change abandon <id>` is the inverse of
+from the applied spec. `doctrina change delta <id> <capability>` writes the
+ops lines for you (`--requirement`, `--criterion`, `--bump`), dry-run
+against the spec before anything is written. `doctrina change abandon <id>` is the inverse of
 `change new`: it deletes an open change and its index entry and ledgers
 the abandonment. `doctrina close <id>` runs apply together with verify,
 coverage, archive and validate in one attested pass — the definition of

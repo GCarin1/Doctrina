@@ -96,6 +96,30 @@ export function changedSince(projectRoot, sha, paths) {
   return [...out].sort();
 }
 
+/**
+ * Which of `paths` the uncommitted work touches — edits against HEAD plus
+ * untracked files, `.gitignore` respected (change 0204). The same pathspec
+ * reading a sign-off's "paths" gets, so "what this check covers" means one
+ * thing in verify.json. Null when git cannot answer: a caller then runs the
+ * check rather than reading "nothing changed" out of a question it never
+ * got to ask.
+ *
+ * @param {string} projectRoot
+ * @param {string[]} paths
+ * @returns {string[] | null}
+ */
+export function workingChanges(projectRoot, paths) {
+  const tracked = git(projectRoot, ["diff", "--name-only", "HEAD", "--", ...paths]);
+  // No commit yet: every file is new, so what is staged counts as changed.
+  const staged = tracked.state === GIT_STATE.EMPTY
+    ? git(projectRoot, ["ls-files", "--cached", "--", ...paths])
+    : tracked;
+  if (staged.state !== GIT_STATE.OK) return null;
+  const untracked = git(projectRoot, ["ls-files", "--others", "--exclude-standard", "--", ...paths]);
+  if (untracked.state !== GIT_STATE.OK) return null;
+  return [...new Set([...staged.lines, ...untracked.lines].filter(Boolean))].sort();
+}
+
 /** The commit a signature is anchored to, or null outside a repository. */
 export function currentSha(projectRoot) {
   const r = git(projectRoot, ["rev-parse", "HEAD"]);

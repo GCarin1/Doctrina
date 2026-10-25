@@ -2,18 +2,18 @@
 import path from "node:path";
 import process from "node:process";
 import { appendFileSync } from "node:fs";
-import { exists, isDir, isFile, read, walk } from "../lib/fs-ops.js";
+import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { parseCapabilityFromDelta } from "../lib/doc-model.js";
 import { printAdrCheckpoint, acceptedDecisionCount } from "../lib/adr-guard.js";
 import { docsRemedy, checkDocsImpact, checkChangelogImpact } from "../lib/docs-impact.js";
 import { collectRuntimeFindings } from "../lib/runtime.js";
 import { derivedImplementations, implementationMismatch, summarize } from "../lib/coverage-model.js";
-import { specHeader, dependentsOf } from "../lib/scan.js";
+import { specHeader, dependentsOf, deltaCapabilities } from "../lib/scan.js";
 import { sequence, sequenceLabels, stepRerun } from "../lib/gates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { refuseChangeRef } from "../lib/project.js";
+import { unfinishedChanges } from "../lib/snapshot.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -23,7 +23,7 @@ import * as validate from "./validate.js";
 import * as indexRebuild from "./index-rebuild.js";
 import { appendLedgerLine, docsGapLine, ledgerPath as ledgerFile } from "../lib/ledger.js";
 import * as review from "./review.js";
-import * as skill from "./skill.js";
+import { skillCandidates } from "../lib/skill-candidates.js";
 
 // One-command close (review 2026-06-27 passive-user feature #2). The work
 // playbook lists the closing sequence — analyze → apply → runtime → verify →
@@ -65,7 +65,60 @@ export async function run(positional, flags) {
       ? c.green("ok") + ` all ${positional.length} changes closed`
       : c.red("fail") + " at least one close stopped — see above");
   }
+  reportSkills(projectRoot, positional);
+  reportUnfinished(projectRoot, positional);
   return worst;
+}
+
+// Capture the lesson while it is fresh (operator review §4.7) — the lesson
+// THIS close produced (change 0202). The close used to print the whole
+// `skill suggest` listing, per id: the same thirteen candidates after every
+// close, which a field review of 0.17 named as noise nobody read. Now a
+// candidate born from a change just closed gets its line; every other one is
+// a count pointing at the full listing. Once per run, batch or not.
+// Advisory — a listing, never a gate, and a failure never un-closes anything.
+function reportSkills(projectRoot, closing) {
+  let candidates;
+  try {
+    candidates = skillCandidates(projectRoot);
+  } catch {
+    return;
+  }
+  if (candidates.length === 0) return;
+  const ids = new Set(closing);
+  const fresh = candidates.filter((cand) => cand.source === "change" && ids.has(cand.id));
+  const waiting = candidates.length - fresh.length;
+  console.log("");
+  console.log(c.gray("──── skills (advisory)"));
+  for (const cand of fresh) {
+    console.log(c.yellow("  ! ") + `${cand.id} is fix-shaped — capture the lesson while it is fresh: ` +
+      c.cyan(`doctrina skill new ${cand.slug}`));
+  }
+  if (waiting > 0) {
+    console.log(c.gray(`  ${waiting} ${fresh.length > 0 ? "older " : ""}candidate${waiting === 1 ? "" : "s"} waiting — \`doctrina skill suggest\``));
+  }
+}
+
+// The other open changes, said at the one moment someone is looking (change
+// 0201). A field review of 0.17: change 0078 shipped, stayed open, and no
+// close after it said a word. A change that looks finished — applied, or
+// every task ticked — and one open a week or more get a line each; the rest
+// are a count. Advisory: it never moves the exit code.
+function reportUnfinished(projectRoot, closing) {
+  const others = unfinishedChanges(projectRoot, { exclude: closing });
+  if (others.length === 0) return;
+  const flagged = others.filter((ch) => ch.reason !== null);
+  console.log("");
+  console.log(c.gray(`──── other open changes (advisory) — ${others.length}`));
+  for (const ch of flagged) {
+    const age = ch.ageDays !== null ? `, opened ${ch.ageDays}d ago` : "";
+    const how = ch.finished ? ` — ${c.cyan(`doctrina close ${ch.id}`)}` : "";
+    console.log(c.yellow("  ! ") + `${ch.id}: ${ch.reason}${age}${how}`);
+  }
+  const quiet = others.length - flagged.length;
+  if (quiet > 0) {
+    console.log(c.gray(`  ${quiet} more open and recent — \`doctrina next\``));
+  }
 }
 
 async function closeOne(projectRoot, id, flags) {
@@ -138,13 +191,17 @@ async function closeOne(projectRoot, id, flags) {
     },
 
     // The review runs against the working tree, which for a close IS the
-    // change's diff: the work is done and not yet archived. Its exit code is
+    // change's diff: the work is done and not yet archived. It is told which
+    // change it is reviewing (change 0200): the deltas it carries are the
+    // spec updates, merged one step later by `apply`, and code under a
+    // capability the change carries no delta for is one line, not one
+    // break per capability. Its exit code is
     // discarded on purpose — the step is declared advisory, and an advisory
     // step that could still move the close's result would be advisory in name
     // only. A crash is caught by the loop and reported the same way.
     review: {
       run: async () => {
-        await review.run([], new Map());
+        await review.run([], new Map([["change", id]]));
         return 0;
       },
     },
@@ -237,7 +294,10 @@ async function closeOne(projectRoot, id, flags) {
     // verify is conditional: skipped with a loud note when no verify.json is
     // declared, because a project may not have wired the real gate yet.
     verify: verifyConfigured
-      ? { run: () => verify.run([], new Map()) }
+      // --reuse (change 0203): the suite the agent just ran by hand, or the
+      // one the previous id of this batch ran, on byte-identical code, is
+      // not run a second time. Anything that differs runs everything.
+      ? { run: () => verify.run([], new Map([["reuse", true]])) }
       : { skip: "no .doctrina/verify.json — declare the real gate with `doctrina verify --init`" },
 
     coverage: {
@@ -270,7 +330,9 @@ async function closeOne(projectRoot, id, flags) {
           // one session with an empty `## [Unreleased]` behind them.
           const log = checkChangelogImpact(projectRoot, changeDir);
           if (log.ok) {
-            console.log(c.green("ok") + ` ${log.reason}`);
+            // One line when both answers are the same sentence (change 0202):
+            // "touches no documented surface" twice read as two checks.
+            if (log.reason !== r.reason) console.log(c.green("ok") + ` ${log.reason}`);
             return 0;
           }
           console.error(c.red("error:") + ` this change ${log.reason}:`);
@@ -404,16 +466,6 @@ async function closeOne(projectRoot, id, flags) {
     }
   }
 
-  // Capture the lesson while it is fresh (operator review §4.7): surface the
-  // fix-shaped lessons not yet written as skills, right where the operator
-  // just proved they finish what they start. Advisory — a listing, never a
-  // gate, and a suggest failure never un-closes the change.
-  console.log("");
-  console.log(c.gray("──── skills (advisory)"));
-  try {
-    await skill.run(["suggest"], new Map());
-  } catch { /* advisory only */ }
-
   console.log("");
   console.log(c.green(`✓ change ${id} closed`) + c.gray(closingClaim(ran, skippedSteps)));
   console.log(c.gray("Next: ") + c.cyan("doctrina next"));
@@ -484,14 +536,7 @@ function reportDependentCoverage(projectRoot, touched) {
 }
 
 function touchedCapabilities(projectRoot, id) {
-  const specsDir = path.join(projectRoot, ".doctrina", "changes", id, "specs");
-  const caps = new Set();
-  for (const deltaPath of walk(specsDir)) {
-    if (!deltaPath.endsWith("delta.md")) continue;
-    const cap = parseCapabilityFromDelta(read(deltaPath), deltaPath);
-    if (cap) caps.add(cap);
-  }
-  return [...caps].sort();
+  return deltaCapabilities(path.join(projectRoot, ".doctrina", "changes", id));
 }
 
 // The sequence is DECLARED once, in lib/gates.js, and rendered here. It used
@@ -522,7 +567,9 @@ first failure with the exact command to rerun:
 
 ${SEQUENCE}
 
-then a closing skill-suggest listing (advisory).
+then two advisory notes, once per run: the skill candidate a just-closed
+fix-shaped change produced (the others are a count), and the other open
+changes that look finished or are a week old.
 
 The coverage gate is scoped to the capabilities the change's deltas touch,
 so a deliberately deferred spec elsewhere cannot block an unrelated close;

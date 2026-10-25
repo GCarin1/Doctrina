@@ -17,6 +17,80 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-10-25
+
+Driven by a field review of 0.17 from a project that ran 85 changes
+through it: the close was too slow for a small change, its warnings had
+turned into noise, a shipped change was left open with nothing saying so,
+and specs only ever grew.
+
+### Upgrading from 0.17
+
+- Run `doctrina upgrade --write`. It regenerates the AGENTS.md command
+  surface (`change … |delta`) and "What changed" blocks and re-stamps the
+  index.
+- Nothing is removed and no artifact shape changes. A project that keeps
+  its own copy of `.doctrina/templates/` gets the new consolidation
+  playbook from the bundled templates until it copies it in.
+- To use `verify --affected`, add `"paths"` (git pathspecs) to the checks
+  in `.doctrina/verify.json` that cover part of the tree; checks without
+  it keep running every time.
+- Regenerate shell completion (`doctrina completion <shell>`).
+
+### Added
+
+- A spec can shrink: `remove-requirement <section> <n>` and
+  `remove-criterion <n>` ops (criteria after it renumber), and
+  `work --consolidate <cap>`, which opens a change pinned to the capability
+  with the spec's measured shape and a consolidation playbook. `validate`'s
+  400-line warning names it (change 0206).
+- `change delta <id> <capability>` writes `append-requirement`,
+  `append-criterion`, `bump-version` (or any op line) into the change's
+  MODIFIED delta, through the grammar `apply` reads and dry-run against the
+  spec before anything is written (change 0205).
+- `verify --affected` runs a check that declares `paths` only when the
+  uncommitted work touches one of them — the inner loop of a change; checks
+  with no `paths` always run, and `close` always runs the whole suite
+  (change 0204).
+- `verify --reuse` skips the checks when the last fully green run covered
+  byte-identical code (working tree minus `.doctrina/`, plus `verify.json`
+  and the CLI version); `close` runs verify this way. The suite an agent
+  just ran by hand is not repeated by the close, and a batch close runs it
+  once instead of once per id. A plain `verify` always runs (change 0203).
+
+### Fixed
+
+- The batch-close skills test fills a CRLF proposal too, as Windows
+  scaffolds it (change 0210).
+- The `verify --reuse` fingerprint answers for a tree reached through a
+  symlink — macOS's temporary directory is one — instead of giving up and
+  reusing nothing (change 0209).
+- `work` names the capability of a ranked delta in the proposal's
+  `Affects specs:` (only a pinned one did), and `change delta` adds the
+  capability it writes to (change 0207).
+- `replace-criterion` replaces a criterion wrapped over several lines
+  whole; it kept the old criterion's continuation lines under the new one
+  (change 0206).
+- `close` no longer prints the whole `skill suggest` listing after every
+  close (per id, in a batch): once per run, it names the candidate a
+  just-closed fix-shaped change produced and counts the rest. The docs step
+  prints "touches no documented surface" once, not twice (change 0202).
+- `close` ends by listing the other open changes: one that looks finished
+  (applied, or every task ticked) but was never closed, and one open 7 days
+  or more, each get a line; `prime` shows the age. `next` points an applied
+  or delta-less change at `doctrina close <id>` instead of `change archive`
+  / `change apply`, and `next --run` can run that close (change 0201).
+- The review inside `close` stops warning about the spec the change is
+  updating, and reports code under capabilities the change carries no delta
+  for in one line instead of one break each (`review --change <id>`). A file
+  claimed by a `**Source:**` belongs only to its declarer: a spec mentioning
+  the same basename no longer "owns" it too, and the churn note names only
+  the capabilities the change updates (change 0200).
+- A `**Source:**` glob written as a directory (`src/health/`) claims
+  everything under it, as `src/health/**` does. It used to match only the
+  literal path, so `validate` called it dead and `review` treated every file
+  under it as ownerless (change 0199).
+
 ## [0.17.0] — 2026-09-24
 
 ### Upgrading from 0.16

@@ -2,6 +2,7 @@
 import { c } from "./colors.js";
 import { today } from "./dates.js";
 import { churnByCapability } from "./ledger.js";
+import { STALE_CHANGE_DAYS } from "./snapshot.js";
 
 // Executed proof and signed proof are different claims (change 0039). One
 // phrasing, used by every view, so none of them can quietly add the two
@@ -182,7 +183,11 @@ export function prime(s) {
   } else {
     for (const ch of s.openChanges) {
       const tasks = ch.tasksTotal > 0 ? ` · tasks ${ch.tasksDone}/${ch.tasksTotal}` : "";
-      out.push(`  ${c.cyan(ch.id)}  ${ch.title ?? ""}${c.gray(` (${ch.status}${tasks})`)}`);
+      // The age, once it is news (change 0201): a change opened today and
+      // one forgotten for three weeks used to read identically.
+      const age = ch.ageDays !== null && ch.ageDays !== undefined && ch.ageDays >= STALE_CHANGE_DAYS
+        ? ` · open ${ch.ageDays}d` : "";
+      out.push(`  ${c.cyan(ch.id)}  ${ch.title ?? ""}${c.gray(` (${ch.status}${tasks}${age})`)}`);
     }
   }
 

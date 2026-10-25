@@ -117,6 +117,40 @@ function matchOpsBlock(text) {
   return null;
 }
 
+/** One op line, parsed by the grammar `apply` reads: `{ verb, ... }` or `{ verb, error }`. */
+export function parseOp(line) {
+  return parseOpLine(String(line).trim());
+}
+
+/**
+ * Append op lines to a delta's live `ops` block — creating the block at the
+ * end when there is none (change 0205). A `bump-version` line replaces the
+ * block's existing one instead of stacking a second bump on it. Pure.
+ *
+ * @param {string} deltaText
+ * @param {string[]} lines  already validated with `parseOp`
+ * @returns {string}
+ */
+export function insertOps(deltaText, lines) {
+  const ranges = commentRanges(deltaText);
+  const fenceRe = /^([ \t]*```[ \t]*ops[ \t]*\r?\n)([\s\S]*?)(^[ \t]*```[ \t]*$)/gm;
+  const bumps = lines.some((l) => parseOp(l).verb === "bump-version");
+  let m;
+  while ((m = fenceRe.exec(deltaText))) {
+    if (isInsideComment(ranges, m.index)) continue;
+    const kept = m[2].split(/\r?\n/).filter((l) => l.trim() !== "")
+      .filter((l) => !(bumps && parseOp(l).verb === "bump-version"));
+    // The bump goes last, where a reader looks for it.
+    const ordered = [...kept, ...lines].sort((a, b) =>
+      Number(parseOp(a).verb === "bump-version") - Number(parseOp(b).verb === "bump-version"));
+    const block = `${m[1]}${ordered.join("\n")}\n${m[3]}`;
+    return deltaText.slice(0, m.index) + block + deltaText.slice(m.index + m[0].length);
+  }
+  const ordered = [...lines].sort((a, b) =>
+    Number(parseOp(a).verb === "bump-version") - Number(parseOp(b).verb === "bump-version"));
+  return `${deltaText.replace(/\s*$/, "")}\n\n\`\`\`ops\n${ordered.join("\n")}\n\`\`\`\n`;
+}
+
 function parseOpLine(line) {
   // `<verb> <rest>` — the verb is the first whitespace-delimited token.
   const sp = line.indexOf(" ");
@@ -178,6 +212,24 @@ function parseOpLine(line) {
       if (!value) return { verb, error: `replace-requirement ${n} is missing the requirement text` };
       return { verb, section, n, value };
     }
+    case "remove-requirement": {
+      // remove-requirement <section> <n>[: <why>] — the reason is for the
+      // reader of the delta; the spec loses the bullet either way.
+      const colon = rest.indexOf(":");
+      const head = (colon < 0 ? rest : rest.slice(0, colon)).trim().split(/\s+/);
+      const n = Number(head[head.length - 1]);
+      const section = normalizeSection(head.slice(0, -1).join(" "));
+      if (!section) return { verb, error: `remove-requirement: unknown section "${head.slice(0, -1).join(" ")}" (use ${SECTION_TOKENS})` };
+      if (!Number.isInteger(n) || n < 1) return { verb, error: `remove-requirement needs "<section> <n>" with a positive bullet number (got "${rest}")` };
+      return { verb, section, n };
+    }
+    case "remove-criterion": {
+      // remove-criterion <n>[: <why>]
+      const colon = rest.indexOf(":");
+      const n = Number((colon < 0 ? rest : rest.slice(0, colon)).trim());
+      if (!Number.isInteger(n) || n < 1) return { verb, error: `remove-criterion needs a positive criterion number (got "${rest}")` };
+      return { verb, n };
+    }
     default:
       return { verb: null, error: `unknown operation "${verb}"` };
   }
@@ -238,6 +290,10 @@ function applyOne(text, op) {
       return appendRequirement(text, op.section, op.value);
     case "replace-requirement":
       return replaceRequirement(text, op.section, op.n, op.value);
+    case "remove-requirement":
+      return removeRequirement(text, op.section, op.n);
+    case "remove-criterion":
+      return removeCriterion(text, op.n);
     default:
       return { error: `unknown operation "${op.verb}"` };
   }
@@ -334,8 +390,31 @@ export function replaceCriterion(text, n, value) {
   if (!loc) return { error: "replace-criterion: spec has no '## Acceptance criteria' section" };
   const item = loc.items.find((it) => it.n === n);
   if (!item) return { error: `replace-criterion: no criterion #${n} found` };
-  loc.lines[item.lineIndex] = `${item.indent}${n}. ${value}`;
+  // The whole item, continuation lines included (change 0206) — the lesson
+  // `replace-requirement` learned, which this verb never picked up: a
+  // criterion wrapped over three lines kept its old second and third lines
+  // under the new first one, so the spec stated a proof and then the
+  // previous proof's tail.
+  loc.lines.splice(item.lineIndex, endOfItem(loc.lines, item.lineIndex) - item.lineIndex + 1, `${item.indent}${n}. ${value}`);
   return { text: loc.lines.join("\n"), summary: `replace-criterion ${n}` };
+}
+
+// remove-criterion <n> — delete criterion n, continuation lines included,
+// and renumber the ones after it so the list stays 1..N (change 0206). A
+// spec only ever grew: there was no verb to take a criterion out, so a
+// superseded one stayed beside its replacement for good.
+export function removeCriterion(text, n) {
+  const loc = locateCriteria(text);
+  if (!loc) return { error: "remove-criterion: spec has no '## Acceptance criteria' section" };
+  const item = loc.items.find((it) => it.n === n);
+  if (!item) return { error: `remove-criterion: no criterion #${n} found` };
+  const end = endOfItem(loc.lines, item.lineIndex);
+  const lines = loc.lines;
+  for (const it of loc.items) {
+    if (it.n > n) lines[it.lineIndex] = lines[it.lineIndex].replace(/^(\s*)\d+\./, `$1${it.n - 1}.`);
+  }
+  lines.splice(item.lineIndex, end - item.lineIndex + 1);
+  return { text: lines.join("\n"), summary: `remove-criterion ${n} (${loc.items.length - n} renumbered)` };
 }
 
 // The `### <Section>` blocks under `## Requirements (EARS)`. Returns
@@ -505,6 +584,23 @@ export function replaceRequirement(text, section, n, value) {
   return { text: loc.lines.join("\n"), summary: `replace-requirement ${section} ${n}` };
 }
 
+// remove-requirement <section> <n> — delete the nth bullet (1-based) of the
+// EARS subsection, continuation lines included (change 0206). The heading
+// stays even when it empties: `append-requirement` can fill it again.
+export function removeRequirement(text, section, n) {
+  const loc = locateRequirements(text);
+  if (!loc) return { error: "remove-requirement: spec has no '## Requirements (EARS)' section" };
+  const sec = loc.sections[section];
+  if (!sec) return { error: `remove-requirement: no '### ${section}...' subsection found under Requirements` };
+  const real = sec.bullets.filter((i) => !/^\s*-\s*$/.test(loc.lines[i]));
+  if (n > real.length) {
+    return { error: `remove-requirement: section "${section}" has ${real.length} requirement${real.length === 1 ? "" : "s"}, no #${n}` };
+  }
+  const start = real[n - 1];
+  loc.lines.splice(start, endOfItem(loc.lines, start) - start + 1);
+  return { text: loc.lines.join("\n"), summary: `remove-requirement ${section} ${n}` };
+}
+
 // append-criterion <text> — add a new numbered criterion after the last one
 // in the section.
 export function appendCriterion(text, value) {
@@ -522,4 +618,24 @@ export function appendCriterion(text, value) {
   const nextN = Math.max(...loc.items.map((it) => it.n)) + 1;
   loc.lines.splice(endOfItem(loc.lines, last.lineIndex) + 1, 0, `${last.indent}${nextN}. ${value}`);
   return { text: loc.lines.join("\n"), summary: `append-criterion ${nextN}` };
+}
+
+/**
+ * The size of a spec, as `work --consolidate` reports it (change 0206):
+ * lines, real requirement bullets per EARS subsection, and criteria.
+ * @param {string} text
+ */
+export function specShape(text) {
+  const req = locateRequirements(text);
+  const sections = {};
+  let requirements = 0;
+  for (const token of EARS_ORDER) {
+    const sec = req?.sections[token];
+    if (!sec) continue;
+    const n = sec.bullets.filter((i) => !/^\s*-\s*$/.test(req.lines[i])).length;
+    sections[token] = n;
+    requirements += n;
+  }
+  const crit = locateCriteria(text);
+  return { lines: text.split(/\r?\n/).length, requirements, sections, criteria: crit ? crit.items.length : 0 };
 }

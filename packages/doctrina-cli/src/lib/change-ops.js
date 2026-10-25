@@ -15,6 +15,10 @@ import { flagBool, flagString } from "./args.js";
 import { c } from "./colors.js";
 import { ensureDoctrinaProject, isChangeId, resolveWithinProject } from "./project.js";
 import { changeEntry } from "./scan.js";
+import { parseOp, insertOps, extractOps, applyOps } from "./spec-ops.js";
+import { parseOperation } from "./doc-model.js";
+import { substitute } from "./templates.js";
+import { EXIT } from "./exit-codes.js";
 export function changeNew(args, flags) {
   const id = args[0];
   const title = args.slice(1).join(" ").trim();
@@ -130,4 +134,92 @@ export function reindexChange(projectRoot, id, date = today()) {
   index.artifacts.changes.push(changeEntry(proposal, id, prev, date));
   idx.touch(index, date);
   idx.save(projectRoot, index);
+}
+
+/**
+ * Add op lines to a change's MODIFIED delta for one capability (change 0205).
+ *
+ * A field review of 0.17 asked for "a command to add a requirement and a
+ * criterion without writing the ops blocks by hand". The grammar is
+ * `apply`'s (ADR 0021): every line is parsed by the same parser, and the
+ * whole block — what was there plus what is added — is dry-run against the
+ * current spec before anything is written, so an op that would not apply is
+ * refused now rather than at the close. Creates the delta from the template
+ * when the change has none for the capability yet; a second `bump-version`
+ * replaces the first instead of bumping twice.
+ *
+ * @param {string} projectRoot
+ * @param {string} id          change id (already refused/resolved by the caller)
+ * @param {string} capability
+ * @param {string[]} lines     op lines, one operation each
+ * @returns {{ code: number, error?: string, hint?: string, details?: string[],
+ *             deltaRel?: string, created?: boolean, block?: string[] }}
+ */
+export function addDeltaOps(projectRoot, id, capability, lines) {
+  if (lines.length === 0) {
+    return { code: EXIT.USAGE, error: "nothing to add",
+      hint: "pass --requirement \"<section>: <text>\", --criterion \"<text>\", --bump <level> or an op line" };
+  }
+  const bad = lines.map((l) => ({ l, op: parseOp(l) })).filter((x) => x.op.error);
+  if (bad.length > 0) {
+    return { code: EXIT.USAGE, error: "not an operation `apply` can read", details: bad.map((x) => x.op.error) };
+  }
+  const specPath = path.join(projectRoot, ".doctrina", "specs", capability, "spec.md");
+  if (!isFile(specPath)) {
+    return { code: EXIT.USAGE, error: `capability "${capability}" has no spec at ${relPath(projectRoot, specPath)}`,
+      hint: `a NEW capability is an ADDED delta with the full body — \`doctrina spec new ${capability}\`, then write it` };
+  }
+  const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", capability, "delta.md");
+  const created = !isFile(deltaPath);
+  let text;
+  if (created) {
+    const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
+    text = substitute(tpl, { CAPABILITY: capability }).replace(/^\*\*Operation:\*\*.*$/m, "**Operation:** MODIFIED");
+  } else {
+    text = read(deltaPath);
+    const op = parseOperation(text);
+    if (op && op !== "MODIFIED") {
+      return { code: EXIT.PRECONDITION, error: `${relPath(projectRoot, deltaPath)} is an ${op} delta — ops apply only to a MODIFIED one`,
+        hint: op === "ADDED" ? "write the requirement into the ADDED body itself" : "a REMOVED delta deletes the spec; there is nothing to add to" };
+    }
+  }
+  const next = insertOps(text, lines);
+  const dry = applyOps(read(specPath), extractOps(next));
+  if (dry.errors.length > 0) {
+    return { code: EXIT.GATE, error: `the ops block would not apply to ${relPath(projectRoot, specPath)} — nothing written`, details: dry.errors };
+  }
+  mkdirp(path.dirname(deltaPath));
+  write(deltaPath, next, { force: true });
+  addAffectedSpec(projectRoot, id, capability);
+  return { code: EXIT.OK, deltaRel: relPath(projectRoot, deltaPath), created, block: extractOps(next).map((o) => o.verb) };
+}
+
+/**
+ * Name `capability` in the proposal's `Affects specs:` header when the
+ * header does not already (change 0207). A change whose delta targets a
+ * capability affects that spec, and a header left empty while the delta
+ * folder said otherwise was the one fact `prime`, `status` and the review
+ * of the proposal disagreed on. A chore's "(none — chore)" is left alone:
+ * that is a declaration, and the structure gate is where a chore carrying a
+ * delta gets questioned.
+ *
+ * @param {string} projectRoot
+ * @param {string} id
+ * @param {string} capability
+ * @returns {boolean} whether the header changed
+ */
+export function addAffectedSpec(projectRoot, id, capability) {
+  const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
+  if (!isFile(proposalPath)) return false;
+  const text = read(proposalPath);
+  const m = text.match(/^(-[ \t]+\*\*Affects specs:\*\*)([^\r\n]*)/m);
+  if (!m) return false;
+  const current = m[2].trim();
+  if (/^\(none/i.test(current)) return false;
+  const named = current.split(",").map((s) => s.trim().replace(/`/g, "")).filter(Boolean);
+  if (named.includes(capability)) return false;
+  const value = [...named, capability].join(", ");
+  write(proposalPath, text.replace(m[0], `${m[1]} ${value}`), { force: true });
+  reindexChange(projectRoot, id);
+  return true;
 }

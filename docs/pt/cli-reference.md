@@ -257,8 +257,22 @@ arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
 | `--quiet` | Registra o change e imprime uma linha — sem playbook. Para registrar backlog ("anotar 19 works agora, começar nenhum"); reimprima depois com `--resume <id>`. |
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
+| `--consolidate <cap>` | Abre uma change que consolida a spec de `<cap>`, com playbook próprio (abaixo). Não precisa de prompt. |
 | `--design` | Também esboça o `design.md`, para um change com escolhas não triviais (opt-in, como em `change new --design`). |
 | `--force` | Sobrescreve uma pasta de change existente, e passa pela retenção de raia descrita abaixo. |
+
+**`--consolidate <cap>`: uma spec pode encolher.** Toda change acrescenta,
+então uma spec só crescia — nada tirava um requisito. O `work
+--consolidate auth` abre uma change comum fixada em `auth` (delta MODIFIED
+esqueletizado) e imprime a forma medida da spec — linhas, requisitos por
+subseção EARS, critérios — e um playbook: ler a spec e sua história, achar
+o que ela diz duas vezes ou o que uma regra posterior substituiu, e
+escrever o delta com o `change delta` e as ops de remoção
+(`remove-requirement`, `remove-criterion`, `replace-requirement` para fundir
+dois em um). Decidir o que é redundante é do agente (ADR 0005); o CLI mede e
+aplica. Nenhum comportamento muda, e o gate de coverage do close continua
+exigindo prova de cada critério mantido. O aviso de 400 linhas do
+`validate` cita este comando.
 
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
 raia (veja [`doctrina triage`](#doctrina-triage-prompt)). Um prompt que
@@ -443,7 +457,12 @@ Semântica:
   requisito (`append-requirement <seção>: <texto>` /
   `replace-requirement <seção> <n>: <texto>`, seções
   `ubiquitous|event|state|unwanted|optional`), então um delta típico
-  aplica de ponta a ponta sem merge manual. Ops `append-*` resolvem
+  aplica de ponta a ponta sem merge manual. Dois verbos tiram algo —
+  `remove-requirement <seção> <n>` e `remove-criterion <n>` (os
+  critérios depois dele são renumerados), cada um aceitando um
+  `: <por quê>` opcional — para que uma spec possa encolher além de
+  crescer (veja `work --consolidate`). Um replace ou uma remoção leva o
+  item inteiro, linhas de continuação incluídas. Ops `append-*` resolvem
   numeração/posição na hora do apply, então changes abertas
   concorrentes anexando à mesma spec nunca colidem. A sintaxe vive no
   template do delta e no playbook do work.
@@ -585,6 +604,38 @@ partir da árvore.
 Sem `--force`, o `abandon` lista os arquivos que deletaria, diz que a
 deleção não pode ser desfeita, e pergunta. Num stdin não interativo não há
 a quem perguntar, então ele recusa (saída `2`) em vez de prosseguir.
+
+## `doctrina change delta <id> <capability>`
+
+Acrescenta um requisito, um critério ou um bump de versão ao delta MODIFIED
+de uma change sem escrever o bloco `ops` à mão.
+
+```
+doctrina change delta 0042-add-login auth \
+  --requirement "event: When a token expires, the system shall refuse the request." \
+  --criterion "[unverified] an expired token is refused — verified by \`test/auth.test.js\`" \
+  --bump minor
+doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The system shall hash passwords.
+```
+
+Cada flag vira uma linha de op — `--requirement` um `append-requirement`,
+`--criterion` um `append-criterion`, `--bump` um `bump-version`, e
+`--op "<linha>"` (ou as palavras depois da capability) qualquer verbo de op
+como escrito. As linhas são lidas pela gramática que o `apply` lê, e o bloco
+inteiro — o que já havia mais o que entra — é executado em memória contra a
+spec antes de qualquer escrita: uma op que não aplicaria é recusada agora
+(saída `1`, nada escrito), não no close. O delta é criado a partir do
+template quando a change não tem um para a capability; um segundo `--bump`
+substitui o primeiro em vez de subir a versão duas vezes. A capability entra
+no `Affects specs:` do proposal quando ainda não está nomeada lá — como o
+`work` faz para o delta que esqueletiza, fixado ou ranqueado.
+
+| Caso | Saída |
+|------|-------|
+| Escrito; o bloco aplica limpo | `0` |
+| O bloco não aplicaria à spec (ex.: um número de requisito que não existe) | `1` |
+| Op malformada, nada a acrescentar, change desconhecida, ou capability sem spec (uma nova é um delta ADDED) | `2` |
+| O delta é ADDED ou REMOVED — ops só se aplicam a MODIFIED | `3` |
 
 ## `doctrina decision new "<title>"`
 
@@ -1416,8 +1467,17 @@ diff contra um ref git com `--diff <ref>`.
 ```
 doctrina review
 doctrina review --diff main
+doctrina review --change 0042-add-login
 doctrina review --strict
 ```
+
+**`--change <id>` revisa a árvore como o close daquela change revisa** — e o
+close roda assim. As capabilities que os deltas da change alvejam contam como
+atualizadas, porque o `apply` as mescla um passo depois; sem isso, todo close
+avisava sobre a própria spec que estava atualizando. Código sob capabilities
+para as quais a change não traz delta é reportado em UMA linha que nomeia
+todas: ou a change esqueceu um delta, ou há outro trabalho na árvore, e o
+review não sabe dizer qual.
 
 **Um ref de `--diff` precisa resolver.** Um que não resolve é erro de uso
 (exit 2), não um diff vazio: ele reportava «no changes» e saía 0 —
@@ -1448,10 +1508,16 @@ que um padrão malformado seja reportado em vez de cobrir menos em silêncio)
 **Source:** `src/commands/{init,adapter}.js`, `docs/**`
 ```
 
-Uma correspondência declarada supera as heurísticas de fallback (o nome da
-capability como segmento do caminho, a spec citando o caminho ou o
-basename), que ficam para um projeto que não declara nada — então uma spec
-sem o header se comporta exatamente como antes. Dois gates mantêm a
+Um padrão terminado em `/` nomeia um diretório e reivindica tudo o que está
+abaixo dele: `src/health/` é o mesmo que `src/health/**`.
+
+Por arquivo, a resposta mais forte vence e uma mais fraca nunca é somada a
+ela: as specs cujo `**Source:**` reivindica o arquivo; senão as specs que
+citam o caminho exato; senão as heurísticas de fallback (o nome da
+capability como segmento do caminho, a spec citando o basename), e só de
+specs que não declaram Source — então uma spec sem o header se comporta
+exatamente como antes, e uma spec que declarou seu código nunca recebe o de
+outra por mencionar um `index.ts`. Dois gates mantêm a
 reivindicação honesta: o `validate` avisa quando um padrão não casa com
 arquivo nenhum, e o `review` nomeia os arquivos mudados que não pertencem a
 capability nenhuma **um a um**. Essa segunda metade importa: o aviso só
@@ -1566,8 +1632,43 @@ cita como prova — veja [`doctrina coverage`](#doctrina-coverage).
 | `--list` | Imprime as checagens configuradas sem executá-las. |
 | `--clean` | Linta package.json por footguns de reprodutibilidade em vez de rodar as checagens. |
 | `--strict` | Falha o gate quando uma checagem manual está pendente de sign-off. |
+| `--reuse` | Pula as checagens quando a última execução toda verde cobriu um código byte a byte idêntico (veja abaixo). O `close` roda o verify assim. |
+| `--affected` | Roda uma checagem que declara `paths` só quando o trabalho não commitado toca um deles (veja abaixo). |
 | `--signoff "<nome>=<nota>"` | Registra o sign-off de hoje para uma checagem manual e sai. |
 | `--force` | Com `--init`, sobrescreve uma config existente. |
+
+**Uma execução verde não se repete sobre o mesmo código.** Toda execução
+toda verde (toda checagem passou, nenhuma manual pendente) é lembrada contra
+uma impressão digital do código de onde partiu: a working tree — arquivos
+rastreados, não rastreados e editados, respeitando o `.gitignore` — menos o
+`.doctrina/`, mais o `verify.json` e a versão do CLI. O `verify --reuse`, e
+portanto o `close`, pula as checagens quando a impressão bate, e diz isso.
+Assim a suíte que o agente roda à mão logo antes do `doctrina close` não
+roda uma segunda vez, e um close em lote a roda uma vez em vez de uma por
+id — entre os ids só o `.doctrina/` muda. O `.doctrina/` fica fora da
+impressão de propósito: o apply e o archive do close o alteram, e a árvore
+de artefatos é provada pelos passos do próprio close (coverage, trace,
+index drift e validate), que sempre rodam. Qualquer outra diferença — um
+byte de código, um arquivo novo, um `verify.json` editado — roda tudo. Um
+`doctrina verify` simples sempre roda. O registro fica no diretório do git
+(`doctrina-verify-green.json`), nunca na árvore; fora de um repositório git
+nada é lembrado.
+
+**O `--affected` é o laço interno; o close é a suíte inteira.** Uma
+checagem pode declarar os `paths` que cobre — pathspecs do git relativos à
+raiz do projeto, o mesmo campo em que o sign-off de uma checagem manual já
+expira:
+
+```json
+{ "name": "test-api", "run": "npm test", "cwd": "packages/api", "paths": ["packages/api"] }
+```
+
+O `verify --affected` roda essa checagem só quando o trabalho não commitado
+— edições contra o HEAD e arquivos não rastreados — toca um dos seus paths,
+e imprime quais pulou. Uma checagem sem `paths` cobre tudo e sempre roda;
+quando o git não consegue responder, a checagem roda. O `close` nunca passa
+`--affected`, e uma execução `--affected` nunca é lembrada para o
+`--reuse`: uma execução parcial não é algo em que um close possa se apoiar.
 
 ## `doctrina contract new <name>` / `list` / `check`
 
@@ -1696,13 +1797,13 @@ humanos retomarem o trabalho sem reler a árvore inteira.
 ```json
 {
   "id": "change-archive-pending",
-  "command": "change archive",
+  "command": "close",
   "args": ["0031-fix-parser"],
   "why": "applied but not archived",
   "gate": "archive",
   "severity": "blocking",
   "runnable": true,
-  "text": "doctrina change archive 0031-fix-parser — applied but not archived"
+  "text": "doctrina close 0031-fix-parser — applied but not archived"
 }
 ```
 
@@ -1789,16 +1890,31 @@ texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
 **review** (consultivo) → `change apply` → **runtime** → implementation
 (consultivo) → verify → `coverage --strict` → trace → **docs** →
-`change archive` → **index drift** → validate → **skill suggest** (advisory:
-lições fix-shaped ainda não capturadas, sugeridas enquanto estão
-frescas), parando na primeira falha com o comando exato para reexecutar.
+`change archive` → **index drift** → validate → **skills** (advisory, uma vez
+por execução: uma change fix-shaped recém-fechada é nomeada com o seu
+comando `skill new` enquanto a lição está fresca; toda candidata mais antiga
+vira uma linha de contagem apontando para o `skill suggest` — a listagem
+inteira depois de cada close era a mesma lista, close após close), parando na primeira falha com o comando exato para reexecutar.
 O gate de coverage é **escopado às capabilities que os deltas da change
 tocam** (`--only` por baixo), então uma spec deliberadamente adiada em
 outro canto da árvore não bloqueia um close que nunca a tocou; uma change
-sem deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
+sem deltas gateia na árvore inteira. O verify roda com `--reuse`, então uma execução verde sobre código idêntico —
+a que o agente acabou de rodar, ou a do id anterior de um lote — não se
+repete; ele é pulado (com aviso) quando
 não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
 driver sobre os comandos existentes — adiciona uma checagem própria, o
 gate de docs — então o agente faz uma chamada em vez de nove.
+
+**As outras changes abertas, ditas onde alguém está olhando.** Depois da
+sequência — qualquer que seja o resultado — o close lista as OUTRAS changes
+abertas: uma que parece terminada (aplicada, ou com toda tarefa marcada) e
+nunca foi fechada ganha uma linha com o seu `doctrina close <id>`, uma
+aberta há 7 dias ou mais ganha uma linha com a idade, e o resto vira uma
+contagem. Uma review de campo da 0.17 achou uma change publicada e deixada
+aberta sem que nenhum close seguinte a mencionasse. O `prime` mostra a mesma
+idade, e o `next` aponta uma change aplicada para `doctrina close <id>` —
+nunca para `change archive`, o único caminho que passa por fora do verify,
+do coverage e do gate de docs.
 
 **A linha final afirma só o que rodou.** Cada palavra mapeia para um passo
 — `verify` → verified, `archive` → archived, `validate` → validated — e um

@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.17.0",
-  "last_updated": "2026-09-27",
+  "framework_version": "0.18.0",
+  "last_updated": "2026-10-25",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.25.0",
+        "version": "0.28.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.56.0",
+        "version": "0.57.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -80,12 +80,12 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.42.0",
+        "version": "1.47.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
-          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js",
           "scripts/bench.js",
           "scripts/e2e-packed.mjs",
           "action.yml"
@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.12.0",
+        "version": "0.14.1",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -122,11 +122,12 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/skill.js"
+          "packages/doctrina-cli/src/commands/skill.js",
+          "packages/doctrina-cli/src/lib/skill-candidates.js"
         ]
       },
       {
@@ -145,7 +146,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.25.0",
+        "version": "0.26.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -158,7 +159,7 @@
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
-        "version": "0.15.1",
+        "version": "0.15.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -3296,6 +3297,192 @@
         "applied": "2026-09-27",
         "specs_affected": [],
         "lane": "chore — opened as chore"
+      },
+      {
+        "id": "0199-source-de-diretorio",
+        "title": "source de diretorio",
+        "path": ".doctrina/changes/archive/2026-10-25-0199-source-de-diretorio",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0200-review-do-close-olha-a-change",
+        "title": "review do close olha a change",
+        "path": ".doctrina/changes/archive/2026-10-25-0200-review-do-close-olha-a-change",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0201-close-avisa-change-esquecida",
+        "title": "close avisa change esquecida",
+        "path": ".doctrina/changes/archive/2026-10-25-0201-close-avisa-change-esquecida",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0202-close-nao-se-repete",
+        "title": "close nao se repete",
+        "path": ".doctrina/changes/archive/2026-10-25-0202-close-nao-se-repete",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0203-verify-verde-nao-roda-duas-vezes",
+        "title": "verify verde nao roda duas vezes",
+        "path": ".doctrina/changes/archive/2026-10-25-0203-verify-verde-nao-roda-duas-vezes",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0204-verify-afetado",
+        "title": "verify afetado",
+        "path": ".doctrina/changes/archive/2026-10-25-0204-verify-afetado",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0205-change-delta",
+        "title": "change delta",
+        "path": ".doctrina/changes/archive/2026-10-25-0205-change-delta",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0206-spec-tambem-encolhe",
+        "title": "spec tambem encolhe",
+        "path": ".doctrina/changes/archive/2026-10-25-0206-spec-tambem-encolhe",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "validation",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0207-proposal-nomeia-a-spec-do-delta",
+        "title": "proposal nomeia a spec do delta",
+        "path": ".doctrina/changes/archive/2026-10-25-0207-proposal-nomeia-a-spec-do-delta",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0208-cortar-0-18-0",
+        "title": "cortar a 0.18.0",
+        "path": ".doctrina/changes/archive/2026-10-25-0208-cortar-0-18-0",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0209-fingerprint-atravessa-symlink",
+        "title": "fingerprint atravessa symlink",
+        "path": ".doctrina/changes/archive/2026-10-25-0209-fingerprint-atravessa-symlink",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0210-teste-do-lote-aceita-crlf",
+        "title": "teste do lote aceita crlf",
+        "path": ".doctrina/changes/archive/2026-10-25-0210-teste-do-lote-aceita-crlf",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [

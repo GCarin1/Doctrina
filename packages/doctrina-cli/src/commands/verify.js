@@ -8,9 +8,10 @@ import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
-import { loadSignoffs, saveSignoffs, recordSignoff, signoffState, short, SIGNOFF_REL } from "../lib/signoff.js";
+import { loadSignoffs, saveSignoffs, recordSignoff, signoffState, short, SIGNOFF_REL, declaredPaths, workingChanges } from "../lib/signoff.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
+import { verifyFingerprint, recordGreen, reusableGreen } from "../lib/verify-cache.js";
 
 // The build/verify gate `validate` is not. `validate` checks the shape of
 // the artifact tree; it never runs the project, so a repo that does not
@@ -40,7 +41,7 @@ const STARTER = {
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "clean", "force", "init", "list", "strict"], string: ["signoff"] };
+export const flags = { boolean: ["json", "clean", "force", "init", "list", "strict", "reuse", "affected"], string: ["signoff"] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -182,6 +183,22 @@ export async function run(_positional, flags) {
   }
 
   const strict = flagBool(flags, "strict", false);
+  const affected = flagBool(flags, "affected", false);
+  // The fingerprint of the code these checks are about to run on, taken
+  // BEFORE they run (change 0203): what a green run proves is the tree it
+  // started from. Null outside git — then nothing is remembered or reused.
+  const fingerprint = verifyFingerprint(projectRoot, read(configPath));
+  if (flagBool(flags, "reuse", false) && fingerprint !== null) {
+    const green = reusableGreen(projectRoot, fingerprint);
+    if (green) {
+      console.log(c.bold("doctrina verify") + c.gray(` — ${checks.length} check${checks.length === 1 ? "" : "s"} from ${CONFIG_REL}`));
+      console.log("");
+      console.log(c.green("ok") + ` reused the green run of ${green.at.replace("T", " ").slice(0, 16)} UTC — ` +
+        `the code and ${CONFIG_REL} are byte-identical to what it ran on (${green.checks.join(", ")})`);
+      console.log(c.gray("   `doctrina verify` runs the checks again"));
+      return 0;
+    }
+  }
   console.log(c.bold("doctrina verify") + c.gray(` — ${checks.length} check${checks.length === 1 ? "" : "s"} from ${CONFIG_REL}`));
   const results = [];
   for (const ch of checks) {
@@ -218,6 +235,20 @@ export async function run(_positional, flags) {
         results.push({ name, ok: false, kind: "manual", pending: true, signoff: "pending" });
       }
       continue;
+    }
+
+    // --affected (change 0204): a check that declares the "paths" it covers
+    // runs only when the uncommitted work touches one of them. The inner
+    // loop of a change — not the close, which always runs every check. A
+    // check that declares no paths covers everything and always runs; a
+    // question git cannot answer runs the check.
+    if (affected && declaredPaths(ch).length > 0) {
+      const touched = workingChanges(projectRoot, declaredPaths(ch));
+      if (touched !== null && touched.length === 0) {
+        console.log(c.gray(`──── ${name}: `) + c.gray(`skip — the uncommitted work touches none of ${declaredPaths(ch).join(", ")}`));
+        results.push({ name, ok: true, kind: "command", skipped: true });
+        continue;
+      }
     }
 
     const where = ch.cwd ? c.gray(` [${ch.cwd}]`) : "";
@@ -287,9 +318,18 @@ export async function run(_positional, flags) {
   // manual check still awaiting sign-off. Pending manual checks are otherwise
   // a non-blocking report.
   const failGate = cmdFailed.length > 0 || (strict && pending.length > 0);
-  const pendNote = pending.length > 0 ? c.gray(` (${pending.length} manual pending)`) : "";
+  const skipped = results.filter((r) => r.skipped);
+  const pendNote = (pending.length > 0 ? c.gray(` (${pending.length} manual pending)`) : "") +
+    (skipped.length > 0 ? c.gray(` (${skipped.length} skipped by --affected: ${skipped.map((r) => r.name).join(", ")})`) : "");
   if (!failGate) {
-    console.log(c.green("ok") + ` ${passed}/${results.length} checks passed${pendNote}`);
+    const ran = passed - skipped.length;
+    console.log(c.green("ok") + ` ${ran}/${results.length - skipped.length} checks passed${pendNote}`);
+    // Remembered only when EVERY check passed — a run green with a manual
+    // check still pending is a report, not something a close may stand on,
+    // and neither is a run --affected cut short.
+    if (fingerprint !== null && pending.length === 0 && skipped.length === 0) {
+      recordGreen(projectRoot, fingerprint, results.map((r) => r.name));
+    }
     return 0;
   }
   const reasons = [];
@@ -403,7 +443,7 @@ function renderReproducibility(projectRoot) {
 }
 
 export const help = `
-Usage: doctrina verify [--list] [--init] [--clean] [--strict] [--signoff "<name>=<note>"] [--force]
+Usage: doctrina verify [--list] [--init] [--clean] [--strict] [--reuse] [--affected] [--signoff "<name>=<note>"] [--force]
 
 Run the project-declared build/verify checks from ${CONFIG_REL} in order,
 streaming their output, and exit non-zero if any check fails. This is the
@@ -414,12 +454,17 @@ root, targets a sub-package in a monorepo; a "manual" check is the
 qualitative gate — judged by a human/eval, recorded as a sign-off, not run):
   {
     "checks": [
-      { "name": "typecheck", "run": "tsc --noEmit", "cwd": "packages/api" },
+      { "name": "typecheck", "run": "tsc --noEmit", "cwd": "packages/api",
+        "paths": ["packages/api"] },
       { "name": "test",      "run": "npm test" },
       { "name": "build",     "run": "npm run build" },
       { "name": "chronicle", "type": "manual", "rubric": "is the chronicle enjoyable to read?" }
     ]
   }
+
+"paths" (git pathspecs, relative to the project root) says what a check
+covers: --affected runs it only when the uncommitted work touches one, and a
+manual check's sign-off expires when one changes.
 
 A manual check passes when it has been signed off and is otherwise reported
 as "pending" — non-blocking by default, failing only under --strict (so CI
@@ -450,6 +495,14 @@ Flags:
              prepare/prepack; a Prisma dep with no generate on install) so
              "verify green" can't hide a clean checkout that won't build.
   --strict   Fail the gate when a manual check is still pending sign-off
+  --reuse    Skip the checks when the last fully green run covered this exact
+             code: the working tree (tracked, untracked, edits) minus
+             .doctrina/, plus ${CONFIG_REL}, are byte-identical. \`close\` runs
+             verify this way; a plain \`doctrina verify\` always runs them.
+  --affected Run a check that declares "paths" only when the uncommitted work
+             (edits against HEAD, untracked files) touches one of them —
+             the inner loop of a change. Checks with no "paths" always run;
+             \`close\` always runs every check. Never remembered by --reuse.
   --signoff "<name>=<note>"
              Record today's sign-off for a manual check, then exit
   --force    With --init, overwrite an existing config

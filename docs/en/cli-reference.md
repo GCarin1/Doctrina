@@ -248,8 +248,22 @@ prompt ranking scaffolds; `--from-diff` and `--chore` do not.
 | `--quiet` | Register the change and print one line — no playbook. For backlog entry ("record 19 works now, start none"); reprint later with `--resume <id>`. |
 | `--id <id>` | Override the derived change id. |
 | `--chore`, `--no-spec` | Open a spec-less chore change (infra/docs/build) whose playbook skips the spec-delta steps. |
+| `--consolidate <cap>` | Open a change that consolidates `<cap>`'s spec, with its own playbook (below). No prompt needed. |
 | `--design` | Also scaffold `design.md`, for a change with non-trivial choices (opt-in, as with `change new --design`). |
 | `--force` | Overwrite an existing change folder, and proceed past the lane hold below. |
+
+**`--consolidate <cap>`: a spec can shrink.** Every change appends, so a
+spec only grew — nothing took a requirement out. `work --consolidate
+auth` opens an ordinary change pinned to `auth` (MODIFIED delta
+scaffolded) and prints the spec's measured shape — lines, requirements per
+EARS subsection, criteria — and a playbook: read the spec and its history,
+find what it says twice or what a later rule superseded, and write the
+delta with `change delta` and the removal ops (`remove-requirement`,
+`remove-criterion`, `replace-requirement` to merge two into one). Deciding
+what is redundant is the agent's call (ADR 0005); the CLI measures and
+applies. No behaviour changes, and the close's coverage gate still holds
+every kept criterion to its proof. `validate`'s 400-line warning names
+this command.
 
 Before anything is scaffolded, `work` consults the lane classifier (see
 [`doctrina triage`](#doctrina-triage-prompt)). A prompt that confidently
@@ -430,7 +444,12 @@ Semantics:
   bullets (`append-requirement <section>: <text>` /
   `replace-requirement <section> <n>: <text>`, sections
   `ubiquitous|event|state|unwanted|optional`), so a typical delta
-  applies end to end without a manual merge. `append-*` ops resolve
+  applies end to end without a manual merge. Two verbs take something
+  out — `remove-requirement <section> <n>` and `remove-criterion <n>`
+  (the criteria after it renumber), each accepting an optional
+  `: <why>` — so a spec can shrink as well as grow (see `work
+  --consolidate`). A replace or a removal takes the whole item,
+  continuation lines included. `append-*` ops resolve
   numbering/position at apply time, so concurrent open changes
   appending to the same spec never collide. The syntax lives in the
   delta template and the work playbook.
@@ -566,6 +585,38 @@ rebuilds the index from the tree.
 Without `--force`, `abandon` lists the files it would delete, states that
 the deletion cannot be undone, and asks. On a non-interactive stdin there
 is nobody to ask, so it refuses (exit `2`) rather than proceeding.
+
+## `doctrina change delta <id> <capability>`
+
+Add a requirement, a criterion or a version bump to a change's MODIFIED
+delta without writing the `ops` block by hand.
+
+```
+doctrina change delta 0042-add-login auth \
+  --requirement "event: When a token expires, the system shall refuse the request." \
+  --criterion "[unverified] an expired token is refused — verified by \`test/auth.test.js\`" \
+  --bump minor
+doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The system shall hash passwords.
+```
+
+Each flag becomes one op line — `--requirement` an `append-requirement`,
+`--criterion` an `append-criterion`, `--bump` a `bump-version`, and
+`--op "<line>"` (or the words after the capability) any op verb as written.
+The lines are parsed by the grammar `apply` reads, and the whole block —
+what was there plus what is added — is executed in memory against the spec
+before anything is written: an op that would not apply is refused now
+(exit `1`, nothing written), not at the close. The delta is created from
+the template when the change has none for the capability; a second
+`--bump` replaces the first rather than bumping twice. The capability is
+added to the proposal's `Affects specs:` when it is not named there yet —
+as `work` does for the delta it scaffolds, pinned or ranked.
+
+| Case | Exit |
+|------|------|
+| Written; the block applies cleanly | `0` |
+| The block would not apply to the spec (e.g. a requirement number that does not exist) | `1` |
+| A malformed op, nothing to add, an unknown change, or a capability with no spec (a new one is an ADDED delta) | `2` |
+| The delta is ADDED or REMOVED — ops apply only to MODIFIED | `3` |
 
 ## `doctrina decision new "<title>"`
 
@@ -1374,8 +1425,17 @@ against a git ref with `--diff <ref>`.
 ```
 doctrina review
 doctrina review --diff main
+doctrina review --change 0042-add-login
 doctrina review --strict
 ```
+
+**`--change <id>` reviews the tree as that change's close does** — and the
+close runs it that way. The capabilities the change's deltas target count as
+updated, because `apply` merges them one step later; without that, every
+close warned about the very spec it was updating. Code under capabilities the
+change carries no delta for is reported in ONE line naming them all: either
+the change forgot a delta, or other work is lying in the tree, and the review
+cannot tell which.
 
 **A `--diff` ref must resolve.** One that does not is a usage error (exit
 2), not an empty diff: it used to report "no changes" and exit 0 —
@@ -1406,10 +1466,16 @@ contract's Selectors use:
 **Source:** `src/commands/{init,adapter}.js`, `docs/**`
 ```
 
-A declared match outranks the fallback heuristics (the capability name as a
-path segment, the spec citing the path or the basename), which stay for a
-project that declares nothing — so a spec with no header behaves exactly as
-before. Two gates keep the claim honest: `validate` warns when a pattern
+A pattern ending in `/` names a directory and claims everything under it:
+`src/health/` is the same as `src/health/**`.
+
+Per file, the strongest answer wins and a weaker one is never added on top
+of it: the specs whose `**Source:**` claims the file; else the specs citing
+its exact path; else the fallback heuristics (the capability name as a path
+segment, the spec citing the basename), and only from specs that declare no
+Source — so a spec with no header behaves exactly as before, and a spec that
+declared its code is never handed someone else's because it mentions an
+`index.ts`. Two gates keep the claim honest: `validate` warns when a pattern
 matches no file, and `review` names the changed files that belong to no
 capability **one by one**. That second half matters: the note used to fire
 only when the whole diff matched nothing, so a single incidental hit —
@@ -1520,8 +1586,42 @@ cites as its proof — see [`doctrina coverage`](#doctrina-coverage).
 | `--list` | Print the configured checks without running them. |
 | `--clean` | Lint package.json files for reproducibility footguns instead of running checks. |
 | `--strict` | Fail the gate when a manual check is still pending sign-off. |
+| `--reuse` | Skip the checks when the last fully green run covered byte-identical code (see below). `close` runs verify this way. |
+| `--affected` | Run a check that declares `paths` only when the uncommitted work touches one of them (see below). |
 | `--signoff "<name>=<note>"` | Record today's sign-off for a manual check, then exit. |
 | `--force` | With `--init`, overwrite an existing config. |
+
+**A green run is not repeated on the same code.** Every fully green run
+(every check passed, no manual check pending) is remembered against a
+fingerprint of the code it started from: the working tree — tracked,
+untracked and edited files, `.gitignore` respected — minus `.doctrina/`,
+plus `verify.json` and the CLI version. `verify --reuse`, and therefore
+`close`, skips the checks when the fingerprint matches, and says so. So the
+suite an agent runs by hand right before `doctrina close` is not run a
+second time, and a batch close runs it once rather than once per id —
+between ids only `.doctrina/` moves. `.doctrina/` is outside the
+fingerprint on purpose: the close's apply and archive change it, and the
+artifact tree is proven by the close's own coverage, trace, index-drift and
+validate steps, which always run. Anything else that differs — one byte of
+code, a new file, an edited `verify.json` — runs everything. A plain
+`doctrina verify` always runs. The record lives in the git directory
+(`doctrina-verify-green.json`), never in the tree; outside a git repository
+nothing is remembered.
+
+**`--affected` is the inner loop; the close is the whole suite.** A check
+may declare the `paths` it covers — git pathspecs relative to the project
+root, the same field a manual check's sign-off already expires on:
+
+```json
+{ "name": "test-api", "run": "npm test", "cwd": "packages/api", "paths": ["packages/api"] }
+```
+
+`verify --affected` runs such a check only when the uncommitted work —
+edits against HEAD and untracked files — touches one of its paths, and
+prints which checks it skipped. A check with no `paths` covers everything
+and always runs; when git cannot answer, the check runs. `close` never
+passes `--affected`, and an `--affected` run is never remembered for
+`--reuse`: a partial run is not something a close may stand on.
 
 ## `doctrina contract new <name>` / `list` / `check`
 
@@ -1645,13 +1745,13 @@ and humans resuming work without re-reading the whole tree.
 ```json
 {
   "id": "change-archive-pending",
-  "command": "change archive",
+  "command": "close",
   "args": ["0031-fix-parser"],
   "why": "applied but not archived",
   "gate": "archive",
   "severity": "blocking",
   "runnable": true,
-  "text": "doctrina change archive 0031-fix-parser — applied but not archived"
+  "text": "doctrina close 0031-fix-parser — applied but not archived"
 }
 ```
 
@@ -1738,16 +1838,31 @@ text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
 **review** (advisory) → `change apply` → **runtime** → implementation
 (advisory) → verify → `coverage --strict` → trace → **docs** →
-`change archive` → **index drift** → validate → **skill suggest** (advisory:
-fix-shaped lessons not yet captured, surfaced while they are fresh),
+`change archive` → **index drift** → validate → **skills** (advisory, once
+per run: a fix-shaped change just closed is named with its `skill new`
+command while the lesson is fresh; every older candidate is one count line
+pointing at `skill suggest` — the full listing after every close was the
+same list, close after close),
 stopping at the first failure with the exact command to rerun. The
 coverage gate is **scoped to the capabilities the change's deltas touch**
 (`--only` under the hood), so a deliberately deferred spec elsewhere in
 the tree cannot block an unrelated close; a change with no deltas gates
-on the whole tree. verify is skipped (with a note) when no `verify.json`
+on the whole tree. verify runs with `--reuse`, so a green run on
+byte-identical code — the one the agent just ran, or the previous id of a
+batch — is not repeated; it is skipped (with a note) when no `verify.json`
 is declared; trace and both advisories never block. A driver over the
 existing commands — it adds one check of its own, the docs gate — so
 the agent makes one call instead of nine.
+
+**The other open changes, said where someone is looking.** After the
+sequence — whatever its outcome — the close lists the OTHER open changes:
+one that looks finished (applied, or every task ticked) and was never
+closed gets a line with its `doctrina close <id>`, one open
+7 days or more gets a line with its age, and the rest are a count. A field
+review of 0.17 found a change shipped and left open with no later close
+mentioning it. `prime` shows the same age, and `next` points an applied
+change at `doctrina close <id>` — never at `change archive`, the one path
+past verify, coverage and the docs gate.
 
 **The closing line claims only what ran.** Each word maps to a step —
 `verify` → verified, `archive` → archived, `validate` → validated — and a

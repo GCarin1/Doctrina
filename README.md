@@ -14,7 +14,7 @@
 
 > Spec-driven, AGENTS.md-native framework for multi-agent AI development.
 
-**Status:** v0.17.0 — released.
+**Status:** v0.18.0 — released.
 **Read this in [Portuguese](./README.pt.md).**
 
 ## Install
@@ -100,7 +100,7 @@ governs how a body of agents acts.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
 - The `doctrina` CLI (Node.js, zero runtime dependencies) with 37 commands
-  and 59 operations covering init, intake, adapter, work, prime, spec,
+  and 60 operations covering init, intake, adapter, work, prime, spec,
   change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,

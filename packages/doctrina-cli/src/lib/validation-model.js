@@ -509,7 +509,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
       const specPath = path.join(specsDir, cap, "spec.md");
       if (isFile(specPath)) {
         const lines = lineCount(specPath);
-        if (lines > 400) warnings.push(`${relPath(projectRoot, specPath)} is ${lines} lines (>400 soft cap)`);
+        if (lines > 400) warnings.push(`${relPath(projectRoot, specPath)} is ${lines} lines (>400 soft cap) — consolidate it: \`doctrina work --consolidate ${path.basename(path.dirname(specPath))}\``);
 
         // 8b. EARS grammar shape — section-appropriate When/While/Where/shall.
         const text = read(specPath);

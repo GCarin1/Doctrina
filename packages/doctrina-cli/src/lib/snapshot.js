@@ -15,6 +15,7 @@ import { parseChangeTitle, checklistProgress } from "./doc-model.js";
 import { summarizeSignoffs } from "./signoff.js";
 import { gitWindow, historyState, windowCutoff } from "./git.js";
 import { collectMetrics } from "./metrics-model.js";
+import { today } from "./dates.js";
 
 // ONE collector, several views (audit finding F7).
 //
@@ -149,9 +150,45 @@ export function openChanges(projectRoot) {
     const tasksTotal = progress.total;
     const tasksDone = progress.done;
     const unchecked = progress.open.map((t) => t || "(unwritten task — the scaffold's placeholder)");
-    out.push({ id, title, status, tasksDone, tasksTotal, unchecked });
+    const date = proposal ? (listHeader(proposal, "Date") ?? null) : null;
+    out.push({ id, title, status, tasksDone, tasksTotal, unchecked, date, ageDays: ageInDays(date) });
   }
   return out;
+}
+
+// How old a change has to be before "still open" is worth saying on its own.
+export const STALE_CHANGE_DAYS = 7;
+
+/**
+ * The open changes worth a line at the end of someone else's close (change
+ * 0201): a change that LOOKS finished — applied, or every task ticked — and
+ * was never closed, and a change open for a week or more. A field review of
+ * 0.17 found change 0078 shipped and left open, and no later close said so:
+ * the close is the moment someone is looking, so it is where to say it.
+ *
+ * @param {string} projectRoot
+ * @param {{ exclude?: string[] }} [opts]
+ */
+export function unfinishedChanges(projectRoot, { exclude = [] } = {}) {
+  const skip = new Set(exclude);
+  const out = [];
+  for (const ch of openChanges(projectRoot)) {
+    if (skip.has(ch.id)) continue;
+    const finished = ch.status === "applied" ||
+      (ch.tasksTotal > 0 && ch.tasksDone === ch.tasksTotal);
+    const old = ch.ageDays !== null && ch.ageDays >= STALE_CHANGE_DAYS;
+    const reason = ch.status === "applied"
+      ? "applied but never closed"
+      : finished ? "every task ticked, never closed" : old ? "still open" : null;
+    out.push({ ...ch, finished, old, reason });
+  }
+  return out;
+}
+
+function ageInDays(date) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const ms = Date.parse(`${today()}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(ms) ? Math.max(0, Math.round(ms / 86400000)) : null;
 }
 
 function countSpecs(projectRoot) {

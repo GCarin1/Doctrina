@@ -78,7 +78,7 @@ propose → apply → archive cycle in depth.
 
 ## The command surface
 
-37 commands, 59 operations, zero dependencies — see the
+37 commands, 60 operations, zero dependencies — see the
 **[CLI reference](cli-reference.md)** for all of them. Those two numbers
 are checked against the CLI's own catalog, so this page cannot quietly
 fall behind it. The ones you will

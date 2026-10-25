@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
+**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.42.0
+**Version:** 1.47.1
 
 ## Purpose
 
@@ -46,7 +46,7 @@ codes, zero-deps, no-network).
 - The system shall derive a capability's implementation state from its acceptance-criteria coverage — every criterion proven yields verified, at least one but not all yields partial, none yields planned — and every surface that reports or applies that state shall read the same derivation.
 - The system shall report a sign-off it cannot hold to the code — one carrying no commit, covering no declared path, or made outside a repository — as unverifiable rather than passing, and shall distinguish executed proof from signed proof wherever it reports the build gate.
 - The system shall read and write the archive ledger through one grammar, so that a line the CLI appends is a line the CLI can read back.
-- The system shall determine which capability owns a source file from the `**Source:**` globs the capability spec declares, falling back to path and citation inference only for a project that declares none, and shall never infer ownership over a declaration (ADR 0027).
+- The system shall determine which capability owns a source file from the `**Source:**` globs the capability specs declare; for a file no glob claims, from the specs citing its exact path; and only for a file neither claims, from path and basename inference over the specs that declare no Source — never adding an inferred owner to a declared or cited one (ADR 0027).
 - The system shall evaluate a clarity rule against the end of the preceding line as context, reporting only matches that begin on the line being scanned, so a phrase split across a line break gets the same verdict as an unwrapped one.
 - The system shall treat a capability as participating in intent provenance only when its `**Realizes:**` header cites at least one anchor id, so a scaffolded header that names none does not count as opting in.
 - The system shall expand a glob's brace groups against their matching close and split alternatives only at the group's own depth, and shall compile the pattern from that expansion rather than from the unexpanded text.
@@ -200,6 +200,9 @@ codes, zero-deps, no-network).
 - When `product.md` declares two intent anchors that state the same intent under different ids, the system shall report a warning naming both lines and the remedy, because realizing one leaves the other dropped and `trace --strict` fails on a gap no spec can close.
 - When the deprecated `doctrina analyze <id>` runs, the system shall behave as before and name `doctrina change check` on stderr, because `change check` prints the same structural checks as its first section and then answers whether the close would pass — so it also exits with the gate class while a Verification box is open, where `analyze` did not; `change apply` keeps refusing what `analyze` refused.
 - When a change has its tasks done and a delta to merge, `doctrina next` shall recommend `doctrina change check <id>` followed by `doctrina close <id>`, and when the close stops on its structural step it shall name `doctrina change check <id>` as the rerun instead of the deprecated `analyze`.
+- When `review` runs for a change — `--change <id>`, as `close` runs it — the system shall count the capabilities that change's deltas target as updated, and shall report code under capabilities the change carries no delta for in one finding naming them all.
+- When a close finishes, whatever its outcome, the system shall list the other open changes — one line each for a change that looks finished (applied, or every task ticked) and was never closed, with its close command, and for one open 7 days or more, with its age — and count the rest, without moving the exit code.
+- When `verify --reuse` runs — as `close` runs it — and the last run in which every check passed started from a byte-identical fingerprint of the code (the working tree minus `.doctrina/`, plus the verify configuration and the CLI version), the system shall skip the checks and say which run it reused; any difference shall run every check, and a plain `verify` shall always run them.
 
 ### State-driven
 
@@ -242,10 +245,12 @@ codes, zero-deps, no-network).
 - The system shall not close a change while a contract carries a structural error that `contract check` reports, and shall not report a contract with a structural error as "unchecked" because it declares no Wiring or Selectors rows.
 - The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
 - The system shall not accept a `Documented surface` declaration that lies inside an HTML comment, because annotation is not something a person wrote.
+- The system shall not print the full skill-candidate listing at the end of a close: once per run, it shall name the candidate a just-closed fix-shaped change produced and count every other one, printing nothing when there is none.
 
 ### Optional
 
 - Where a wiring row declares its source as `<origin>:<source>`, the system may treat an export reading that source as intended and report no name mismatch, while still reporting an origin mismatch as an error.
+- Where `verify --affected` is given, the system may skip a check that declares `paths` when the uncommitted work touches none of them — running every check that declares none, naming the checks it skipped, and never remembering such a run as green — and `close` shall never pass it.
 
 ## Acceptance criteria
 
@@ -342,6 +347,12 @@ The gate surface is spec-compliant when:
 83. [verified] The contract's description of the composite action names every step of the declared CI sequence — verified by `packages/doctrina-cli/test/o-que-um-driver-roda-tem-um-autor.test.js`.
 84. [verified] A hand-written twin anchor in `product.md` makes `validate` warn, naming the twin and the first anchor's line — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
 85. [verified] Over a hollow change `analyze` and the first section of `change check` print the same check lines with the same verdict; over a structurally sound change with open Verification boxes `analyze` exits 0 and `change check` exits 1 naming the verification blocker while `change apply` still refuses a hollow proposal; `analyze` warns naming `change check`, and `close` and `next` point to `change check` — verified by `packages/doctrina-cli/test/o-change-check-cobre-o-analyze.test.js`.
+86. [verified] A `**Source:**` pattern ending in `/` claims every file under that directory, so `validate` does not report it dead and `declaredOwners` names its capability — verified by `packages/doctrina-cli/test/um-source-de-diretorio-reivindica-o-diretorio.test.js`.
+87. [verified] A file claimed by one spec's `**Source:**` is owned by that spec alone even when other specs mention its basename, and `review --change <id>` names neither the change's own capability nor more than one line for the other changed capabilities, while plain `review` keeps one break per capability and an unknown or path-shaped id exits 2 — verified by `packages/doctrina-cli/test/o-review-do-close-olha-a-change.test.js`.
+88. [verified] Closing one change prints the other open changes, naming the finished-but-open and the 20-day-old ones and counting the recent one, never the change being closed — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
+89. [verified] Closing two changes in one run prints one skills section naming the just-closed fix-shaped change and counting three older candidates without listing them, and the docs step prints its line once — verified by `packages/doctrina-cli/test/o-close-nao-se-repete.test.js`.
+90. [verified] After a green `verify`, `verify --reuse` runs no check while a plain `verify` runs again; an edited file, a new file or a red run makes `--reuse` run everything; `.doctrina/` and ignored files do not move the fingerprint; and `close` passes `--reuse` — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
+91. [verified] With an edit under `packages/api`, `verify --affected` runs the api check and the path-less one and skips the web check by name; an untracked file counts as touched; the partial run is not reused; plain `verify` runs all three; and `close` never passes `--affected` — verified by `packages/doctrina-cli/test/o-verify-afetado-roda-so-o-que-mudou.test.js`.
 
 ## Out of scope for this spec
 
