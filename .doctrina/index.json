@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.44.0",
+        "version": "1.45.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -122,11 +122,12 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/skill.js"
+          "packages/doctrina-cli/src/commands/skill.js",
+          "packages/doctrina-cli/src/lib/skill-candidates.js"
         ]
       },
       {
@@ -3346,6 +3347,24 @@
           }
         ],
         "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0202-close-nao-se-repete",
+        "title": "close nao se repete",
+        "path": ".doctrina/changes/archive/2026-10-25-0202-close-nao-se-repete",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

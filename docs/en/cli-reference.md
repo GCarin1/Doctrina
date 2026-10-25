@@ -1753,8 +1753,11 @@ text cites the touched capabilities, with the amend commands — the
 playbook's "record an ADR" step used to be skippable in silence) →
 **review** (advisory) → `change apply` → **runtime** → implementation
 (advisory) → verify → `coverage --strict` → trace → **docs** →
-`change archive` → **index drift** → validate → **skill suggest** (advisory:
-fix-shaped lessons not yet captured, surfaced while they are fresh),
+`change archive` → **index drift** → validate → **skills** (advisory, once
+per run: a fix-shaped change just closed is named with its `skill new`
+command while the lesson is fresh; every older candidate is one count line
+pointing at `skill suggest` — the full listing after every close was the
+same list, close after close),
 stopping at the first failure with the exact command to rerun. The
 coverage gate is **scoped to the capabilities the change's deltas touch**
 (`--only` under the hood), so a deliberately deferred spec elsewhere in

@@ -19,6 +19,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `close` no longer prints the whole `skill suggest` listing after every
+  close (per id, in a batch): once per run, it names the candidate a
+  just-closed fix-shaped change produced and counts the rest. The docs step
+  prints "touches no documented surface" once, not twice (change 0202).
 - `close` ends by listing the other open changes: one that looks finished
   (applied, or every task ticked) but was never closed, and one open 7 days
   or more, each get a line; `prime` shows the age. `next` points an applied

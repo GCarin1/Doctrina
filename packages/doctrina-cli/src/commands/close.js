@@ -23,7 +23,7 @@ import * as validate from "./validate.js";
 import * as indexRebuild from "./index-rebuild.js";
 import { appendLedgerLine, docsGapLine, ledgerPath as ledgerFile } from "../lib/ledger.js";
 import * as review from "./review.js";
-import * as skill from "./skill.js";
+import { skillCandidates } from "../lib/skill-candidates.js";
 
 // One-command close (review 2026-06-27 passive-user feature #2). The work
 // playbook lists the closing sequence — analyze → apply → runtime → verify →
@@ -65,8 +65,38 @@ export async function run(positional, flags) {
       ? c.green("ok") + ` all ${positional.length} changes closed`
       : c.red("fail") + " at least one close stopped — see above");
   }
+  reportSkills(projectRoot, positional);
   reportUnfinished(projectRoot, positional);
   return worst;
+}
+
+// Capture the lesson while it is fresh (operator review §4.7) — the lesson
+// THIS close produced (change 0202). The close used to print the whole
+// `skill suggest` listing, per id: the same thirteen candidates after every
+// close, which a field review of 0.17 named as noise nobody read. Now a
+// candidate born from a change just closed gets its line; every other one is
+// a count pointing at the full listing. Once per run, batch or not.
+// Advisory — a listing, never a gate, and a failure never un-closes anything.
+function reportSkills(projectRoot, closing) {
+  let candidates;
+  try {
+    candidates = skillCandidates(projectRoot);
+  } catch {
+    return;
+  }
+  if (candidates.length === 0) return;
+  const ids = new Set(closing);
+  const fresh = candidates.filter((cand) => cand.source === "change" && ids.has(cand.id));
+  const waiting = candidates.length - fresh.length;
+  console.log("");
+  console.log(c.gray("──── skills (advisory)"));
+  for (const cand of fresh) {
+    console.log(c.yellow("  ! ") + `${cand.id} is fix-shaped — capture the lesson while it is fresh: ` +
+      c.cyan(`doctrina skill new ${cand.slug}`));
+  }
+  if (waiting > 0) {
+    console.log(c.gray(`  ${waiting} ${fresh.length > 0 ? "older " : ""}candidate${waiting === 1 ? "" : "s"} waiting — \`doctrina skill suggest\``));
+  }
 }
 
 // The other open changes, said at the one moment someone is looking (change
@@ -297,7 +327,9 @@ async function closeOne(projectRoot, id, flags) {
           // one session with an empty `## [Unreleased]` behind them.
           const log = checkChangelogImpact(projectRoot, changeDir);
           if (log.ok) {
-            console.log(c.green("ok") + ` ${log.reason}`);
+            // One line when both answers are the same sentence (change 0202):
+            // "touches no documented surface" twice read as two checks.
+            if (log.reason !== r.reason) console.log(c.green("ok") + ` ${log.reason}`);
             return 0;
           }
           console.error(c.red("error:") + ` this change ${log.reason}:`);
@@ -431,16 +463,6 @@ async function closeOne(projectRoot, id, flags) {
     }
   }
 
-  // Capture the lesson while it is fresh (operator review §4.7): surface the
-  // fix-shaped lessons not yet written as skills, right where the operator
-  // just proved they finish what they start. Advisory — a listing, never a
-  // gate, and a suggest failure never un-closes the change.
-  console.log("");
-  console.log(c.gray("──── skills (advisory)"));
-  try {
-    await skill.run(["suggest"], new Map());
-  } catch { /* advisory only */ }
-
   console.log("");
   console.log(c.green(`✓ change ${id} closed`) + c.gray(closingClaim(ran, skippedSteps)));
   console.log(c.gray("Next: ") + c.cyan("doctrina next"));
@@ -542,7 +564,9 @@ first failure with the exact command to rerun:
 
 ${SEQUENCE}
 
-then a closing skill-suggest listing (advisory).
+then two advisory notes, once per run: the skill candidate a just-closed
+fix-shaped change produced (the others are a count), and the other open
+changes that look finished or are a week old.
 
 The coverage gate is scoped to the capabilities the change's deltas touch,
 so a deliberately deferred spec elsewhere cannot block an unrelated close;

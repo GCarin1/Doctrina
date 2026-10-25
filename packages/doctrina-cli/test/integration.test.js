@@ -3780,7 +3780,7 @@ test("change check reports ops errors and archive blockers before close, then ok
   }
 });
 
-test("close accepts multiple ids and runs the ADR checkpoint and skill-suggest advisories", () => {
+test("close accepts multiple ids and runs the ADR checkpoint advisory", () => {
   const tmp = initedProject();
   try {
     // An accepted ADR whose text cites the capability the change touches.
@@ -3809,7 +3809,8 @@ test("close accepts multiple ids and runs the ADR checkpoint and skill-suggest a
     assert.match(r.stdout, /ADR checkpoint/);
     assert.match(r.stdout, /ADR 0001/, "close must name the accepted ADR citing billing");
     assert.match(r.stdout, /decision supersede/);
-    assert.match(r.stdout, /skills \(advisory\)/);
+    // No fix-shaped lesson anywhere: no skills section at all (change 0202).
+    assert.doesNotMatch(r.stdout, /skills \(advisory\)/);
     assert.match(r.stdout, /all 2 changes closed/);
     assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0002-a")));
     assert.ok(!existsSync(path.join(tmp, ".doctrina", "changes", "0003-b")));

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.44.0
+**Version:** 1.45.0
 
 ## Purpose
 
@@ -244,6 +244,7 @@ codes, zero-deps, no-network).
 - The system shall not close a change while a contract carries a structural error that `contract check` reports, and shall not report a contract with a structural error as "unchecked" because it declares no Wiring or Selectors rows.
 - The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
 - The system shall not accept a `Documented surface` declaration that lies inside an HTML comment, because annotation is not something a person wrote.
+- The system shall not print the full skill-candidate listing at the end of a close: once per run, it shall name the candidate a just-closed fix-shaped change produced and count every other one, printing nothing when there is none.
 
 ### Optional
 
@@ -347,6 +348,7 @@ The gate surface is spec-compliant when:
 86. [verified] A `**Source:**` pattern ending in `/` claims every file under that directory, so `validate` does not report it dead and `declaredOwners` names its capability — verified by `packages/doctrina-cli/test/um-source-de-diretorio-reivindica-o-diretorio.test.js`.
 87. [verified] A file claimed by one spec's `**Source:**` is owned by that spec alone even when other specs mention its basename, and `review --change <id>` names neither the change's own capability nor more than one line for the other changed capabilities, while plain `review` keeps one break per capability and an unknown or path-shaped id exits 2 — verified by `packages/doctrina-cli/test/o-review-do-close-olha-a-change.test.js`.
 88. [verified] Closing one change prints the other open changes, naming the finished-but-open and the 20-day-old ones and counting the recent one, never the change being closed — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
+89. [verified] Closing two changes in one run prints one skills section naming the just-closed fix-shaped change and counting three older candidates without listing them, and the docs step prints its line once — verified by `packages/doctrina-cli/test/o-close-nao-se-repete.test.js`.
 
 ## Out of scope for this spec
 

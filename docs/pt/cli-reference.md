@@ -1804,9 +1804,11 @@ texto cita as capabilities tocadas, com os comandos de amendment — o
 passo "registre um ADR" do playbook era ignorável em silêncio) →
 **review** (consultivo) → `change apply` → **runtime** → implementation
 (consultivo) → verify → `coverage --strict` → trace → **docs** →
-`change archive` → **index drift** → validate → **skill suggest** (advisory:
-lições fix-shaped ainda não capturadas, sugeridas enquanto estão
-frescas), parando na primeira falha com o comando exato para reexecutar.
+`change archive` → **index drift** → validate → **skills** (advisory, uma vez
+por execução: uma change fix-shaped recém-fechada é nomeada com o seu
+comando `skill new` enquanto a lição está fresca; toda candidata mais antiga
+vira uma linha de contagem apontando para o `skill suggest` — a listagem
+inteira depois de cada close era a mesma lista, close após close), parando na primeira falha com o comando exato para reexecutar.
 O gate de coverage é **escopado às capabilities que os deltas da change
 tocam** (`--only` por baixo), então uma spec deliberadamente adiada em
 outro canto da árvore não bloqueia um close que nunca a tocou; uma change
