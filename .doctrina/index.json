@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.14.0",
+        "version": "0.14.1",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -3460,6 +3460,20 @@
         "applied": "2026-10-25",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0209-fingerprint-atravessa-symlink",
+        "title": "fingerprint atravessa symlink",
+        "path": ".doctrina/changes/archive/2026-10-25-0209-fingerprint-atravessa-symlink",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

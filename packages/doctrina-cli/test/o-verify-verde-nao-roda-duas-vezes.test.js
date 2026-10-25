@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync, readFileSync, symlinkSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -54,6 +54,11 @@ test("the fingerprint is the code: .doctrina/ and ignored files do not move it, 
     assert.notEqual(edited, base);
     writeFileSync(path.join(dir, "new.js"), "x\n");
     assert.notEqual(fp(), edited, "an untracked file is code too");
+    // Reached through a symlink — macOS's tmpdir is one (`/var` → `/private/var`)
+    // and git answers with the resolved path — the fingerprint is the same.
+    const alias = path.join(mkdtempSync(path.join(os.tmpdir(), "doctrina-alias-")), "link");
+    symlinkSync(dir, alias);
+    assert.equal(worktreeFingerprint(alias, { exclude: [".doctrina"] }), fp());
     // The real index is untouched.
     assert.equal(execFileSync("git", ["diff", "--cached", "--name-only"], { cwd: dir, encoding: "utf8" }), "");
   } finally {

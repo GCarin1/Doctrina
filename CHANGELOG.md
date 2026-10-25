@@ -60,6 +60,9 @@ and specs only ever grew.
 
 ### Fixed
 
+- The `verify --reuse` fingerprint answers for a tree reached through a
+  symlink — macOS's temporary directory is one — instead of giving up and
+  reusing nothing (change 0209).
 - `work` names the capability of a ranked delta in the proposal's
   `Affects specs:` (only a pinned one did), and `change delta` adds the
   capability it writes to (change 0207).

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.14.0
+**Version:** 0.14.1
 
 ## Purpose
 
@@ -144,6 +144,7 @@ The read path is spec-compliant when:
 22. [verified] An archived chore keeps its lane in the index whether written by `change archive` or derived by `index rebuild` (the two entries are equal), and the report's Lanes section counts it instead of reporting it unknown — verified by `packages/doctrina-cli/test/a-lane-sobrevive-ao-arquivamento.test.js`.
 23. [verified] `prime` lists a change opened 20 days ago with `open 20d` — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 24. [verified] The working-tree fingerprint changes with an edit or a new file, not with an ignored file or an excluded top-level entry, and leaves the index empty of staged changes — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
+25. [verified] The working-tree fingerprint is the same whether the tree is reached by its own path or through a symlink to it, as macOS's temporary directory is — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
 
 ## Out of scope for this spec
 

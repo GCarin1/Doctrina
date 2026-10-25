@@ -268,7 +268,13 @@ export function worktreeFingerprint(cwd, { exclude = [] } = {}) {
     if (git(root, ["add", "-A", "--", "."], { env }).state !== GIT_STATE.OK) return null;
     const tree = git(root, ["write-tree"], { env });
     if (tree.state !== GIT_STATE.OK) return null;
-    const prefix = path.relative(root, path.resolve(cwd)).replaceAll("\\", "/");
+    // Asked of git, never computed with path.relative: on macOS the tmpdir
+    // is `/var/…`, a symlink to `/private/var/…`, and git answers with the
+    // resolved toplevel — the relative path between the two spellings is
+    // `../..`, which names nothing in the tree (the 0.18 macOS CI run).
+    const prefixed = git(cwd, ["rev-parse", "--show-prefix"]);
+    if (prefixed.state !== GIT_STATE.OK) return null;
+    const prefix = prefixed.stdout.trim().replace(/\/$/, "");
     const listing = git(root, ["ls-tree", prefix ? `${tree.stdout.trim()}:${prefix}` : tree.stdout.trim()]);
     if (listing.state !== GIT_STATE.OK) return null;
     const skip = new Set(exclude);
