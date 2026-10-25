@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `close` ends by listing the other open changes: one that looks finished
+  (applied, or every task ticked) but was never closed, and one open 7 days
+  or more, each get a line; `prime` shows the age. `next` points an applied
+  or delta-less change at `doctrina close <id>` instead of `change archive`
+  / `change apply`, and `next --run` can run that close (change 0201).
 - The review inside `close` stops warning about the spec the change is
   updating, and reports code under capabilities the change carries no delta
   for in one line instead of one break each (`review --change <id>`). A file

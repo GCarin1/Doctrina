@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.12.0
+**Version:** 0.13.0
 
 ## Purpose
 
@@ -38,6 +38,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall separate every heading of a Markdown view from the line before it with a blank line, in every state of the tree, so the document renders where it is pasted.
 - The system shall estimate a context pack's tokens with each line ending counted as one character, so that the same tree yields the same estimate and the same budget verdict on a CRLF checkout as on an LF one.
 - The system shall carry the lane recorded in a change's proposal into its archived index entry, built by one constructor that both `change archive` and `index rebuild` use, so the report's lane mix counts the history by the lane each change was born in and reports as unknown only a change that recorded none.
+- The system shall show, in `prime`'s open work, how long a change has been open once it is 7 days or more.
 
 ### Event-driven
 
@@ -140,6 +141,7 @@ The read path is spec-compliant when:
 20. [verified] A CRLF copy of a project estimates the same pack as its LF original, and a budget set exactly at that estimate passes on both — verified by `packages/doctrina-cli/test/o-orcamento-nao-depende-do-fim-de-linha.test.js`.
 21. [verified] In a repository with history, `status --view report` prints what `report` printed, rates included, `status --view agent-changelog` prints what `report --agent-changelog` printed, and `report` still works while warning on stderr — verified by `packages/doctrina-cli/test/o-digest-tem-um-nome-so.test.js`.
 22. [verified] An archived chore keeps its lane in the index whether written by `change archive` or derived by `index rebuild` (the two entries are equal), and the report's Lanes section counts it instead of reporting it unknown — verified by `packages/doctrina-cli/test/a-lane-sobrevive-ao-arquivamento.test.js`.
+23. [verified] `prime` lists a change opened 20 days ago with `open 20d` — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 
 ## Out of scope for this spec
 

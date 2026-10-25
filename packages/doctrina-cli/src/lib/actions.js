@@ -199,9 +199,13 @@ export function computeActions(projectRoot, gates = {}) {
       }
       const status = listHeader(read(proposalPath), "Status") ?? "proposed";
       if (status === "applied") {
+        // The close, not the archive (change 0201). 0.17 retired the
+        // hand-driven tail — `close` skips the apply it already did and
+        // still runs verify, coverage and the docs gate — but this line kept
+        // teaching `change archive`, the one path past every one of them.
         actions.push(action({
           id: "change-archive-pending",
-          command: "change archive",
+          command: "close",
           args: [id],
           gate: "archive",
           runnable: true,
@@ -239,11 +243,11 @@ export function computeActions(projectRoot, gates = {}) {
       } else {
         actions.push(action({
           id: "change-deltas-missing",
-          command: "change apply",
+          command: "close",
           args: [id],
-          why: `add spec deltas under .doctrina/changes/${id}/specs/, or apply as metadata-only`,
+          why: `add spec deltas under .doctrina/changes/${id}/specs/, or close it as metadata-only`,
           text: `add spec deltas under .doctrina/changes/${id}/specs/, ` +
-            `or apply as metadata-only: doctrina change apply ${id}`,
+            `or close it as metadata-only: doctrina close ${id}`,
         }));
       }
     }

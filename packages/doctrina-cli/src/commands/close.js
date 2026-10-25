@@ -13,6 +13,7 @@ import { specHeader, dependentsOf, deltaCapabilities } from "../lib/scan.js";
 import { sequence, sequenceLabels, stepRerun } from "../lib/gates.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { refuseChangeRef } from "../lib/project.js";
+import { unfinishedChanges } from "../lib/snapshot.js";
 import * as analyze from "./analyze.js";
 import * as change from "./change.js";
 import * as verify from "./verify.js";
@@ -64,7 +65,30 @@ export async function run(positional, flags) {
       ? c.green("ok") + ` all ${positional.length} changes closed`
       : c.red("fail") + " at least one close stopped — see above");
   }
+  reportUnfinished(projectRoot, positional);
   return worst;
+}
+
+// The other open changes, said at the one moment someone is looking (change
+// 0201). A field review of 0.17: change 0078 shipped, stayed open, and no
+// close after it said a word. A change that looks finished — applied, or
+// every task ticked — and one open a week or more get a line each; the rest
+// are a count. Advisory: it never moves the exit code.
+function reportUnfinished(projectRoot, closing) {
+  const others = unfinishedChanges(projectRoot, { exclude: closing });
+  if (others.length === 0) return;
+  const flagged = others.filter((ch) => ch.reason !== null);
+  console.log("");
+  console.log(c.gray(`──── other open changes (advisory) — ${others.length}`));
+  for (const ch of flagged) {
+    const age = ch.ageDays !== null ? `, opened ${ch.ageDays}d ago` : "";
+    const how = ch.finished ? ` — ${c.cyan(`doctrina close ${ch.id}`)}` : "";
+    console.log(c.yellow("  ! ") + `${ch.id}: ${ch.reason}${age}${how}`);
+  }
+  const quiet = others.length - flagged.length;
+  if (quiet > 0) {
+    console.log(c.gray(`  ${quiet} more open and recent — \`doctrina next\``));
+  }
 }
 
 async function closeOne(projectRoot, id, flags) {

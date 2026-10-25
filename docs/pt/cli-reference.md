@@ -1711,13 +1711,13 @@ humanos retomarem o trabalho sem reler a árvore inteira.
 ```json
 {
   "id": "change-archive-pending",
-  "command": "change archive",
+  "command": "close",
   "args": ["0031-fix-parser"],
   "why": "applied but not archived",
   "gate": "archive",
   "severity": "blocking",
   "runnable": true,
-  "text": "doctrina change archive 0031-fix-parser — applied but not archived"
+  "text": "doctrina close 0031-fix-parser — applied but not archived"
 }
 ```
 
@@ -1814,6 +1814,17 @@ sem deltas gateia na árvore inteira. O verify é pulado (com aviso) quando
 não há `verify.json`; o trace e os dois advisories nunca bloqueiam. É um
 driver sobre os comandos existentes — adiciona uma checagem própria, o
 gate de docs — então o agente faz uma chamada em vez de nove.
+
+**As outras changes abertas, ditas onde alguém está olhando.** Depois da
+sequência — qualquer que seja o resultado — o close lista as OUTRAS changes
+abertas: uma que parece terminada (aplicada, ou com toda tarefa marcada) e
+nunca foi fechada ganha uma linha com o seu `doctrina close <id>`, uma
+aberta há 7 dias ou mais ganha uma linha com a idade, e o resto vira uma
+contagem. Uma review de campo da 0.17 achou uma change publicada e deixada
+aberta sem que nenhum close seguinte a mencionasse. O `prime` mostra a mesma
+idade, e o `next` aponta uma change aplicada para `doctrina close <id>` —
+nunca para `change archive`, o único caminho que passa por fora do verify,
+do coverage e do gate de docs.
 
 **A linha final afirma só o que rodou.** Cada palavra mapeia para um passo
 — `verify` → verified, `archive` → archived, `validate` → validated — e um

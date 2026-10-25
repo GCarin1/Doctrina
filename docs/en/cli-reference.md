@@ -1660,13 +1660,13 @@ and humans resuming work without re-reading the whole tree.
 ```json
 {
   "id": "change-archive-pending",
-  "command": "change archive",
+  "command": "close",
   "args": ["0031-fix-parser"],
   "why": "applied but not archived",
   "gate": "archive",
   "severity": "blocking",
   "runnable": true,
-  "text": "doctrina change archive 0031-fix-parser — applied but not archived"
+  "text": "doctrina close 0031-fix-parser — applied but not archived"
 }
 ```
 
@@ -1763,6 +1763,16 @@ on the whole tree. verify is skipped (with a note) when no `verify.json`
 is declared; trace and both advisories never block. A driver over the
 existing commands — it adds one check of its own, the docs gate — so
 the agent makes one call instead of nine.
+
+**The other open changes, said where someone is looking.** After the
+sequence — whatever its outcome — the close lists the OTHER open changes:
+one that looks finished (applied, or every task ticked) and was never
+closed gets a line with its `doctrina close <id>`, one open
+7 days or more gets a line with its age, and the rest are a count. A field
+review of 0.17 found a change shipped and left open with no later close
+mentioning it. `prime` shows the same age, and `next` points an applied
+change at `doctrina close <id>` — never at `change archive`, the one path
+past verify, coverage and the docs gate.
 
 **The closing line claims only what ran.** Each word maps to a step —
 `verify` → verified, `archive` → archived, `validate` → validated — and a

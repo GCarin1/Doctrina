@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.56.0",
+        "version": "0.57.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.43.0",
+        "version": "1.44.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.12.0",
+        "version": "0.13.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -3320,6 +3320,28 @@
         "specs_affected": [
           {
             "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0201-close-avisa-change-esquecida",
+        "title": "close avisa change esquecida",
+        "path": ".doctrina/changes/archive/2026-10-25-0201-close-avisa-change-esquecida",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ],

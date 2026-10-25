@@ -1156,7 +1156,7 @@ test("next walks the change lifecycle: tasks -> apply -> archive -> clear", () =
     planTasks(tmp, "0001-x");
     runCli(["change", "apply", "0001-x"], { cwd: tmp });
     r = runCli(["next"], { cwd: tmp });
-    assert.match(r.stdout, /doctrina change archive 0001-x/);
+    assert.match(r.stdout, /doctrina close 0001-x — applied but not archived/);
 
     // Archived: the change lifecycle is clear again. The tree itself is not —
     // applying the delta created a spec with no criteria and no build gate, and

@@ -82,6 +82,7 @@ export const RUNNERS = {
   "change check": () => import("./change.js"),
   "change apply": () => import("./change.js"),
   "change archive": () => import("./change.js"),
+  close: () => import("./close.js"),
   "index rebuild": () => import("./index-rebuild.js"),
 };
 

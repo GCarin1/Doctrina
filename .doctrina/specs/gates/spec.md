@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.43.0
+**Version:** 1.44.0
 
 ## Purpose
 
@@ -201,6 +201,7 @@ codes, zero-deps, no-network).
 - When the deprecated `doctrina analyze <id>` runs, the system shall behave as before and name `doctrina change check` on stderr, because `change check` prints the same structural checks as its first section and then answers whether the close would pass — so it also exits with the gate class while a Verification box is open, where `analyze` did not; `change apply` keeps refusing what `analyze` refused.
 - When a change has its tasks done and a delta to merge, `doctrina next` shall recommend `doctrina change check <id>` followed by `doctrina close <id>`, and when the close stops on its structural step it shall name `doctrina change check <id>` as the rerun instead of the deprecated `analyze`.
 - When `review` runs for a change — `--change <id>`, as `close` runs it — the system shall count the capabilities that change's deltas target as updated, and shall report code under capabilities the change carries no delta for in one finding naming them all.
+- When a close finishes, whatever its outcome, the system shall list the other open changes — one line each for a change that looks finished (applied, or every task ticked) and was never closed, with its close command, and for one open 7 days or more, with its age — and count the rest, without moving the exit code.
 
 ### State-driven
 
@@ -345,6 +346,7 @@ The gate surface is spec-compliant when:
 85. [verified] Over a hollow change `analyze` and the first section of `change check` print the same check lines with the same verdict; over a structurally sound change with open Verification boxes `analyze` exits 0 and `change check` exits 1 naming the verification blocker while `change apply` still refuses a hollow proposal; `analyze` warns naming `change check`, and `close` and `next` point to `change check` — verified by `packages/doctrina-cli/test/o-change-check-cobre-o-analyze.test.js`.
 86. [verified] A `**Source:**` pattern ending in `/` claims every file under that directory, so `validate` does not report it dead and `declaredOwners` names its capability — verified by `packages/doctrina-cli/test/um-source-de-diretorio-reivindica-o-diretorio.test.js`.
 87. [verified] A file claimed by one spec's `**Source:**` is owned by that spec alone even when other specs mention its basename, and `review --change <id>` names neither the change's own capability nor more than one line for the other changed capabilities, while plain `review` keeps one break per capability and an unknown or path-shaped id exits 2 — verified by `packages/doctrina-cli/test/o-review-do-close-olha-a-change.test.js`.
+88. [verified] Closing one change prints the other open changes, naming the finished-but-open and the 20-day-old ones and counting the recent one, never the change being closed — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 
 ## Out of scope for this spec
 
