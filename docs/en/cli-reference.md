@@ -1536,6 +1536,7 @@ cites as its proof — see [`doctrina coverage`](#doctrina-coverage).
 | `--clean` | Lint package.json files for reproducibility footguns instead of running checks. |
 | `--strict` | Fail the gate when a manual check is still pending sign-off. |
 | `--reuse` | Skip the checks when the last fully green run covered byte-identical code (see below). `close` runs verify this way. |
+| `--affected` | Run a check that declares `paths` only when the uncommitted work touches one of them (see below). |
 | `--signoff "<name>=<note>"` | Record today's sign-off for a manual check, then exit. |
 | `--force` | With `--init`, overwrite an existing config. |
 
@@ -1555,6 +1556,21 @@ code, a new file, an edited `verify.json` — runs everything. A plain
 `doctrina verify` always runs. The record lives in the git directory
 (`doctrina-verify-green.json`), never in the tree; outside a git repository
 nothing is remembered.
+
+**`--affected` is the inner loop; the close is the whole suite.** A check
+may declare the `paths` it covers — git pathspecs relative to the project
+root, the same field a manual check's sign-off already expires on:
+
+```json
+{ "name": "test-api", "run": "npm test", "cwd": "packages/api", "paths": ["packages/api"] }
+```
+
+`verify --affected` runs such a check only when the uncommitted work —
+edits against HEAD and untracked files — touches one of its paths, and
+prints which checks it skipped. A check with no `paths` covers everything
+and always runs; when git cannot answer, the check runs. `close` never
+passes `--affected`, and an `--affected` run is never remembered for
+`--reuse`: a partial run is not something a close may stand on.
 
 ## `doctrina contract new <name>` / `list` / `check`
 

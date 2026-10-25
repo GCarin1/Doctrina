@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.46.0
+**Version:** 1.47.0
 
 ## Purpose
 
@@ -250,6 +250,7 @@ codes, zero-deps, no-network).
 ### Optional
 
 - Where a wiring row declares its source as `<origin>:<source>`, the system may treat an export reading that source as intended and report no name mismatch, while still reporting an origin mismatch as an error.
+- Where `verify --affected` is given, the system shall run a check that declares `paths` only when the uncommitted work touches one of them, run every check that declares none, name the checks it skipped, and never remember such a run as green; `close` shall never pass it.
 
 ## Acceptance criteria
 
@@ -351,6 +352,7 @@ The gate surface is spec-compliant when:
 88. [verified] Closing one change prints the other open changes, naming the finished-but-open and the 20-day-old ones and counting the recent one, never the change being closed — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 89. [verified] Closing two changes in one run prints one skills section naming the just-closed fix-shaped change and counting three older candidates without listing them, and the docs step prints its line once — verified by `packages/doctrina-cli/test/o-close-nao-se-repete.test.js`.
 90. [verified] After a green `verify`, `verify --reuse` runs no check while a plain `verify` runs again; an edited file, a new file or a red run makes `--reuse` run everything; `.doctrina/` and ignored files do not move the fingerprint; and `close` passes `--reuse` — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
+91. [verified] With an edit under `packages/api`, `verify --affected` runs the api check and the path-less one and skips the web check by name; an untracked file counts as touched; the partial run is not reused; plain `verify` runs all three; and `close` never passes `--affected` — verified by `packages/doctrina-cli/test/o-verify-afetado-roda-so-o-que-mudou.test.js`.
 
 ## Out of scope for this spec
 

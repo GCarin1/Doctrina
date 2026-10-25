@@ -19,6 +19,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `verify --affected` runs a check that declares `paths` only when the
+  uncommitted work touches one of them — the inner loop of a change; checks
+  with no `paths` always run, and `close` always runs the whole suite
+  (change 0204).
 - `verify --reuse` skips the checks when the last fully green run covered
   byte-identical code (working tree minus `.doctrina/`, plus `verify.json`
   and the CLI version); `close` runs verify this way. The suite an agent

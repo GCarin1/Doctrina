@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.46.0",
+        "version": "1.47.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3379,6 +3379,20 @@
           },
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0204-verify-afetado",
+        "title": "verify afetado",
+        "path": ".doctrina/changes/archive/2026-10-25-0204-verify-afetado",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
             "operation": "MODIFIED"
           }
         ],

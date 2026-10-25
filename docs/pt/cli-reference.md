@@ -1582,6 +1582,7 @@ cita como prova — veja [`doctrina coverage`](#doctrina-coverage).
 | `--clean` | Linta package.json por footguns de reprodutibilidade em vez de rodar as checagens. |
 | `--strict` | Falha o gate quando uma checagem manual está pendente de sign-off. |
 | `--reuse` | Pula as checagens quando a última execução toda verde cobriu um código byte a byte idêntico (veja abaixo). O `close` roda o verify assim. |
+| `--affected` | Roda uma checagem que declara `paths` só quando o trabalho não commitado toca um deles (veja abaixo). |
 | `--signoff "<nome>=<nota>"` | Registra o sign-off de hoje para uma checagem manual e sai. |
 | `--force` | Com `--init`, sobrescreve uma config existente. |
 
@@ -1601,6 +1602,22 @@ byte de código, um arquivo novo, um `verify.json` editado — roda tudo. Um
 `doctrina verify` simples sempre roda. O registro fica no diretório do git
 (`doctrina-verify-green.json`), nunca na árvore; fora de um repositório git
 nada é lembrado.
+
+**O `--affected` é o laço interno; o close é a suíte inteira.** Uma
+checagem pode declarar os `paths` que cobre — pathspecs do git relativos à
+raiz do projeto, o mesmo campo em que o sign-off de uma checagem manual já
+expira:
+
+```json
+{ "name": "test-api", "run": "npm test", "cwd": "packages/api", "paths": ["packages/api"] }
+```
+
+O `verify --affected` roda essa checagem só quando o trabalho não commitado
+— edições contra o HEAD e arquivos não rastreados — toca um dos seus paths,
+e imprime quais pulou. Uma checagem sem `paths` cobre tudo e sempre roda;
+quando o git não consegue responder, a checagem roda. O `close` nunca passa
+`--affected`, e uma execução `--affected` nunca é lembrada para o
+`--reuse`: uma execução parcial não é algo em que um close possa se apoiar.
 
 ## `doctrina contract new <name>` / `list` / `check`
 
