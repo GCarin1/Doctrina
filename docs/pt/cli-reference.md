@@ -1448,6 +1448,9 @@ que um padrão malformado seja reportado em vez de cobrir menos em silêncio)
 **Source:** `src/commands/{init,adapter}.js`, `docs/**`
 ```
 
+Um padrão terminado em `/` nomeia um diretório e reivindica tudo o que está
+abaixo dele: `src/health/` é o mesmo que `src/health/**`.
+
 Uma correspondência declarada supera as heurísticas de fallback (o nome da
 capability como segmento do caminho, a spec citando o caminho ou o
 basename), que ficam para um projeto que não declara nada — então uma spec

@@ -17,6 +17,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- A `**Source:**` glob written as a directory (`src/health/`) claims
+  everything under it, as `src/health/**` does. It used to match only the
+  literal path, so `validate` called it dead and `review` treated every file
+  under it as ownerless (change 0199).
+
 ## [0.17.0] — 2026-09-24
 
 ### Upgrading from 0.16

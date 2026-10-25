@@ -631,6 +631,12 @@ export function expandBraces(glob) {
 // `{a,b}` alternates. Enough for the "where do my selectors live" and "which
 // code is mine" declarations, with no dependency and no surprises.
 export function globToRegExp(glob) {
+  // A pattern ending in `/` names a DIRECTORY, and a directory claims what
+  // is under it (change 0199). Compiled as written it matched only the
+  // literal path `src/health/` — which no file has — so the most natural way
+  // to declare a module's ownership claimed nothing, and `review` reported
+  // every file in it as ownerless.
+  if (/\/$/.test(String(glob))) glob = `${glob}**`;
   // Always compile the EXPANSION, never the original. Using it only when it
   // produced more than one alternative left `src/{a}.js` compiling with its
   // braces as literal characters, so a one-element group matched nothing

@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.17.0",
-  "last_updated": "2026-09-27",
+  "last_updated": "2026-10-25",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.42.0",
+        "version": "1.42.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3296,6 +3296,20 @@
         "applied": "2026-09-27",
         "specs_affected": [],
         "lane": "chore — opened as chore"
+      },
+      {
+        "id": "0199-source-de-diretorio",
+        "title": "source de diretorio",
+        "path": ".doctrina/changes/archive/2026-10-25-0199-source-de-diretorio",
+        "status": "applied",
+        "applied": "2026-10-25",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

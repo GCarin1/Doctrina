@@ -1406,6 +1406,9 @@ contract's Selectors use:
 **Source:** `src/commands/{init,adapter}.js`, `docs/**`
 ```
 
+A pattern ending in `/` names a directory and claims everything under it:
+`src/health/` is the same as `src/health/**`.
+
 A declared match outranks the fallback heuristics (the capability name as a
 path segment, the spec citing the path or the basename), which stay for a
 project that declares nothing — so a spec with no header behaves exactly as

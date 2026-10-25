@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.42.0
+**Version:** 1.42.1
 
 ## Purpose
 
@@ -342,6 +342,7 @@ The gate surface is spec-compliant when:
 83. [verified] The contract's description of the composite action names every step of the declared CI sequence — verified by `packages/doctrina-cli/test/o-que-um-driver-roda-tem-um-autor.test.js`.
 84. [verified] A hand-written twin anchor in `product.md` makes `validate` warn, naming the twin and the first anchor's line — verified by `packages/doctrina-cli/test/uma-intencao-nao-vira-duas-ancoras.test.js`.
 85. [verified] Over a hollow change `analyze` and the first section of `change check` print the same check lines with the same verdict; over a structurally sound change with open Verification boxes `analyze` exits 0 and `change check` exits 1 naming the verification blocker while `change apply` still refuses a hollow proposal; `analyze` warns naming `change check`, and `close` and `next` point to `change check` — verified by `packages/doctrina-cli/test/o-change-check-cobre-o-analyze.test.js`.
+86. [verified] A `**Source:**` pattern ending in `/` claims every file under that directory, so `validate` does not report it dead and `declaredOwners` names its capability — verified by `packages/doctrina-cli/test/um-source-de-diretorio-reivindica-o-diretorio.test.js`.
 
 ## Out of scope for this spec
 
