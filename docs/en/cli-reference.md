@@ -1711,6 +1711,19 @@ With `--check` the command writes nothing, prints a drift summary
 per artifact category, and exits 1 when the index no longer
 matches the tree. Wire it into CI next to `validate`.
 
+**The skills, where the agents look for skills.** Every rebuild also
+exports `.doctrina/skills/` as `SKILL.md` folders — the format the agents
+now share — to `.agents/skills/<name>/` (Cursor and Codex discover it) and,
+with the `claude` adapter installed, `.claude/skills/<name>/`. The skill's
+`when:` goes into the exported `description`, because the agent decides
+from the description alone. A field review found an editor's skill
+catalogue that never listed `.doctrina/skills/`, so a matching skill fired
+only when the request named its file. `.doctrina/skills/` stays the one
+source: each export is marked as generated, an export whose skill is gone
+is removed, and a folder you put there yourself is never touched. Under
+`--check` a stale export is a note, not a failure. `upgrade --write` and
+`adapter add` export too.
+
 `--check --staged` asks the same question of the **commit** instead of
 the disk: every artifact the staged index names must be in the commit,
 and every staged artifact must be in the index. The index is derived

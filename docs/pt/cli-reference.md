@@ -1760,6 +1760,19 @@ Com `--check` o comando não escreve nada, imprime um resumo do
 drift por categoria de artefato e sai 1 quando o index não bate
 mais com a árvore. Conecte ao CI ao lado do `validate`.
 
+**As skills, onde os agentes procuram skills.** Todo rebuild também exporta
+o `.doctrina/skills/` como pastas `SKILL.md` — o formato que os agentes
+agora compartilham — para `.agents/skills/<nome>/` (o Cursor e o Codex o
+descobrem) e, com o adapter `claude` instalado, `.claude/skills/<nome>/`. O
+`when:` da skill entra na `description` exportada, porque o agente decide
+só pela descrição. Uma review de campo achou um catálogo de skills do
+editor que nunca listava `.doctrina/skills/`, então uma skill que casava só
+disparava quando o pedido citava o arquivo. O `.doctrina/skills/` continua
+sendo a única fonte: cada export é marcado como gerado, um export cuja
+skill sumiu é removido, e uma pasta que você mesmo pôs lá nunca é tocada.
+Sob `--check` um export desatualizado é uma nota, não uma falha. O
+`upgrade --write` e o `adapter add` também exportam.
+
 `--check --staged` faz a mesma pergunta ao **commit** em vez de ao
 disco: todo artefato que o index staged nomeia tem de estar no commit,
 e todo artefato staged tem de estar no index. O index é derivado da

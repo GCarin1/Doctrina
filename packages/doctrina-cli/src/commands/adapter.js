@@ -12,6 +12,7 @@ import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { projectName } from "../lib/project.js";
+import { applySkillExport } from "../lib/skill-export.js";
 
 // `doctrina adapter` — add, remove, and inventory agent adapters (audit
 // item C1).
@@ -140,6 +141,12 @@ function adapterAdd(projectRoot, name, cmdFlags) {
   console.log(`${c.bold("Adapter " + name)} — ${written} file${written === 1 ? "" : "s"} written` +
     (skipped > 0 ? `, ${skipped} left alone` : "") +
     (spec.source === "project" ? c.gray(" (from .doctrina/templates/adapters/)") : ""));
+  // The project's skills follow the agent in (change 0212): with the claude
+  // adapter, `.claude/skills/` becomes an export root.
+  const exported = applySkillExport(projectRoot);
+  if (exported.writes.length > 0) {
+    console.log(c.green("export ") + ` ${exported.writes.length} skill file${exported.writes.length === 1 ? "" : "s"} where the agent discovers skills`);
+  }
   console.log(c.gray("Additive only: AGENTS.md and .doctrina/product.md were not touched."));
   return 0;
 }

@@ -122,12 +122,13 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.8.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/skill.js",
-          "packages/doctrina-cli/src/lib/skill-candidates.js"
+          "packages/doctrina-cli/src/lib/skill-candidates.js",
+          "packages/doctrina-cli/src/lib/skill-export.js"
         ]
       },
       {
@@ -3501,6 +3502,20 @@
           },
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0212-skills-onde-o-agente-procura",
+        "title": "skills onde o agente procura",
+        "path": ".doctrina/changes/archive/2026-10-30-0212-skills-onde-o-agente-procura",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "skills",
             "operation": "MODIFIED"
           }
         ],

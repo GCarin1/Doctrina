@@ -19,6 +19,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `index rebuild` (and `upgrade --write`, `adapter add`) exports
+  `.doctrina/skills/` as `SKILL.md` folders where the agents discover skills:
+  `.agents/skills/` (Cursor, Codex) and, with the claude adapter,
+  `.claude/skills/`; the `when:` goes into the description. Generated,
+  marked, pruned with their source (change 0212).
 - `doctrina adapter add claude|cursor` installs the agent's own hooks: the
   primer at session start (`prime --hook claude|cursor`) and, in Claude Code,
   one factual line beside every prompt (`prime --pulse`). The settings files
