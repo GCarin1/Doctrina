@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.12.0
+**Version:** 0.13.0
 
 ## Purpose
 
@@ -33,6 +33,7 @@ authoring commands, and the conventions every command shares.
 - The system shall write the pre-commit hook so that it invokes the CLI that installed it, by absolute path, and shall honour a `DOCTRINA` environment variable as the override, because `.git/hooks/` is local to the clone and a `doctrina` found on the PATH may be an older release.
 - The system shall write an artifact into the index in the position a full rebuild would give it, comparing the way the directory walk compares, so that the incremental write and the rebuild never disagree.
 - The system shall substitute a project's recorded name into every file it scaffolds for an agent, falling back to the working directory's name only for a tree that recorded none, so that two commands writing from the same templates cannot introduce two different projects.
+- The system shall report, in `metrics`, the share of code commits that carried a change — touched `.doctrina/changes/` or named a change in the subject — counting as code only commits that touch something outside the Doctrina tree, the agents' configuration and prose, keep it in a saved snapshot and its trend, and, from the usage sample, report `context`, `close` and `prime` runs per `work`.
 
 ### Event-driven
 
@@ -229,6 +230,7 @@ Project scaffolding is spec-compliant when:
 15. [verified] Adding an adapter after `init` writes the recorded name rather than the directory's, both installation paths agree, and no module resolves the name on its own — verified by `packages/doctrina-cli/test/o-projeto-tem-um-nome-so.test.js`.
 16. [verified] After a description typed at the terminal the closing line sends the person to their agent, without an intake `init` and `next` name the same command, and an intake given as a flag still prints the agent's playbook — verified by `packages/doctrina-cli/test/o-primeiro-uso-tem-uma-instrucao.test.js`.
 17. [verified] `adapter add claude` merges the SessionStart and UserPromptSubmit hooks into an existing `.claude/settings.json` keeping its permissions and its own hook, adds nothing on a second run, and `adapter remove claude` restores the file exactly; the cursor hook file is created and removed whole — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
+18. [verified] Of three code commits two carried a change (0.667), docs-only and Doctrina-only commits are not counted, a window with no code reports no rate, the trend follows the rate, and `metrics --commands` prints 0.5 context and 1.0 close per work for its sample — verified by `packages/doctrina-cli/test/a-aderencia-ao-ciclo-e-medida.test.js`.
 
 ## Out of scope for this spec
 

@@ -2134,6 +2134,16 @@ do git.
 doctrina metrics [--since <dias|data>] [--save]
 ```
 
+**Aderência ao fluxo.** Ao lado dos proxies de retrabalho, o `metrics`
+reporta a parcela de **commits de código que carregaram uma change** —
+tocaram `.doctrina/changes/` ou nomearam uma no assunto ("Change 0212", um
+id como `0212-x`); commits que só tocam `.doctrina/`, configuração de agente
+ou prosa não são código. É o número que diz se um agente segue o ciclo sem
+que peçam, o que uma review de campo achou que ele não fazia. O `--save` o
+guarda no snapshot e o `--trend` o acompanha. Com o log de uso ligado, o
+`metrics --commands` acrescenta as execuções de `context`, `close` e `prime`
+por `work`.
+
 | Flag | Default | Função |
 |------|---------|--------|
 | `--since <n\|data>` | `90` | Janela: contagem de dias, data de calendário (`2026-01-01`) ou `"<n> <unit>s ago"` (`"3 months ago"`). Qualquer outra coisa sai com `2`: o git lê qualquer texto como data (`abc` vira agora), então um erro de digitação mediria a janela errada. |

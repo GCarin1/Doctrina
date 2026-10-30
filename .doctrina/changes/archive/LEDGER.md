@@ -228,3 +228,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-30 — 0215-work-nao-repete-trabalho-feito — work nao repete trabalho feito (specs: authoring MODIFIED)
 - 2026-10-30 — 0216-pacote-de-contexto-enxuto — pacote de contexto enxuto (specs: insight MODIFIED)
 - 2026-10-30 — 0217-prime-entrega-o-comando-de-leitura — prime entrega o comando de leitura (specs: insight MODIFIED, templates MODIFIED)
+- 2026-10-30 — 0218-aderencia-ao-ciclo-medida — aderencia ao ciclo medida (specs: scaffolding MODIFIED)

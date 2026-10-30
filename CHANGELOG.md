@@ -19,6 +19,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `metrics` reports workflow adherence — the share of code commits that
+  carried a change — kept by `--save` and followed by `--trend`;
+  `metrics --commands` adds `context`, `close` and `prime` runs per `work`
+  (change 0218).
 - `prime` ends with the exact read for the open change (`doctrina context
   <cap> --for "<title>" --concat`), and the work playbook's first step
   carries `--for` with the prompt (change 0217).

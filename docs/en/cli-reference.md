@@ -2079,6 +2079,15 @@ compute a diff, but names the condition rather than leaking git plumbing.
 doctrina metrics [--since <days|date>] [--save]
 ```
 
+**Workflow adherence.** Next to the rework proxies, `metrics` reports the
+share of **code commits that carried a change** — touched
+`.doctrina/changes/` or named one in the subject ("Change 0212", an id like
+`0212-x`); commits touching only `.doctrina/`, agent configuration or prose
+are not code. It is the number that says whether an agent follows the cycle
+without being asked, which a field review found it did not. `--save` keeps
+it in the snapshot and `--trend` follows it. With the usage log on,
+`metrics --commands` adds `context`, `close` and `prime` runs per `work`.
+
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `--since <n\|date>` | `90` | Window: a day count, a calendar date (`2026-01-01`) or `"<n> <unit>s ago"` (`"3 months ago"`). Anything else exits `2`: git reads any text as a date (`abc` as now), so a typo would measure the wrong window. |
