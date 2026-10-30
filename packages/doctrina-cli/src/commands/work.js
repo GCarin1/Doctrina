@@ -15,7 +15,7 @@ import { printPlaybookTemplate } from "../lib/playbook.js";
 import { specShape } from "../lib/spec-ops.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
-import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { rankCapabilities, rankCapabilitiesByDiff, similarChanges, SIMILAR_CHANGE_DAYS } from "../lib/work-model.js";
 import { isChangeId, refuseChangeRef } from "../lib/project.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
@@ -98,6 +98,29 @@ export async function run(positional, flags) {
     if (open.length > 0) {
       printResumeSuggestion(open);
       return 0;
+    }
+  }
+
+  // DUPLICATE CHECK (change 0215). A request that mostly repeats a change
+  // already open, or archived in the last two weeks, is held before a second
+  // copy is scaffolded: an archived change is out of every default read, and
+  // a field review found the person asking for "the doctrina work" of work
+  // already closed. A term match can be wrong, so --force proceeds.
+  if (!fromDiff && !consolidate && prompt && !flagBool(flags, "force", false)) {
+    const similar = similarChanges(projectRoot, prompt);
+    if (similar.length > 0) {
+      console.error(c.yellow("hold:") + " this request reads like a change that already exists:");
+      for (const s of similar.slice(0, 3)) {
+        console.error(`  ${c.cyan(s.id)}  ${s.title}` + c.gray(` — ${s.where} (${s.path}); shared: ${s.shared.join(", ")}`));
+      }
+      console.error("");
+      const top = similar[0];
+      console.error(top.where === "archived"
+        ? `If it is the same work, it is done: tell the human it is archived at ${top.path}.`
+        : `If it is the same work, continue it: ${c.cyan(`doctrina work --resume ${top.id}`)}`);
+      console.error(c.gray("If it is new work, open it anyway: ") + c.cyan(`doctrina work --force "<request>"`) +
+        c.gray(` (open changes and the last ${SIMILAR_CHANGE_DAYS} days of the archive are compared)`));
+      return EXIT.PRECONDITION;
     }
   }
 
@@ -606,6 +629,10 @@ Options:
   --force              Open a new change even when one is open, overwrite an
                        existing change folder, and proceed past the lane hold
                        below
+
+A request that mostly repeats a change already open, or archived in the
+last 14 days, is HELD the same way (exit 3), naming it: the same work is
+resumed, or reported as done where it is archived; --force opens it anyway.
 
 A prompt that reads as a RUNTIME problem — a workflow, an env value, a run
 that executed nothing — is HELD before anything is scaffolded, and pointed

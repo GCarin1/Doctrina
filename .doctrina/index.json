@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.29.0",
+        "version": "0.30.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -3556,6 +3556,20 @@
           },
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0215-work-nao-repete-trabalho-feito",
+        "title": "work nao repete trabalho feito",
+        "path": ".doctrina/changes/archive/2026-10-30-0215-work-nao-repete-trabalho-feito",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "authoring",
             "operation": "MODIFIED"
           }
         ],

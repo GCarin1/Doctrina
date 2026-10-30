@@ -19,6 +19,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `work` holds a request that mostly repeats an open change, or one
+  archived in the last 14 days (exit 3), naming it — resume it, or report it
+  done where it is archived; `--force` opens it anyway (change 0215).
 - The work is visible to the person who asked for it: `work` and `close`
   end with a "Tell the human:" line naming the change and its folder or
   archive path, `prime` lists the changes closed in the last 7 days, and

@@ -265,6 +265,15 @@ applies. No behaviour changes, and the close's coverage gate still holds
 every kept criterion to its proof. `validate`'s 400-line warning names
 this command.
 
+**A request that repeats existing work is held.** Before anything is
+scaffolded, `work` compares the prompt with the open changes and with the
+changes archived in the last 14 days (deterministic term overlap, measured
+from both sides). One it mostly repeats holds the request with exit 3,
+naming it: an open change is resumed (`work --resume <id>`), an archived one
+is reported as done where it is archived. A field review found a request to
+"create the doctrina work" for two changes already closed. `--force` opens
+the change anyway.
+
 Before anything is scaffolded, `work` consults the lane classifier (see
 [`doctrina triage`](#doctrina-triage-prompt)). A prompt that confidently
 reads as a **runtime** problem — a workflow, an env value, a run that

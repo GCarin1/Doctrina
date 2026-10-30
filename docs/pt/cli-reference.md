@@ -274,6 +274,15 @@ aplica. Nenhum comportamento muda, e o gate de coverage do close continua
 exigindo prova de cada critério mantido. O aviso de 400 linhas do
 `validate` cita este comando.
 
+**Um pedido que repete trabalho existente é segurado.** Antes de
+esqueletizar, o `work` compara o prompt com as changes abertas e com as
+arquivadas nos últimos 14 dias (sobreposição determinística de termos,
+medida dos dois lados). Uma que ele repete em boa parte segura o pedido com
+saída 3, nomeando-a: uma change aberta é retomada (`work --resume <id>`), uma
+arquivada é relatada como feita, com o caminho. Uma review de campo achou um
+pedido de "criar o doctrina work" para duas changes já fechadas. `--force`
+abre a change mesmo assim.
+
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
 raia (veja [`doctrina triage`](#doctrina-triage-prompt)). Um prompt que
 confiantemente lê como problema de **runtime** — um workflow, um valor de
