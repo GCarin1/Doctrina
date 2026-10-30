@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.14.1
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -40,6 +40,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall carry the lane recorded in a change's proposal into its archived index entry, built by one constructor that both `change archive` and `index rebuild` use, so the report's lane mix counts the history by the lane each change was born in and reports as unknown only a change that recorded none.
 - The system shall show, in `prime`'s open work, how long a change has been open once it is 7 days or more.
 - The system shall fingerprint the content of a working tree — tracked, untracked and edited files, ignored ones excluded — without modifying the repository's index, HEAD or files.
+- The system shall print, with `prime --pulse`, one factual line naming the open changes by id — or stating that a request changing behaviour is opened as a change with `doctrina work` — reading only the open changes, and, with `prime --hook <agent>`, the primer and that line in the format the agent's session hook reads, without colour codes and within 9,000 characters.
 
 ### Event-driven
 
@@ -145,6 +146,7 @@ The read path is spec-compliant when:
 23. [verified] `prime` lists a change opened 20 days ago with `open 20d` — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 24. [verified] The working-tree fingerprint changes with an edit or a new file, not with an ignored file or an excluded top-level entry, and leaves the index empty of staged changes — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
 25. [verified] The working-tree fingerprint is the same whether the tree is reached by its own path or through a symlink to it, as macOS's temporary directory is — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
+26. [verified] `prime --pulse` is one line naming `0001-login` once it is open and the work command before, `prime --hook claude` is plain text without colour codes, `prime --hook cursor` is JSON whose `additional_context` stays within 9,000 characters, and an unknown agent exits 2 — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
 
 ## Out of scope for this spec
 

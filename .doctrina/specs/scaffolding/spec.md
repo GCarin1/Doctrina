@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.11.0
+**Version:** 0.12.0
 
 ## Purpose
 
@@ -191,6 +191,7 @@ authoring commands, and the conventions every command shares.
 - When `doctrina index rebuild --check --staged` runs, the system shall compare the staged index against the staged tree rather than the working tree — reporting every artifact the staged index names that the commit does not carry, and every staged artifact the index does not name — writing nothing, and exiting successfully when no index is staged or the project is not a git repository.
 - When `doctrina init` runs on an interactive terminal with neither a description nor an intake supplied, the system shall ask one question — describe the project — store the answer as the intake with the description derived from it, and close by telling the person to have their agent read AGENTS.md and run `doctrina next`, rather than printing the agent's playbook or asking for the same description again later.
 - When `doctrina init` finishes with a description but no intake, the system shall name the step `doctrina next` names — `doctrina intake --text` with the whole description, or `doctrina work --from-diff` for an existing codebase — and never tell the person to edit AGENTS.md or product.md by hand.
+- When `adapter add claude` or `adapter add cursor` runs, the system shall install the agent's own hooks — the primer at session start and, where the agent can take context per prompt, the pulse beside every prompt — merging them into a settings file the project already has: objects recurse, arrays gain only missing entries, a value the user set stays theirs, and `adapter remove` takes back only its own entries, deleting the file only when nothing of the user's is left.
 
 ### State-driven
 
@@ -227,6 +228,7 @@ Project scaffolding is spec-compliant when:
 14. [verified] A partial commit of `.doctrina/` is refused by name while a whole-tree commit passes, and the installed pre-commit hook asks that question after the step that stages the index — verified by `packages/doctrina-cli/test/o-indice-descreve-o-commit.test.js`.
 15. [verified] Adding an adapter after `init` writes the recorded name rather than the directory's, both installation paths agree, and no module resolves the name on its own — verified by `packages/doctrina-cli/test/o-projeto-tem-um-nome-so.test.js`.
 16. [verified] After a description typed at the terminal the closing line sends the person to their agent, without an intake `init` and `next` name the same command, and an intake given as a flag still prints the agent's playbook — verified by `packages/doctrina-cli/test/o-primeiro-uso-tem-uma-instrucao.test.js`.
+17. [verified] `adapter add claude` merges the SessionStart and UserPromptSubmit hooks into an existing `.claude/settings.json` keeping its permissions and its own hook, adds nothing on a second run, and `adapter remove claude` restores the file exactly; the cursor hook file is created and removed whole — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
 
 ## Out of scope for this spec
 

@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.18.0",
-  "last_updated": "2026-10-25",
+  "last_updated": "2026-10-30",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.14.1",
+        "version": "0.15.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -107,7 +107,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.11.0",
+        "version": "0.12.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -3483,6 +3483,28 @@
         "applied": "2026-10-25",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0211-hooks-entregam-o-estado",
+        "title": "hooks entregam o estado",
+        "path": ".doctrina/changes/archive/2026-10-30-0211-hooks-entregam-o-estado",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

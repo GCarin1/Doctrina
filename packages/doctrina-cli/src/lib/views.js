@@ -205,6 +205,31 @@ export function prime(s) {
   return out;
 }
 
+// ------------------------------------------------------------------- pulse
+
+/**
+ * The one fact an agent needs with EVERY prompt (change 0211): whether a
+ * change is open, which, and that a request changing behaviour opens one.
+ * A field review: "without the framework's name in the request, the request
+ * for code wins" — the cycle sat in AGENTS.md, read once, against the
+ * request read now. A UserPromptSubmit hook prints this beside each prompt.
+ * Worded as facts, not orders: an agent's prompt-injection defences treat
+ * imperatives from a hook with suspicion, and they should.
+ *
+ * @param {Array<{id: string, title: string|null, status: string}>} open
+ */
+export function pulse(open) {
+  if (open.length === 0) {
+    return ["Doctrina: no change is open in this project. A request that changes behaviour is opened as a change " +
+      "before code is edited — `doctrina work \"<request>\"` (it classifies the lane itself); a question or a read needs none."];
+  }
+  const named = open.slice(0, 3).map((ch) => `${ch.id}${ch.title ? ` — "${ch.title}"` : ""} (${ch.status})`).join("; ");
+  const more = open.length > 3 ? ` and ${open.length - 3} more` : "";
+  return [`Doctrina: open change${open.length === 1 ? "" : "s"}: ${named}${more}. Work that belongs to ${open.length === 1 ? "it" : "one of them"} ` +
+    "is named by its id in the first sentence to the human and finishes with `doctrina close <id>`; " +
+    "a different request is its own change (`doctrina work \"<request>\"`)."];
+}
+
 // ----------------------------------------------------------------- handoff
 
 export function handoff(s) {

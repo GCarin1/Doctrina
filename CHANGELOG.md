@@ -17,6 +17,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `doctrina adapter add claude|cursor` installs the agent's own hooks: the
+  primer at session start (`prime --hook claude|cursor`) and, in Claude Code,
+  one factual line beside every prompt (`prime --pulse`). The settings files
+  are merged, never overwritten; `adapter remove` takes back only Doctrina's
+  entries (change 0211).
+
 ## [0.18.0] — 2026-10-25
 
 Driven by a field review of 0.17 from a project that ran 85 changes

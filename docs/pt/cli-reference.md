@@ -895,6 +895,25 @@ ausência — é uma raiz de configuração que o próximo agente encontra e tra
 como existente. Um diretório com um arquivo mantido, ou com qualquer coisa
 sua, fica intocado.
 
+**Hooks: o estado do projeto chega ao agente sem ser pedido.** O adapter
+`claude` acrescenta dois hooks ao `.claude/settings.json` — o
+`SessionStart` roda `doctrina prime --hook claude` (o primer, como contexto
+da sessão) e o `UserPromptSubmit` roda `doctrina prime --pulse` (uma linha
+factual ao lado de cada prompt: a change aberta, ou que um pedido que muda
+comportamento abre uma com `doctrina work`). O adapter `cursor` acrescenta
+o hook de sessão ao `.cursor/hooks.json` (`doctrina prime --hook cursor`);
+o hook por prompt do Cursor não injeta contexto, então a regra sempre
+aplicada carrega o resto. Uma review de campo achou que, sem o nome do
+framework no pedido, o pedido de código vencia — o ciclo estava escrito no
+AGENTS.md, lido uma vez, contra o pedido lido agora.
+
+Esses dois arquivos são compartilhados com você, então são **mesclados**,
+nunca sobrescritos: objetos recursam, arrays ganham só as entradas que
+faltam, e um valor que você definiu continua seu. `adapter add` rodado duas
+vezes não acrescenta nada duas vezes; `adapter remove` tira só as entradas
+do Doctrina e apaga o arquivo só quando nada seu sobra nele. Um arquivo que
+não é JSON válido fica intocado, e é nomeado.
+
 **Adapters customizados.** Um diretório em
 `.doctrina/templates/adapters/<nome>/` é instalável por nome e tem
 precedência sobre um adapter empacotado de mesmo nome. Os templates de lá
@@ -2198,6 +2217,8 @@ para rodar toda sessão. Read-only; sempre sai 0.
 
 | Flag | Função |
 |------|--------|
+| `--pulse` | Uma linha factual para um hook de agente por prompt: a(s) change(s) aberta(s) com seus ids, ou que um pedido que muda comportamento é aberto como change com `doctrina work`. Lê só as changes abertas, então é barato o bastante para rodar antes de cada prompt. |
+| `--hook claude\|cursor` | O primer mais o pulse, no formato que o hook de início de sessão do agente lê: texto puro para o Claude Code, `{"additional_context": …}` para o Cursor; cortado em 9.000 caracteres (o Claude guarda 10.000). Instalado por `doctrina adapter add claude\|cursor`. |
 | `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. O análogo do `constitution.md` do Spec Kit, derivado em vez de escrito: para mudar um princípio, substitua a ADR; para mudar um non-goal, edite o `product.md`. (Até a 0.17.0 isto também era um comando próprio, já removido.) |
 
 O primer tem tamanho fixo de propósito — ele é lido no início de toda

@@ -874,6 +874,25 @@ stopping at the first directory that still holds anything. An empty
 finds and treats as present. A directory holding a kept file, or anything
 of yours, survives untouched.
 
+**Hooks: the project's state reaches the agent without being asked for.**
+The `claude` adapter adds two hooks to `.claude/settings.json` —
+`SessionStart` runs `doctrina prime --hook claude` (the primer, as session
+context) and `UserPromptSubmit` runs `doctrina prime --pulse` (one factual
+line beside every prompt: the open change, or that a request changing
+behaviour opens one with `doctrina work`). The `cursor` adapter adds the
+session hook to `.cursor/hooks.json` (`doctrina prime --hook cursor`);
+Cursor's per-prompt hook cannot add context, so its always-applied rule
+carries the rest. A field review found that, without the framework's name
+in the request, the request for code won — the cycle was written in
+AGENTS.md, read once, against the request read now.
+
+Those two files are shared with you, so they are **merged**, never
+overwritten: objects recurse, arrays gain only the entries they lack, and
+a value you set stays yours. `adapter add` run twice adds nothing twice;
+`adapter remove` takes back only Doctrina's entries and deletes the file
+only when nothing of yours is left. A file that is not valid JSON is left
+alone, and named.
+
 **Custom adapters.** A directory at `.doctrina/templates/adapters/<name>/`
 is installable by name and takes precedence over a bundled adapter of the
 same name. Templates there use the same tokens as the bundled ones; the
@@ -2138,6 +2157,8 @@ cheap enough to run every session. Read-only; always exits 0.
 
 | Flag | Purpose |
 |------|---------|
+| `--pulse` | One factual line for a per-prompt agent hook: the open change(s) with their ids, or that a request changing behaviour is opened as a change with `doctrina work`. Reads only the open changes, so it is cheap enough to run before every prompt. |
+| `--hook claude\|cursor` | The primer plus the pulse, in the format the agent's session-start hook reads: plain text for Claude Code, `{"additional_context": …}` for Cursor; cut at 9,000 characters (Claude keeps 10,000). Installed by `doctrina adapter add claude\|cursor`. |
 | `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The Spec Kit `constitution.md` analogue, derived rather than authored: to change a principle, supersede the ADR; to change a non-goal, edit `product.md`. (Until 0.17.0 this was also a command of its own, since removed.) |
 
 The primer keeps a fixed size on purpose — it is read at the start of
