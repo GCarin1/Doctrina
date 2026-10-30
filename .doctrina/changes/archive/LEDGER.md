@@ -223,3 +223,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0210-teste-do-lote-aceita-crlf — teste do lote aceita crlf
 - 2026-10-30 — 0211-hooks-entregam-o-estado — hooks entregam o estado (specs: insight MODIFIED, scaffolding MODIFIED, templates MODIFIED)
 - 2026-10-30 — 0212-skills-onde-o-agente-procura — skills onde o agente procura (specs: skills MODIFIED)
+- 2026-10-30 — 0213-ciclo-sem-citar-o-framework — ciclo sem citar o framework (specs: cli MODIFIED, templates MODIFIED)

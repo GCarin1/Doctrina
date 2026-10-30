@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.57.0
+**Version:** 0.57.1
 
 ## Purpose
 
@@ -169,6 +169,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not end a run in a way that discards output it has already printed; a command's bytes shall reach stdout before the process exits, whether stdout is a terminal, a file, or a pipe.
 - The system shall not reinterpret a malformed flag value as a different request: a count that is not digits above zero, a `metrics --since` window that is not a day count, a real calendar date or "<n> <unit>s ago", and a negative number given to a value-taking flag are refused with the usage class, naming the value, because git reads any text as a date and a truncated number runs as a request nobody made.
 - The system shall not point an applied change, or a change with no delta, at `change archive` or `change apply` from `next`: the action is `doctrina close <id>`, which `next --run` can execute.
+- The system shall not tell an agent, in the generated command surface, to run `triage` before `work`: `work` classifies the lane itself, and `triage` is reached for when diagnosing an incident.
 
 ### Optional
 
@@ -253,6 +254,7 @@ The CLI is v0 spec-compliant when:
 47. [verified] Each completion script offers every live command and none of the deprecated names — verified by `packages/doctrina-cli/test/a-completacao-oferece-so-o-vivo.test.js`.
 48. [verified] With an open change and a drifted index, `next` lists the index rebuild first — verified by `packages/doctrina-cli/test/actions.test.js`.
 49. [verified] `next` names `doctrina close <id>` for an applied change and for a delta-less one, its record carries `command: "close"`, and no line names `change archive` or `change apply` — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
+50. [verified] The surface's trigger for `work` says it runs before code is edited and classifies the lane itself, and the trigger for `triage` names an incident — verified by `packages/doctrina-cli/test/o-ciclo-vale-sem-citar-o-framework.test.js`.
 
 ## Out of scope for this spec
 

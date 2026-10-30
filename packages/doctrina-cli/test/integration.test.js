@@ -2842,7 +2842,7 @@ test("the AGENTS.md template leads context-reading with doctrina context", () =>
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
-    assert.match(agents, /doctrina context \[<capability>\] --concat/);
+    assert.match(agents, /doctrina context <cap> --for "<task>" --concat/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The change cycle reaches the agent whether or not the request names
+  Doctrina: AGENTS.md's day-to-day line and the always-applied Cursor rule
+  state it — open the change before code, one change per activity, the id
+  in the first sentence to the human, `context --for` (not `prime`) for the
+  spec, the exported skills, the archive path after `close`. The surface
+  says `work` classifies the lane itself; `triage` is for incidents
+  (change 0213).
 - `index rebuild` (and `upgrade --write`, `adapter add`) exports
   `.doctrina/skills/` as `SKILL.md` folders where the agents discover skills:
   `.agents/skills/` (Cursor, Codex) and, with the claude adapter,

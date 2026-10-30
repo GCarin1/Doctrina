@@ -127,8 +127,8 @@ export const COMMAND_META = {
   why:          { moment: "Orient",     when: "you need to justify or trace a capability's existence", purpose: "provenance: intent, proof, ADRs, and history" },
   handoff:      { moment: "Orient",     when: "BEFORE compaction or handing over to another session", purpose: "a resume note: open work, task state, next command" },
 
-  triage:       { moment: "Change",     when: "a request arrives — BEFORE scaffolding, especially if it smells like an incident", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
-  work:         { moment: "Change",     when: "a request arrives that changes behaviour (triage says PRODUCT)", purpose: "scaffold a change and print the playbook to execute" },
+  triage:       { moment: "Change",     when: "diagnosing an incident or a runtime symptom — `work` classifies every other request itself", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
+  work:         { moment: "Change",     when: "a request changes behaviour — BEFORE editing code; it classifies the lane itself", purpose: "scaffold a change and print the playbook to execute" },
   spec:         { moment: "Change",     when: "a capability needs creating or its headers advancing", purpose: "create, list, and edit capability specs" },
   change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "drive a change by hand — check --verbose previews every delta" },
   decision:     { moment: "Change",     when: "the change decides something a later session must not relitigate", purpose: "record, accept, land, scope, and supersede ADRs" },

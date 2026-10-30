@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.57.0",
+        "version": "0.57.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -147,7 +147,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.26.0",
+        "version": "0.27.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3516,6 +3516,24 @@
         "specs_affected": [
           {
             "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0213-ciclo-sem-citar-o-framework",
+        "title": "ciclo sem citar o framework",
+        "path": ".doctrina/changes/archive/2026-10-30-0213-ciclo-sem-citar-o-framework",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ],
