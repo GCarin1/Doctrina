@@ -4,7 +4,7 @@ import { readdirSync } from "node:fs";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
 import { projectName } from "./project.js";
 import * as idx from "./index-json.js";
-import { deriveIndex, indexesMatch, specHeader, listHeader } from "./scan.js";
+import { deriveIndex, indexesMatch, specHeader, listHeader, deltaCapabilities } from "./scan.js";
 import { cliVersion } from "./version.js";
 import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
@@ -152,7 +152,10 @@ export function openChanges(projectRoot) {
     const tasksDone = progress.done;
     const unchecked = progress.open.map((t) => t || "(unwritten task — the scaffold's placeholder)");
     const date = proposal ? (listHeader(proposal, "Date") ?? null) : null;
-    out.push({ id, title, status, tasksDone, tasksTotal, unchecked, date, ageDays: ageInDays(date) });
+    // The capabilities its deltas target — what `prime` turns into the
+    // exact read command for the change (change 0217).
+    const capabilities = deltaCapabilities(path.join(changesDir, id));
+    out.push({ id, title, status, tasksDone, tasksTotal, unchecked, date, ageDays: ageInDays(date), capabilities });
   }
   return out;
 }

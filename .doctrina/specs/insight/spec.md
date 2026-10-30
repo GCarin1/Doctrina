@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.17.0
+**Version:** 0.18.0
 
 ## Purpose
 
@@ -42,6 +42,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall fingerprint the content of a working tree — tracked, untracked and edited files, ignored ones excluded — without modifying the repository's index, HEAD or files.
 - The system shall print, with `prime --pulse`, one factual line naming the open changes by id — or stating that a request changing behaviour is opened as a change with `doctrina work` — reading only the open changes, and, with `prime --hook <agent>`, the primer and that line in the format the agent's session hook reads, without colour codes and within 9,000 characters.
 - The system shall list, in `prime`, the changes archived in the last 7 days with their archive paths, and shall name the last one in the pulse when no change is open.
+- The system shall end `prime` with the read for the first open change that carries a delta, as the exact `doctrina context <cap> --for "<title>" --concat` command.
 
 ### Event-driven
 
@@ -140,6 +141,7 @@ The read path is spec-compliant when:
 26. [verified] `prime --pulse` is one line naming `0001-login` once it is open and the work command before, `prime --hook claude` is plain text without colour codes, `prime --hook cursor` is JSON whose `additional_context` stays within 9,000 characters, and an unknown agent exits 2 — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
 27. [verified] `prime` lists a change archived today under Recently closed with its archive path, and the pulse names it as last closed — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
 28. [verified] On this repository `context gates --for "verify reuse fingerprint" --concat` stays within 10k tokens, omits AGENTS.md, digests the ADRs and slices the spec keeping the `verify --reuse` requirement, while `--full` is at least three times larger and includes AGENTS.md; the slice keeps headers, Purpose and an item's continuation lines and names each gap, and a spec the query does not touch stays whole — verified by `packages/doctrina-cli/test/o-pacote-de-contexto-e-enxuto.test.js`.
+29. [verified] With a change open on `auth`, `prime` prints `Read for <id>: doctrina context auth --for "<title>" --concat` — verified by `packages/doctrina-cli/test/o-prime-entrega-o-comando-de-leitura.test.js`.
 
 ## Out of scope for this spec
 

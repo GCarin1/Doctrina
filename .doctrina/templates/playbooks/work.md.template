@@ -9,7 +9,7 @@ Prompt: "{{PROMPT}}"
 Execute in order, in a single linear pass:
 
 1. Read the context pack and confirm (or correct) the capability:
-       [[c]]doctrina context {{CAPABILITY}} --concat[[/c]]
+       [[c]]doctrina context {{CAPABILITY}} --for "{{FOR}}" --concat[[/c]]
 
 2. If the capability has no spec yet:
        [[c]]doctrina spec new <capability>[[/c]]

@@ -2261,6 +2261,7 @@ para rodar toda sessão. Read-only; sempre sai 0.
 
 | Flag | Função |
 |------|--------|
+| (padrão) | Termina com a leitura do trabalho em mãos, como comando a copiar: `Read for <id>: doctrina context <cap> --for "<título>" --concat` para a primeira change aberta com delta — o pacote recortado, não um "read deeper" genérico. |
 | `--pulse` | Uma linha factual para um hook de agente por prompt: a(s) change(s) aberta(s) com seus ids, ou que um pedido que muda comportamento é aberto como change com `doctrina work`. Lê só as changes abertas, então é barato o bastante para rodar antes de cada prompt. |
 | `--hook claude\|cursor` | O primer mais o pulse, no formato que o hook de início de sessão do agente lê: texto puro para o Claude Code, `{"additional_context": …}` para o Cursor; cortado em 9.000 caracteres (o Claude guarda 10.000). Instalado por `doctrina adapter add claude\|cursor`. |
 | `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. O análogo do `constitution.md` do Spec Kit, derivado em vez de escrito: para mudar um princípio, substitua a ADR; para mudar um non-goal, edite o `product.md`. (Até a 0.17.0 isto também era um comando próprio, já removido.) |

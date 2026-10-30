@@ -14,7 +14,7 @@ No existing spec matches the prompt — likely a new capability.
 Execute in order, in a single linear pass:
 
 1. Read the context pack and confirm (or correct) the capability:
-       doctrina context <capability> --concat
+       doctrina context <capability> --for "fix" --concat
 
 2. If the capability has no spec yet:
        doctrina spec new <capability>

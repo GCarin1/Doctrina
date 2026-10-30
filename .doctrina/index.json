@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.17.0",
+        "version": "0.18.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -147,7 +147,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.27.0",
+        "version": "0.28.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3584,6 +3584,24 @@
         "specs_affected": [
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0217-prime-entrega-o-comando-de-leitura",
+        "title": "prime entrega o comando de leitura",
+        "path": ".doctrina/changes/archive/2026-10-30-0217-prime-entrega-o-comando-de-leitura",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           }
         ],

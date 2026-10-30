@@ -2201,6 +2201,7 @@ cheap enough to run every session. Read-only; always exits 0.
 
 | Flag | Purpose |
 |------|---------|
+| (default) | Ends with the read for the work in hand, as a command to copy: `Read for <id>: doctrina context <cap> --for "<title>" --concat` for the first open change with a delta — the cut pack, not a generic "read deeper". |
 | `--pulse` | One factual line for a per-prompt agent hook: the open change(s) with their ids, or that a request changing behaviour is opened as a change with `doctrina work`. Reads only the open changes, so it is cheap enough to run before every prompt. |
 | `--hook claude\|cursor` | The primer plus the pulse, in the format the agent's session-start hook reads: plain text for Claude Code, `{"additional_context": …}` for Cursor; cut at 9,000 characters (Claude keeps 10,000). Installed by `doctrina adapter add claude\|cursor`. |
 | `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The Spec Kit `constitution.md` analogue, derived rather than authored: to change a principle, supersede the ADR; to change a non-goal, edit `product.md`. (Until 0.17.0 this was also a command of its own, since removed.) |

@@ -525,6 +525,9 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
     CHANGE_ID: id,
     PROMPT: prompt,
     CAPABILITY: capability ?? "<capability>",
+    // The read pack already cut to the task (change 0217): `--for` is what
+    // slices the spec, and an agent copying a step should copy the cut.
+    FOR: forQuery(prompt),
     FROM_DIFF_NOTE: fromDiff
       ? c.gray("Code-first: write the spec that describes what the working tree already does.")
       : "",
@@ -561,6 +564,13 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
          c.gray("   diff is tested). The changed files are listed in the proposal's ## Why.")].join("\n")
       : "",
   });
+}
+
+// The prompt as a `context --for` argument: one line, no double quotes, short
+// enough to read — the slicer only needs its content words.
+export function forQuery(prompt) {
+  const flat = String(prompt ?? "").replace(/["`]/g, "").replace(/\s+/g, " ").trim();
+  return flat.length > 80 ? flat.slice(0, 80).replace(/\s+\S*$/, "") : flat;
 }
 
 // Which capability the change is about, as far as the CLI can tell: pinned by

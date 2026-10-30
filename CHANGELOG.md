@@ -19,6 +19,9 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `prime` ends with the exact read for the open change (`doctrina context
+  <cap> --for "<title>" --concat`), and the work playbook's first step
+  carries `--for` with the prompt (change 0217).
 - `context` is lean by default: AGENTS.md is not repeated, accepted ADRs are
   digests (title + Decision opening; `show NNNN` for the rest), and with
   `--for` the task's spec and its dependencies are sliced to the matching

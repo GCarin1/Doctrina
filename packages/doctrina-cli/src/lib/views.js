@@ -211,7 +211,17 @@ export function prime(s) {
   }
 
   out.push("");
-  out.push(c.gray("Read deeper: `doctrina context [<cap>] --concat` · `doctrina why <cap>` · `doctrina show <ref>`"));
+  // The read for the work in hand, as a command to copy (change 0217): a
+  // field review found `prime` taken as enough and `context` skipped, and a
+  // generic "read deeper" is the line a reader skips first.
+  const focus = s.openChanges.find((ch) => (ch.capabilities ?? []).length > 0);
+  if (focus) {
+    const query = String(focus.title ?? focus.id).replace(/["`]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
+    out.push(c.bold("Read for ") + c.cyan(focus.id) + ": " +
+      c.cyan(`doctrina context ${focus.capabilities[0]} --for "${query}" --concat`) +
+      (focus.capabilities.length > 1 ? c.gray(` (also: ${focus.capabilities.slice(1).join(", ")})`) : ""));
+  }
+  out.push(c.gray("Read deeper: `doctrina context <cap> --for \"<task>\" --concat` · `doctrina why <cap>` · `doctrina show <ref>`"));
   return out;
 }
 
