@@ -2,7 +2,7 @@
 import { c } from "./colors.js";
 import { today } from "./dates.js";
 import { churnByCapability } from "./ledger.js";
-import { STALE_CHANGE_DAYS } from "./snapshot.js";
+import { STALE_CHANGE_DAYS, RECENT_CLOSE_DAYS } from "./snapshot.js";
 
 // Executed proof and signed proof are different claims (change 0039). One
 // phrasing, used by every view, so none of them can quietly add the two
@@ -191,6 +191,16 @@ export function prime(s) {
     }
   }
 
+  // What was just finished, where it went (change 0214): archived work is out
+  // of every default read, so without this line it looks undone.
+  if ((s.recentlyClosed ?? []).length > 0) {
+    out.push("");
+    out.push(c.bold("Recently closed") + c.gray(` (last ${RECENT_CLOSE_DAYS} days)`));
+    for (const ch of s.recentlyClosed) {
+      out.push(`  ${c.cyan(ch.id)}  ${ch.title ?? ""}${c.gray(` (${ch.date} → ${ch.path})`)}`);
+    }
+  }
+
   out.push("");
   out.push(c.bold("Next"));
   if (s.actions.length === 0) {
@@ -217,11 +227,15 @@ export function prime(s) {
  * imperatives from a hook with suspicion, and they should.
  *
  * @param {Array<{id: string, title: string|null, status: string}>} open
+ * @param {Array<{id: string, date: string, path: string}>} [recent]
  */
-export function pulse(open) {
+export function pulse(open, recent = []) {
   if (open.length === 0) {
+    // The last closed change, so "do the work for X" is answered "already
+    // done, archived at …" instead of done twice (change 0214).
+    const last = recent[0] ? ` Last closed: ${recent[0].id} (${recent[0].date}, ${recent[0].path}).` : "";
     return ["Doctrina: no change is open in this project. A request that changes behaviour is opened as a change " +
-      "before code is edited — `doctrina work \"<request>\"` (it classifies the lane itself); a question or a read needs none."];
+      "before code is edited — `doctrina work \"<request>\"` (it classifies the lane itself); a question or a read needs none." + last];
   }
   const named = open.slice(0, 3).map((ch) => `${ch.id}${ch.title ? ` — "${ch.title}"` : ""} (${ch.status})`).join("; ");
   const more = open.length > 3 ? ` and ${open.length - 3} more` : "";

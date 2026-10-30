@@ -262,6 +262,12 @@ export async function run(positional, flags) {
       fromDiff, diffMatches: fromDiff ? [] : diffMatches,
     });
   }
+  // The sentence the human needs (change 0214). A field review: the change
+  // existed only in the terminal, so the person asking saw code appear with
+  // no Doctrina trace — and later asked for "the doctrina work" of work
+  // already closed. The agent repeats this line; the CLI writes it.
+  console.log("");
+  console.log(c.bold("Tell the human: ") + `opened change ${id} — "${title}" (.doctrina/changes/${id}/)`);
   return 0;
 }
 

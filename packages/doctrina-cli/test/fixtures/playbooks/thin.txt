@@ -89,3 +89,5 @@ Execute in order, in a single linear pass:
 8. doctrina next for the follow-up.
    If this change taught a reusable lesson (a fix you'd hate to relearn,
    a recurring convention), capture it: doctrina skill new <slug>.
+
+Tell the human: opened change 0005-thin — "fix" (.doctrina/changes/0005-thin/)

@@ -1948,6 +1948,15 @@ idade, e o `next` aponta uma change aplicada para `doctrina close <id>` —
 nunca para `change archive`, o único caminho que passa por fora do verify,
 do coverage e do gate de docs.
 
+**A frase para o humano.** O `work` termina com `Tell the human: opened
+change <id> — "<title>" (.doctrina/changes/<id>/)` e o `close` com `Tell
+the human: change <id> is closed — archived at
+.doctrina/changes/archive/<data>-<id>/`; o agente as repete. O `prime`
+lista as changes fechadas nos últimos 7 dias com o caminho no arquivo, e o
+pulse por prompt nomeia a última. Uma review de campo achou a change vivendo
+só no terminal, e depois arquivada fora de toda leitura padrão: quem pediu o
+trabalho depois pediu "o doctrina work" de duas changes já fechadas.
+
 **A linha final afirma só o que rodou.** Cada palavra mapeia para um passo
 — `verify` → verified, `archive` → archived, `validate` → validated — e um
 passo pulado perde sua palavra e é nomeado no lugar. A linha era uma string

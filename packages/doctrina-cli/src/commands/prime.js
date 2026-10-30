@@ -5,7 +5,7 @@ import { exists } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
-import { collectSnapshot, openChanges } from "../lib/snapshot.js";
+import { collectSnapshot, openChanges, recentlyClosed } from "../lib/snapshot.js";
 import { renderView, pulse } from "../lib/views.js";
 
 // Session primer: the ~40-line read that orients an agent at the start of a
@@ -44,7 +44,7 @@ export async function run(_positional, flags) {
   // --pulse: one line for a per-prompt hook — the open changes only, read
   // without collecting the gates, because it runs before every prompt.
   if (flagBool(flags, "pulse", false)) {
-    for (const line of pulse(openChanges(projectRoot))) console.log(line);
+    for (const line of pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))) console.log(line);
     return 0;
   }
   if (flags.has("hook")) {
@@ -54,7 +54,7 @@ export async function run(_positional, flags) {
       return EXIT.USAGE;
     }
     const text = ["Doctrina session primer (`doctrina prime`) — the project's gates, rules and open work:", "",
-      ...renderView("prime", collectSnapshot(projectRoot)), "", ...pulse(openChanges(projectRoot))]
+      ...renderView("prime", collectSnapshot(projectRoot)), "", ...pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))]
       .join("\n").replace(/\x1b\[[0-9;]*m/g, "").slice(0, HOOK_MAX_CHARS);
     console.log(agent === "cursor" ? JSON.stringify({ additional_context: text }) : text);
     return 0;

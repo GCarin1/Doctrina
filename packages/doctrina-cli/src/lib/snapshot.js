@@ -72,6 +72,7 @@ export function collectSnapshot(projectRoot, { actions = true } = {}) {
     decisions: countDecisions(projectRoot),
     skills: countSkills(projectRoot),
     openChanges: openChanges(projectRoot),
+    recentlyClosed: recentlyClosed(projectRoot),
     adrs: acceptedDecisions(projectRoot),
     nonGoals: productSection(projectRoot, "Non-goals"),
     hasNonGoalsSection: hasProductSection(projectRoot, "Non-goals"),
@@ -152,6 +153,39 @@ export function openChanges(projectRoot) {
     const unchecked = progress.open.map((t) => t || "(unwritten task — the scaffold's placeholder)");
     const date = proposal ? (listHeader(proposal, "Date") ?? null) : null;
     out.push({ id, title, status, tasksDone, tasksTotal, unchecked, date, ageDays: ageInDays(date) });
+  }
+  return out;
+}
+
+// How far back `prime` and the pulse look for closed changes (change 0214).
+export const RECENT_CLOSE_DAYS = 7;
+
+/**
+ * Changes archived in the last RECENT_CLOSE_DAYS, newest first: what the
+ * human may ask for again without knowing it is done. A field review: the
+ * close moved the work to `changes/archive/`, out of every default read, and
+ * the next request was to "create the doctrina work" for it.
+ *
+ * @param {string} projectRoot
+ * @param {{ limit?: number }} [opts]
+ * @returns {Array<{ id: string, title: string|null, date: string, path: string, ageDays: number|null }>}
+ */
+export function recentlyClosed(projectRoot, { limit = 3 } = {}) {
+  const archiveDir = path.join(projectRoot, ".doctrina", "changes", "archive");
+  if (!isDir(archiveDir)) return [];
+  const out = [];
+  for (const name of readdirSync(archiveDir).sort().reverse()) {
+    const m = name.match(/^(\d{4}-\d{2}-\d{2})-(.+)$/);
+    if (!m || !isDir(path.join(archiveDir, name))) continue;
+    const ageDays = ageInDays(m[1]);
+    if (ageDays === null || ageDays > RECENT_CLOSE_DAYS) break;
+    const proposal = path.join(archiveDir, name, "proposal.md");
+    out.push({
+      id: m[2], date: m[1], ageDays,
+      title: isFile(proposal) ? parseChangeTitle(read(proposal)) : null,
+      path: `.doctrina/changes/archive/${name}/`,
+    });
+    if (out.length >= limit) break;
   }
   return out;
 }

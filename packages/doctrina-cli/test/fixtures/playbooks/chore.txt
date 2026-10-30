@@ -27,3 +27,5 @@ Execute in order, in a single linear pass:
    documented surface still owes the docs and a changelog entry — or
    `- **Documented surface:** n/a — <why>` in the proposal.
    If this fix taught a lesson worth not relearning, capture it: doctrina skill new <slug>.
+
+Tell the human: opened change 0002-chore — "tidy the CI matrix" (.doctrina/changes/0002-chore/)

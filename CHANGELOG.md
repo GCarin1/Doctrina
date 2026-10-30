@@ -19,6 +19,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The work is visible to the person who asked for it: `work` and `close`
+  end with a "Tell the human:" line naming the change and its folder or
+  archive path, `prime` lists the changes closed in the last 7 days, and
+  the pulse names the last one (change 0214).
 - The change cycle reaches the agent whether or not the request names
   Doctrina: AGENTS.md's day-to-day line and the always-applied Cursor rule
   state it — open the change before code, one change per activity, the id

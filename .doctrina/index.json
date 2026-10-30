@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.28.0",
+        "version": "0.29.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.47.1",
+        "version": "1.48.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -95,7 +95,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.15.0",
+        "version": "0.16.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -3534,6 +3534,28 @@
           },
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0214-trabalho-aparece-para-o-humano",
+        "title": "trabalho aparece para o humano",
+        "path": ".doctrina/changes/archive/2026-10-30-0214-trabalho-aparece-para-o-humano",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ],

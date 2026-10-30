@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.28.0
+**Version:** 0.29.0
 
 ## Purpose
 
@@ -266,6 +266,7 @@ keep the checks and the read path.
 - When `change delta <id> <capability>` is given a requirement, a criterion, a bump or an op line, the system shall write them into the change's MODIFIED delta for that capability — creating it from the template when absent — parsed by the grammar `apply` reads, with a later bump replacing an earlier one, and shall write nothing unless the whole block applies to the spec.
 - When `work --consolidate <capability>` is run, the system shall open a change pinned to that capability with a MODIFIED delta scaffolded and print the spec's measured shape — lines, requirements per EARS subsection, criteria — with a consolidation playbook, leaving what is redundant for the agent to decide (ADR 0005).
 - When a change's delta targets a capability — scaffolded by `work`, pinned or ranked, or written by `change delta` — the system shall name that capability in the proposal's `Affects specs:` header once, leaving a chore's declared none untouched.
+- When `work` opens a change, the system shall end with the sentence for the human naming the change id, its title and its folder.
 
 ### Unwanted-behavior (must-not)
 
@@ -347,6 +348,7 @@ The authoring commands are v0 spec-compliant when:
 44. [verified] `remove-requirement` and `remove-criterion` delete the whole item and renumber the criteria after it, `replace-criterion` replaces a wrapped criterion without leaving its old tail, and a removal naming nothing refuses — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
 45. [verified] `work --consolidate auth` opens `0001-consolidate-auth` affecting `auth`, prints its measured shape and the `change delta` removal commands, and an unknown capability exits 2 — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
 46. [verified] An unpinned `work` whose ranked delta targets `health` writes `Affects specs: health`, and two `change delta` calls for `cloud` add it once, with the index following — verified by `packages/doctrina-cli/test/o-proposal-nomeia-a-spec-do-delta.test.js`.
+47. [verified] `work --chore` ends with `Tell the human: opened change 0001-tidy` naming its title and folder — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
 
 ## Out of scope for this spec
 

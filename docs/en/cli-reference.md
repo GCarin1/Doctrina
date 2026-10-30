@@ -1896,6 +1896,16 @@ mentioning it. `prime` shows the same age, and `next` points an applied
 change at `doctrina close <id>` — never at `change archive`, the one path
 past verify, coverage and the docs gate.
 
+**The sentence for the human.** `work` ends with `Tell the human: opened
+change <id> — "<title>" (.doctrina/changes/<id>/)` and `close` with `Tell
+the human: change <id> is closed — archived at
+.doctrina/changes/archive/<date>-<id>/`; the agent repeats them. `prime`
+lists the changes closed in the last 7 days with their archive paths, and
+the per-prompt pulse names the last one. A field review found the change
+living only in the terminal, and then archived out of every default read:
+the person who asked for the work later asked for "the doctrina work" of
+two changes already closed.
+
 **The closing line claims only what ran.** Each word maps to a step —
 `verify` → verified, `archive` → archived, `validate` → validated — and a
 skipped step loses its word and is named instead. The line used to be a
