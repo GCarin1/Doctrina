@@ -13,7 +13,7 @@ Likely capabilities (deterministic term match — a hint, not a decision):
 Execute in order, in a single linear pass:
 
 1. Read the context pack and confirm (or correct) the capability:
-       doctrina context billing --concat
+       doctrina context billing --for "add a billing invoice export" --concat
 
 2. If the capability has no spec yet:
        doctrina spec new <capability>
@@ -91,3 +91,5 @@ Execute in order, in a single linear pass:
 8. doctrina next for the follow-up.
    If this change taught a reusable lesson (a fix you'd hate to relearn,
    a recurring convention), capture it: doctrina skill new <slug>.
+
+Tell the human: opened change 0001-billing-invoice-export — "add a billing invoice export" (.doctrina/changes/0001-billing-invoice-export/)

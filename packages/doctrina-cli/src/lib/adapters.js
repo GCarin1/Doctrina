@@ -127,3 +127,83 @@ export function renderAdapterFile(file, tokens) {
 }
 
 export { exists };
+
+// ---------------------------------------------------------------------------
+// Configuration files an adapter SHARES with the user (change 0211).
+//
+// A hook lives in the agent's own settings — `.claude/settings.json`,
+// `.cursor/hooks.json` — which the project may already own: permissions,
+// other hooks, a model choice. Writing the file whole would be the data loss
+// `adapter add` exists to avoid, and skipping it because it exists would
+// leave the hooks out exactly where an agent is configured. So a `.json`
+// adapter file is MERGED: objects recurse, arrays gain the entries they do
+// not already hold, and a scalar the user set stays theirs. Removal takes
+// back only what the template put in.
+
+/** Whether an adapter file is merged into a shared configuration file. */
+export function isMergedConfig(file) {
+  return file.relativePath.endsWith(".json");
+}
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/** `ours` merged into `theirs`; neither argument is modified. */
+export function mergeJson(theirs, ours) {
+  if (Array.isArray(theirs) && Array.isArray(ours)) {
+    return [...theirs, ...ours.filter((o) => !theirs.some((t) => same(t, o)))];
+  }
+  if (isPlainObject(theirs) && isPlainObject(ours)) {
+    const out = { ...theirs };
+    for (const [k, v] of Object.entries(ours)) {
+      out[k] = k in theirs ? mergeJson(theirs[k], v) : v;
+    }
+    return out;
+  }
+  return theirs;
+}
+
+/**
+ * `theirs` with everything `ours` contributed taken out, and the containers
+ * that leaves empty pruned. A scalar is removed only when it equals ours AND
+ * nothing of the user's remains beside it. Returns null when nothing is left.
+ */
+export function unmergeJson(theirs, ours) {
+  if (Array.isArray(theirs) && Array.isArray(ours)) {
+    const left = theirs.filter((t) => !ours.some((o) => same(t, o)));
+    return left.length > 0 ? left : null;
+  }
+  if (isPlainObject(theirs) && isPlainObject(ours)) {
+    const out = {};
+    for (const [k, v] of Object.entries(theirs)) {
+      if (!(k in ours) || isScalar(ours[k])) { out[k] = v; continue; }
+      const kept = unmergeJson(v, ours[k]);
+      if (kept !== null) out[k] = kept;
+    }
+    // Our scalars (a `"version": 1`) go only when they are all that is left.
+    const userKeys = Object.keys(out).filter((k) => !(k in ours && isScalar(ours[k]) && same(out[k], ours[k])));
+    return userKeys.length > 0 ? out : null;
+  }
+  return same(theirs, ours) ? null : theirs;
+}
+
+function isPlainObject(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+function isScalar(v) {
+  return v === null || typeof v !== "object";
+}
+
+/** Whether `theirs` holds at least one array entry `ours` contributes. */
+export function holdsAnyOf(theirs, ours) {
+  if (Array.isArray(theirs) && Array.isArray(ours)) return ours.some((o) => theirs.some((t) => same(t, o)));
+  if (isPlainObject(theirs) && isPlainObject(ours)) {
+    return Object.keys(ours).some((k) => k in theirs && holdsAnyOf(theirs[k], ours[k]));
+  }
+  return false;
+}
+
+/** Whether every entry `ours` contributes is present in `theirs`. */
+export function containsJson(theirs, ours) {
+  return same(mergeJson(theirs, ours), theirs);
+}

@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.18.0",
-  "last_updated": "2026-10-25",
+  "framework_version": "0.19.0",
+  "last_updated": "2026-10-30",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.28.0",
+        "version": "0.30.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.57.0",
+        "version": "0.57.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -80,7 +80,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.47.1",
+        "version": "1.48.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -95,19 +95,19 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.14.1",
+        "version": "0.18.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js",
-          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js"
+          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js"
         ]
       },
       {
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.11.0",
+        "version": "0.13.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -122,12 +122,13 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.8.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/skill.js",
-          "packages/doctrina-cli/src/lib/skill-candidates.js"
+          "packages/doctrina-cli/src/lib/skill-candidates.js",
+          "packages/doctrina-cli/src/lib/skill-export.js"
         ]
       },
       {
@@ -146,7 +147,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.26.0",
+        "version": "0.28.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -3481,6 +3482,151 @@
         "path": ".doctrina/changes/archive/2026-10-25-0210-teste-do-lote-aceita-crlf",
         "status": "applied",
         "applied": "2026-10-25",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0211-hooks-entregam-o-estado",
+        "title": "hooks entregam o estado",
+        "path": ".doctrina/changes/archive/2026-10-30-0211-hooks-entregam-o-estado",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0212-skills-onde-o-agente-procura",
+        "title": "skills onde o agente procura",
+        "path": ".doctrina/changes/archive/2026-10-30-0212-skills-onde-o-agente-procura",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0213-ciclo-sem-citar-o-framework",
+        "title": "ciclo sem citar o framework",
+        "path": ".doctrina/changes/archive/2026-10-30-0213-ciclo-sem-citar-o-framework",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0214-trabalho-aparece-para-o-humano",
+        "title": "trabalho aparece para o humano",
+        "path": ".doctrina/changes/archive/2026-10-30-0214-trabalho-aparece-para-o-humano",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0215-work-nao-repete-trabalho-feito",
+        "title": "work nao repete trabalho feito",
+        "path": ".doctrina/changes/archive/2026-10-30-0215-work-nao-repete-trabalho-feito",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0216-pacote-de-contexto-enxuto",
+        "title": "pacote de contexto enxuto",
+        "path": ".doctrina/changes/archive/2026-10-30-0216-pacote-de-contexto-enxuto",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0217-prime-entrega-o-comando-de-leitura",
+        "title": "prime entrega o comando de leitura",
+        "path": ".doctrina/changes/archive/2026-10-30-0217-prime-entrega-o-comando-de-leitura",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0218-aderencia-ao-ciclo-medida",
+        "title": "aderencia ao ciclo medida",
+        "path": ".doctrina/changes/archive/2026-10-30-0218-aderencia-ao-ciclo-medida",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0219-cortar-0-19-0",
+        "title": "cortar a 0.19.0",
+        "path": ".doctrina/changes/archive/2026-10-30-0219-cortar-0-19-0",
+        "status": "applied",
+        "applied": "2026-10-30",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
       }

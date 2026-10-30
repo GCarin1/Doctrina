@@ -17,6 +17,73 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-10-30
+
+Driven by a field review of an agent running Doctrina in Cursor: it knew
+the framework was there and still went straight to code when the request
+did not name it; it skipped `context` for `prime`, never saw the
+project's skills, and the work it did vanished into the archive before the
+person who asked could see it.
+
+### Upgrading from 0.18
+
+- Run `doctrina upgrade --write`. It regenerates AGENTS.md's surface and
+  "What changed" blocks and exports `.doctrina/skills/` to
+  `.agents/skills/` (and `.claude/skills/` with the claude adapter).
+- Run `doctrina adapter add <agent>` for each installed agent: it merges
+  the new hooks into `.claude/settings.json` / `.cursor/hooks.json`
+  without touching your own keys. Refresh the Cursor rule, which now
+  carries the change cycle, with `doctrina adapter add cursor --force`.
+- Commit the generated `.agents/skills/` (and `.claude/skills/`), or
+  ignore them: they are regenerated on every `index rebuild`.
+- `context` is lean by default — scripts that relied on AGENTS.md or whole
+  ADRs in the pack pass `--full`.
+- `work` now holds (exit 3) a request that repeats a recent change; pass
+  `--force` where a script opens look-alike changes on purpose.
+
+### Changed
+
+- `metrics` reports workflow adherence — the share of code commits that
+  carried a change — kept by `--save` and followed by `--trend`;
+  `metrics --commands` adds `context`, `close` and `prime` runs per `work`
+  (change 0218).
+- `prime` ends with the exact read for the open change (`doctrina context
+  <cap> --for "<title>" --concat`), and the work playbook's first step
+  carries `--for` with the prompt (change 0217).
+- `context` is lean by default: AGENTS.md is not repeated, accepted ADRs are
+  digests (title + Decision opening; `show NNNN` for the rest), and with
+  `--for` the task's spec and its dependencies are sliced to the matching
+  requirements and criteria. `context gates --for "verify reuse
+  fingerprint" --concat` went from ~40k to ~5.5k tokens here; `--full`
+  restores the whole text (change 0216).
+
+### Added
+
+- `work` holds a request that mostly repeats an open change, or one
+  archived in the last 14 days (exit 3), naming it — resume it, or report it
+  done where it is archived; `--force` opens it anyway (change 0215).
+- The work is visible to the person who asked for it: `work` and `close`
+  end with a "Tell the human:" line naming the change and its folder or
+  archive path, `prime` lists the changes closed in the last 7 days, and
+  the pulse names the last one (change 0214).
+- The change cycle reaches the agent whether or not the request names
+  Doctrina: AGENTS.md's day-to-day line and the always-applied Cursor rule
+  state it — open the change before code, one change per activity, the id
+  in the first sentence to the human, `context --for` (not `prime`) for the
+  spec, the exported skills, the archive path after `close`. The surface
+  says `work` classifies the lane itself; `triage` is for incidents
+  (change 0213).
+- `index rebuild` (and `upgrade --write`, `adapter add`) exports
+  `.doctrina/skills/` as `SKILL.md` folders where the agents discover skills:
+  `.agents/skills/` (Cursor, Codex) and, with the claude adapter,
+  `.claude/skills/`; the `when:` goes into the description. Generated,
+  marked, pruned with their source (change 0212).
+- `doctrina adapter add claude|cursor` installs the agent's own hooks: the
+  primer at session start (`prime --hook claude|cursor`) and, in Claude Code,
+  one factual line beside every prompt (`prime --pulse`). The settings files
+  are merged, never overwritten; `adapter remove` takes back only Doctrina's
+  entries (change 0211).
+
 ## [0.18.0] — 2026-10-25
 
 Driven by a field review of 0.17 from a project that ran 85 changes

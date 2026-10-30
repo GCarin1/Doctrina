@@ -124,7 +124,9 @@ test("an ADR that names the capability outranks one it only inherits", () => {
     // assertion quietly stopping to mean anything.
     let deciding = null;
     for (let budget = 2600; budget <= 9000 && deciding === null; budget += 100) {
-      const res = run(dir, ["context", "leaf", "--concat", "--budget", String(budget)]);
+      // --full: the ranking under budget pressure is about whole ADRs; the
+      // lean default digests them all before any budget bites (change 0216).
+      const res = run(dir, ["context", "leaf", "--concat", "--full", "--budget", String(budget)]);
       if (res.status !== 0) continue;
       // `--concat` keeps the pack on stdout and the budget report on stderr,
       // so the pack stays pipeable. Read both.

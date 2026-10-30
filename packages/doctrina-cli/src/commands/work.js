@@ -15,7 +15,7 @@ import { printPlaybookTemplate } from "../lib/playbook.js";
 import { specShape } from "../lib/spec-ops.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
-import { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { rankCapabilities, rankCapabilitiesByDiff, similarChanges, SIMILAR_CHANGE_DAYS } from "../lib/work-model.js";
 import { isChangeId, refuseChangeRef } from "../lib/project.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
@@ -98,6 +98,29 @@ export async function run(positional, flags) {
     if (open.length > 0) {
       printResumeSuggestion(open);
       return 0;
+    }
+  }
+
+  // DUPLICATE CHECK (change 0215). A request that mostly repeats a change
+  // already open, or archived in the last two weeks, is held before a second
+  // copy is scaffolded: an archived change is out of every default read, and
+  // a field review found the person asking for "the doctrina work" of work
+  // already closed. A term match can be wrong, so --force proceeds.
+  if (!fromDiff && !consolidate && prompt && !flagBool(flags, "force", false)) {
+    const similar = similarChanges(projectRoot, prompt);
+    if (similar.length > 0) {
+      console.error(c.yellow("hold:") + " this request reads like a change that already exists:");
+      for (const s of similar.slice(0, 3)) {
+        console.error(`  ${c.cyan(s.id)}  ${s.title}` + c.gray(` — ${s.where} (${s.path}); shared: ${s.shared.join(", ")}`));
+      }
+      console.error("");
+      const top = similar[0];
+      console.error(top.where === "archived"
+        ? `If it is the same work, it is done: tell the human it is archived at ${top.path}.`
+        : `If it is the same work, continue it: ${c.cyan(`doctrina work --resume ${top.id}`)}`);
+      console.error(c.gray("If it is new work, open it anyway: ") + c.cyan(`doctrina work --force "<request>"`) +
+        c.gray(` (open changes and the last ${SIMILAR_CHANGE_DAYS} days of the archive are compared)`));
+      return EXIT.PRECONDITION;
     }
   }
 
@@ -262,6 +285,12 @@ export async function run(positional, flags) {
       fromDiff, diffMatches: fromDiff ? [] : diffMatches,
     });
   }
+  // The sentence the human needs (change 0214). A field review: the change
+  // existed only in the terminal, so the person asking saw code appear with
+  // no Doctrina trace — and later asked for "the doctrina work" of work
+  // already closed. The agent repeats this line; the CLI writes it.
+  console.log("");
+  console.log(c.bold("Tell the human: ") + `opened change ${id} — "${title}" (.doctrina/changes/${id}/)`);
   return 0;
 }
 
@@ -496,6 +525,9 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
     CHANGE_ID: id,
     PROMPT: prompt,
     CAPABILITY: capability ?? "<capability>",
+    // The read pack already cut to the task (change 0217): `--for` is what
+    // slices the spec, and an agent copying a step should copy the cut.
+    FOR: forQuery(prompt),
     FROM_DIFF_NOTE: fromDiff
       ? c.gray("Code-first: write the spec that describes what the working tree already does.")
       : "",
@@ -532,6 +564,13 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
          c.gray("   diff is tested). The changed files are listed in the proposal's ## Why.")].join("\n")
       : "",
   });
+}
+
+// The prompt as a `context --for` argument: one line, no double quotes, short
+// enough to read — the slicer only needs its content words.
+export function forQuery(prompt) {
+  const flat = String(prompt ?? "").replace(/["`]/g, "").replace(/\s+/g, " ").trim();
+  return flat.length > 80 ? flat.slice(0, 80).replace(/\s+\S*$/, "") : flat;
 }
 
 // Which capability the change is about, as far as the CLI can tell: pinned by
@@ -600,6 +639,10 @@ Options:
   --force              Open a new change even when one is open, overwrite an
                        existing change folder, and proceed past the lane hold
                        below
+
+A request that mostly repeats a change already open, or archived in the
+last 14 days, is HELD the same way (exit 3), naming it: the same work is
+resumed, or reported as done where it is archived; --force opens it anyway.
 
 A prompt that reads as a RUNTIME problem — a workflow, an env value, a run
 that executed nothing — is HELD before anything is scaffolded, and pointed

@@ -45,6 +45,7 @@ loops in it.
 | `{{CAPABILITY_BLOCK}}` | The pinned capability, the ranked hints, or "no match" | required in `work` |
 | `{{DIFF_MATCHES}}` | Capabilities the working tree touched | empty |
 | `{{STEP3_INTRO}}` | The delta step's opening, pinned or not | required in `work` |
+| `{{FOR}}` | The task, as the read pack's `--for` query (quotes stripped, 80 chars at most) | required in `work` |
 | `{{SHAPE}}` | The spec's measured size — lines, requirements per EARS subsection, criteria | required in `consolidate` |
 | `{{FROM_DIFF_DELTA_NOTE}}` | The backfill caveat on writing the delta | empty |
 | `{{MISSING_SPECS_WARNING}}` | Warning that `.doctrina/specs/` is absent | empty |

@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.47.1
+**Version:** 1.48.0
 
 ## Purpose
 
@@ -203,6 +203,7 @@ codes, zero-deps, no-network).
 - When `review` runs for a change — `--change <id>`, as `close` runs it — the system shall count the capabilities that change's deltas target as updated, and shall report code under capabilities the change carries no delta for in one finding naming them all.
 - When a close finishes, whatever its outcome, the system shall list the other open changes — one line each for a change that looks finished (applied, or every task ticked) and was never closed, with its close command, and for one open 7 days or more, with its age — and count the rest, without moving the exit code.
 - When `verify --reuse` runs — as `close` runs it — and the last run in which every check passed started from a byte-identical fingerprint of the code (the working tree minus `.doctrina/`, plus the verify configuration and the CLI version), the system shall skip the checks and say which run it reused; any difference shall run every check, and a plain `verify` shall always run them.
+- When a close archives a change, the system shall end with the sentence for the human naming the change and its archive path.
 
 ### State-driven
 
@@ -353,6 +354,7 @@ The gate surface is spec-compliant when:
 89. [verified] Closing two changes in one run prints one skills section naming the just-closed fix-shaped change and counting three older candidates without listing them, and the docs step prints its line once — verified by `packages/doctrina-cli/test/o-close-nao-se-repete.test.js`.
 90. [verified] After a green `verify`, `verify --reuse` runs no check while a plain `verify` runs again; an edited file, a new file or a red run makes `--reuse` run everything; `.doctrina/` and ignored files do not move the fingerprint; and `close` passes `--reuse` — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
 91. [verified] With an edit under `packages/api`, `verify --affected` runs the api check and the path-less one and skips the web check by name; an untracked file counts as touched; the partial run is not reused; plain `verify` runs all three; and `close` never passes `--affected` — verified by `packages/doctrina-cli/test/o-verify-afetado-roda-so-o-que-mudou.test.js`.
+92. [verified] Closing a chore ends with `Tell the human: change 0001-tidy is closed — archived at` its dated archive folder — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
 
 ## Out of scope for this spec
 

@@ -98,6 +98,9 @@ export async function run(_positional, flags) {
       printDelta("revert rate", previous.revert_rate, snapshot.revert_rate);
       printDelta("fix share", previous.fix_share, snapshot.fix_share);
       printDelta(`${REEDIT_WINDOW_DAYS}-day re-edit rate`, previous.reedit_rate, snapshot.reedit_rate);
+      if (typeof previous.change_adherence === "number" && typeof snapshot.change_adherence === "number") {
+        printDelta("commits with a change", previous.change_adherence, snapshot.change_adherence);
+      }
     }
   }
   return 0;
@@ -140,6 +143,7 @@ const LABELS = {
   revert_rate: "revert rate",
   fix_share: "fix share",
   reedit_rate: `${REEDIT_WINDOW_DAYS}-day re-edit rate`,
+  change_adherence: "commits with a change",
 };
 
 function printReport(s) {
@@ -148,6 +152,10 @@ function printReport(s) {
   console.log(`fix-typed commits      ${pct(s.fix_share)} of commits (Conventional Commits "fix")`);
   console.log(`${s.reedit_window_days}-day re-edit rate     ${pct(s.reedit_rate)} of commits touch a file edited in the prior ${s.reedit_window_days} days`);
   console.log(c.gray("                       (proxy for rework — iterative work also counts)"));
+  if (s.change_adherence !== null && s.change_adherence !== undefined) {
+    console.log(`commits with a change  ${pct(s.change_adherence)} of ${s.code_commits} code commits touched .doctrina/changes/ or named a change`);
+    console.log(c.gray("                       (workflow adherence — a one-line fix may rightly need none)"));
+  }
   if (s.top_churn.length > 0) {
     console.log("");
     console.log("top churn:");
@@ -200,6 +208,20 @@ function commandUsage() {
   for (const [op, n] of used) {
     console.log(`  ${String(n).padStart(5)}  ${c.cyan(op)}`);
   }
+  // The cycle, read off the sample (change 0218): did a change get its read
+  // and its close? A field review found `prime` and `work` used, `context`
+  // and `triage` skipped. Ratios, not verdicts — one context can serve two
+  // works, and a close can be retried.
+  const count = (op) => used.find(([o]) => o === op)?.[1] ?? 0;
+  const works = count("work");
+  if (works > 0) {
+    console.log("");
+    console.log(c.bold("Workflow") + c.gray(` — per \`work\` (${works})`));
+    console.log(`  context  ${(count("context") / works).toFixed(1)}   close  ${(count("close") / works).toFixed(1)}   prime  ${(count("prime") / works).toFixed(1)}`);
+    if (count("context") < works) {
+      console.log(c.gray("  fewer reads than changes: the pack is the spec, `prime` is only the state"));
+    }
+  }
   console.log("");
   console.log(c.gray(`${unused.length} of ${catalog.length} operations never invoked in this sample:`));
   for (let i = 0; i < unused.length; i += 4) {
@@ -216,12 +238,15 @@ export const help = `
 Usage: doctrina metrics [--since <days|date>] [--save] [--commands]
 
 Derive adoption metrics from LOCAL git history: commit count, revert
-count and rate, Conventional-Commit fix share, top-churn files, and a
-${REEDIT_WINDOW_DAYS}-day re-edit proxy rate. No network calls; nothing leaves the repo.
+count and rate, Conventional-Commit fix share, top-churn files, a
+${REEDIT_WINDOW_DAYS}-day re-edit proxy rate, and workflow adherence — the share of
+code commits that carried a change (touched .doctrina/changes/ or named
+one). No network calls; nothing leaves the repo.
 
 Flags:
   --commands         Report which operations were actually invoked, from the
-                     opt-in usage log. Recording is OFF unless DOCTRINA_USAGE_LOG
+                     opt-in usage log, and how many context, close and prime
+                     runs there were per work. Recording is OFF unless DOCTRINA_USAGE_LOG
                      names a file; only the operation is recorded, never
                      arguments, and nothing leaves the machine.
   --since <n|date>   Window: a day count (default 90), a calendar date

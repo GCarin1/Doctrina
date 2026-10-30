@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
@@ -468,6 +468,13 @@ async function closeOne(projectRoot, id, flags) {
 
   console.log("");
   console.log(c.green(`✓ change ${id} closed`) + c.gray(closingClaim(ran, skippedSteps)));
+  // Where it went, and the sentence for the human (change 0214): the close
+  // moves the change out of every default read, and a field review found
+  // the person asking for "the doctrina work" of work already archived.
+  const archived = archivedPathOf(projectRoot, id);
+  if (archived) {
+    console.log(c.bold("Tell the human: ") + `change ${id} is closed — archived at ${archived}`);
+  }
   console.log(c.gray("Next: ") + c.cyan("doctrina next"));
   return 0;
 }
@@ -498,6 +505,14 @@ function closingClaim(ran, skippedSteps) {
   const skipped = skippedSteps.map((s) => s.label.replace(" (advisory)", ""));
   if (skipped.length === 0) return claimed || " — no gate ran.";
   return `${claimed || " —"} ${skipped.length === 1 ? "Skipped" : "Skipped"}: ${skipped.join(", ")}.`;
+}
+
+// The archive folder a just-closed change landed in, newest first.
+function archivedPathOf(projectRoot, id) {
+  const dir = path.join(projectRoot, ".doctrina", "changes", "archive");
+  if (!isDir(dir)) return null;
+  const name = readdirSync(dir).sort().reverse().find((n) => n.endsWith(`-${id}`) && /^\d{4}-\d{2}-\d{2}-/.test(n));
+  return name ? `.doctrina/changes/archive/${name}/` : null;
 }
 
 function missingRunner(step) {

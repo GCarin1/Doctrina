@@ -127,8 +127,8 @@ export const COMMAND_META = {
   why:          { moment: "Orient",     when: "you need to justify or trace a capability's existence", purpose: "provenance: intent, proof, ADRs, and history" },
   handoff:      { moment: "Orient",     when: "BEFORE compaction or handing over to another session", purpose: "a resume note: open work, task state, next command" },
 
-  triage:       { moment: "Change",     when: "a request arrives — BEFORE scaffolding, especially if it smells like an incident", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
-  work:         { moment: "Change",     when: "a request arrives that changes behaviour (triage says PRODUCT)", purpose: "scaffold a change and print the playbook to execute" },
+  triage:       { moment: "Change",     when: "diagnosing an incident or a runtime symptom — `work` classifies every other request itself", purpose: "classify the lane (product/runtime/chore) and check the declared runtime surface" },
+  work:         { moment: "Change",     when: "a request changes behaviour — BEFORE editing code; it classifies the lane itself", purpose: "scaffold a change and print the playbook to execute" },
   spec:         { moment: "Change",     when: "a capability needs creating or its headers advancing", purpose: "create, list, and edit capability specs" },
   change:       { moment: "Change",     when: "driving a change through its lifecycle by hand", purpose: "drive a change by hand — check --verbose previews every delta" },
   decision:     { moment: "Change",     when: "the change decides something a later session must not relitigate", purpose: "record, accept, land, scope, and supersede ADRs" },
@@ -517,6 +517,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.19.0": [
+    "A request that changes behaviour is a change opened BEFORE code, whether or not it names Doctrina; say its id in your first sentence to the human, and repeat the `Tell the human:` line `work` and `close` print.",
+    "`doctrina context <cap> --for \"<task>\" --concat` is now lean (no AGENTS.md, ADR digests, the spec sliced to the task) — read it before editing; `prime` is state, not the spec. `--full` gives the whole text.",
+    "Project skills are exported to `.agents/skills/` and `.claude/skills/`, where your agent lists skills — use them; edit `.doctrina/skills/`, never the exports.",
+    "`work` holds (exit 3) a request that repeats an open change or one archived in the last 14 days: resume it, or tell the human it is done and where; `--force` only for genuinely new work.",
+    "Hooks: `doctrina adapter add claude|cursor` merges session/prompt hooks (`prime --hook`, `prime --pulse`) into the agent's settings.",
+  ],
   "0.18.0": [
     "`doctrina change delta <id> <capability> --requirement \"<section>: <text>\" --criterion \"<text>\" --bump minor` writes the ops lines for you and dry-runs them against the spec — stop hand-writing ops blocks.",
     "`close` runs `verify --reuse`: running `doctrina verify` yourself right before `doctrina close` is no longer paid twice, and a batch close runs the suite once. Use `verify --affected` while working when checks declare `\"paths\"`.",

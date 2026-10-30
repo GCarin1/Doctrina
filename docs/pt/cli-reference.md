@@ -274,6 +274,15 @@ aplica. Nenhum comportamento muda, e o gate de coverage do close continua
 exigindo prova de cada critério mantido. O aviso de 400 linhas do
 `validate` cita este comando.
 
+**Um pedido que repete trabalho existente é segurado.** Antes de
+esqueletizar, o `work` compara o prompt com as changes abertas e com as
+arquivadas nos últimos 14 dias (sobreposição determinística de termos,
+medida dos dois lados). Uma que ele repete em boa parte segura o pedido com
+saída 3, nomeando-a: uma change aberta é retomada (`work --resume <id>`), uma
+arquivada é relatada como feita, com o caminho. Uma review de campo achou um
+pedido de "criar o doctrina work" para duas changes já fechadas. `--force`
+abre a change mesmo assim.
+
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
 raia (veja [`doctrina triage`](#doctrina-triage-prompt)). Um prompt que
 confiantemente lê como problema de **runtime** — um workflow, um valor de
@@ -894,6 +903,25 @@ diretório que ainda guarda alguma coisa. Um `.claude/` vazio não é uma
 ausência — é uma raiz de configuração que o próximo agente encontra e trata
 como existente. Um diretório com um arquivo mantido, ou com qualquer coisa
 sua, fica intocado.
+
+**Hooks: o estado do projeto chega ao agente sem ser pedido.** O adapter
+`claude` acrescenta dois hooks ao `.claude/settings.json` — o
+`SessionStart` roda `doctrina prime --hook claude` (o primer, como contexto
+da sessão) e o `UserPromptSubmit` roda `doctrina prime --pulse` (uma linha
+factual ao lado de cada prompt: a change aberta, ou que um pedido que muda
+comportamento abre uma com `doctrina work`). O adapter `cursor` acrescenta
+o hook de sessão ao `.cursor/hooks.json` (`doctrina prime --hook cursor`);
+o hook por prompt do Cursor não injeta contexto, então a regra sempre
+aplicada carrega o resto. Uma review de campo achou que, sem o nome do
+framework no pedido, o pedido de código vencia — o ciclo estava escrito no
+AGENTS.md, lido uma vez, contra o pedido lido agora.
+
+Esses dois arquivos são compartilhados com você, então são **mesclados**,
+nunca sobrescritos: objetos recursam, arrays ganham só as entradas que
+faltam, e um valor que você definiu continua seu. `adapter add` rodado duas
+vezes não acrescenta nada duas vezes; `adapter remove` tira só as entradas
+do Doctrina e apaga o arquivo só quando nada seu sobra nele. Um arquivo que
+não é JSON válido fica intocado, e é nomeado.
 
 **Adapters customizados.** Um diretório em
 `.doctrina/templates/adapters/<nome>/` é instalável por nome e tem
@@ -1741,6 +1769,19 @@ Com `--check` o comando não escreve nada, imprime um resumo do
 drift por categoria de artefato e sai 1 quando o index não bate
 mais com a árvore. Conecte ao CI ao lado do `validate`.
 
+**As skills, onde os agentes procuram skills.** Todo rebuild também exporta
+o `.doctrina/skills/` como pastas `SKILL.md` — o formato que os agentes
+agora compartilham — para `.agents/skills/<nome>/` (o Cursor e o Codex o
+descobrem) e, com o adapter `claude` instalado, `.claude/skills/<nome>/`. O
+`when:` da skill entra na `description` exportada, porque o agente decide
+só pela descrição. Uma review de campo achou um catálogo de skills do
+editor que nunca listava `.doctrina/skills/`, então uma skill que casava só
+disparava quando o pedido citava o arquivo. O `.doctrina/skills/` continua
+sendo a única fonte: cada export é marcado como gerado, um export cuja
+skill sumiu é removido, e uma pasta que você mesmo pôs lá nunca é tocada.
+Sob `--check` um export desatualizado é uma nota, não uma falha. O
+`upgrade --write` e o `adapter add` também exportam.
+
 `--check --staged` faz a mesma pergunta ao **commit** em vez de ao
 disco: todo artefato que o index staged nomeia tem de estar no commit,
 e todo artefato staged tem de estar no index. O index é derivado da
@@ -1916,6 +1957,15 @@ idade, e o `next` aponta uma change aplicada para `doctrina close <id>` —
 nunca para `change archive`, o único caminho que passa por fora do verify,
 do coverage e do gate de docs.
 
+**A frase para o humano.** O `work` termina com `Tell the human: opened
+change <id> — "<title>" (.doctrina/changes/<id>/)` e o `close` com `Tell
+the human: change <id> is closed — archived at
+.doctrina/changes/archive/<data>-<id>/`; o agente as repete. O `prime`
+lista as changes fechadas nos últimos 7 dias com o caminho no arquivo, e o
+pulse por prompt nomeia a última. Uma review de campo achou a change vivendo
+só no terminal, e depois arquivada fora de toda leitura padrão: quem pediu o
+trabalho depois pediu "o doctrina work" de duas changes já fechadas.
+
 **A linha final afirma só o que rodou.** Cada palavra mapeia para um passo
 — `verify` → verified, `archive` → archived, `validate` → validated — e um
 passo pulado perde sua palavra e é nomeado no lugar. A linha era uma string
@@ -2084,6 +2134,16 @@ do git.
 doctrina metrics [--since <dias|data>] [--save]
 ```
 
+**Aderência ao fluxo.** Ao lado dos proxies de retrabalho, o `metrics`
+reporta a parcela de **commits de código que carregaram uma change** —
+tocaram `.doctrina/changes/` ou nomearam uma no assunto ("Change 0212", um
+id como `0212-x`); commits que só tocam `.doctrina/`, configuração de agente
+ou prosa não são código. É o número que diz se um agente segue o ciclo sem
+que peçam, o que uma review de campo achou que ele não fazia. O `--save` o
+guarda no snapshot e o `--trend` o acompanha. Com o log de uso ligado, o
+`metrics --commands` acrescenta as execuções de `context`, `close` e `prime`
+por `work`.
+
 | Flag | Default | Função |
 |------|---------|--------|
 | `--since <n\|data>` | `90` | Janela: contagem de dias, data de calendário (`2026-01-01`) ou `"<n> <unit>s ago"` (`"3 months ago"`). Qualquer outra coisa sai com `2`: o git lê qualquer texto como data (`abc` vira agora), então um erro de digitação mediria a janela errada. |
@@ -2106,11 +2166,24 @@ Imprime o pacote de contexto exato para uma tarefa, na ordem de
 leitura documentada.
 
 ```
-doctrina context billing
+doctrina context billing --for "expirar o token da sessão" --concat
 doctrina context billing --concat
+doctrina context billing --full --concat
 ```
 
-O pacote é: `AGENTS.md` → `.doctrina/product.md` → a spec da
+**Enxuto por padrão.** O `AGENTS.md` não é repetido — todo agente a que o
+pacote se destina já o carrega. Um ADR aceito é um **resumo**: o título e
+a abertura da Decision, com `doctrina show NNNN` para o resto. Com
+`--for "<tarefa>"` a spec da tarefa, e as specs de que ela depende, são
+**recortadas**: os headers, o Purpose e os requisitos e critérios que a
+tarefa mais casa, cada lacuna nomeada no lugar (`… 3 not matching the
+task`) e um rodapé dizendo quantos ficaram. `--full` devolve todo texto
+inteiro. Uma review de campo achou agentes pulando o `context` pelo
+`prime`; medido aqui, `context gates --concat` custava ~40k tokens e o
+`--for` não cortava nada abaixo do orçamento. O pacote da mesma tarefa
+agora fica em ~5k.
+
+O pacote é: (`AGENTS.md` com `--full`) → `.doctrina/product.md` → a spec da
 capability (quando dada — caso contrário, toda spec ativa, para que a
 verdade corrente nunca falte) → changes abertas → ADRs com status
 `accepted` — cada um com sua contagem de linhas, mais o total.
@@ -2198,6 +2271,9 @@ para rodar toda sessão. Read-only; sempre sai 0.
 
 | Flag | Função |
 |------|--------|
+| (padrão) | Termina com a leitura do trabalho em mãos, como comando a copiar: `Read for <id>: doctrina context <cap> --for "<título>" --concat` para a primeira change aberta com delta — o pacote recortado, não um "read deeper" genérico. |
+| `--pulse` | Uma linha factual para um hook de agente por prompt: a(s) change(s) aberta(s) com seus ids, ou que um pedido que muda comportamento é aberto como change com `doctrina work`. Lê só as changes abertas, então é barato o bastante para rodar antes de cada prompt. |
+| `--hook claude\|cursor` | O primer mais o pulse, no formato que o hook de início de sessão do agente lê: texto puro para o Claude Code, `{"additional_context": …}` para o Cursor; cortado em 9.000 caracteres (o Claude guarda 10.000). Instalado por `doctrina adapter add claude\|cursor`. |
 | `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. O análogo do `constitution.md` do Spec Kit, derivado em vez de escrito: para mudar um princípio, substitua a ADR; para mudar um non-goal, edite o `product.md`. (Até a 0.17.0 isto também era um comando próprio, já removido.) |
 
 O primer tem tamanho fixo de propósito — ele é lido no início de toda

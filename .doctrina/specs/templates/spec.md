@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.26.0
+**Version:** 0.28.0
 
 ## Purpose
 
@@ -59,6 +59,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall state what a template recommendation costs against the declared budget it spends from, whenever following that recommendation would write into a file with a declared ceiling.
 - The system shall generate the published package's template tree from the canonical tree at pack time, keeping the canonical tree the only authored copy, so that a template fix cannot land on one tree and miss the other.
 - The system shall ship the consolidation playbook as a template resolved project-over-bundled, like the work, chore and bootstrap playbooks.
+- The system shall state the change cycle in the AGENTS.md template and in the always-applied Cursor rule alike — a request that changes behaviour opens a change before code is edited, one change per activity, the change id in the first sentence to the human, `context --for` rather than `prime` for the spec, the exported project skills, and the archive path repeated after `close` — keeping every other rule in AGENTS.md.
+- The system shall render the work playbook's read step with `--for` and the request, one quote-free line of at most 80 characters, through the documented `FOR` token.
 
 ### Event-driven
 
@@ -186,6 +188,8 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 31. [verified] With every adapter installed, no installed file names a manual analyze, apply or archive, and each `/doctrina-work` command previews with `change check` and finishes with `close` — verified by `packages/doctrina-cli/test/os-slash-commands-fecham-pelo-close.test.js`.
 32. [verified] A claude shim carrying the 0.16 `analyze` → `change apply` step makes `upgrade` exit 1 naming the file, the deprecated command and `doctrina adapter add claude --force`; running that fix clears it and the upgrade exits 0; `change check` titles its first section `structure` — verified by `packages/doctrina-cli/test/o-upgrade-ve-o-slash-command-defasado.test.js`.
 33. [verified] The consolidation playbook renders from its template with the change id, the capability and its measured shape — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
+34. [verified] The AGENTS.md template and the Cursor rule template each state all eight parts of the cycle, and the rule stays always-applied — verified by `packages/doctrina-cli/test/o-ciclo-vale-sem-citar-o-framework.test.js`.
+35. [verified] The work playbook for `expire the "session" token` prints `doctrina context auth --for "expire the session token" --concat`, and the query is quote-free and at most 80 characters — verified by `packages/doctrina-cli/test/o-prime-entrega-o-comando-de-leitura.test.js`.
 
 ## Out of scope for this spec
 

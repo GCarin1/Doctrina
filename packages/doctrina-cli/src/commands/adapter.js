@@ -4,6 +4,7 @@ import process from "node:process";
 import { exists, isFile, mkdirp, pruneEmptyDirs, read, relPath, remove, write } from "../lib/fs-ops.js";
 import {
   ADAPTER_STATES, adapterFiles, describeAdapter, listAdapterNames, renderAdapterFile,
+  isMergedConfig, mergeJson, unmergeJson, containsJson, holdsAnyOf,
 } from "../lib/adapters.js";
 import { flagBool } from "../lib/args.js";
 import { today } from "../lib/dates.js";
@@ -11,6 +12,7 @@ import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { projectName } from "../lib/project.js";
+import { applySkillExport } from "../lib/skill-export.js";
 
 // `doctrina adapter` — add, remove, and inventory agent adapters (audit
 // item C1).
@@ -109,6 +111,21 @@ function adapterAdd(projectRoot, name, cmdFlags) {
   let skipped = 0;
   for (const file of spec.files) {
     const dest = path.join(projectRoot, file.relativePath);
+    // A shared settings file is merged, never overwritten nor skipped
+    // (change 0211): the user's own keys stay, ours are added once.
+    if (isMergedConfig(file) && exists(dest)) {
+      const merged = mergeInto(dest, renderAdapterFile(file, tokens));
+      if (merged === null) {
+        console.log(c.yellow("skip   ") + ` ${file.relativePath} (not valid JSON — add the entries by hand)`);
+        skipped += 1;
+      } else if (merged) {
+        console.log(c.green("merged ") + ` ${file.relativePath}`);
+        written += 1;
+      } else {
+        console.log(c.gray("ok     ") + ` ${file.relativePath} (already holds the doctrina entries)`);
+      }
+      continue;
+    }
     if (exists(dest) && !force) {
       console.log(c.yellow("skip   ") + ` ${file.relativePath} (already present; --force overwrites)`);
       skipped += 1;
@@ -124,6 +141,12 @@ function adapterAdd(projectRoot, name, cmdFlags) {
   console.log(`${c.bold("Adapter " + name)} — ${written} file${written === 1 ? "" : "s"} written` +
     (skipped > 0 ? `, ${skipped} left alone` : "") +
     (spec.source === "project" ? c.gray(" (from .doctrina/templates/adapters/)") : ""));
+  // The project's skills follow the agent in (change 0212): with the claude
+  // adapter, `.claude/skills/` becomes an export root.
+  const exported = applySkillExport(projectRoot);
+  if (exported.writes.length > 0) {
+    console.log(c.green("export ") + ` ${exported.writes.length} skill file${exported.writes.length === 1 ? "" : "s"} where the agent discovers skills`);
+  }
   console.log(c.gray("Additive only: AGENTS.md and .doctrina/product.md were not touched."));
   return 0;
 }
@@ -156,6 +179,29 @@ function adapterRemove(projectRoot, name, cmdFlags) {
   for (const file of spec.files) {
     const dest = path.join(projectRoot, file.relativePath);
     if (!isFile(dest)) continue;
+    // A shared settings file loses only the entries this adapter added;
+    // the file goes only when nothing of the user's is left in it.
+    if (isMergedConfig(file)) {
+      const left = unmergeFrom(dest, renderAdapterFile(file, tokens));
+      if (left === undefined) {
+        console.log(c.yellow("kept   ") + ` ${file.relativePath} (not valid JSON — remove the doctrina entries by hand)`);
+        kept += 1;
+        continue;
+      }
+      if (left === UNTOUCHED) {
+        console.log(c.gray("kept   ") + ` ${file.relativePath} (holds no doctrina entries — yours)`);
+        continue;
+      }
+      if (left !== null) {
+        console.log(c.green("updated") + ` ${file.relativePath} (doctrina entries removed; yours kept)`);
+        continue;
+      }
+      remove(dest);
+      console.log(c.green("removed") + ` ${file.relativePath}`);
+      removed += 1;
+      vacated.add(path.dirname(dest));
+      continue;
+    }
     const pristine = normalise(read(dest)) === normalise(renderAdapterFile(file, tokens));
     if (!pristine && !force) {
       console.log(c.yellow("kept   ") + ` ${file.relativePath} (edited since install; --force removes it)`);
@@ -189,6 +235,34 @@ function adapterRemove(projectRoot, name, cmdFlags) {
     (pruned.length > 0 ? `, ${pruned.length} empty director${pruned.length === 1 ? "y" : "ies"} pruned` : "") +
     (kept > 0 ? `, ${kept} kept (edited)` : ""));
   return 0;
+}
+
+// Merge the rendered template into an existing JSON file. Returns true when
+// the file changed, false when it already held every entry, null when the
+// file is not JSON this command can safely rewrite.
+function mergeInto(dest, rendered) {
+  let theirs;
+  try { theirs = JSON.parse(read(dest)); } catch { return null; }
+  const ours = JSON.parse(rendered);
+  if (containsJson(theirs, ours)) return false;
+  write(dest, JSON.stringify(mergeJson(theirs, ours), null, 2) + "\n", { force: true });
+  return true;
+}
+
+const UNTOUCHED = Symbol("untouched");
+
+// Take the rendered template's entries back out of a JSON file. Returns what
+// is left (written back), null when nothing is (the caller removes the
+// file), undefined when the file is not JSON.
+function unmergeFrom(dest, rendered) {
+  let theirs;
+  try { theirs = JSON.parse(read(dest)); } catch { return undefined; }
+  // A file holding none of our entries was never ours, or was rewritten by
+  // the user since: it is theirs, and stays as it is.
+  if (!holdsAnyOf(theirs, JSON.parse(rendered))) return UNTOUCHED;
+  const left = unmergeJson(theirs, JSON.parse(rendered));
+  if (left !== null) write(dest, JSON.stringify(left, null, 2) + "\n", { force: true });
+  return left;
 }
 
 function normalise(text) {

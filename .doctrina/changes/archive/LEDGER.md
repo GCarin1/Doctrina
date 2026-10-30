@@ -221,3 +221,12 @@ One line per archived change, newest last. Appended by
 - 2026-10-25 — 0208-cortar-0-18-0 — cortar a 0.18.0
 - 2026-10-25 — 0209-fingerprint-atravessa-symlink — fingerprint atravessa symlink (specs: insight MODIFIED)
 - 2026-10-25 — 0210-teste-do-lote-aceita-crlf — teste do lote aceita crlf
+- 2026-10-30 — 0211-hooks-entregam-o-estado — hooks entregam o estado (specs: insight MODIFIED, scaffolding MODIFIED, templates MODIFIED)
+- 2026-10-30 — 0212-skills-onde-o-agente-procura — skills onde o agente procura (specs: skills MODIFIED)
+- 2026-10-30 — 0213-ciclo-sem-citar-o-framework — ciclo sem citar o framework (specs: cli MODIFIED, templates MODIFIED)
+- 2026-10-30 — 0214-trabalho-aparece-para-o-humano — trabalho aparece para o humano (specs: authoring MODIFIED, gates MODIFIED, insight MODIFIED)
+- 2026-10-30 — 0215-work-nao-repete-trabalho-feito — work nao repete trabalho feito (specs: authoring MODIFIED)
+- 2026-10-30 — 0216-pacote-de-contexto-enxuto — pacote de contexto enxuto (specs: insight MODIFIED)
+- 2026-10-30 — 0217-prime-entrega-o-comando-de-leitura — prime entrega o comando de leitura (specs: insight MODIFIED, templates MODIFIED)
+- 2026-10-30 — 0218-aderencia-ao-ciclo-medida — aderencia ao ciclo medida (specs: scaffolding MODIFIED)
+- 2026-10-30 — 0219-cortar-0-19-0 — cortar a 0.19.0
