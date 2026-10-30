@@ -17,6 +17,30 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-10-30
+
+Driven by a field review of an agent running Doctrina in Cursor: it knew
+the framework was there and still went straight to code when the request
+did not name it; it skipped `context` for `prime`, never saw the
+project's skills, and the work it did vanished into the archive before the
+person who asked could see it.
+
+### Upgrading from 0.18
+
+- Run `doctrina upgrade --write`. It regenerates AGENTS.md's surface and
+  "What changed" blocks and exports `.doctrina/skills/` to
+  `.agents/skills/` (and `.claude/skills/` with the claude adapter).
+- Run `doctrina adapter add <agent>` for each installed agent: it merges
+  the new hooks into `.claude/settings.json` / `.cursor/hooks.json`
+  without touching your own keys. Refresh the Cursor rule, which now
+  carries the change cycle, with `doctrina adapter add cursor --force`.
+- Commit the generated `.agents/skills/` (and `.claude/skills/`), or
+  ignore them: they are regenerated on every `index rebuild`.
+- `context` is lean by default — scripts that relied on AGENTS.md or whole
+  ADRs in the pack pass `--full`.
+- `work` now holds (exit 3) a request that repeats a recent change; pass
+  `--force` where a script opens look-alike changes on purpose.
+
 ### Changed
 
 - `metrics` reports workflow adherence — the share of code commits that

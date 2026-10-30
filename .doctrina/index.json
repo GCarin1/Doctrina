@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.18.0",
+  "framework_version": "0.19.0",
   "last_updated": "2026-10-30",
   "artifacts": {
     "product": {
@@ -3620,6 +3620,15 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0219-cortar-0-19-0",
+        "title": "cortar a 0.19.0",
+        "path": ".doctrina/changes/archive/2026-10-30-0219-cortar-0-19-0",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [
