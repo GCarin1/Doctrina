@@ -226,3 +226,4 @@ One line per archived change, newest last. Appended by
 - 2026-10-30 — 0213-ciclo-sem-citar-o-framework — ciclo sem citar o framework (specs: cli MODIFIED, templates MODIFIED)
 - 2026-10-30 — 0214-trabalho-aparece-para-o-humano — trabalho aparece para o humano (specs: authoring MODIFIED, gates MODIFIED, insight MODIFIED)
 - 2026-10-30 — 0215-work-nao-repete-trabalho-feito — work nao repete trabalho feito (specs: authoring MODIFIED)
+- 2026-10-30 — 0216-pacote-de-contexto-enxuto — pacote de contexto enxuto (specs: insight MODIFIED)

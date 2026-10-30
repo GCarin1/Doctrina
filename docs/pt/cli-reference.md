@@ -2156,11 +2156,24 @@ Imprime o pacote de contexto exato para uma tarefa, na ordem de
 leitura documentada.
 
 ```
-doctrina context billing
+doctrina context billing --for "expirar o token da sessão" --concat
 doctrina context billing --concat
+doctrina context billing --full --concat
 ```
 
-O pacote é: `AGENTS.md` → `.doctrina/product.md` → a spec da
+**Enxuto por padrão.** O `AGENTS.md` não é repetido — todo agente a que o
+pacote se destina já o carrega. Um ADR aceito é um **resumo**: o título e
+a abertura da Decision, com `doctrina show NNNN` para o resto. Com
+`--for "<tarefa>"` a spec da tarefa, e as specs de que ela depende, são
+**recortadas**: os headers, o Purpose e os requisitos e critérios que a
+tarefa mais casa, cada lacuna nomeada no lugar (`… 3 not matching the
+task`) e um rodapé dizendo quantos ficaram. `--full` devolve todo texto
+inteiro. Uma review de campo achou agentes pulando o `context` pelo
+`prime`; medido aqui, `context gates --concat` custava ~40k tokens e o
+`--for` não cortava nada abaixo do orçamento. O pacote da mesma tarefa
+agora fica em ~5k.
+
+O pacote é: (`AGENTS.md` com `--full`) → `.doctrina/product.md` → a spec da
 capability (quando dada — caso contrário, toda spec ativa, para que a
 verdade corrente nunca falte) → changes abertas → ADRs com status
 `accepted` — cada um com sua contagem de linhas, mais o total.

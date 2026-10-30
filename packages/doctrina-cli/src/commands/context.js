@@ -14,6 +14,7 @@ import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
 import { terms as queryTerms, relevance } from "../lib/lexicon.js";
 import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
+import { adrDigest, sliceSpec } from "../lib/context-slice.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
 // context pack for a task, in the order an agent should read it. This is
@@ -72,11 +73,14 @@ export const TIER = { CORE: 0, SPEC: 1, CHANGE: 2, DEPENDENCY: 3, DECISION: 4 };
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "concat"], string: ["budget", "diff", "for"] };
+export const flags = { boolean: ["json", "concat", "full"], string: ["budget", "diff", "for"] };
 
 export async function run(positional, cmdFlags) {
   const capability = positional[0] ?? null;
   const concat = flagBool(cmdFlags, "concat", false);
+  // --full: the whole text of everything, as before change 0216 — AGENTS.md
+  // repeated, every spec and ADR whole. The lean pack is the default.
+  const full = flagBool(cmdFlags, "full", false);
   const budgetRaw = flagString(cmdFlags, "budget");
   const diffRef = flagString(cmdFlags, "diff");
   const query = flagString(cmdFlags, "for");
@@ -162,6 +166,8 @@ export async function run(positional, cmdFlags) {
       tier: TIER.CORE,
       rank: [],
       degraded: false,
+      /** @type {string | null} */ slice: null,
+      /** @type {string | null} */ digest: null,
       ...extra,
     };
     pack.push(item);
@@ -170,7 +176,10 @@ export async function run(positional, cmdFlags) {
 
   // 1-2. Root rules and product truth — always first. Displayed paths are
   // POSIX strings (path.join would emit backslashes on Windows).
-  if (wanted("AGENTS.md")) pushFile("AGENTS.md", "root rules");
+  // AGENTS.md is not repeated by default (change 0216): every agent this
+  // pack is for loads it already — natively, or through its adapter — and
+  // it cost ~2.5k tokens per pack to say it twice.
+  if (wanted("AGENTS.md") && full) pushFile("AGENTS.md", "root rules");
   if (wanted(".doctrina/product.md")) pushFile(".doctrina/product.md", "product truth");
 
   // 3. The capability spec(s) — the current truth. With a named capability,
@@ -238,6 +247,21 @@ export async function run(positional, cmdFlags) {
         leader.tier = TIER.CORE;
         leader.note = `${leader.note} (the task's capability)`;
       }
+    }
+  }
+
+  // A spec read for a task — the task's own, and the ones it depends on — is
+  // cut to what the task is about (change
+  // 0216): headers, Purpose, and the requirements and criteria the query
+  // matches, the rest named by count. No query, or nothing matched: whole.
+  if (!full && terms.length > 0) {
+    for (const item of pack) {
+      if ((item.tier !== TIER.CORE && item.tier !== TIER.DEPENDENCY) || !item.rel.startsWith(".doctrina/specs/")) continue;
+      const sliced = sliceSpec(read(path.join(projectRoot, item.rel)), terms, item.rel);
+      if (!sliced) continue;
+      item.slice = sliced.text;
+      item.tokens = estimateTokens(sliced.text);
+      item.note = `${item.note} — sliced: ${sliced.kept} of ${sliced.total} items match`;
     }
   }
 
@@ -347,7 +371,7 @@ export async function run(positional, cmdFlags) {
 
     const id = path.basename(f).match(/^(\d{4})-/)?.[1] ?? "0000";
     const title = getTitle(text) ?? path.basename(f, ".md");
-    pushFile(rel, global ? "accepted ADR" : `accepted ADR (${scope.join(", ")})`, {
+    const adrItem = pushFile(rel, global ? "accepted ADR" : `accepted ADR (${scope.join(", ")})`, {
       tier: TIER.DECISION,
       // Best-first, deterministic: an ADR that NAMES this capability outranks
       // an unscoped one — which is DECLARED to belong in every pack — which in
@@ -360,6 +384,13 @@ export async function run(positional, cmdFlags) {
       title,
       summary: adrSummary(text),
     });
+    // A decision as a digest by default (change 0216): its title and the
+    // opening of its Decision — what tells a reader whether it binds the
+    // task. Sixteen whole ADRs were ~22k tokens of the `gates` pack.
+    if (adrItem && !full) {
+      adrItem.digest = adrDigest(text, title, id);
+      adrItem.tokens = estimateTokens(adrItem.digest);
+    }
   }
 
   // 6. Skills are on-demand: list name + description + trigger, never the
@@ -406,7 +437,8 @@ export async function run(positional, cmdFlags) {
     for (const item of kept) {
       console.log(`===== ${item.rel} (${item.note}) =====`);
       console.log("");
-      console.log(item.degraded ? degradedBody(item) : read(path.join(projectRoot, item.rel)).trimEnd());
+      console.log(item.degraded ? degradedBody(item)
+        : item.slice ?? item.digest ?? read(path.join(projectRoot, item.rel)).trimEnd());
       console.log("");
     }
     // Keep the pack pipeable: the budget verdict goes to stderr.
@@ -417,7 +449,7 @@ export async function run(positional, cmdFlags) {
     console.log(c.bold("Context pack") + (capability ? c.gray(` (capability: ${capability})`) : "") + forNote + scope + c.gray(" — read in this order:"));
     console.log("");
     kept.forEach((item, i) => {
-      const mark = item.degraded ? c.yellow(" summary") : "        ";
+      const mark = item.degraded ? c.yellow(" summary") : item.slice ? c.yellow("  sliced") : item.digest ? c.yellow("  digest") : "        ";
       console.log(`${String(i + 1).padStart(2)}. ${c.cyan(item.rel.padEnd(56))} ${String(item.lines).padStart(4)} lines ${c.gray(`~${String(item.tokens).padStart(5)} tok`)}${mark}  ${c.gray(item.note)}`);
     });
     console.log("");
@@ -709,13 +741,20 @@ function changedPaths(projectRoot, ref) {
 
 export const help = `
 Usage: doctrina context [<capability>] [--for "<task>"] [--concat]
-                        [--budget <tokens>] [--diff <ref>]
+                        [--budget <tokens>] [--diff <ref>] [--full]
 
 Print the exact context pack for a task, in the documented read
-order: AGENTS.md, product.md, the capability spec (when given —
-otherwise every active spec), open changes, accepted ADRs. Skills are
+order: product.md, the capability spec (when given — otherwise every
+active spec), open changes, accepted ADRs. Skills are
 listed name + description + when-trigger only — they are on-demand by
 design. The change archive is excluded.
+
+The pack is LEAN by default: AGENTS.md is not repeated (your agent
+loads it every turn), an accepted ADR is a digest — its title and the
+opening of its Decision; \`doctrina show NNNN\` reads the rest — and
+with --for the task's spec is sliced to its headers, Purpose and the
+requirements and criteria the task matches, the others named by count.
+--full restores every text whole.
 
 Assembly is retrieval, not a dump. A token budget ALWAYS applies
 (default ${DEFAULT_BUDGET}; set "context_budget": <n> in
@@ -731,6 +770,8 @@ Flags:
                     the list — ready to pipe into an agent. The budget
                     verdict goes to stderr, keeping stdout pure.
   --budget <n>      Token ceiling for this call, overriding the project's.
+  --full            Every artifact whole: AGENTS.md included, specs not
+                    sliced, ADRs not digested (the pre-0.19 pack).
   --diff <ref>      Scope the stable artifacts (AGENTS.md, product.md,
                     specs, ADRs) to those changed since the git ref; open
                     changes are always included. The resume-session read.

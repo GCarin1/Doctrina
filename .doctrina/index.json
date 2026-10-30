@@ -95,12 +95,12 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.16.0",
+        "version": "0.17.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js",
-          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js"
+          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js"
         ]
       },
       {
@@ -3570,6 +3570,20 @@
         "specs_affected": [
           {
             "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0216-pacote-de-contexto-enxuto",
+        "title": "pacote de contexto enxuto",
+        "path": ".doctrina/changes/archive/2026-10-30-0216-pacote-de-contexto-enxuto",
+        "status": "applied",
+        "applied": "2026-10-30",
+        "specs_affected": [
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           }
         ],

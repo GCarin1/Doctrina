@@ -17,6 +17,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `context` is lean by default: AGENTS.md is not repeated, accepted ADRs are
+  digests (title + Decision opening; `show NNNN` for the rest), and with
+  `--for` the task's spec and its dependencies are sliced to the matching
+  requirements and criteria. `context gates --for "verify reuse
+  fingerprint" --concat` went from ~40k to ~5.5k tokens here; `--full`
+  restores the whole text (change 0216).
+
 ### Added
 
 - `work` holds a request that mostly repeats an open change, or one

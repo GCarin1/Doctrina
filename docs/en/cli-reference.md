@@ -2100,11 +2100,23 @@ Print the exact context pack for a task, in the documented read
 order.
 
 ```
-doctrina context billing
+doctrina context billing --for "expire the session token" --concat
 doctrina context billing --concat
+doctrina context billing --full --concat
 ```
 
-The pack is: `AGENTS.md` → `.doctrina/product.md` → the capability
+**Lean by default.** `AGENTS.md` is not repeated — every agent the pack
+is for loads it already. An accepted ADR is a **digest**: its title and
+the opening of its Decision, with `doctrina show NNNN` for the rest. With
+`--for "<task>"` the task's spec, and the specs it depends on, are
+**sliced**: the headers, the Purpose, and the requirements and criteria
+the task matches best, each gap named in place (`… 3 not matching the
+task`) and a footer saying how many were kept. `--full` restores every
+text whole. A field review found agents skipping `context` for `prime`;
+measured here, `context gates --concat` was ~40k tokens and `--for` cut
+nothing below the budget. The same task's pack is now ~5k.
+
+The pack is: (`AGENTS.md` with `--full`) → `.doctrina/product.md` → the capability
 spec (when given — otherwise every active spec, so the current truth
 is never absent) → open changes → ADRs with status `accepted` —
 each with its line count, plus the total. Skills are listed

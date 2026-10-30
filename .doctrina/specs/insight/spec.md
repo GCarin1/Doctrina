@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff}.js`
+**Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.16.0
+**Version:** 0.17.0
 
 ## Purpose
 
@@ -62,17 +62,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
   those capabilities — read-only, erroring with the known anchors when
   the anchor does not exist.
 - When `doctrina prime --rules` runs, the system shall print the project's standing rules in full: every accepted ADR by number and title, and every non-goal declared in product.md, assembled read-only from the artifacts that own them; `doctrina constitution`, removed in 0.17.0, shall run nothing and refuse with the usage class, naming `doctrina prime --rules`.
-- When `doctrina context [<capability>]` runs, the system shall
-  print the context pack in the documented read order — AGENTS.md,
-  `product.md`, the capability spec when given (or every active spec
-  when no capability is named, so the current truth is never absent),
-  open changes, ADRs with status `accepted` — with per-file line counts
-  and token estimates (chars/4) plus the pack total, and a separate
-  on-demand list of skills (name, description, and when-trigger only,
-  never the body). The change archive and non-accepted ADRs shall
-  be excluded. With `--concat`, the system shall print the file
-  contents with path separators instead of the list. The command
-  is strictly read-only.
+- When `doctrina context [<capability>]` runs, the system shall print the context pack in the documented read order — `product.md`, the capability spec when given (or every active spec when no capability is named, so the current truth is never absent), open changes, ADRs with status `accepted` — with per-file line counts and token estimates (chars/4) plus the pack total, and a separate on-demand list of skills (name, description, and when-trigger only, never the body); the pack shall be lean unless `--full` is given: AGENTS.md, which every agent loads already, not repeated, each accepted ADR as a digest of its title and the opening of its Decision, and, with `--for`, the task's spec and its dependencies sliced to their headers, Purpose and the requirements and criteria the task matches best, each gap named in place. The change archive and non-accepted ADRs shall be excluded. With `--concat`, the system shall print the contents with path separators instead of the list. The command is strictly read-only.
 - When `doctrina context --budget <n>` runs, the system shall compare
   the pack's token estimate against the budget, report over/under —
   on stderr under `--concat`, keeping stdout pipeable — and exit 1
@@ -149,6 +139,7 @@ The read path is spec-compliant when:
 25. [verified] The working-tree fingerprint is the same whether the tree is reached by its own path or through a symlink to it, as macOS's temporary directory is — verified by `packages/doctrina-cli/test/o-verify-verde-nao-roda-duas-vezes.test.js`.
 26. [verified] `prime --pulse` is one line naming `0001-login` once it is open and the work command before, `prime --hook claude` is plain text without colour codes, `prime --hook cursor` is JSON whose `additional_context` stays within 9,000 characters, and an unknown agent exits 2 — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
 27. [verified] `prime` lists a change archived today under Recently closed with its archive path, and the pulse names it as last closed — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
+28. [verified] On this repository `context gates --for "verify reuse fingerprint" --concat` stays within 10k tokens, omits AGENTS.md, digests the ADRs and slices the spec keeping the `verify --reuse` requirement, while `--full` is at least three times larger and includes AGENTS.md; the slice keeps headers, Purpose and an item's continuation lines and names each gap, and a spec the query does not touch stays whole — verified by `packages/doctrina-cli/test/o-pacote-de-contexto-e-enxuto.test.js`.
 
 ## Out of scope for this spec
 
