@@ -17,6 +17,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-11-03
+
+### Upgrading from 0.19
+
+`npm i -g doctrina-cli@0.20.0`, then `doctrina upgrade --write` in each
+project. Nothing in a single-repository project changes. To orchestrate work
+across repositories, create a workspace (`doctrina workspace init <dir>`, a
+private git repository) and register each repository with `doctrina workspace
+add <path>`; see `docs/en/workspace.md`. ADR 0004 is superseded by ADR 0030.
+
 ### Added
 
 - `doctrina workspace init|add|attach|detach|list` — the context of several

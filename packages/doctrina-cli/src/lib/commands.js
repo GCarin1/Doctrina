@@ -542,6 +542,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.20.0": [
+    "Work across repositories is a delivery: from the workspace, `doctrina delivery new \"<title>\" --ref <id>`, then follow its playbook — route, one change per repository with `doctrina work \"<title>\" --delivery <id>`, close each, then `doctrina delivery close <id>`.",
+    "Write tasks as self-contained cards (indented `Files:`, `Requirement:`, `Verify:` lines) and hand an executor `doctrina change card <id>`; one writer per repository, and only the planner closes (ADR 0030).",
+    "An existing codebase with no specs: `doctrina intake --from-code`, then the absorb playbook — describe what the code does today and send what it cannot tell to the human as open questions.",
+    "A repository that may not carry `.doctrina/` is a workspace shadow: its `.doctrina/` is a link, hidden from its git — never commit it there; commit the workspace.",
+    "MCP tools declared in the workspace are read-only unless declared `write`: a refused or held call means ask the human, never route around it.",
+  ],
   "0.19.0": [
     "A request that changes behaviour is a change opened BEFORE code, whether or not it names Doctrina; say its id in your first sentence to the human, and repeat the `Tell the human:` line `work` and `close` print.",
     "`doctrina context <cap> --for \"<task>\" --concat` is now lean (no AGENTS.md, ADR digests, the spec sliced to the task) — read it before editing; `prime` is state, not the spec. `--full` gives the whole text.",

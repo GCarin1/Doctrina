@@ -11,6 +11,7 @@
 - Guias
 
   - [Adoção brownfield](/pt/brownfield.md)
+  - [Trabalho entre repositórios (workspace)](/pt/workspace.md)
   - [Playbook de adoção (multi-agente)](/pt/adoption-playbook.md)
   - [Migração de outros frameworks](/pt/migration.md)
   - [Integração com CI](/pt/ci.md)

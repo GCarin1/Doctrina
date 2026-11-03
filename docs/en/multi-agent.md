@@ -3,8 +3,8 @@
 Doctrina is pitched as a framework for multi-agent AI development.
 This doc explains what that phrase means in this project and what
 it does not. The architectural rationale is in
-[ADR 0004](../../.doctrina/decisions/0004-single-linear-orchestrator.md);
-this is the operating guide.
+[ADR 0030](../../.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md),
+which supersedes ADR 0004; this is the operating guide.
 
 ## What multi-agent means in Doctrina
 
@@ -93,6 +93,30 @@ Doctrina inherits these findings as design constraints. Role labels
 personas the single orchestrator adopts in sequence**, never as
 parallel processes contending for the same files.
 
+## Planner and executors (ADR 0030)
+
+ADR 0030 keeps everything above and allows two kinds of delegated
+writing, because each keeps one writer per artifact:
+
+- **An executor holding a task card.** The planner writes a change's
+  tasks as self-contained cards — the task and its `Files:`,
+  `Requirement:` and `Verify:` lines — and hands one at a time to an
+  executor subagent with `doctrina change card <id>`. The card carries
+  the change's Why and the spec cut to the task, so the executor does
+  not need the planner's trace; a card that does is not finished. The
+  executor edits, verifies, ticks and reports. It never opens, closes
+  or archives — the planner reviews and closes. The executor may run on
+  a smaller model: the planner is where judgement is spent.
+- **Different repositories in parallel.** A delivery that crosses
+  repositories opens one change in each (`doctrina delivery`).
+  Repositories share no artifact, so one writer in each at the same
+  time is still one writer per artifact. Two writers in ONE repository
+  stay forbidden.
+
+The [workspace guide](workspace.md) is the operating manual: the
+generated `doctrina-executor`, `doctrina-reviewer`, `doctrina-qa` and
+`doctrina-observer` subagents, and the guard on every MCP call.
+
 ## Practical patterns
 
 ### Personas, not parallel processes
@@ -177,6 +201,8 @@ in `.doctrina/` are the shared trace.
 | An agent and a human editing the same `proposal.md` | Hazard. Same artifact, two writers. Serialise. |
 | Two changes in flight on disjoint capabilities | Safe. Different artifacts, no shared writer. |
 | A subagent that "just patches a small file" | Hazard. The "small file" is a writer slot; the moment a subagent writes, the no-parallel-writers rule applies to it. |
+| An executor working a task card while the planner waits | Safe (ADR 0030). One writer in the repository; the planner reviews and closes. |
+| Executors in `back-end` and `front-core` at the same time | Safe (ADR 0030). Different repositories, no shared artifact. |
 
 ## Related material
 
@@ -185,5 +211,7 @@ in `.doctrina/` are the shared trace.
   this doc helps you avoid.
 - [Adapters](adapters.md) — how each supported agent finds
   `AGENTS.md`.
-- ADR 0004 — the architectural decision behind the single linear
-  orchestrator.
+- [Work across repositories](workspace.md) — planner, executors and
+  deliveries in practice.
+- ADR 0030 — one planner, one writer per repository, executors on
+  self-contained cards (supersedes ADR 0004).
