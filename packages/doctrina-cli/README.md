@@ -25,10 +25,11 @@ surface, by the moment you reach for it:
 ```
 Bootstrap   init · intake · adapter list|add|remove
 Orient      prime · next · status · context · show · search · why · handoff
-Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|delta
+Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|delta|card
             contract new|list|check · decision new|accept|land|supersede|list|scope
             skill new|list|suggest · intent add|list
 Gate        clarify · validate · coverage · trace · review · verify · close · doctor
+Orchestrate workspace init|add|attach|detach|list · delivery new|route|list|status|check|close
 Maintain    upgrade · index rebuild · hooks install · watch · metrics · completion · ci · templates list
 ```
 

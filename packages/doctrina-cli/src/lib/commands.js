@@ -19,6 +19,8 @@ export const COMMAND_NAMES = [
   "prime", "context", "show", "search", "status", "next", "why", "handoff",
   // gates
   "analyze", "clarify", "validate", "coverage", "trace", "review", "verify", "close", "doctor",
+  // orchestrate
+  "workspace", "delivery",
   // maintenance
   "templates", "hooks", "index", "watch", "metrics", "report", "completion", "upgrade", "ci",
 ];
@@ -48,6 +50,7 @@ export const OPERATIONS = [
   ["change tick", "List/tick the unchecked boxes (tasks + verification; --all)"],
   ["change abandon", "Discard an open change cleanly (recorded in the ledger)"],
   ["change delta", "Add a requirement/criterion/bump to a change's delta (ops written for you)"],
+  ["change card", "One task as an executor receives it: the task, its why, the spec cut to it"],
   ["contract new", "Own the integration surface (ports, env, interfaces)"],
   ["contract list", "List contracts with status and last-updated date"],
   ["contract check", "Verify port collisions, env drift, referenced specs"],
@@ -82,6 +85,17 @@ export const OPERATIONS = [
   ["status", "One-glance project health dashboard"],
   ["why", "Explain provenance: a capability's chain, or an anchor's (SC1)"],
   ["handoff", "Markdown handoff note: open work, task state, resume command"],
+  ["workspace init", "Create a multi-repository workspace (a private git repo of context)"],
+  ["workspace add", "Register a repository: in-repo, or shadowed when it cannot carry .doctrina/"],
+  ["workspace attach", "Re-create a shadow project's links in its repository"],
+  ["workspace detach", "Remove a shadow project's links; the shadow stays"],
+  ["workspace list", "Projects with mode, state and open changes"],
+  ["delivery new", "Open a delivery across repositories; print the orchestration playbook"],
+  ["delivery route", "Choose the projects a delivery touches, dependencies first"],
+  ["delivery list", "Deliveries with status, ref and closed/total changes"],
+  ["delivery status", "Per project: the changes carrying a delivery and their tasks"],
+  ["delivery check", "What still keeps a delivery from closing (exit 1 while anything does)"],
+  ["delivery close", "Close a delivery once every project's change is closed"],
   ["templates list", "List the templates shipped by the installed CLI"],
   ["templates check", "Compare the project against the recommended template shape"],
   ["templates update", "Additive fixer for check findings (preview; --write applies)"],
@@ -146,6 +160,9 @@ export const COMMAND_META = {
   close:        { moment: "Gate",       when: "a change is implemented and ready to finish", purpose: "the whole closing sequence in one attested pass" },
   doctor:       { moment: "Gate",       when: "something looks wrong and you do not know which gate to ask", purpose: "aggregate diagnostic with per-finding remedies" },
 
+  delivery:     { moment: "Orchestrate", when: "a story or screen must land in more than one repository", purpose: "plan, route, track and close one item of work across repositories" },
+  workspace:    { moment: "Orchestrate", when: "the work spans several repositories, or a repository cannot carry .doctrina/", purpose: "register repositories, in-repo or shadowed, in one versioned workspace" },
+
   templates:    { moment: "Maintain",   when: "customising a scaffold, to see which template file wins", purpose: "where each shipped template resolves from" },
   upgrade:      { moment: "Maintain",   when: "you just updated the doctrina-cli package", purpose: "bring this project up to the installed CLI" },
   index:        { moment: "Maintain",   when: "the index drifted from the tree", purpose: "regenerate index.json from the artifacts on disk" },
@@ -158,7 +175,7 @@ export const COMMAND_META = {
 };
 
 // The order moments appear in the generated block.
-export const MOMENTS = ["Bootstrap", "Orient", "Change", "Gate", "Maintain"];
+export const MOMENTS = ["Bootstrap", "Orient", "Change", "Gate", "Orchestrate", "Maintain"];
 
 // The Commands block of `doctrina --help`, generated from OPERATIONS so the
 // printed surface can never omit an operation the catalog knows about.
@@ -192,7 +209,10 @@ export function surfaceHelp() {
       const ops = live.filter(([op]) => op.split(" ")[0] === cmd);
       const subs = ops.map(([op]) => op.split(" ")[1]).filter(Boolean);
       const text = ops.length === 1 ? ops[0][1] : capitalise(COMMAND_META[cmd].purpose);
-      out.push(line(subs.length > 0 ? `${cmd} ${subs.join("|")}` : cmd, text));
+      const op = subs.length > 0 ? `${cmd} ${subs.join("|")}` : cmd;
+      // A compact moment's long invocation stands alone rather than wrapping
+      // onto a second line (change 0220): `doctrina <cmd> --help` has the rest.
+      out.push(COMPACT_MOMENTS.has(moment) && op.length >= 20 ? `  ${op}` : line(op, text));
     }
   }
   const old = OPERATIONS.filter(([op]) => DEPRECATED[op]);
@@ -317,7 +337,10 @@ export const SURFACE_LINE_BUDGET = 40;
 // each its own line pushed the block past its budget. The budget is the
 // forcing function — a surface that cannot describe itself in 40 lines is
 // too large, and the answer is to cut commands (M8), not to raise it.
-const COMPACT_MOMENTS = new Set(["Maintain"]);
+// "Orchestrate" is compact too (change 0220): an orchestrating session reads
+// the workspace's own AGENTS.md, which carries the delivery playbook in full;
+// inside one repository the commands only need to be discoverable.
+const COMPACT_MOMENTS = new Set(["Orchestrate", "Maintain"]);
 
 // The full managed section, heading included, between the markers.
 //

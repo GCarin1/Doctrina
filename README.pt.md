@@ -94,8 +94,8 @@ como um corpo de agentes age.
   comandos pelo hub, então o hub nunca fica atrás do CLI.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 37 comandos
-  e 60 operações cobrindo init, intake, work, prime, spec, change, decision, contract,
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 39 comandos
+  e 72 operações cobrindo init, intake, workspace, delivery, work, prime, spec, change, decision, contract,
   skill, intent, clarify, context, show, search, validate, coverage,
   trace, review, verify, close, doctor, status, why, handoff,
   watch, templates, hooks, index, next, metrics, report, completion e
@@ -105,7 +105,7 @@ como um corpo de agentes age.
 - Adapters para 12 agentes AGENTS.md-aware (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Onze specs de capability e os ADRs 0001–0028 que descrevem o framework
+- Onze specs de capability e os ADRs 0001–0030 que descrevem o framework
   (incluindo o ADR 0006, proveniência de intenção, e o ADR 0015, o bloco
   de superfície do AGENTS.md), mais skills on-demand capturando seus
   próprios procedimentos de manutenção.

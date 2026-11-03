@@ -69,8 +69,8 @@ test("the bootstrap action names the code-first door too", () => {
     const a = payload.actions.find((x) => x.id === "bootstrap-unspecced");
     assert.ok(a, JSON.stringify(payload.actions.map((x) => x.id)));
     assert.equal(a.command, "intake");
-    assert.match(a.text, /--from-diff/,
-      "adopting an existing codebase is the other door (ADR 0010)");
+    assert.match(a.text, /intake --from-code/,
+      "adopting an existing codebase is the other door (ADR 0010, change 0221)");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -94,4 +94,4 @@ export function printPlaybookTemplate(projectRoot, name, tokens = {}) {
 }
 
 /** The playbooks the CLI ships and `templates check` expects to resolve. */
-export const PLAYBOOKS = ["work", "chore", "bootstrap", "consolidate"];
+export const PLAYBOOKS = ["work", "chore", "bootstrap", "consolidate", "absorb"];

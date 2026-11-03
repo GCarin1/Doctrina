@@ -1,0 +1,39 @@
+# Delivery {{DELIVERY_ID}} — {{DELIVERY_TITLE}}
+
+- **Status:** open
+- **Date:** {{DATE}}
+- **Ref:** {{DELIVERY_REF}}
+- **Projects:** {{DELIVERY_PROJECTS}}
+
+<!-- One delivery = one item of work that crosses repositories (a story, a
+     screen, a fix). Each project it touches gets ONE change, opened inside
+     that repository with `doctrina work "<title>" --delivery {{DELIVERY_ID}}`.
+     This file holds what no single repository owns: the story, the sources,
+     the plan across projects, the release and what was watched after it. -->
+
+## Story
+
+<!-- The tracker item, verbatim: title, description, acceptance criteria.
+     Read it through the tracker tool; never paraphrase a criterion. -->
+
+## Sources
+
+<!-- One link per line: documentation pages, design frames, dashboards,
+     queries — each with what it was read for. -->
+
+## Plan
+
+<!-- Per project, in dependency order: what changes and why there. -->
+
+## Release
+
+<!-- How each project reaches its environment, and the proof it did. Every
+     box is a claim `doctrina delivery check` holds you to. -->
+
+- [ ] Every project's change is merged and its pipeline ran green
+- [ ] The delivery was validated in the target environment, evidence linked
+
+## Observability
+
+<!-- What was watched after the release — monitor, dashboard or query, the
+     window, and what it showed. At least one line before the close. -->

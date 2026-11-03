@@ -17,6 +17,27 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `doctrina workspace init|add|attach|detach|list` — the context of several
+  repositories in one versioned place (ADR 0029). A repository without its
+  own `.doctrina/` is shadowed: its artifacts live in the workspace and are
+  linked into it, hidden from its git by `.git/info/exclude`.
+- `doctrina intake --from-code` — an existing codebase becomes the intake: its
+  code inventory (stack, tests, CI, candidate areas, build commands, env names
+  without values) and an absorb playbook that describes what the code does today.
+- `doctrina delivery new|route|list|status|check|close` and `work --delivery` —
+  one item of work across repositories, one change per routed repository, its
+  state read from them (ADR 0030, which supersedes ADR 0004).
+- `doctrina change card <id> [<n>]` — one task as a self-contained card for an
+  executor: the task and its `Files:`/`Verify:` lines, the Why, the spec slice.
+
+### Fixed
+
+- A `close` stopped after its apply (killed, or out of time while `verify` ran)
+  can be rerun: an applied change is asked the integrity checks, and `change
+  apply` skips it before consulting the pre-apply gate.
+
 ## [0.19.0] — 2026-10-30
 
 Driven by a field review of an agent running Doctrina in Cursor: it knew

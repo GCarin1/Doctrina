@@ -8,6 +8,8 @@ import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
+import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
+import { readDelivery, resolveDeliveryId } from "../lib/delivery.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
@@ -30,7 +32,7 @@ export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "chore", "design", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "consolidate", "id", "resume", "title"] };
+export const flags = { boolean: ["json", "chore", "design", "force", "from-diff", "no-spec", "quiet"], string: ["capability", "consolidate", "delivery", "id", "resume", "title"] };
 
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
@@ -60,6 +62,20 @@ export async function run(positional, flags) {
   const prompt = consolidate
     ? `Consolidate the ${consolidate} spec: merge requirements and criteria that say the same thing, drop what a later one superseded — no behaviour changes.`
     : positional.join(" ").trim();
+
+  // --delivery <id> (change 0222): the change is this repository's part of a
+  // workspace delivery. Checked BEFORE anything is scaffolded, so a typo or a
+  // repository the delivery was never routed to opens nothing.
+  let delivery = null;
+  if (flags.has("delivery")) {
+    const resolved = resolveDeliveryFor(projectRoot, flagString(flags, "delivery"));
+    if (resolved.error) {
+      console.error(c.red("error:") + ` ${resolved.error}`);
+      if (resolved.hint) console.error(c.gray("hint: ") + resolved.hint);
+      return resolved.code;
+    }
+    delivery = resolved.id;
+  }
 
   // --resume <id>: reprint the playbook for an existing open change rather than
   // open a new one (review G1 — `work "continue"` used to slug the word and
@@ -218,6 +234,9 @@ export async function run(positional, flags) {
     if (pinned) {
       updated = updated.replace(/^(-\s+\*\*Affects specs:\*\*).*$/m, `$1 ${pinned}`);
     }
+    if (delivery) {
+      updated = updated.replace(/^(-[ \t]+\*\*Lane:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
+    }
     if (updated !== txt) write(proposalPath, updated, { force: true });
   }
 
@@ -359,6 +378,28 @@ function laneRecord(verdict, { forced, chore, fromDiff }) {
   if (override) line += ` — opened as ${override}`;
   else if (forced && verdict.lane === "runtime") line += " — opened anyway (--force)";
   return line;
+}
+
+// The delivery a `--delivery` names, from this repository's workspace: it
+// must exist, and this repository must be one of the projects it was routed to.
+function resolveDeliveryFor(projectRoot, ref) {
+  const found = findWorkspace(projectRoot);
+  if (!found) {
+    return { error: "--delivery needs a workspace, and this repository belongs to none", hint: "register it: `doctrina workspace add <path>` from the workspace", code: EXIT.PRECONDITION };
+  }
+  const id = resolveDeliveryId(found.dir, ref);
+  if (!id) return { error: `no delivery "${ref ?? ""}" in the workspace at ${found.dir}`, hint: "`doctrina delivery list` from the workspace", code: EXIT.USAGE };
+  const ws = readWorkspace(found.dir);
+  const project = projectAt(ws, projectRoot);
+  const d = readDelivery(found.dir, id);
+  if (!project || !d.projects.includes(project.name)) {
+    return {
+      error: `delivery ${id} is not routed to ${project ? project.name : "this repository"} (routed: ${d.projects.join(", ") || "none"})`,
+      hint: `route it first, from the workspace: \`doctrina delivery route ${id} ${[...d.projects, project?.name ?? "<name>"].join(",")}\``,
+      code: EXIT.PRECONDITION,
+    };
+  }
+  return { id };
 }
 
 function writeLane(projectRoot, id, verdict, opts) {

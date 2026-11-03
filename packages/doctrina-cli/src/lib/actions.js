@@ -151,7 +151,7 @@ export function computeActions(projectRoot, gates = {}) {
       severity: "blocking",
       why: "no capability is specced yet, so nothing states what this project must do",
       text: 'doctrina intake --text "<what this project is>" — no capability is specced yet; ' +
-        "for an existing codebase, `doctrina work --from-diff` backfills from the code instead",
+        "for an existing codebase, `doctrina intake --from-code` takes its inventory as the intake (`doctrina work --from-diff` backfills one change from code already written)",
     }));
   }
 

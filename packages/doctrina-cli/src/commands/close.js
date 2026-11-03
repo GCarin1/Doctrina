@@ -166,6 +166,8 @@ async function closeOne(projectRoot, id, flags) {
   // archive), which is rendering, not sequencing.
   const verifyConfigured = isFile(path.join(projectRoot, ".doctrina", "verify.json"));
   const runners = {
+    // An applied change resumes here: analyze asks it only the integrity
+    // checks (change 0221).
     analyze: { run: () => analyze.run([id], new Map()) },
 
     // ADR checkpoint (operator review §4.6): the playbook's "record an ADR"

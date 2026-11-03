@@ -10,6 +10,9 @@ import { today } from "../lib/dates.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { looksLikePath, markIntakeConverted, printBootstrapPlaybook, warnIfThinIntake, writeIntakeFile } from "../lib/intake-model.js";
+import { inventory, inventoryMarkdown } from "../lib/code-inventory.js";
+import { printPlaybookTemplate } from "../lib/playbook.js";
+import { findWorkspace } from "../lib/workspace.js";
 
 // `init --intake` performs the same operations; they live in
 // lib/intake-model.js so neither command imports out of the other (F7).
@@ -26,7 +29,7 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "force", "converted"], string: ["text"] };
+export const flags = { boolean: ["json", "force", "converted", "from-code"], string: ["text"] };
 
 export async function run(positional, flags) {
   const projectRoot = process.cwd();
@@ -72,6 +75,7 @@ export async function run(positional, flags) {
   }
 
   const force = flagBool(flags, "force", false);
+  if (flagBool(flags, "from-code", false)) return intakeFromCode(projectRoot, force);
   const inlineText = flagString(flags, "text");
   const sourceFile = positional[0];
   const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
@@ -151,6 +155,42 @@ export async function run(positional, flags) {
 }
 
 
+// An existing codebase becomes specs (change 0221). The intake is the code
+// INVENTORY — facts read from manifests and file counts — and the playbook
+// asks the agent to describe what the system does today, leaving what the
+// code cannot tell to the human as open questions.
+function intakeFromCode(projectRoot, force) {
+  const intakePath = path.join(projectRoot, ".doctrina", "intake.md");
+  if (exists(intakePath)) {
+    const status = (listHeader(read(intakePath), "Status") ?? "pending").toLowerCase();
+    if (status === "converted") {
+      console.error(c.red("error:") + " the intake is already converted — the specs are the source of truth now");
+      console.error(c.gray("hint: ") + "a change of behaviour: `doctrina work \"<prompt>\"`");
+      return EXIT.PRECONDITION;
+    }
+    if (!force) {
+      console.error(c.red("error:") + ` ${relPath(projectRoot, intakePath)} already exists (pass --force to replace it with the code inventory)`);
+      return EXIT.PRECONDITION;
+    }
+  }
+  const name = projectName(projectRoot);
+  const inv = inventory(projectRoot);
+  writeIntakeFile(projectRoot, {
+    body: inventoryMarkdown(inv, name),
+    source: "code inventory (`doctrina intake --from-code`)",
+    projectName: name, date: today(), force: true,
+  });
+  console.log(c.green("created") + ` ${relPath(projectRoot, intakePath)} — ${inv.files} files read: ${inv.stack.join(", ") || "no manifest"}; ${inv.tests.files} test files; ${inv.areas.length} candidate areas`);
+  console.log("");
+  const ws = findWorkspace(projectRoot);
+  printPlaybookTemplate(projectRoot, "absorb", {
+    WORKSPACE_STEP: ws
+      ? `\n8. This project belongs to the workspace at ${ws.dir} — confirm it reads\n   ready: ${c.cyan("doctrina workspace list")}, and commit the workspace.`
+      : "",
+  });
+  return EXIT.OK;
+}
+
 export const help = `
 Usage: doctrina intake [<file>] [--text "<description>"] [--force]
 
@@ -168,11 +208,17 @@ Forms:
                                       existing pending intake
   doctrina intake --converted         Close the bootstrap: flip the stored
                                       intake's Status to converted
+  doctrina intake --from-code         An EXISTING codebase: store its code
+                                      inventory as the intake and print the
+                                      absorb playbook
 
 Options:
   --text "<description>"   Inline description instead of a file
   --force                  Overwrite an existing .doctrina/intake.md; with
                            --converted, convert although validate fails
+  --from-code              Inventory the code (stack, tests, CI, env names,
+                           candidate areas, build commands) instead of a
+                           description; --force replaces a pending intake
   --converted              Mark the stored intake converted (ends the
                            bootstrap; nothing else writes that header).
                            Refuses (exit 1) while validate reports an error

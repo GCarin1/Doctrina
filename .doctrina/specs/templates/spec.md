@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.28.0
+**Version:** 0.29.0
 
 ## Purpose
 
@@ -61,6 +61,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall ship the consolidation playbook as a template resolved project-over-bundled, like the work, chore and bootstrap playbooks.
 - The system shall state the change cycle in the AGENTS.md template and in the always-applied Cursor rule alike — a request that changes behaviour opens a change before code is edited, one change per activity, the change id in the first sentence to the human, `context --for` rather than `prime` for the spec, the exported project skills, and the archive path repeated after `close` — keeping every other rule in AGENTS.md.
 - The system shall render the work playbook's read step with `--for` and the request, one quote-free line of at most 80 characters, through the documented `FOR` token.
+- The system shall ship `delivery.md.template` and the `delivery` playbook, resolved through the per-file chain like every other template, with the delivery tokens (`DELIVERY_ID`, `DELIVERY_TITLE`, `DELIVERY_REF`, `DELIVERY_PROJECTS`) and the playbook tokens (`DELIVERY_FILE`, `ROUTING`, `TOOLS`) documented in the templates README.
 
 ### Event-driven
 

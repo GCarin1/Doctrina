@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.57.1
+**Version:** 0.57.2
 
 ## Purpose
 
@@ -282,3 +282,6 @@ The CLI is v0 spec-compliant when:
   (`intake`, `work`, `spec`, `change`, `decision`, `contract`, `skill`,
   `intent`, `triage`) — covered by the `authoring` capability spec, split
   out of this one when it crossed the 400-line cap a third time.
+
+- The multi-repository workspace (`workspace`) — covered by the
+  `workspace` capability spec.

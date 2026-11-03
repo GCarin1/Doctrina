@@ -230,3 +230,6 @@ One line per archived change, newest last. Appended by
 - 2026-10-30 — 0217-prime-entrega-o-comando-de-leitura — prime entrega o comando de leitura (specs: insight MODIFIED, templates MODIFIED)
 - 2026-10-30 — 0218-aderencia-ao-ciclo-medida — aderencia ao ciclo medida (specs: scaffolding MODIFIED)
 - 2026-10-30 — 0219-cortar-0-19-0 — cortar a 0.19.0
+- 2026-11-03 — 0220-o-contexto-mora-num-workspace — o contexto mora num workspace (specs: cli MODIFIED, workspace ADDED)
+- 2026-11-03 — 0221-o-codigo-existente-vira-intake — o codigo existente vira intake (specs: authoring MODIFIED, gates MODIFIED)
+- 2026-11-03 — 0222-a-entrega-atravessa-repositorios — a entrega atravessa repositorios (specs: delivery ADDED, templates MODIFIED)

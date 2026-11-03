@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.19.0",
-  "last_updated": "2026-10-30",
+  "last_updated": "2026-11-03",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.30.0",
+        "version": "0.31.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.57.1",
+        "version": "0.57.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -53,6 +53,22 @@
         ],
         "source": [
           "packages/doctrina-cli/src/lib/{dates,fs-ops}.js"
+        ]
+      },
+      {
+        "id": "delivery",
+        "path": ".doctrina/specs/delivery/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-11-03",
+        "implementation": "implemented",
+        "depends_on": [
+          "workspace"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/lib/delivery.js",
+          "packages/doctrina-cli/src/commands/delivery.js",
+          "packages/doctrina-cli/src/lib/task-card.js"
         ]
       },
       {
@@ -80,7 +96,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.48.0",
+        "version": "1.49.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -147,7 +163,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.28.0",
+        "version": "0.29.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -170,6 +186,18 @@
         ],
         "source": [
           "packages/doctrina-cli/src/lib/{doc-model,validation-model}.js"
+        ]
+      },
+      {
+        "id": "workspace",
+        "path": ".doctrina/specs/workspace/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-11-03",
+        "implementation": "implemented",
+        "source": [
+          "packages/doctrina-cli/src/lib/workspace.js",
+          "packages/doctrina-cli/src/commands/workspace.js"
         ]
       }
     ],
@@ -205,8 +233,9 @@
         "id": "0004",
         "path": ".doctrina/decisions/0004-single-linear-orchestrator.md",
         "title": "Adopt a single linear orchestrator instead of role-based parallel agents",
-        "status": "accepted",
+        "status": "superseded by 0030",
         "date": "2026-06-03",
+        "superseded_by": "0030",
         "scope": [
           "cli"
         ],
@@ -539,6 +568,31 @@
           "structure"
         ],
         "summary": "`doctrina validate` e a gramática do `.doctrina/` que ele cobra saem para"
+      },
+      {
+        "id": "0029",
+        "path": ".doctrina/decisions/0029-o-contexto-de-varios-repositorios-mora-num-workspace-privado-ligado-por-link-e-oculto-do-git-do-repositorio.md",
+        "title": "O contexto de vários repositórios mora num workspace privado, ligado por link e oculto do git do repositório",
+        "status": "accepted",
+        "date": "2026-11-03",
+        "scope": [
+          "workspace"
+        ],
+        "summary": "Um workspace é um diretório com `workspace.json` (projetos, papéis,"
+      },
+      {
+        "id": "0030",
+        "path": ".doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md",
+        "title": "Um planejador orquestra, um escritor por repositório; executores recebem cartões autocontidos",
+        "status": "accepted",
+        "date": "2026-11-03",
+        "supersedes": "0004",
+        "scope": [
+          "cli",
+          "delivery",
+          "workspace"
+        ],
+        "summary": "Um planejador — o agente da sessão, no modelo mais capaz — lê a"
       }
     ],
     "changes": [],
@@ -3629,6 +3683,60 @@
         "applied": "2026-10-30",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0220-o-contexto-mora-num-workspace",
+        "title": "o contexto mora num workspace",
+        "path": ".doctrina/changes/archive/2026-11-03-0220-o-contexto-mora-num-workspace",
+        "status": "applied",
+        "applied": "2026-11-03",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "ADDED"
+          }
+        ],
+        "lane": "product (confident; signals: registrar)"
+      },
+      {
+        "id": "0221-o-codigo-existente-vira-intake",
+        "title": "o codigo existente vira intake",
+        "path": ".doctrina/changes/archive/2026-11-03-0221-o-codigo-existente-vira-intake",
+        "status": "applied",
+        "applied": "2026-11-03",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0222-a-entrega-atravessa-repositorios",
+        "title": "a entrega atravessa repositorios",
+        "path": ".doctrina/changes/archive/2026-11-03-0222-a-entrega-atravessa-repositorios",
+        "status": "applied",
+        "applied": "2026-11-03",
+        "specs_affected": [
+          {
+            "capability": "delivery",
+            "operation": "ADDED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [
