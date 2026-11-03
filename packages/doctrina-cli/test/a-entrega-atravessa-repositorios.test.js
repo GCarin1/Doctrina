@@ -38,6 +38,16 @@ function workspace() {
 
 const DELIVERY = "0001-tela-de-login";
 
+// What a planner writes once the code is out: the story, the release
+// claims ticked, what was watched (change 0224).
+function writeRecord(/** @type {string} */ file) {
+  const text = readFileSync(file, "utf8").replace(/\r\n/g, "\n")
+    .replace(/## Story\n\n<!--[\s\S]*?-->\n/, "## Story\n\nComo cliente, quero ver a tela de login bloqueada após 5 tentativas.\n")
+    .replace(/- \[ \] /g, "- [x] ")
+    .replace(/(## Observability\n\n<!--[\s\S]*?-->)/, "$1\n\n- Datadog monitor auth-5xx, 24h after release: no change.");
+  writeFileSync(file, text);
+}
+
 test("delivery new writes the file and the playbook; route orders the projects", () => {
   const s = workspace();
   try {
@@ -103,6 +113,13 @@ test("the delivery closes only when every routed project's change is archived", 
     mkdirSync(path.join(changes, "archive"), { recursive: true });
     renameSync(path.join(changes, id), path.join(changes, "archive", `2026-11-03-${id}`));
     assert.match(s.run(s.ws, ["delivery", "status", "1"]).stdout, /archived\s+0001-/);
+    // The changes are closed; the delivery's own record is not written yet.
+    const record = s.run(s.ws, ["delivery", "check", "1"]);
+    assert.equal(record.status, 1);
+    assert.match(record.stdout, /## Story is empty/);
+    assert.match(record.stdout, /## Release: unticked — Every project's change is merged/);
+    assert.match(record.stdout, /## Observability is empty/);
+    writeRecord(path.join(s.ws, "deliveries", DELIVERY, "delivery.md"));
     assert.equal(s.run(s.ws, ["delivery", "check", "1"]).status, 0);
     const close = s.run(s.ws, ["delivery", "close", "1"]);
     assert.equal(close.status, 0, close.stdout);
@@ -110,7 +127,9 @@ test("the delivery closes only when every routed project's change is archived", 
     const file = readFileSync(path.join(s.ws, "deliveries", DELIVERY, "delivery.md"), "utf8");
     assert.match(file, /- \*\*Status:\*\* closed/);
     assert.match(file, /- \*\*Closed:\*\* \d{4}-\d{2}-\d{2}/);
-    assert.match(s.run(s.ws, ["delivery", "list"]).stdout, /closed .* 1\/1 changes closed/);
+    const list = s.run(s.ws, ["delivery", "list"]).stdout;
+    assert.match(list, /closed .* 1\/1 changes closed, lead time \d+d/);
+    assert.match(list, /1 closed · median lead time \d+d/);
   } finally {
     s.done();
   }
@@ -125,10 +144,11 @@ test("change card hands the next open task over with everything it needs", () =>
     run(["init", "--non-interactive", "--project-name", "loja", "--project-description", "x"]);
     run(["spec", "new", "pagamento"]);
     const spec = path.join(dir, ".doctrina", "specs", "pagamento", "spec.md");
-    writeFileSync(spec, readFileSync(spec, "utf8").replace(/### Ubiquitous\n/, "### Ubiquitous\n\n- The system shall answer 402 when the card is declined.\n"));
+    // Normalised first: a Windows checkout scaffolds with CRLF.
+    writeFileSync(spec, readFileSync(spec, "utf8").replace(/\r\n/g, "\n").replace(/### Ubiquitous\n/, "### Ubiquitous\n\n- The system shall answer 402 when the card is declined.\n"));
     run(["change", "new", "0001-recusa", "Pagamento recusado"]);
     const ch = path.join(dir, ".doctrina", "changes", "0001-recusa");
-    const proposal = readFileSync(path.join(ch, "proposal.md"), "utf8")
+    const proposal = readFileSync(path.join(ch, "proposal.md"), "utf8").replace(/\r\n/g, "\n")
       .replace(/## Why\n\n[\s\S]*?\n## What/, "## Why\n\nO cliente precisa saber que o cartão foi recusado.\n\n## What");
     writeFileSync(path.join(ch, "proposal.md"), proposal);
     run(["change", "delta", "0001-recusa", "pagamento", "--bump", "patch"]);

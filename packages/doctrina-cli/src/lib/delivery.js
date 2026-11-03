@@ -46,7 +46,8 @@ export function resolveDeliveryId(wsDir, ref) {
 }
 
 export function readDelivery(wsDir, id) {
-  const text = read(deliveryPath(wsDir, id));
+  // CRLF on a Windows checkout: a `$` would leave the \r in the title.
+  const text = read(deliveryPath(wsDir, id)).replace(/\r\n/g, "\n");
   const title = text.match(/^#\s+Delivery\s+\S+\s+[—-]\s+(.+)$/m)?.[1]?.trim() ?? id;
   const projects = (listHeader(text, "Projects") ?? "").split(",").map((s) => s.trim()).filter((s) => s && s !== "—");
   return {
@@ -151,9 +152,46 @@ export function deliveryChanges(wsDir, ws, delivery) {
   return out;
 }
 
+/** A section's own text: comments and blank lines removed. Empty string when absent. */
+export function sectionText(text, heading) {
+  const lines = String(text).replace(/\r\n/g, "\n").replace(/<!--[\s\S]*?-->/g, "").split("\n");
+  const at = lines.findIndex((l) => l.trim() === `## ${heading}`);
+  if (at < 0) return "";
+  const out = [];
+  for (const l of lines.slice(at + 1)) {
+    if (/^## /.test(l)) break;
+    if (l.trim()) out.push(l.trim());
+  }
+  return out.join("\n");
+}
+
+/** Days between two YYYY-MM-DD dates, or null. */
+export function daysBetween(from, to) {
+  const a = Date.parse(String(from ?? "") + "T00:00:00Z");
+  const b = Date.parse(String(to ?? "") + "T00:00:00Z");
+  return Number.isNaN(a) || Number.isNaN(b) ? null : Math.round((b - a) / 86400000);
+}
+
+/**
+ * The record a delivery keeps of its own work (change 0224): the story it
+ * came from, every Release claim ticked, and at least one line of what was
+ * watched after the release. The changes prove the code; these prove the
+ * delivery reached its users and was looked at once it had.
+ */
+export function recordBlockers(delivery) {
+  const out = [];
+  if (sectionText(delivery.text, "Story") === "") out.push("## Story is empty — copy the tracker item's story and acceptance criteria, verbatim");
+  const release = sectionText(delivery.text, "Release");
+  const open = release.split("\n").filter((l) => /^[-*]\s*\[\s\]/.test(l));
+  for (const box of open) out.push(`## Release: unticked — ${box.replace(/^[-*]\s*\[\s\]\s*/, "")}`);
+  if (sectionText(delivery.text, "Observability") === "") out.push("## Observability is empty — record what was watched after the release (monitor, dashboard or query, the window, what it showed)");
+  return out;
+}
+
 /**
  * Everything that keeps a delivery from closing. Each routed project must
- * carry at least one change for it, and every such change must be archived.
+ * carry at least one change for it, and every such change must be archived;
+ * the delivery's own record must be written (recordBlockers).
  */
 export function deliveryBlockers(wsDir, ws, delivery) {
   const blockers = [];
@@ -165,5 +203,6 @@ export function deliveryBlockers(wsDir, ws, delivery) {
       blockers.push(`${row.project}: change ${ch.id} is ${ch.status} (${ch.tasksDone}/${ch.tasksTotal} tasks) — close it there with \`doctrina close ${ch.id}\``);
     }
   }
+  blockers.push(...recordBlockers(delivery));
   return blockers;
 }

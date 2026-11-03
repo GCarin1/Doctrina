@@ -27,7 +27,8 @@ test("an applied change resumes its close instead of failing the pre-apply check
     assert.equal(run(["init", "--non-interactive", "--project-name", "Acme", "--project-description", "x"]).status, 0);
     assert.equal(run(["change", "new", "0001-pagamento", "Pagamento"]).status, 0);
     const ch = path.join(dir, ".doctrina", "changes", "0001-pagamento");
-    const proposal = readFileSync(path.join(ch, "proposal.md"), "utf8")
+    // Normalised first: a Windows checkout scaffolds with CRLF.
+    const proposal = readFileSync(path.join(ch, "proposal.md"), "utf8").replace(/\r\n/g, "\n")
       .replace(/## Why\n\n[\s\S]*?\n## What/, "## Why\n\nO pagamento precisa de uma spec.\n\n## What")
       .replace(/<!-- The shape of the change[^>]*-->/, "- Spec `pagamento` nova.");
     writeFileSync(path.join(ch, "proposal.md"), proposal);

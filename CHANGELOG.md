@@ -40,11 +40,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Cursor rule, hooks, `.claude/agents/doctrina-*.md` subagents and a
   `.code-workspace` with every repository — and `prime` there is its primer.
 
+- `delivery check` holds a delivery to its own record — the story, every Release
+  box ticked, what was watched after the release — and `delivery list` reports
+  lead time with the median over the closed deliveries.
+
 ### Fixed
 
 - A `close` stopped after its apply (killed, or out of time while `verify` ran)
   can be rerun: an applied change is asked the integrity checks, and `change
   apply` skips it before consulting the pre-apply gate.
+- A task card and a delivery read on a Windows checkout (CRLF) keep the change's
+  Why and the delivery's title.
 
 ## [0.19.0] — 2026-10-30
 

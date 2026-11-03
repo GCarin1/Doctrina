@@ -2508,9 +2508,13 @@ delivery. Without `--projects` it ranks the workspace's projects against
 the title (a hint, never a decision). `route` writes the projects in
 dependency order and prints the `work` line for each. `status` lists, per
 project, the changes carrying the delivery; `check` exits `1` while a
-routed project has no change for it or one still open; `close` runs the
-check, then writes `Status: closed` and the `Closed` date. `<id>` is the
-folder name or its number.
+routed project has no change for it or one still open, and while the
+delivery's own record is missing — an empty `## Story`, an unticked
+`## Release` box, or an `## Observability` that records nothing watched
+after the release; `close` runs the check, then writes `Status: closed`
+and the `Closed` date. `list` shows each delivery's age — lead time once
+closed — and the median over the closed ones. `<id>` is the folder name
+or its number.
 
 | Flag | Meaning |
 |------|---------|

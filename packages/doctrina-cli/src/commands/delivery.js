@@ -11,7 +11,7 @@ import { renderPlaybook } from "../lib/playbook.js";
 import { findWorkspace, readWorkspace } from "../lib/workspace.js";
 import {
   deliveryBlockers, deliveryChanges, deliveryPath, dependencyOrder, listDeliveries, nextDeliveryId,
-  rankProjects, readDelivery, resolveDeliveryId, setDeliveryHeader,
+  rankProjects, readDelivery, resolveDeliveryId, setDeliveryHeader, daysBetween, recordBlockers,
 } from "../lib/delivery.js";
 
 // `doctrina delivery` — one item of work across repositories (ADR 0030).
@@ -138,8 +138,15 @@ function deliveryList(wsDir, ws) {
     const changes = rows.flatMap((r) => r.changes);
     const closed = changes.filter((ch) => ch.archived).length;
     const colour = d.status === "closed" ? c.green : c.yellow;
+    const days = daysBetween(d.date, d.status === "closed" ? d.closed : today());
+    const age = days === null ? "" : d.status === "closed" ? `, lead time ${days}d` : `, open ${days}d`;
     console.log(`  ${c.cyan(d.id.padEnd(30))} ${colour(d.status.padEnd(7))} ${d.ref.padEnd(12)} ${d.projects.join(", ") || "—"}` +
-      c.gray(`  ${closed}/${changes.length} changes closed`));
+      c.gray(`  ${closed}/${changes.length} changes closed${age}`));
+  }
+  const leads = all.filter((d) => d.status === "closed").map((d) => daysBetween(d.date, d.closed)).filter((n) => n !== null).sort((a, b) => a - b);
+  if (leads.length > 0) {
+    console.log("");
+    console.log(c.gray(`${leads.length} closed · median lead time ${leads[Math.floor((leads.length - 1) / 2)]}d · longest ${leads[leads.length - 1]}d`));
   }
   return EXIT.OK;
 }
@@ -156,6 +163,11 @@ function deliveryStatus(wsDir, ws, id) {
       const colour = ch.archived ? c.green : c.yellow;
       console.log(`    ${colour(ch.status.padEnd(9))} ${ch.id}` + c.gray(`  tasks ${ch.tasksDone}/${ch.tasksTotal}`));
     }
+  }
+  const record = recordBlockers(d);
+  if (record.length > 0) {
+    console.log(`  ${c.cyan("record")}`);
+    for (const r of record) console.log(c.yellow("    ") + r);
   }
   const blockers = deliveryBlockers(wsDir, ws, d);
   console.log("");
@@ -210,11 +222,14 @@ from those changes, never copied into it.
   route <id> <a,b>
       Set the projects (dependencies first) and print the \`work\` line for each.
   list
-      Every delivery with its status, ref and closed/total changes.
+      Every delivery with its status, ref, closed/total changes and age —
+      lead time once closed, with the median over the closed ones.
   status <id>
       Per project: the changes carrying this delivery, their state and tasks.
   check <id>
-      Exit 1 while a routed project has no change for it, or one still open.
+      Exit 1 while a routed project has no change for it or one still open,
+      while ## Story is empty, a ## Release box is unticked, or
+      ## Observability records nothing.
   close <id>
       The check, then Status: closed and the Closed date.
 

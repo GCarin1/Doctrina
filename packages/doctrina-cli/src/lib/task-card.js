@@ -70,7 +70,8 @@ export function taskCard(projectRoot, changeId, ordinal = null) {
     if (!box) return { card: null, reason: `no task ${ordinal} (tasks.md has ${boxes.length})` };
   }
   if (box.placeholder) return { card: null, reason: `task ${box.ordinal} is a scaffold placeholder — write the task first` };
-  const proposal = isFile(path.join(changeDir, "proposal.md")) ? read(path.join(changeDir, "proposal.md")) : "";
+  // CRLF on a Windows checkout: the Why is read paragraph by paragraph.
+  const proposal = isFile(path.join(changeDir, "proposal.md")) ? read(path.join(changeDir, "proposal.md")).replace(/\r\n/g, "\n") : "";
   const fields = cardFields(box.details);
   const query = terms([box.text, ...box.details].join(" "));
   const slices = [];

@@ -2573,8 +2573,12 @@ contra o título (uma sugestão, nunca uma decisão). O `route` grava os
 projetos em ordem de dependência e imprime a linha de `work` de cada um. O
 `status` lista, por projeto, as changes que carregam a entrega; o `check`
 sai `1` enquanto um projeto roteado não tem change para ela ou tem uma
-ainda aberta; o `close` roda o check e então grava `Status: closed` e a
-data `Closed`. O `<id>` é o nome da pasta ou o número dela.
+ainda aberta, e enquanto falta o registro da própria entrega — um
+`## Story` vazio, uma caixa de `## Release` desmarcada, ou um
+`## Observability` que não registra nada observado depois da subida; o
+`close` roda o check e então grava `Status: closed` e a data `Closed`. O
+`list` mostra a idade de cada entrega — o lead time depois de fechada — e
+a mediana das fechadas. O `<id>` é o nome da pasta ou o número dela.
 
 | Flag | Significado |
 |------|-------------|

@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Purpose
 
@@ -34,6 +34,8 @@ those changes can be handed to an executor as a self-contained card.
 - When `doctrina delivery check <id>` runs, the system shall exit 1 while a routed project carries no change for the delivery or carries one not yet archived, naming each, and exit 0 otherwise.
 - When `doctrina delivery close <id>` runs and the check passes, the system shall set `Status: closed` and the `Closed` date, and print the `Tell the human:` line.
 - When `doctrina change card <id> [<n>]` runs, the system shall print task `<n>` — or the first open task — with the lines indented under it, the change's Why, the delta capabilities' specs cut to the task, the card's `Verify:` command or `doctrina verify`, the tick command, and the instruction to leave opening, closing and `.doctrina/` to the planner.
+- When `doctrina delivery check <id>` runs, the system shall also require the delivery's own record — a `## Story` with text, every `## Release` box ticked and a `## Observability` with at least one line beyond its comment — naming each gap, because the changes prove the code and only the record proves the delivery reached its users and was watched after it did.
+- When `doctrina delivery list` runs, the system shall print each delivery's age — open days, or lead time from `Date` to `Closed` once closed — and the median and longest lead time over the closed ones.
 
 ### Unwanted behavior
 
@@ -48,6 +50,7 @@ A delivery is spec-compliant when:
 2. [verified] `work --delivery` stamps the proposal of a routed repository and refuses an unrouted one with exit 3 and an unknown delivery with exit 2, opening nothing — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 3. [verified] `delivery check` exits 1 while a routed project has no change or an open one and 0 once every change is archived; `delivery close` refuses before that and closes after — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 4. [verified] `change card` prints the next open task with its indented lines, the Why, the spec slice and its Verify command, and says so when every task is ticked — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
+5. [verified] With every routed change archived, `delivery check` still exits 1 naming an empty Story, each unticked Release box and an empty Observability, and exits 0 once they are written; `delivery list` prints the lead time and the median — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 
 ## Out of scope for this spec
 
