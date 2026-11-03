@@ -141,6 +141,7 @@ doctrina intake --converted           # encerra o bootstrap
 
 | Flag | Função |
 |------|--------|
+| `--from-code` | Para um repositório que já tem código: guarda o **inventário do código** como intake — stack e frameworks lidos dos manifestos, contagem de arquivos e de testes, manifestos de CI e de runtime, áreas candidatas sob as raízes de código usuais, os comandos de build e teste que ele enxerga e os **nomes** das variáveis dos arquivos `.env` de exemplo (nunca os valores) — e imprime o **playbook de absorção**, que pede o que o código faz hoje e manda o que o código não diz para o humano como perguntas abertas. Recusa um intake convertido (saída `3`) e um pendente sem `--force`. |
 | `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
 | `--converted` | Marca o intake armazenado como convertido, encerrando o bootstrap. Nada mais escreve esse cabeçalho, e o `validate` recusa qualquer valor além de `pending` ou `converted`. Recusa com saída `1` enquanto o `validate` reporta erro, listando-os — converter é afirmar que o bootstrap terminou; `--force` converte mesmo assim. Sai `3` quando não há intake para marcar. |
 | `--force` | Com `--converted`, converte mesmo com o `validate` falhando. Fora isso, sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
@@ -258,6 +259,7 @@ arquivo nenhum. O ranking do prompt esqueletiza; `--from-diff` e
 | `--id <id>` | Sobrescreve o id de change derivado. |
 | `--chore`, `--no-spec` | Abre um change de chore sem spec (infra/docs/build), com playbook que pula as etapas de delta. |
 | `--consolidate <cap>` | Abre uma change que consolida a spec de `<cap>`, com playbook próprio (abaixo). Não precisa de prompt. |
+| `--delivery <id>` | Esta change é a parte do repositório numa entrega do workspace (`doctrina delivery`): a proposal ganha `- **Delivery:** <id>`. Recusado antes de criar qualquer coisa quando a entrega não existe (saída `2`) ou não foi roteada para este repositório (saída `3`, citando `delivery route`). |
 | `--design` | Também esboça o `design.md`, para um change com escolhas não triviais (opt-in, como em `change new --design`). |
 | `--force` | Sobrescreve uma pasta de change existente, e passa pela retenção de raia descrita abaixo. |
 
@@ -273,6 +275,15 @@ dois em um). Decidir o que é redundante é do agente (ADR 0005); o CLI mede e
 aplica. Nenhum comportamento muda, e o gate de coverage do close continua
 exigindo prova de cada critério mantido. O aviso de 400 linhas do
 `validate` cita este comando.
+
+**Um pedido que repete trabalho existente é segurado.** Antes de
+esqueletizar, o `work` compara o prompt com as changes abertas e com as
+arquivadas nos últimos 14 dias (sobreposição determinística de termos,
+medida dos dois lados). Uma que ele repete em boa parte segura o pedido com
+saída 3, nomeando-a: uma change aberta é retomada (`work --resume <id>`), uma
+arquivada é relatada como feita, com o caminho. Uma review de campo achou um
+pedido de "criar o doctrina work" para duas changes já fechadas. `--force`
+abre a change mesmo assim.
 
 Antes de esqueletizar qualquer coisa, o `work` consulta o classificador de
 raia (veja [`doctrina triage`](#doctrina-triage-prompt)). Um prompt que
@@ -637,6 +648,25 @@ no `Affects specs:` do proposal quando ainda não está nomeada lá — como o
 | Op malformada, nada a acrescentar, change desconhecida, ou capability sem spec (uma nova é um delta ADDED) | `2` |
 | O delta é ADDED ou REMOVED — ops só se aplicam a MODIFIED | `3` |
 
+## `doctrina change card <id> [<n>]`
+
+Uma tarefa como o executor a recebe (ADR 0030). Um subagente não vê a
+conversa do planejador, então o cartão é o contexto inteiro dele.
+
+```
+doctrina change card 0042-pagamento-recusado      # a próxima tarefa aberta
+doctrina change card 0042-pagamento-recusado 3    # a tarefa 3
+```
+
+O cartão traz a tarefa e as linhas indentadas sob ela no `tasks.md` —
+escreva-as como `Files:`, `Requirement:` e `Verify:` —, o `## Why` da
+change, a spec de cada capability do delta recortada para a tarefa e o que
+fazer ao terminar: rodar o comando `Verify:` do cartão (ou `doctrina
+verify`), marcar a caixa com a linha de `change tick` que ele imprime e
+reportar. Ele diz ao executor que abrir, fechar e mexer em `.doctrina/` é
+do planejador. Sai `0` com um aviso quando toda tarefa está marcada; `3`
+para um número de tarefa que não existe ou um placeholder do scaffold.
+
 ## `doctrina decision new "<title>"`
 
 Cria o próximo ADR sequencial a partir do template.
@@ -894,6 +924,25 @@ diretório que ainda guarda alguma coisa. Um `.claude/` vazio não é uma
 ausência — é uma raiz de configuração que o próximo agente encontra e trata
 como existente. Um diretório com um arquivo mantido, ou com qualquer coisa
 sua, fica intocado.
+
+**Hooks: o estado do projeto chega ao agente sem ser pedido.** O adapter
+`claude` acrescenta dois hooks ao `.claude/settings.json` — o
+`SessionStart` roda `doctrina prime --hook claude` (o primer, como contexto
+da sessão) e o `UserPromptSubmit` roda `doctrina prime --pulse` (uma linha
+factual ao lado de cada prompt: a change aberta, ou que um pedido que muda
+comportamento abre uma com `doctrina work`). O adapter `cursor` acrescenta
+o hook de sessão ao `.cursor/hooks.json` (`doctrina prime --hook cursor`);
+o hook por prompt do Cursor não injeta contexto, então a regra sempre
+aplicada carrega o resto. Uma review de campo achou que, sem o nome do
+framework no pedido, o pedido de código vencia — o ciclo estava escrito no
+AGENTS.md, lido uma vez, contra o pedido lido agora.
+
+Esses dois arquivos são compartilhados com você, então são **mesclados**,
+nunca sobrescritos: objetos recursam, arrays ganham só as entradas que
+faltam, e um valor que você definiu continua seu. `adapter add` rodado duas
+vezes não acrescenta nada duas vezes; `adapter remove` tira só as entradas
+do Doctrina e apaga o arquivo só quando nada seu sobra nele. Um arquivo que
+não é JSON válido fica intocado, e é nomeado.
 
 **Adapters customizados.** Um diretório em
 `.doctrina/templates/adapters/<nome>/` é instalável por nome e tem
@@ -1741,6 +1790,19 @@ Com `--check` o comando não escreve nada, imprime um resumo do
 drift por categoria de artefato e sai 1 quando o index não bate
 mais com a árvore. Conecte ao CI ao lado do `validate`.
 
+**As skills, onde os agentes procuram skills.** Todo rebuild também exporta
+o `.doctrina/skills/` como pastas `SKILL.md` — o formato que os agentes
+agora compartilham — para `.agents/skills/<nome>/` (o Cursor e o Codex o
+descobrem) e, com o adapter `claude` instalado, `.claude/skills/<nome>/`. O
+`when:` da skill entra na `description` exportada, porque o agente decide
+só pela descrição. Uma review de campo achou um catálogo de skills do
+editor que nunca listava `.doctrina/skills/`, então uma skill que casava só
+disparava quando o pedido citava o arquivo. O `.doctrina/skills/` continua
+sendo a única fonte: cada export é marcado como gerado, um export cuja
+skill sumiu é removido, e uma pasta que você mesmo pôs lá nunca é tocada.
+Sob `--check` um export desatualizado é uma nota, não uma falha. O
+`upgrade --write` e o `adapter add` também exportam.
+
 `--check --staged` faz a mesma pergunta ao **commit** em vez de ao
 disco: todo artefato que o index staged nomeia tem de estar no commit,
 e todo artefato staged tem de estar no index. O index é derivado da
@@ -1916,6 +1978,15 @@ idade, e o `next` aponta uma change aplicada para `doctrina close <id>` —
 nunca para `change archive`, o único caminho que passa por fora do verify,
 do coverage e do gate de docs.
 
+**A frase para o humano.** O `work` termina com `Tell the human: opened
+change <id> — "<title>" (.doctrina/changes/<id>/)` e o `close` com `Tell
+the human: change <id> is closed — archived at
+.doctrina/changes/archive/<data>-<id>/`; o agente as repete. O `prime`
+lista as changes fechadas nos últimos 7 dias com o caminho no arquivo, e o
+pulse por prompt nomeia a última. Uma review de campo achou a change vivendo
+só no terminal, e depois arquivada fora de toda leitura padrão: quem pediu o
+trabalho depois pediu "o doctrina work" de duas changes já fechadas.
+
 **A linha final afirma só o que rodou.** Cada palavra mapeia para um passo
 — `verify` → verified, `archive` → archived, `validate` → validated — e um
 passo pulado perde sua palavra e é nomeado no lugar. A linha era uma string
@@ -2084,6 +2155,16 @@ do git.
 doctrina metrics [--since <dias|data>] [--save]
 ```
 
+**Aderência ao fluxo.** Ao lado dos proxies de retrabalho, o `metrics`
+reporta a parcela de **commits de código que carregaram uma change** —
+tocaram `.doctrina/changes/` ou nomearam uma no assunto ("Change 0212", um
+id como `0212-x`); commits que só tocam `.doctrina/`, configuração de agente
+ou prosa não são código. É o número que diz se um agente segue o ciclo sem
+que peçam, o que uma review de campo achou que ele não fazia. O `--save` o
+guarda no snapshot e o `--trend` o acompanha. Com o log de uso ligado, o
+`metrics --commands` acrescenta as execuções de `context`, `close` e `prime`
+por `work`.
+
 | Flag | Default | Função |
 |------|---------|--------|
 | `--since <n\|data>` | `90` | Janela: contagem de dias, data de calendário (`2026-01-01`) ou `"<n> <unit>s ago"` (`"3 months ago"`). Qualquer outra coisa sai com `2`: o git lê qualquer texto como data (`abc` vira agora), então um erro de digitação mediria a janela errada. |
@@ -2106,11 +2187,24 @@ Imprime o pacote de contexto exato para uma tarefa, na ordem de
 leitura documentada.
 
 ```
-doctrina context billing
+doctrina context billing --for "expirar o token da sessão" --concat
 doctrina context billing --concat
+doctrina context billing --full --concat
 ```
 
-O pacote é: `AGENTS.md` → `.doctrina/product.md` → a spec da
+**Enxuto por padrão.** O `AGENTS.md` não é repetido — todo agente a que o
+pacote se destina já o carrega. Um ADR aceito é um **resumo**: o título e
+a abertura da Decision, com `doctrina show NNNN` para o resto. Com
+`--for "<tarefa>"` a spec da tarefa, e as specs de que ela depende, são
+**recortadas**: os headers, o Purpose e os requisitos e critérios que a
+tarefa mais casa, cada lacuna nomeada no lugar (`… 3 not matching the
+task`) e um rodapé dizendo quantos ficaram. `--full` devolve todo texto
+inteiro. Uma review de campo achou agentes pulando o `context` pelo
+`prime`; medido aqui, `context gates --concat` custava ~40k tokens e o
+`--for` não cortava nada abaixo do orçamento. O pacote da mesma tarefa
+agora fica em ~5k.
+
+O pacote é: (`AGENTS.md` com `--full`) → `.doctrina/product.md` → a spec da
 capability (quando dada — caso contrário, toda spec ativa, para que a
 verdade corrente nunca falte) → changes abertas → ADRs com status
 `accepted` — cada um com sua contagem de linhas, mais o total.
@@ -2198,6 +2292,9 @@ para rodar toda sessão. Read-only; sempre sai 0.
 
 | Flag | Função |
 |------|--------|
+| (padrão) | Termina com a leitura do trabalho em mãos, como comando a copiar: `Read for <id>: doctrina context <cap> --for "<título>" --concat` para a primeira change aberta com delta — o pacote recortado, não um "read deeper" genérico. |
+| `--pulse` | Uma linha factual para um hook de agente por prompt: a(s) change(s) aberta(s) com seus ids, ou que um pedido que muda comportamento é aberto como change com `doctrina work`. Lê só as changes abertas, então é barato o bastante para rodar antes de cada prompt. |
+| `--hook claude\|cursor` | O primer mais o pulse, no formato que o hook de início de sessão do agente lê: texto puro para o Claude Code, `{"additional_context": …}` para o Cursor; cortado em 9.000 caracteres (o Claude guarda 10.000). Instalado por `doctrina adapter add claude\|cursor`. |
 | `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. O análogo do `constitution.md` do Spec Kit, derivado em vez de escrito: para mudar um princípio, substitua a ADR; para mudar um non-goal, edite o `product.md`. (Até a 0.17.0 isto também era um comando próprio, já removido.) |
 
 O primer tem tamanho fixo de propósito — ele é lido no início de toda
@@ -2368,6 +2465,126 @@ doctrina completion pwsh >> $PROFILE
 Completa comandos e seus subcomandos (flags não são completadas).
 Operações depreciadas ficam de fora: continuam rodando, mas o tab oferece
 só os substitutos. Saída estática — regenere após atualizar o CLI.
+
+## `doctrina workspace init` / `add` / `attach` / `detach` / `list` / `tool` / `guard`
+
+O contexto de vários repositórios num lugar só (ADR 0029). Uma entrega
+que atravessa `front-core`, `front-feature` e `back-end` precisa de um
+lugar que diga quais repositórios existem, o que cada um é e de quem
+depende — e um repositório que não pode carregar `.doctrina/` ainda
+precisa que o seu contexto fique guardado em algum lugar.
+
+```
+doctrina workspace init ~/work/acme-ws --name acme      # um repositório git privado
+cd ~/work/acme-ws
+doctrina workspace add ../back-end --role back --about "API REST"
+doctrina workspace add ../front-core --role front --about "design system" --depends-on back-end
+doctrina workspace list
+doctrina workspace attach front-core --path ~/src/front-core   # depois de um clone novo
+doctrina workspace detach front-core
+```
+
+O `add` registra como **in-repo** um repositório que já tem
+`.doctrina/`. Um sem ele vira **sombra**: o AGENTS.md, o `.doctrina/` e o
+adaptador do agente (`--agent`, padrão `cursor`) nascem em
+`projects/<nome>/` no workspace e são **ligados** ao repositório — o
+`.doctrina/` como um link de diretório (junção no Windows), cada outro
+arquivo como um link próprio — e escondidos do git do repositório por um
+bloco marcado em `.git/info/exclude`, que o git nunca versiona. Um
+caminho que o repositório já tem é mantido e reportado. Dentro do
+repositório todo comando funciona como antes: `work`, `context` e `close`
+leem e gravam a sombra pelo link.
+
+O `list` mostra o modo e o estado de cada projeto — `ready`, `pending`
+(sem spec ainda: absorva com `doctrina intake --from-code`) ou `missing`
+(o caminho sumiu) — e as changes abertas. O workspace é encontrado por
+`$DOCTRINA_WORKSPACE`, pelo diretório atual ou um ancestral com
+`workspace.json`, pelo link de uma sombra, ou pelo ponteiro que o `init`
+grava em `$DOCTRINA_HOME` (padrão `~/.doctrina`). Faça os commits do
+workspace você mesmo: ele é o histórico de versões do contexto de cada
+projeto sombra.
+
+**Ferramentas e a guarda** (ADR 0031). O `doctrina workspace tool <nome>`
+declara uma ferramenta que o trabalho usa — presets `jira`, `confluence`,
+`figma`, `playwright`, `datadog`, `databricks`, `sql`, ou qualquer nome com
+`--server <o nome do servidor MCP na configuração do seu agente>` — com os
+papéis que a usam (`--for planner,qa`), o propósito e o acesso:
+**leitura**, a menos que `--access write`; `--remove` a tira. O Doctrina
+nunca chama uma ferramenta e nunca grava a configuração dos servidores.
+Ele instala um hook de pré-chamada que roda `doctrina workspace guard
+--hook cursor|claude` (Cursor `beforeMCPExecution`, Claude Code
+`PreToolUse` em `mcp__.*`): uma escrita por uma ferramenta só de leitura é
+negada, uma escrita por uma ferramenta de leitura e escrita pergunta ao
+humano, uma leitura passa, e um servidor que o workspace não declara não
+recebe opinião. Um SQL na chamada decide se ela escreve; senão, os verbos
+do nome da ferramenta. Entrada ilegível nunca bloqueia o agente.
+
+**Arquivos do orquestrador.** Toda escrita no workspace regenera, na raiz:
+`AGENTS.md` (o hub do planejador), `.cursor/rules/00-doctrina-workspace.mdc`,
+`.cursor/hooks.json` e `.claude/settings.json` (mesclados com os seus),
+`.claude/agents/doctrina-executor.md` e `doctrina-reviewer.md` — mais
+`doctrina-qa.md` e `doctrina-observer.md` quando uma ferramenta serve esses
+papéis —, lidos pelo Claude Code e pelo Cursor, e `<nome>.code-workspace`,
+que abre todos os repositórios numa janela. Configure o modelo dos
+executores no `workspace.json` (`"agents": {"executor": {"model": "<id>"}}`);
+o `doctrina prime` na raiz do workspace é o primer do orquestrador.
+
+| Flag | Significado |
+|------|-------------|
+| `--name <n>` | Nome do workspace (`init`) ou do projeto (`add`; padrão: o nome da pasta). |
+| `--mode in-repo\|shadow` | Troca o modo que o `add` deduz. |
+| `--role <r>` / `--about "<texto>"` | O que o projeto é, para rotear uma entrega. |
+| `--depends-on <a,b>` | Projetos registrados de que este depende. |
+| `--agent <nome>` | Adaptador criado na sombra (padrão `cursor`). |
+| `--path <dir>` | `attach`: o repositório mudou de lugar ou foi clonado em outro. |
+| `--no-git` | `init`: não roda `git init` no workspace. |
+| `--server` / `--access read\|write` / `--for <papéis>` / `--purpose` | `tool`: o servidor MCP, o acesso e os papéis (planner, executor, qa, observer, reviewer). |
+| `--remove` | `tool`: tira a ferramenta. |
+| `--hook cursor\|claude` | `guard`: o agente cujo payload de pré-chamada chega pelo stdin. |
+
+## `doctrina delivery new` / `route` / `list` / `status` / `check` / `close`
+
+Um item de trabalho que atravessa repositórios — uma história, uma tela,
+uma correção — planejado, roteado, delegado e fechado a partir de um
+workspace (ADR 0030). O arquivo da entrega guarda o que nenhum repositório
+sozinho possui: a história, as fontes, o plano entre projetos, a subida e
+o que foi observado depois dela. Cada repositório roteado carrega UMA
+change para ela, aberta lá com `work --delivery`; o estado da entrega é
+lido dessas changes.
+
+```
+cd ~/work/acme-ws
+doctrina delivery new "Tela de login com bloqueio" --ref SHOP-42
+doctrina delivery route 1 front-core,back-end      # dependências primeiro: back-end → front-core
+cd ../back-end && doctrina work "Tela de login com bloqueio" --delivery 0001-tela-de-login-com-bloqueio
+doctrina change card <change-id>                   # entrega a próxima tarefa a um executor
+doctrina delivery status 1
+doctrina delivery check 1 && doctrina delivery close 1
+```
+
+O `new` grava `deliveries/<NNNN-slug>/delivery.md` (cabeçalhos `Status`,
+`Date`, `Ref`, `Projects`; seções Story, Sources, Plan, Release,
+Observability) e imprime o **playbook da entrega**: ler o item do
+rastreador e copiar a história literalmente, rotear, abrir uma change por
+repositório, delegar os cartões — um escritor por repositório de cada
+vez —, revisar e fechar cada change você mesmo, subir e observar, e então
+fechar a entrega. Sem `--projects` ele ranqueia os projetos do workspace
+contra o título (uma sugestão, nunca uma decisão). O `route` grava os
+projetos em ordem de dependência e imprime a linha de `work` de cada um. O
+`status` lista, por projeto, as changes que carregam a entrega; o `check`
+sai `1` enquanto um projeto roteado não tem change para ela ou tem uma
+ainda aberta, e enquanto falta o registro da própria entrega — um
+`## Story` vazio, uma caixa de `## Release` desmarcada, ou um
+`## Observability` que não registra nada observado depois da subida; o
+`close` roda o check e então grava `Status: closed` e a data `Closed`. O
+`list` mostra a idade de cada entrega — o lead time depois de fechada — e
+a mediana das fechadas. O `<id>` é o nome da pasta ou o número dela.
+
+| Flag | Significado |
+|------|-------------|
+| `--ref <id-no-rastreador>` | O item do rastreador de onde a entrega vem. |
+| `--projects <a,b>` | Roteia na criação, em vez de com `route`. |
+| `--date <AAAA-MM-DD>` | Data gravada pelo `new` / `close` (padrão: hoje). |
 
 ## `doctrina ci --emit <target>`
 

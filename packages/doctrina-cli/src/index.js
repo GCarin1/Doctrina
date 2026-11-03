@@ -48,6 +48,8 @@ import * as upgrade from "./commands/upgrade.js";
 import * as adapter from "./commands/adapter.js";
 import * as triage from "./commands/triage.js";
 import * as ci from "./commands/ci.js";
+import * as workspace from "./commands/workspace.js";
+import * as delivery from "./commands/delivery.js";
 
 const COMMANDS = {
   init, spec, change, decision, validate, hooks, analyze, clarify,
@@ -56,18 +58,14 @@ const COMMANDS = {
   status, close, review, watch, why,
   prime, handoff, show, doctor, report, completion,
   intent, upgrade, adapter, triage, ci,
+  workspace, delivery,
 };
 
-const TOP_HELP = `
-Usage: doctrina <command> [options]      (\`doctrina <command> --help\` for its flags)
+const TOP_HELP = `Usage: doctrina <command> [options]      (\`doctrina <command> --help\` for its flags)
 
 ${surfaceHelp()}
 
-Global flags:
-  --help, -h           Show this message (or per-command help if after a command)
-  --version, -v        Print the version
-  --debug              On an unexpected error, also print the stack trace
-
+Global flags: --help/-h (this, or a command's own) · --version/-v · --debug (stack traces)
 Exit codes (a contract — an agent reads these to decide what to do next):
 ${exitCodeHelp()}
 `;

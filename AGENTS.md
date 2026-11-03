@@ -13,14 +13,18 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
   `Status: pending`? The specs are not written: run `doctrina intake --text
   "<description>"` and execute the printed playbook in one pass (fill
   `product.md`, derive capabilities, one EARS spec each, `clarify --all` +
-  `validate`, then flip the intake to `converted`). Existing codebase:
-  `doctrina work --from-diff`. After conversion the specs are the only
+  `validate`, then flip the intake to `converted`). Existing code, no specs:
+  `doctrina intake --from-code`. After conversion the specs are the only
   source of truth — never edit `intake.md` to change requirements.
-- **Day-to-day.** Start every session with `doctrina prime` (gates, rules,
-  open work in one read). Turn any request into a change with `doctrina work
-  "<prompt>"` and follow the printed playbook. Preview a close with `doctrina
-  change check <id>`; close with `doctrina close <id>`. Unsure what's next?
-  `doctrina next`. Before compaction or handover: `doctrina handoff`.
+- **Day-to-day.** `doctrina prime` opens the session (gates, rules, open
+  work). A request that changes behaviour is a change opened BEFORE code is
+  edited: `doctrina work "<request>"` — it classifies the lane itself; one
+  change per activity the human asked for. Name the change id in your first
+  sentence to the human. Read with `doctrina context <cap> --for "<task>"
+  --concat` — `prime` is state, not the spec. Project skills are listed
+  where your agent finds skills (`.agents/skills/`, `.claude/skills/`).
+  Close with `doctrina close <id>` and repeat the archive path it prints.
+  Unsure what's next? `doctrina next`. Before handover: `doctrina handoff`.
 
 <!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->
 ## Doctrina command surface (generated — reach for these, don't hand-author)
@@ -41,10 +45,10 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina why` — provenance: intent, proof, ADRs, and history. *When:* you need to justify or trace a capability's existence.
 - `doctrina handoff (before compaction/handover)` — a resume note: open work, task state, next command. *When:* BEFORE compaction or handing over to another session.
 **Change**
-- `doctrina triage` — classify the lane (product/runtime/chore) and check the declared runtime surface. *When:* a request arrives — BEFORE scaffolding, especially if it smells like an incident.
-- `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* a request arrives that changes behaviour (triage says PRODUCT).
+- `doctrina triage` — classify the lane (product/runtime/chore) and check the declared runtime surface. *When:* diagnosing an incident or a runtime symptom — `work` classifies every other request itself.
+- `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* a request changes behaviour — BEFORE editing code; it classifies the lane itself.
 - `doctrina spec new|list|set` — create, list, and edit capability specs. *When:* a capability needs creating or its headers advancing.
-- `doctrina change new|apply|archive|check|tick|abandon|delta` — drive a change by hand — check --verbose previews every delta. *When:* driving a change through its lifecycle by hand.
+- `doctrina change new|apply|archive|check|tick|abandon|delta|card` — drive a change by hand — check --verbose previews every delta. *When:* driving a change through its lifecycle by hand.
 - `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.
 - `doctrina decision new|accept|land|supersede|list|scope` — record, accept, land, scope, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
 - `doctrina skill new|list|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
@@ -58,17 +62,18 @@ canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 - `doctrina verify` — the project's declared typecheck/test/build checks. *When:* the real build gate must run.
 - `doctrina close <id...>` — the whole closing sequence in one attested pass. *When:* a change is implemented and ready to finish.
 - `doctrina doctor` — aggregate diagnostic with per-finding remedies. *When:* something looks wrong and you do not know which gate to ask.
+**Orchestrate** (triggers: `doctrina <command> --help`) — `doctrina workspace init|add|attach|detach|list|tool|guard` · `doctrina delivery new|route|list|status|check|close`
 **Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina completion` · `doctrina upgrade --write` · `doctrina ci --emit github`
 <!-- doctrina:surface:end -->
 
 <!-- doctrina:changed:begin — CLI-owned. Regenerated by `doctrina upgrade --write`. -->
-## What changed in 0.18.0
+## What changed in 0.20.0
 
-- `doctrina change delta <id> <capability> --requirement "<section>: <text>" --criterion "<text>" --bump minor` writes the ops lines for you and dry-runs them against the spec — stop hand-writing ops blocks.
-- `close` runs `verify --reuse`: running `doctrina verify` yourself right before `doctrina close` is no longer paid twice, and a batch close runs the suite once. Use `verify --affected` while working when checks declare `"paths"`.
-- The review inside `close` counts the change's own deltas as spec updates and reports code under other capabilities in ONE line — read it: either this change forgot a delta or other work is lying in the tree.
-- `close` ends by listing other open changes that look finished or are a week old; close them with the `doctrina close <id>` it prints. `next` no longer suggests `change archive`.
-- A spec can shrink: `remove-requirement <section> <n>` / `remove-criterion <n>`, and `doctrina work --consolidate <cap>` when a spec has grown past what it needs to say.
+- Work across repositories is a delivery: from the workspace, `doctrina delivery new "<title>" --ref <id>`, then follow its playbook — route, one change per repository with `doctrina work "<title>" --delivery <id>`, close each, then `doctrina delivery close <id>`.
+- Write tasks as self-contained cards (indented `Files:`, `Requirement:`, `Verify:` lines) and hand an executor `doctrina change card <id>`; one writer per repository, and only the planner closes (ADR 0030).
+- An existing codebase with no specs: `doctrina intake --from-code`, then the absorb playbook — describe what the code does today and send what it cannot tell to the human as open questions.
+- A repository that may not carry `.doctrina/` is a workspace shadow: its `.doctrina/` is a link, hidden from its git — never commit it there; commit the workspace.
+- MCP tools declared in the workspace are read-only unless declared `write`: a refused or held call means ask the human, never route around it.
 <!-- doctrina:changed:end -->
 
 ## Stack
@@ -125,12 +130,10 @@ before considering work done.
 
 ## How to read context efficiently
 
-`doctrina context [<capability>] --concat` assembles the read pack in one
-call, in order: this `AGENTS.md` → `.doctrina/product.md` → the capability
-spec → open `.doctrina/changes/<id>/` → `.doctrina/decisions/` filtered to
-`Status: accepted`. Run it for ANY task, not only `doctrina work`; it skips
-`changes/archive/` (history). Skills are on demand: read the `description:`
-/ `when:` frontmatter in `.doctrina/skills/` and load a body when it fires.
+`doctrina context <cap> --for "<task>" --concat` is the read pack for ANY
+task: `product.md`, the spec, open changes and accepted ADRs, cut to what
+the task is about; `changes/archive/` is history. `doctrina show <ref>`
+reads one requirement or ADR.
 
 Keep this file under 150 lines; `doctrina doctor` reports what is left,
 and the generated block above grows with the CLI. Use exact commands.

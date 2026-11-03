@@ -53,6 +53,7 @@ const SUBCOMMAND = {
   show: ["cap"], why: ["cap"], search: ["termo"], close: ["0001-x"], triage: ["x"],
   ci: ["--emit", "github"], completion: ["bash"],
   analyze: ["0001-x"], clarify: ["--all"], coverage: [], trace: [],
+  workspace: ["list"], delivery: ["list"],
 };
 
 test("outside a project, every command answers the precondition class", () => {

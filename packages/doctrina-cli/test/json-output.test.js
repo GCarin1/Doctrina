@@ -42,6 +42,8 @@ const INVOCATION = {
   decision: ["decision", "list"],
   skill: ["skill", "list"],
   intent: ["intent", "list"],
+  workspace: ["workspace", "--help"],
+  delivery: ["delivery", "--help"],
   adapter: ["adapter", "list"],
   prime: ["prime"],
   context: ["context"],

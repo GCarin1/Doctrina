@@ -6,7 +6,8 @@
 Doctrina é vendido como framework para desenvolvimento multi-agente
 com IA. Este doc explica o que essa frase significa neste projeto e
 o que não significa. A justificativa arquitetural está no
-[ADR 0004](../../.doctrina/decisions/0004-single-linear-orchestrator.md);
+[ADR 0030](../../.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md),
+que substitui o ADR 0004;
 este é o guia operacional.
 
 ## O que multi-agente significa em Doctrina
@@ -100,6 +101,30 @@ de papel ("Architect", "Tester", "Reviewer") são permitidos como
 sequência**, nunca como processos paralelos disputando os mesmos
 arquivos.
 
+## Planejador e executores (ADR 0030)
+
+O ADR 0030 mantém tudo acima e permite dois tipos de escrita delegada,
+porque os dois mantêm um escritor por artefato:
+
+- **Um executor com um cartão de tarefa.** O planejador escreve as
+  tarefas de uma change como cartões autocontidos — a tarefa e as
+  linhas `Files:`, `Requirement:` e `Verify:` — e entrega um de cada vez
+  a um subagente executor com `doctrina change card <id>`. O cartão
+  carrega o Why da change e a spec recortada para a tarefa, então o
+  executor não precisa do trace do planejador; um cartão que precisa não
+  está terminado. O executor edita, verifica, marca e reporta. Ele nunca
+  abre, fecha nem arquiva — o planejador revisa e fecha. O executor pode
+  rodar num modelo menor: é no planejador que o julgamento é gasto.
+- **Repositórios diferentes em paralelo.** Uma entrega que atravessa
+  repositórios abre uma change em cada um (`doctrina delivery`).
+  Repositórios não compartilham artefato, então um escritor em cada um
+  ao mesmo tempo continua sendo um escritor por artefato. Dois escritores
+  NUM repositório continuam proibidos.
+
+O [guia do workspace](workspace.md) é o manual de operação: os
+subagentes gerados `doctrina-executor`, `doctrina-reviewer`,
+`doctrina-qa` e `doctrina-observer`, e a guarda em toda chamada MCP.
+
 ## Patterns práticos
 
 ### Personas, não processos paralelos
@@ -183,6 +208,8 @@ artefatos em `.doctrina/` são o trace compartilhado.
 | Um agente e um humano editando o mesmo `proposal.md` | Hazard. Mesmo artefato, dois escritores. Serialize. |
 | Dois changes em andamento em capabilities disjuntas | Seguro. Artefatos diferentes, sem escritor compartilhado. |
 | Um subagente que "só faz um patch pequeno" | Hazard. O "arquivo pequeno" é um slot de escritor; no momento que um subagente escreve, a regra de não-paralelizar-escritores se aplica a ele. |
+| Um executor trabalhando um cartão enquanto o planejador espera | Seguro (ADR 0030). Um escritor no repositório; o planejador revisa e fecha. |
+| Executores no `back-end` e no `front-core` ao mesmo tempo | Seguro (ADR 0030). Repositórios diferentes, nenhum artefato compartilhado. |
 
 ## Material relacionado
 
@@ -191,5 +218,7 @@ artefatos em `.doctrina/` são o trace compartilhado.
   que este doc te ajuda a evitar.
 - [Adapters](adapters.md) — como cada agente suportado acha o
   `AGENTS.md`.
-- ADR 0004 — a decisão arquitetural por trás do orquestrador
-  único e linear.
+- [Trabalho entre repositórios](workspace.md) — planejador, executores e
+  entregas na prática.
+- ADR 0030 — um planejador, um escritor por repositório, executores com
+  cartões autocontidos (substitui o ADR 0004).

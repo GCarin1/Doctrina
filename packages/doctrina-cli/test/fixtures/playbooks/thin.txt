@@ -14,7 +14,7 @@ No existing spec matches the prompt — likely a new capability.
 Execute in order, in a single linear pass:
 
 1. Read the context pack and confirm (or correct) the capability:
-       doctrina context <capability> --concat
+       doctrina context <capability> --for "fix" --concat
 
 2. If the capability has no spec yet:
        doctrina spec new <capability>
@@ -89,3 +89,5 @@ Execute in order, in a single linear pass:
 8. doctrina next for the follow-up.
    If this change taught a reusable lesson (a fix you'd hate to relearn,
    a recurring convention), capture it: doctrina skill new <slug>.
+
+Tell the human: opened change 0005-thin — "fix" (.doctrina/changes/0005-thin/)

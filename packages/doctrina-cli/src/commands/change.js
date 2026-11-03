@@ -16,12 +16,13 @@ import { c } from "../lib/colors.js";
 import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js";
 import { suggest } from "../lib/suggest.js";
 import { confirm, isInteractive } from "../lib/prompt.js";
+import { taskCard } from "../lib/task-card.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta", "card"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -46,6 +47,8 @@ export async function run(positional, flags) {
       return await changeAbandon(positional.slice(1), flags);
     case "delta":
       return changeDelta(positional.slice(1), flags);
+    case "card":
+      return changeCard(positional.slice(1));
     default:
       console.error(c.red("error:") + ` unknown change subcommand "${sub ?? ""}"`);
       const guess = suggest(sub, SUBCOMMANDS);
@@ -54,6 +57,64 @@ export async function run(positional, flags) {
         : `available: ${SUBCOMMANDS.join(", ")}`));
       return 2;
   }
+}
+
+// `change card <id> [<n>]` (change 0222, ADR 0030): one task as an executor
+// receives it — the task and the lines under it, the change's why, the spec
+// cut to the task, and what to do when done. The executor does not see the
+// planner's conversation; the card is its whole context.
+function changeCard(args) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change card requires <id> [task number]");
+    return EXIT.USAGE;
+  }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  if (!isDir(path.join(projectRoot, ".doctrina", "changes", id))) {
+    console.error(c.red("error:") + ` change "${id}" not found at .doctrina/changes/${id}`);
+    return EXIT.USAGE;
+  }
+  let ordinal = null;
+  if (args[1] !== undefined) {
+    ordinal = Number(args[1]);
+    if (!Number.isInteger(ordinal) || ordinal < 1) {
+      console.error(c.red("error:") + ` task number must be a positive integer (got "${args[1]}")`);
+      return EXIT.USAGE;
+    }
+  }
+  const { card, reason } = taskCard(projectRoot, id, ordinal);
+  if (!card) {
+    console.log(c.gray(reason));
+    return reason.startsWith("every task") ? EXIT.OK : EXIT.PRECONDITION;
+  }
+  const L = [];
+  L.push(`# Task card — ${card.change}, task ${card.ordinal} of ${card.total}` + (card.checked ? " (already ticked)" : ""));
+  L.push("");
+  L.push(`Change: ${card.title}` + (card.delivery ? ` · delivery ${card.delivery}` : ""));
+  L.push(`Repository: ${projectRoot}`);
+  L.push("");
+  L.push("## Task");
+  L.push("");
+  L.push(card.text);
+  for (const d of card.details) L.push(`- ${d}`);
+  if (card.why) {
+    L.push("", "## Why the change exists", "", card.why);
+  }
+  for (const s of card.slices) {
+    L.push("", `## Spec — ${s.capability} (cut to this task)`, "", s.text.trim());
+  }
+  L.push("", "## When done", "");
+  L.push(card.fields.verify
+    ? `1. Run the card's check: \`${card.fields.verify}\` — it must pass.`
+    : "1. Run the project's check: `doctrina verify` — it must pass.");
+  L.push(`2. Tick the box: \`doctrina change tick ${card.change} ${card.ordinal}\`.`);
+  L.push("3. Report back: the files you changed, the commands you ran and what they printed.");
+  L.push("Stay inside this card: do not open, close or archive a change, and do not edit `.doctrina/` — the planner does.");
+  for (const line of L) console.log(line);
+  return EXIT.OK;
 }
 
 // Enforce a lifecycle transition's preconditions from the shared gate map.
@@ -153,9 +214,6 @@ function changeApply(args, flags) {
   // and exit 0 — through the very analyze → apply path the docs prescribe.
   // The preconditions now come from the shared map, so what guards a
   // transition does not depend on which command drove it.
-  const applyGate = enforceTransition(projectRoot, id, changeDir, "apply", flags);
-  if (!applyGate.ok) return 1;
-
   // Applying twice is silent corruption. The ops verbs are ADDITIVE —
   // `append-requirement` appends, `bump-version` bumps — so a second pass
   // duplicates every requirement and criterion the delta carries and bumps
@@ -172,6 +230,12 @@ function changeApply(args, flags) {
     console.log(c.gray("only after reverting the specs to their pre-apply state."));
     return 0;
   }
+
+  // The skip above comes FIRST (change 0221): the apply gate is a pre-apply
+  // question, and on an applied change its ADDED check reads the content the
+  // apply wrote as a conflict — which refused the resume of a killed close.
+  const applyGate = enforceTransition(projectRoot, id, changeDir, "apply", flags);
+  if (!applyGate.ok) return 1;
 
   const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
   const date = today();
@@ -820,6 +884,11 @@ Subcommands:
                          parsed by the grammar apply reads and dry-run against
                          the spec first: nothing is written unless the whole
                          block applies. A second --bump replaces the first.
+  card <id> [<n>]        Print task <n> (default: the next open one) as a
+                         self-contained card for an executor: the task and the
+                         lines indented under it (Files:, Requirement:, Verify:),
+                         the change's Why, the spec cut to the task, and the
+                         tick command. Exit 0 with a note when every task is done.
 
 apply / archive / check accept multiple ids (batch close of a backlog); the
 exit code is the worst per-id result.

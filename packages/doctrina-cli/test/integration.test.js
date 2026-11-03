@@ -1423,7 +1423,9 @@ test("context prints the read-order pack and lists skills on demand", () => {
     runCli(["decision", "accept", "0001"], { cwd: tmp });
     runCli(["skill", "new", "db-migration"], { cwd: tmp });
 
-    const r = runCli(["context", "billing"], { cwd: tmp });
+    // --full: the read order including AGENTS.md, which the lean default
+    // leaves out (change 0216).
+    const r = runCli(["context", "billing", "--full"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const out = r.stdout;
     // Read order: AGENTS.md before product.md before the spec before the ADR.
@@ -1477,7 +1479,7 @@ test("context excludes non-accepted ADRs and --concat prints contents", () => {
     assert.match(r.stdout, /product\.md/,
       `the pack listing omits product.md entirely:\n${r.stdout}`);
 
-    const concat = runCli(["context", "--concat"], { cwd: tmp });
+    const concat = runCli(["context", "--concat", "--full"], { cwd: tmp });
     assert.equal(concat.status, 0, concat.stderr || concat.stdout);
 
     // Link 3: rendering. Compare the section headers the pack actually printed,
@@ -2842,7 +2844,7 @@ test("the AGENTS.md template leads context-reading with doctrina context", () =>
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
-    assert.match(agents, /doctrina context \[<capability>\] --concat/);
+    assert.match(agents, /doctrina context <cap> --for "<task>" --concat/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

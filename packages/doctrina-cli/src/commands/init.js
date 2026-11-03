@@ -14,6 +14,7 @@ import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ask, isInteractive } from "../lib/prompt.js";
+import { mergeJson } from "../lib/adapters.js";
 import { looksLikePath, writeIntakeFile, printBootstrapPlaybook, warnIfThinIntake, nextStepAfterInit } from "../lib/intake-model.js";
 
 const SUPPORTED_AGENTS = [
@@ -409,6 +410,20 @@ function installAdapter(templatesDir, projectRoot, agent, tokens, opts) {
       ...tokens,
       AGENTS_MD_PATH: adapterAgentsMdRelativePath(entry.relativePath),
     };
+    // A shared settings file the project already has (`.claude/settings.json`)
+    // is merged, never overwritten (change 0211) — the same rule `adapter add`
+    // follows, so `init` in an existing repository keeps the user's keys.
+    const dest = path.join(projectRoot, entry.relativePath.replace(/\.template$/, ""));
+    if (dest.endsWith(".json") && isFile(dest)) {
+      try {
+        const merged = mergeJson(JSON.parse(read(dest)), JSON.parse(substitute(entry.body, adapterTokens)));
+        write(dest, JSON.stringify(merged, null, 2) + "\n", { force: true });
+        console.log(c.green(`adapter[${agent}]`) + ` ${relPath(projectRoot, dest)} (merged)`);
+      } catch {
+        console.log(c.yellow(`adapter[${agent}]`) + ` ${relPath(projectRoot, dest)} left alone (not valid JSON)`);
+      }
+      continue;
+    }
     const written = materialiseEntry(entry, projectRoot, adapterTokens, opts);
     console.log(c.green(`adapter[${agent}]`) + ` ${relPath(projectRoot, written)}`);
   }

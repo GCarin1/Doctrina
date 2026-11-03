@@ -9,7 +9,7 @@ Likely capabilities (deterministic term match — a hint, not a decision):
 Execute in order, in a single linear pass:
 
 1. Read the context pack and confirm (or correct) the capability:
-       [36mdoctrina context billing --concat[39m
+       [36mdoctrina context billing --for "add a billing invoice export" --concat[39m
 
 2. If the capability has no spec yet:
        [36mdoctrina spec new <capability>[39m

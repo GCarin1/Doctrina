@@ -48,6 +48,16 @@ export function computeSnapshot(commits, since) {
     for (const f of cm.files) lastTouch.set(f, cm.ts);
   }
 
+  // Workflow adherence (change 0218): of the commits that changed code, how
+  // many carried a change — touched `.doctrina/changes/`, or named one in the
+  // subject. A field review found an agent that "knows the framework
+  // exists" and still went straight to code when the request did not name
+  // it; this is the number that says whether the hooks and the contract
+  // moved that. A proxy, like re-edit: a typo fix needs no change.
+  const code = commits.filter((cm) => cm.files.some(isCodePath));
+  const withChange = code.filter((cm) =>
+    cm.files.some((f) => f.startsWith(".doctrina/changes/")) || CHANGE_REF.test(cm.subject));
+
   return {
     generated: today(),
     window: since,
@@ -57,8 +67,20 @@ export function computeSnapshot(commits, since) {
     fix_share: round(fixes / total),
     reedit_window_days: REEDIT_WINDOW_DAYS,
     reedit_rate: round(reedits / total),
+    code_commits: code.length,
+    change_adherence: code.length > 0 ? round(withChange.length / code.length) : null,
     top_churn: topChurn,
   };
+}
+
+// A subject that names a change: "Change 0212", or an id like "0212-x".
+const CHANGE_REF = /\bchange\s+\d{4}\b|\b\d{4}-[a-z0-9][a-z0-9-]*\b/i;
+
+// Code, for the adherence rate: not the Doctrina tree, not an agent's own
+// config or generated skills, not prose.
+function isCodePath(f) {
+  if (/^\.(doctrina|agents|claude|cursor)\//.test(f)) return false;
+  return !/\.(md|mdx|txt)$/i.test(f);
 }
 
 
@@ -174,7 +196,7 @@ export function latestSnapshot(projectRoot, excludeBase = null) {
  * @param {ReturnType<typeof readSeries>} series
  */
 export function trend(series) {
-  const rates = ["revert_rate", "fix_share", "reedit_rate"];
+  const rates = ["revert_rate", "fix_share", "reedit_rate", "change_adherence"];
   if (series.length < 2) return { span: series.length, rows: [] };
   const first = series[0];
   const last = series[series.length - 1];

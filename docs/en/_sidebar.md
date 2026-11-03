@@ -11,6 +11,7 @@
 - Guides
 
   - [Brownfield adoption](/en/brownfield.md)
+  - [Work across repositories (workspace)](/en/workspace.md)
   - [Adoption playbook (multi-agent)](/en/adoption-playbook.md)
   - [Migration from other frameworks](/en/migration.md)
   - [CI integration](/en/ci.md)

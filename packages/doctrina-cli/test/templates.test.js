@@ -77,7 +77,10 @@ test("every shipped .template carries only canonical, documented tokens", () => 
   for (const f of files) {
     const rel = path.relative(templatesRoot, f);
     const tokens = discoverTokens(readFileSync(f, "utf8"));
-    assert.ok(tokens.length >= 1, `${rel} has no {{TOKEN}} placeholder`);
+    // A JSON settings template (an agent's hooks, change 0211) is merged into
+    // the user's own file: JSON holds no comment to carry a token in, and a
+    // made-up key could fail the agent's settings schema.
+    if (!f.endsWith(".json.template")) assert.ok(tokens.length >= 1, `${rel} has no {{TOKEN}} placeholder`);
     for (const t of tokens) {
       assert.ok(canonical.has(t), `${rel} uses {{${t}}}, undocumented in templates README.md`);
     }

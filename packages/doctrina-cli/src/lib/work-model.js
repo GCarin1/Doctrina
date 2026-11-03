@@ -120,3 +120,61 @@ export function rankCapabilities(projectRoot, prompt) {
   // 0, the same convention `triage` uses for a lane nothing scored against.
   return sorted.slice(0, 3).map((e, i) => ({ ...e, margin: e.score - (sorted[i + 1]?.score ?? 0) }));
 }
+
+// How far back `work` looks for an archived change the prompt may repeat,
+// and how much of one side the other must cover to count (change 0215).
+export const SIMILAR_CHANGE_DAYS = 14;
+// Three shared terms: two matched "mudar uma coisa" with "mudar outra coisa".
+const SIMILAR_MIN_SHARED = 3;
+const SIMILAR_MIN_COVER = 0.6;
+
+/**
+ * Open changes, and changes archived in the last SIMILAR_CHANGE_DAYS, whose
+ * title and Why the prompt mostly repeats. A field review: two changes were
+ * done and archived, and the next request — "create the doctrina work for
+ * payment and admin" — would have opened the same work twice. Deterministic
+ * term overlap (ADR 0005), measured from both sides: a short prompt that
+ * names most of a change, or a change named mostly by a long prompt.
+ *
+ * @param {string} projectRoot
+ * @param {string} prompt
+ * @returns {Array<{ id: string, title: string, where: "open"|"archived", path: string, shared: string[] }>}
+ */
+export function similarChanges(projectRoot, prompt) {
+  const asked = terms(prompt);
+  if (asked.length === 0) return [];
+  const changesDir = path.join(projectRoot, ".doctrina", "changes");
+  if (!isDir(changesDir)) return [];
+  const candidates = [];
+  for (const name of readdirSync(changesDir).sort()) {
+    if (name === "archive" || name.startsWith(".")) continue;
+    const proposal = path.join(changesDir, name, "proposal.md");
+    if (isFile(proposal)) candidates.push({ id: name, where: /** @type {"open"|"archived"} */ ("open"), rel: `.doctrina/changes/${name}/`, text: read(proposal) });
+  }
+  const archiveDir = path.join(changesDir, "archive");
+  if (isDir(archiveDir)) {
+    const cutoff = Date.now() - SIMILAR_CHANGE_DAYS * 86400000;
+    for (const name of readdirSync(archiveDir)) {
+      const m = name.match(/^(\d{4}-\d{2}-\d{2})-(.+)$/);
+      if (!m || Date.parse(`${m[1]}T00:00:00Z`) < cutoff) continue;
+      const proposal = path.join(archiveDir, name, "proposal.md");
+      if (isFile(proposal)) candidates.push({ id: m[2], where: /** @type {"open"|"archived"} */ ("archived"), rel: `.doctrina/changes/archive/${name}/`, text: read(proposal) });
+    }
+  }
+  const out = [];
+  for (const cand of candidates) {
+    const title = (cand.text.match(/^#\s+Change\s+\S+\s+—\s+(.+)$/m)?.[1] ?? cand.id).trim();
+    const why = cand.text.match(/##\s*Why\s*\r?\n+([^\r\n]+)/)?.[1] ?? "";
+    const theirs = terms(`${cand.id.replace(/^\d+-/, "").replace(/-/g, " ")} ${title} ${why}`);
+    const shared = asked.filter((t) => theirs.includes(t));
+    if (shared.length < SIMILAR_MIN_SHARED) continue;
+    // Each side's cover counts only the terms on that side: a word the Why
+    // happens to share must not stand in for the title (a prompt about "the
+    // work" matched "trabalho aparece para o humano" through its Why).
+    const titleTerms = terms(title);
+    const titleShared = asked.filter((t) => titleTerms.includes(t));
+    const cover = Math.max(shared.length / asked.length, titleTerms.length > 0 ? titleShared.length / titleTerms.length : 0);
+    if (cover >= SIMILAR_MIN_COVER) out.push({ id: cand.id, title, where: cand.where, path: cand.rel, shared, cover });
+  }
+  return out.sort((a, b) => b.cover - a.cover).map(({ cover: _c, ...rest }) => rest);
+}

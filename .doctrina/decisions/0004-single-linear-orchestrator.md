@@ -1,11 +1,11 @@
 # ADR 0004 — Adopt a single linear orchestrator instead of role-based parallel agents
 
-- **Status:** accepted
+- **Status:** superseded by 0030
 - **Date:** 2026-06-03
 - **Deciders:** project owner
 - **Scope:** cli
 - **Supersedes:** —
-- **Superseded by:** —
+- **Superseded by:** 0030
 - **Evidence:** `AGENTS.md` — single linear orchestrator rule; no parallel-write tooling ships
 
 ## Context

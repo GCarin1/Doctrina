@@ -30,6 +30,18 @@ Três razões:
   que vai ter um change em breve; pule o resto até que ganhem o
   mesmo gatilho.
 
+## Regra 0 — Absorva uma vez, a partir do código
+
+O `doctrina intake --from-code` transforma o inventário do código do
+repositório — stack, testes, CI, áreas candidatas, comandos de build,
+nomes de variáveis de ambiente — no intake, e imprime o playbook de
+absorção: um baseline pequeno do que o código faz hoje, critérios que
+citam os testes que já existem, e todo fato de negócio que o código não
+diz enviado a você como pergunta aberta. É um baseline, não o sistema
+inteiro; as regras abaixo o fazem crescer. Um repositório que não pode
+carregar `.doctrina/` ainda pode ser absorvido como sombra de um
+[workspace](workspace.md).
+
 ## Regra 1 — Spec just-in-time
 
 Quando um change estiver prestes a tocar a capability X, specifique

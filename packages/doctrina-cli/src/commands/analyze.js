@@ -1,7 +1,9 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { isDir, relPath } from "../lib/fs-ops.js";
+import { isDir, isFile, read, relPath } from "../lib/fs-ops.js";
+import { listHeader } from "../lib/scan.js";
+import { stripAnsi } from "../lib/json-out.js";
 import { c } from "../lib/colors.js";
 import { collectAnalysis } from "../lib/analysis.js";
 import { EXIT } from "../lib/exit-codes.js";
@@ -40,13 +42,22 @@ export async function run(positional, _flags) {
   console.log(`analyzing ${relPath(projectRoot, changeDir)}/`);
   console.log("");
 
-  const results = collectAnalysis(projectRoot, changeDir);
+  // An APPLIED change is asked only what still means something (change
+  // 0221): its pre-apply checks read the spec the apply wrote as a conflict,
+  // and a close stopped after its apply could never be rerun. The integrity
+  // checks — the set `archive` asks — still count.
+  const proposal = path.join(changeDir, "proposal.md");
+  const applied = isFile(proposal) && (listHeader(read(proposal), "Status") ?? "").toLowerCase() === "applied";
+  const results = collectAnalysis(projectRoot, changeDir)
+    .map((r) => applied && r.kind === "fail" && r.scope === "pre-apply"
+      ? { ...r, kind: "info", line: c.gray("- " + stripAnsi(r.line).replace(/^✗\s*/, "") + " (already applied — a pre-apply check, not asked again)") }
+      : r);
   for (const r of results) console.log(r.line);
   console.log("");
 
   const failed = results.filter((r) => r.kind === "fail").length;
   if (failed === 0) {
-    console.log(c.green("ok") + ` ready to apply`);
+    console.log(c.green("ok") + (applied ? " already applied — resuming: the integrity checks pass" : ` ready to apply`));
   } else {
     console.log(c.red("fail") + ` ${failed} issue${failed === 1 ? "" : "s"}`);
   }

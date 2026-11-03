@@ -82,35 +82,41 @@ custom, por exemplo) tenham um lugar óbvio.
 
 ```
 ---
-description: Doctrina canonical rules — always read AGENTS.md first
+description: Doctrina — the change cycle, every turn; the full rules are in AGENTS.md
 alwaysApply: true
 ---
 
-# Doctrina pointer rule
+# Doctrina
 
-This project uses the open AGENTS.md standard as the single source of
-truth for agent-readable rules. Before answering or editing, read the
-canonical file at ../../AGENTS.md.
+The canonical rules and command surface are in `../../AGENTS.md` — read it
+first. The change cycle applies to every request, whether or not it names
+Doctrina:
 
-The Doctrina framework artifacts (specs, decisions, changes) live
-under .doctrina/. Read order is documented in AGENTS.md.
+- A request that changes behaviour is a change, opened BEFORE code is
+  edited: `doctrina work "<request>"`. One change per activity asked for.
+- The first sentence to the human names the change id.
+- Read with `doctrina context <cap> --for "<task>" --concat`; `doctrina
+  prime` is the project's state, not the spec.
+- Project skills are in `.agents/skills/` (generated from `.doctrina/skills/`).
+- Finish with `doctrina close <id>` and repeat the archive path it prints.
 
-Do not duplicate rules here. If a rule belongs in AGENTS.md, put it
-there and re-read this project.
+Do not add rules here: this file carries only the cycle, because Cursor's
+per-prompt hook cannot; everything else belongs in AGENTS.md.
 ```
 
-O frontmatter `alwaysApply: true` significa que Cursor inclui esta
-regra em toda requisição, então o ponteiro sempre dispara. A regra
-tem 16 linhas — bem abaixo do limite de 200 palavras da Cursor.
+O `alwaysApply: true` faz o Cursor incluir esta regra em toda requisição.
+Ela era só um ponteiro; uma review de campo achou que, sem o nome do
+framework no pedido, o pedido de código vencia. Como o hook por prompt do
+Cursor não injeta contexto, a regra agora carrega o ciclo; o resto fica no
+AGENTS.md. O adapter também mescla um `sessionStart` no `.cursor/hooks.json`
+(`doctrina prime --hook cursor`), e o `index rebuild` exporta as skills para
+`.agents/skills/`, que o Cursor lista sozinho.
 
-Cursor expõe quatro modos de regra — Always Apply, Auto-Attached
-(globs), Agent-Requested (descrição) e Manual (`@nome`). Doctrina
-ship só o pattern Always Apply em seu adapter porque o ponteiro
-precisa disparar em toda requisição para ser útil. Os outros três
-modos são primitivas excelentes de escopo para regras
-projeto-específicas em cima do ponteiro do Doctrina; veja
-[context-engineering.md](context-engineering.md) para como eles
-mapeiam para o modelo de escopo próprio do Doctrina.
+O Cursor tem quatro modos de regra — Always Apply, Auto-Attached
+(globs), Agent-Requested (descrição) e Manual (`@nome`). O Doctrina usa
+só o Always Apply, porque o ciclo precisa alcançar toda requisição; os
+outros três servem a regras do projeto por cima dele — veja
+[context-engineering.md](context-engineering.md).
 
 ### Slash commands nativos
 

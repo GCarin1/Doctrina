@@ -25,6 +25,17 @@ Three reasons:
   when you spec what you don't.** Spec a capability that ships a
   change soon; skip the rest until they earn the same trigger.
 
+## Rule 0 — Absorb once, from the code
+
+`doctrina intake --from-code` turns the repository's code inventory —
+stack, tests, CI, candidate areas, build commands, env variable names —
+into the intake, and prints the absorb playbook: a small baseline of
+what the code does today, criteria that cite the tests that already
+exist, and every business fact the code cannot tell sent to you as an
+open question. It is a baseline, not the whole system; the rules below
+grow it. A repository that may not carry `.doctrina/` at all can still
+be absorbed as a shadow of a [workspace](workspace.md).
+
 ## Rule 1 — Spec just-in-time
 
 When a change is about to touch capability X, spec X first. Use

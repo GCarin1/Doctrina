@@ -1,11 +1,15 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { exists } from "../lib/fs-ops.js";
-import { flagBool } from "../lib/args.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
-import { collectSnapshot } from "../lib/snapshot.js";
-import { renderView } from "../lib/views.js";
+import { exists, read } from "../lib/fs-ops.js";
+import { findWorkspace, readWorkspace } from "../lib/workspace.js";
+import { listDeliveries } from "../lib/delivery.js";
+import { workspacePrimer } from "../lib/workspace-agents.js";
+import { flagBool, flagString } from "../lib/args.js";
+import { c } from "../lib/colors.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
+import { collectSnapshot, openChanges, recentlyClosed } from "../lib/snapshot.js";
+import { renderView, pulse } from "../lib/views.js";
 
 // Session primer: the ~40-line read that orients an agent at the start of a
 // session — where things stand, what the standing rules are, what work is
@@ -22,23 +26,77 @@ import { renderView } from "../lib/views.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "rules"], string: [] };
+export const flags = { boolean: ["json", "rules", "pulse"], string: ["hook"] };
+
+// What an agent hook accepts on stdout (change 0211). Claude Code adds the
+// plain text of a SessionStart hook to the conversation; Cursor's
+// sessionStart reads `additional_context` from a JSON object. Both cap what
+// they keep — Claude at 10,000 characters — so the primer is cut short of
+// that rather than replaced by a file path the agent is never asked to read.
+const HOOK_AGENTS = ["claude", "cursor"];
+const HOOK_MAX_CHARS = 9000;
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   if (!exists(path.join(projectRoot, ".doctrina"))) {
+    // At a workspace root the session belongs to the orchestrator (change
+    // 0223): the primer is the workspace's.
+    const found = findWorkspace(projectRoot);
+    if (found && found.via !== "pointer") return primeWorkspace(found.dir, flags);
     throw notADoctrinaProject();
   }
   // --rules: the standing rules in full, which is what the removed
   // `constitution` printed (changes 0049, 0175). The primer names the ADRs and counts the non-goals; this
   // prints both lists, from the same collection, so the two cannot disagree.
+  // --pulse: one line for a per-prompt hook — the open changes only, read
+  // without collecting the gates, because it runs before every prompt.
+  if (flagBool(flags, "pulse", false)) {
+    for (const line of pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))) console.log(line);
+    return 0;
+  }
+  if (flags.has("hook")) {
+    const agent = flagString(flags, "hook");
+    if (!agent || !HOOK_AGENTS.includes(agent)) {
+      console.error(c.red("error:") + ` --hook needs one of ${HOOK_AGENTS.join(", ")} (got "${agent ?? ""}")`);
+      return EXIT.USAGE;
+    }
+    const text = ["Doctrina session primer (`doctrina prime`) — the project's gates, rules and open work:", "",
+      ...renderView("prime", collectSnapshot(projectRoot)), "", ...pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))]
+      .join("\n").replace(/\x1b\[[0-9;]*m/g, "").slice(0, HOOK_MAX_CHARS);
+    console.log(agent === "cursor" ? JSON.stringify({ additional_context: text }) : text);
+    return 0;
+  }
   const view = flagBool(flags, "rules", false) ? "rules" : "prime";
   for (const line of renderView(view, collectSnapshot(projectRoot))) console.log(line);
   return 0;
 }
 
+function primeWorkspace(wsDir, flags) {
+  const ws = readWorkspace(wsDir);
+  const open = listDeliveries(wsDir).filter((d) => d.status !== "closed");
+  if (flagBool(flags, "pulse", false)) {
+    console.log(open.length === 0
+      ? "Doctrina workspace: no delivery is open — an item of work across repositories opens one with `doctrina delivery new \"<title>\" --ref <id>`."
+      : open.map((d) => `open delivery: ${d.id} — "${d.title}" (${d.projects.join(", ") || "not routed"}). Name it in your first sentence to the human; \`doctrina delivery status ${d.id}\`.`).join(" "));
+    return 0;
+  }
+  const lines = workspacePrimer(ws, wsDir, open);
+  if (flags.has("hook")) {
+    const agent = flagString(flags, "hook");
+    if (!agent || !HOOK_AGENTS.includes(agent)) {
+      console.error(c.red("error:") + ` --hook needs one of ${HOOK_AGENTS.join(", ")} (got "${agent ?? ""}")`);
+      return EXIT.USAGE;
+    }
+    const text = [...lines, "", read(path.join(wsDir, "AGENTS.md"))].join("\n").replace(/\x1b\[[0-9;]*m/g, "").slice(0, HOOK_MAX_CHARS);
+    console.log(agent === "cursor" ? JSON.stringify({ additional_context: text }) : text);
+    return 0;
+  }
+  for (const line of lines) console.log(line);
+  return 0;
+}
+
 export const help = `
-Usage: doctrina prime
+Usage: doctrina prime [--rules | --pulse | --hook claude|cursor]
 
 Print the session primer: gate digest, standing rules (accepted ADR
 titles + non-goal count), open work with task progress, and the top
@@ -51,6 +109,17 @@ collection of the tree, so they cannot disagree.
   --rules   Print the standing rules in full instead of the primer: every
             accepted ADR and every declared non-goal — what the removed
             \`doctrina constitution\` printed, from the same collection.
+  --pulse   One line for a per-prompt agent hook: the open change(s), or
+            that a request changing behaviour opens one with \`work\`.
+  --hook <agent>
+            The primer plus the pulse, as the agent's session-start hook
+            reads it: plain text for claude, {"additional_context"} JSON
+            for cursor; cut at 9,000 characters. \`doctrina adapter add
+            claude|cursor\` installs the hooks that call these.
+
+At a workspace root (no .doctrina/, a workspace.json) it is the
+orchestrator's primer: the projects and their state, the open deliveries,
+the tools — and with --hook, the workspace's AGENTS.md after it.
 
 Read-only; always exits 0. Deeper reads: \`doctrina context\`,
 \`doctrina why <cap>\`, \`doctrina show <ref>\`.

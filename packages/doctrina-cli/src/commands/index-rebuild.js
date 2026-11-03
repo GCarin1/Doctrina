@@ -9,6 +9,7 @@ import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { planSkillExport, applySkillExport } from "../lib/skill-export.js";
 
 const SUBCOMMANDS = ["rebuild"];
 
@@ -54,6 +55,23 @@ function rebuild(flags) {
       return 1;
     }
     console.log(c.yellow("warn:") + ` ${state.unreadable} — rebuilding from scratch`);
+  }
+
+  // The skills, where the agents look for them (change 0212). Exported on
+  // every rebuild; under --check a stale export is a NOTE, never a failure —
+  // the index gate is about the index, and a project upgrading Doctrina must
+  // not go red in CI before its first rebuild.
+  const exportPlan = planSkillExport(projectRoot);
+  const exportChanges = exportPlan.writes.length + exportPlan.removes.length;
+  if (exportChanges > 0) {
+    if (check) {
+      console.log(c.gray("note:  ") + `${exportChanges} skill export${exportChanges === 1 ? " is" : "s are"} out of date — ` +
+        "`doctrina index rebuild` regenerates them");
+    } else {
+      applySkillExport(projectRoot, exportPlan);
+      for (const w of exportPlan.writes) console.log(c.green("export ") + ` ${w.rel}`);
+      for (const r of exportPlan.removes) console.log(c.green("removed") + ` ${r} (its skill is gone)`);
+    }
   }
 
   if (state.ok) {
@@ -130,6 +148,11 @@ Subcommands:
                     index. A partial commit of .doctrina/ cannot satisfy
                     both, because the index is derived from the whole tree.
                     Exits 0 when nothing relevant is staged.
+
+Every rebuild also exports .doctrina/skills/ as SKILL.md folders where the
+agents discover skills on their own: .agents/skills/ (Cursor, Codex) and,
+with the claude adapter installed, .claude/skills/. The exports are marked
+as generated; edit the source. Under --check a stale export is a note only.
 
 Fields with no on-disk source (project name, framework_version, product
 metadata) are carried over from the existing index.

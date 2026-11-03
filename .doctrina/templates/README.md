@@ -25,6 +25,10 @@ replace. No conditionals, loops, or includes.
 | `{{CONTRACT_NAME}}` | Slug for a new integration contract | required, no default |
 | `{{FRAMEWORK_VERSION}}` | Version of the CLI that scaffolded/stamped the tree | running CLI version |
 | `{{AGENTS_MD_PATH}}` | Path to root `AGENTS.md` from the adapter location | per adapter |
+| `{{DELIVERY_ID}}` | Delivery folder identifier (`NNNN-slug`) | required in `delivery` |
+| `{{DELIVERY_TITLE}}` | The delivery's title | required in `delivery` |
+| `{{DELIVERY_REF}}` | The tracker item it comes from | `—` |
+| `{{DELIVERY_PROJECTS}}` | The routed projects, dependencies first | `—` |
 
 CLI authors and template authors share this vocabulary. Adding a token
 requires extending the templates spec at `.doctrina/specs/templates/spec.md`.
@@ -45,9 +49,14 @@ loops in it.
 | `{{CAPABILITY_BLOCK}}` | The pinned capability, the ranked hints, or "no match" | required in `work` |
 | `{{DIFF_MATCHES}}` | Capabilities the working tree touched | empty |
 | `{{STEP3_INTRO}}` | The delta step's opening, pinned or not | required in `work` |
+| `{{FOR}}` | The task, as the read pack's `--for` query (quotes stripped, 80 chars at most) | required in `work` |
 | `{{SHAPE}}` | The spec's measured size — lines, requirements per EARS subsection, criteria | required in `consolidate` |
 | `{{FROM_DIFF_DELTA_NOTE}}` | The backfill caveat on writing the delta | empty |
 | `{{MISSING_SPECS_WARNING}}` | Warning that `.doctrina/specs/` is absent | empty |
+| `{{WORKSPACE_STEP}}` | The closing step naming the workspace a project belongs to | empty, in `absorb` |
+| `{{DELIVERY_FILE}}` | The delivery file, relative to the workspace | required in `delivery` |
+| `{{ROUTING}}` | The routed order, or the projects ranked against the title | required in `delivery` |
+| `{{TOOLS}}` | The tools the workspace declares, with their access | empty, in `delivery` |
 
 A line holding NOTHING but one token whose value is empty is removed rather
 than left blank, which is what lets the optional blocks above be plain tokens.
