@@ -159,6 +159,7 @@ A documentação para usuários vive em [`docs/`](./docs/):
 - [Engenharia de contexto](./docs/pt/context-engineering.md) — por que a forma do contexto prevê performance mais do que contagem de agentes.
 - [Gating](./docs/pt/gating.md) — quando o pipeline completo compensa.
 - [Adoção brownfield](./docs/pt/brownfield.md) — guia operacional para instalar Doctrina num codebase existente.
+- [Trabalho entre repositórios](./docs/pt/workspace.md) — o workspace, as entregas, o planejador e seus executores, e a guarda de MCP.
 - [Comparação](./docs/pt/comparison.md) — posicionamento honesto vs Spec Kit, Kiro, OpenSpec, BMAD, SpecWeave.
 - [Migração](./docs/pt/migration.md) — mapeamentos práticos vindos de Spec Kit, OpenSpec, BMAD, Kiro, SpecWeave.
 - [Benchmarks](./docs/pt/benchmarks.md) — números sintéticos de `validate` e `clarify` por tamanho de projeto.

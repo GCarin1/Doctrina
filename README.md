@@ -168,6 +168,7 @@ User-facing documentation lives under [`docs/`](./docs/):
 - [Context engineering](./docs/en/context-engineering.md) — why context shape predicts agent performance more than agent count.
 - [Gating](./docs/en/gating.md) — when the full pipeline is worth it.
 - [Brownfield adoption](./docs/en/brownfield.md) — operational guide for installing Doctrina into an existing codebase.
+- [Work across repositories](./docs/en/workspace.md) — the workspace, deliveries, the planner and its executors, and the MCP guard.
 - [Comparison](./docs/en/comparison.md) — honest positioning vs Spec Kit, Kiro, OpenSpec, BMAD, SpecWeave.
 - [Migration](./docs/en/migration.md) — practical mappings from Spec Kit, OpenSpec, BMAD, Kiro, SpecWeave.
 - [Benchmarks](./docs/en/benchmarks.md) — synthetic numbers for `validate` and `clarify` across project sizes.
