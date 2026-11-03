@@ -23,7 +23,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,lexicon,adr-guard,criteria,names}.js"
+          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
