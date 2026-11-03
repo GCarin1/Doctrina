@@ -235,3 +235,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-03 — 0222-a-entrega-atravessa-repositorios — a entrega atravessa repositorios (specs: delivery ADDED, templates MODIFIED)
 - 2026-11-03 — 0223-o-orquestrador-sabe-o-que-pode-usar — o orquestrador sabe o que pode usar (specs: workspace MODIFIED)
 - 2026-11-03 — 0224-a-entrega-registra-a-subida-e-o-que-foi — a entrega registra a subida e o que foi observado (specs: delivery MODIFIED)
+- 2026-11-03 — 0225-cortar-a-0-20-0 — cortar a 0.20.0
