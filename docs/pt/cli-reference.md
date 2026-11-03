@@ -2466,7 +2466,7 @@ Completa comandos e seus subcomandos (flags não são completadas).
 Operações depreciadas ficam de fora: continuam rodando, mas o tab oferece
 só os substitutos. Saída estática — regenere após atualizar o CLI.
 
-## `doctrina workspace init` / `add` / `attach` / `detach` / `list`
+## `doctrina workspace init` / `add` / `attach` / `detach` / `list` / `tool` / `guard`
 
 O contexto de vários repositórios num lugar só (ADR 0029). Uma entrega
 que atravessa `front-core`, `front-feature` e `back-end` precisa de um
@@ -2504,6 +2504,31 @@ grava em `$DOCTRINA_HOME` (padrão `~/.doctrina`). Faça os commits do
 workspace você mesmo: ele é o histórico de versões do contexto de cada
 projeto sombra.
 
+**Ferramentas e a guarda** (ADR 0031). O `doctrina workspace tool <nome>`
+declara uma ferramenta que o trabalho usa — presets `jira`, `confluence`,
+`figma`, `playwright`, `datadog`, `databricks`, `sql`, ou qualquer nome com
+`--server <o nome do servidor MCP na configuração do seu agente>` — com os
+papéis que a usam (`--for planner,qa`), o propósito e o acesso:
+**leitura**, a menos que `--access write`; `--remove` a tira. O Doctrina
+nunca chama uma ferramenta e nunca grava a configuração dos servidores.
+Ele instala um hook de pré-chamada que roda `doctrina workspace guard
+--hook cursor|claude` (Cursor `beforeMCPExecution`, Claude Code
+`PreToolUse` em `mcp__.*`): uma escrita por uma ferramenta só de leitura é
+negada, uma escrita por uma ferramenta de leitura e escrita pergunta ao
+humano, uma leitura passa, e um servidor que o workspace não declara não
+recebe opinião. Um SQL na chamada decide se ela escreve; senão, os verbos
+do nome da ferramenta. Entrada ilegível nunca bloqueia o agente.
+
+**Arquivos do orquestrador.** Toda escrita no workspace regenera, na raiz:
+`AGENTS.md` (o hub do planejador), `.cursor/rules/00-doctrina-workspace.mdc`,
+`.cursor/hooks.json` e `.claude/settings.json` (mesclados com os seus),
+`.claude/agents/doctrina-executor.md` e `doctrina-reviewer.md` — mais
+`doctrina-qa.md` e `doctrina-observer.md` quando uma ferramenta serve esses
+papéis —, lidos pelo Claude Code e pelo Cursor, e `<nome>.code-workspace`,
+que abre todos os repositórios numa janela. Configure o modelo dos
+executores no `workspace.json` (`"agents": {"executor": {"model": "<id>"}}`);
+o `doctrina prime` na raiz do workspace é o primer do orquestrador.
+
 | Flag | Significado |
 |------|-------------|
 | `--name <n>` | Nome do workspace (`init`) ou do projeto (`add`; padrão: o nome da pasta). |
@@ -2513,6 +2538,9 @@ projeto sombra.
 | `--agent <nome>` | Adaptador criado na sombra (padrão `cursor`). |
 | `--path <dir>` | `attach`: o repositório mudou de lugar ou foi clonado em outro. |
 | `--no-git` | `init`: não roda `git init` no workspace. |
+| `--server` / `--access read\|write` / `--for <papéis>` / `--purpose` | `tool`: o servidor MCP, o acesso e os papéis (planner, executor, qa, observer, reviewer). |
+| `--remove` | `tool`: tira a ferramenta. |
+| `--hook cursor\|claude` | `guard`: o agente cujo payload de pré-chamada chega pelo stdin. |
 
 ## `doctrina delivery new` / `route` / `list` / `status` / `check` / `close`
 

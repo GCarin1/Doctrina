@@ -100,7 +100,7 @@ governs how a body of agents acts.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
 - The `doctrina` CLI (Node.js, zero runtime dependencies) with 39 commands
-  and 72 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
+  and 74 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
   change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,
@@ -111,7 +111,7 @@ governs how a body of agents acts.
 - Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules).
-- Eleven capability specs and the ADRs 0001–0030 that describe the framework
+- Eleven capability specs and the ADRs 0001–0031 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as

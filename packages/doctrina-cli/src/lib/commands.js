@@ -90,6 +90,8 @@ export const OPERATIONS = [
   ["workspace attach", "Re-create a shadow project's links in its repository"],
   ["workspace detach", "Remove a shadow project's links; the shadow stays"],
   ["workspace list", "Projects with mode, state and open changes"],
+  ["workspace tool", "Declare a tool (MCP server) the work uses: role, read or write"],
+  ["workspace guard", "Pre-call hook: allow, deny or ask an MCP call from the declared access"],
   ["delivery new", "Open a delivery across repositories; print the orchestration playbook"],
   ["delivery route", "Choose the projects a delivery touches, dependencies first"],
   ["delivery list", "Deliveries with status, ref and closed/total changes"],

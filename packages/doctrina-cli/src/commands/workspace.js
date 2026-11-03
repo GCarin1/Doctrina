@@ -2,6 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { exists, isDir, mkdirp, relPath, write } from "../lib/fs-ops.js";
 import { flagString } from "../lib/args.js";
@@ -13,17 +14,19 @@ import {
   findWorkspace, isWorkspaceDir, linkPlan, projectAt, projectState, readWorkspace, removeLinks,
   shadowDirOf, writeExclude, writePointer, writeWorkspace, gitInit,
 } from "../lib/workspace.js";
+import { TOOL_PRESETS, guardDecision, splitClaudeToolName, toolEntry } from "../lib/workspace-tools.js";
+import { writeOrchestratorFiles } from "../lib/workspace-agents.js";
 
 // `doctrina workspace` — the context of several repositories in one place
 // (ADR 0029). The decisions live in lib/workspace.js; this module renders
 // them and runs the one child process it needs (`init` inside a shadow).
 
-const SUBCOMMANDS = ["init", "add", "attach", "detach", "list"];
+const SUBCOMMANDS = ["init", "add", "attach", "detach", "list", "tool", "guard"];
 const CLI_ENTRY = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "index.js");
 
 export const flags = {
-  boolean: ["json", "no-git"],
-  string: ["name", "mode", "role", "about", "depends-on", "agent", "path"],
+  boolean: ["json", "no-git", "remove"],
+  string: ["name", "mode", "role", "about", "depends-on", "agent", "path", "server", "access", "for", "purpose", "hook"],
 };
 
 export async function run(positional, flags) {
@@ -36,16 +39,23 @@ export async function run(positional, flags) {
   }
   if (sub === "init") return workspaceInit(positional[1], flags);
   const found = findWorkspace(process.cwd());
+  // The guard answers an agent's pre-call hook, so it never fails the call
+  // for want of a workspace: no workspace, no opinion.
+  if (sub === "guard") return workspaceGuard(found?.dir ?? null, flagString(flags, "hook"));
   if (!found) {
     throw new PreconditionError(
       "no workspace here (no workspace.json in this directory or above, and $DOCTRINA_WORKSPACE is unset)",
       "doctrina workspace init <dir>",
     );
   }
-  if (sub === "add") return workspaceAdd(found.dir, positional[1], flags);
-  if (sub === "attach") return workspaceAttach(found.dir, positional[1], flags);
-  if (sub === "detach") return workspaceDetach(found.dir, positional[1]);
-  return workspaceList(found.dir);
+  let code;
+  if (sub === "add") code = workspaceAdd(found.dir, positional[1], flags);
+  else if (sub === "attach") code = workspaceAttach(found.dir, positional[1], flags);
+  else if (sub === "detach") code = workspaceDetach(found.dir, positional[1]);
+  else if (sub === "tool") code = workspaceTool(found.dir, positional[1], flags);
+  else return workspaceList(found.dir);
+  if (code === EXIT.OK) regenerate(found.dir);
+  return code;
 }
 
 function workspaceInit(dirArg, flags) {
@@ -72,6 +82,7 @@ function workspaceInit(dirArg, flags) {
       : c.yellow("warn:") + " git is not available; the workspace is not versioned yet (`git init` it yourself)");
   }
   writePointer(dir);
+  regenerate(dir);
   console.log("");
   console.log("Next: register each repository the work touches —");
   console.log("  " + c.cyan("doctrina workspace add <path> --role front|back|app|qa --about \"<what it is>\""));
@@ -226,6 +237,88 @@ function workspaceDetach(wsDir, name) {
   return EXIT.OK;
 }
 
+// The orchestrator's files follow the registry on every write (change 0223).
+function regenerate(wsDir) {
+  const ws = readWorkspace(wsDir);
+  const states = new Map(ws.projects.map((p) => [p.name, projectState(wsDir, p).state]));
+  const written = writeOrchestratorFiles(ws, wsDir, states);
+  if (written.length > 0) console.log(c.gray(`orchestrator files: ${written.join(", ")}`));
+}
+
+function workspaceTool(wsDir, name, flags) {
+  if (!name) {
+    console.error(c.red("error:") + " workspace tool needs the tool's name");
+    console.error(c.gray("hint: ") + `presets: ${Object.keys(TOOL_PRESETS).join(", ")} — or --server <name in your agent's MCP config>`);
+    return EXIT.USAGE;
+  }
+  const ws = readWorkspace(wsDir);
+  const at = ws.tools.findIndex((t) => t.name === name);
+  if (flags.get("remove")) {
+    if (at < 0) {
+      console.error(c.red("error:") + ` no tool named "${name}"`);
+      return EXIT.USAGE;
+    }
+    ws.tools.splice(at, 1);
+    writeWorkspace(wsDir, ws);
+    console.log(c.green("removed") + ` tool ${name}`);
+    return EXIT.OK;
+  }
+  let entry;
+  try {
+    entry = toolEntry(name, {
+      server: flagString(flags, "server"), access: flagString(flags, "access"),
+      for: flagString(flags, "for"), purpose: flagString(flags, "purpose"),
+    }, at >= 0 ? ws.tools[at] : null);
+  } catch (err) {
+    console.error(c.red("error:") + ` ${err.message}`);
+    return EXIT.USAGE;
+  }
+  if (at >= 0) ws.tools[at] = entry;
+  else ws.tools.push(entry);
+  writeWorkspace(wsDir, ws);
+  console.log(c.green(at >= 0 ? "updated" : "declared") + ` ${entry.name} → MCP server "${entry.server}", ${entry.access === "write" ? "read/write (each write asks the human)" : "read-only"}, for ${(entry.for ?? []).join(", ") || "the planner"}`);
+  console.log(c.gray(`the server itself is configured in your agent (Cursor: .cursor/mcp.json; Claude Code: .mcp.json) under the name "${entry.server}"`));
+  return EXIT.OK;
+}
+
+// Reads the agent's pre-call payload on stdin and answers in the agent's
+// own format. Never exits non-zero and never blocks on bad input: a broken
+// guard must not take the agent's tools away.
+function workspaceGuard(wsDir, hook) {
+  if (hook !== "cursor" && hook !== "claude") {
+    console.error(c.red("error:") + ` --hook needs cursor or claude (got "${hook ?? ""}")`);
+    return EXIT.USAGE;
+  }
+  let call = {};
+  try {
+    call = JSON.parse(readFileSync(0, "utf8") || "{}");
+  } catch {
+    call = {};
+  }
+  let server = null;
+  let tool = null;
+  if (hook === "cursor") {
+    server = call.mcp_server_name ?? null;
+    tool = call.tool_name ?? null;
+  } else {
+    const split = splitClaudeToolName(call.tool_name ?? "");
+    if (split) ({ server, tool } = split);
+  }
+  const tools = wsDir ? readWorkspace(wsDir).tools : [];
+  const verdict = server && tool ? guardDecision(tools, server, tool, call.tool_input) : { decision: "none", reason: "" };
+  if (hook === "cursor") {
+    const permission = verdict.decision === "none" ? "allow" : verdict.decision;
+    const out = { permission };
+    if (permission !== "allow") Object.assign(out, { user_message: verdict.reason, agent_message: verdict.reason });
+    console.log(JSON.stringify(out));
+  } else if (verdict.decision !== "none") {
+    console.log(JSON.stringify({ hookSpecificOutput: {
+      hookEventName: "PreToolUse", permissionDecision: verdict.decision, permissionDecisionReason: verdict.reason,
+    } }));
+  }
+  return EXIT.OK;
+}
+
 function workspaceList(wsDir) {
   const ws = readWorkspace(wsDir);
   console.log(c.bold(`Workspace "${ws.name}"`) + c.gray(` — ${wsDir}`));
@@ -248,6 +341,15 @@ function workspaceList(wsDir) {
   if (pending.length > 0) {
     console.log("");
     console.log(`Next: absorb ${pending.map((p) => p.name).join(", ")} — ` + c.cyan(`cd ${pending[0].path} && doctrina intake --from-code`));
+  }
+  console.log("");
+  if (ws.tools.length === 0) {
+    console.log(c.gray("no tool declared — `doctrina workspace tool jira` (presets: " + Object.keys(TOOL_PRESETS).join(", ") + ")"));
+  } else {
+    console.log(c.bold("Tools"));
+    for (const t of ws.tools) {
+      console.log(`  ${c.cyan(t.name.padEnd(12))} ${t.server.padEnd(12)} ${t.access.padEnd(6)} ${(t.for ?? []).join(", ").padEnd(16)} ${c.gray(t.purpose ?? "")}`);
+    }
   }
   return EXIT.OK;
 }
@@ -280,7 +382,26 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
 
   list
       Every project with its mode, state (ready / pending / missing) and
-      open changes. A pending project still has to be absorbed.
+      open changes, then the declared tools.
+
+  tool <name> [--server <mcp-name>] [--access read|write] [--for <roles>]
+              [--purpose "<what for>"] [--remove]
+      Declare (or update, or --remove) a tool the work uses. Presets:
+      jira, confluence, figma, playwright, datadog, databricks, sql.
+      Roles: planner, executor, qa, observer, reviewer. Access defaults
+      to read: the guard refuses a write through a read-only tool and
+      makes a declared write wait for the human.
+
+  guard --hook cursor|claude
+      The pre-call hook the workspace installs (Cursor beforeMCPExecution,
+      Claude Code PreToolUse): reads the call on stdin and answers allow,
+      deny or ask from the declared access. Never blocks on bad input.
+
+Every write (init, add, attach, detach, tool) regenerates the orchestrator
+files at the workspace root: AGENTS.md, .cursor/rules/00-doctrina-
+workspace.mdc, .cursor/hooks.json and .claude/settings.json (merged),
+.claude/agents/doctrina-*.md (read by Claude Code and Cursor) and
+<name>.code-workspace, which opens every repository in one window.
 
 The workspace is found from $DOCTRINA_WORKSPACE, the current directory
 or an ancestor holding ${WORKSPACE_FILE}, a shadow's .doctrina link, or

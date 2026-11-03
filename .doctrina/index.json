@@ -192,11 +192,13 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/lib/workspace.js",
+          "packages/doctrina-cli/src/lib/workspace-tools.js",
+          "packages/doctrina-cli/src/lib/workspace-agents.js",
           "packages/doctrina-cli/src/commands/workspace.js"
         ]
       }
@@ -593,9 +595,29 @@
           "workspace"
         ],
         "summary": "Um planejador — o agente da sessão, no modelo mais capaz — lê a"
+      },
+      {
+        "id": "0031",
+        "path": ".doctrina/decisions/0031-o-workspace-declara-as-ferramentas-e-o-agente-as-guarda.md",
+        "title": "O workspace declara as ferramentas e o agente as guarda",
+        "status": "accepted",
+        "date": "2026-11-03",
+        "scope": [
+          "workspace"
+        ],
+        "summary": "O `workspace.json` DECLARA cada ferramenta: o nome do servidor MCP como"
       }
     ],
-    "changes": [],
+    "changes": [
+      {
+        "id": "0223-o-orquestrador-sabe-o-que-pode-usar",
+        "title": "o orquestrador sabe o que pode usar",
+        "path": ".doctrina/changes/0223-o-orquestrador-sabe-o-que-pode-usar",
+        "status": "applied",
+        "opened": "2026-11-03",
+        "lane": "product (confident; signals: declarar)"
+      }
+    ],
     "changes_archive": [
       {
         "id": "0001-review-followups",

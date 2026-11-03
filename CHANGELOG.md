@@ -32,6 +32,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `doctrina change card <id> [<n>]` — one task as a self-contained card for an
   executor: the task and its `Files:`/`Verify:` lines, the Why, the spec slice.
 
+- `doctrina workspace tool` and `workspace guard` — the workspace declares each
+  MCP tool (server, roles, read or write) and answers the agent's own pre-call
+  hook (Cursor `beforeMCPExecution`, Claude Code `PreToolUse`): a write through a
+  read-only tool is denied, a declared write asks the human (ADR 0031).
+- The workspace generates the orchestrator's files at its root — AGENTS.md, the
+  Cursor rule, hooks, `.claude/agents/doctrina-*.md` subagents and a
+  `.code-workspace` with every repository — and `prime` there is its primer.
+
 ### Fixed
 
 - A `close` stopped after its apply (killed, or out of time while `verify` ran)

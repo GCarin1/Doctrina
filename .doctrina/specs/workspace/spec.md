@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/commands/workspace.js`
+**Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Purpose
 
@@ -40,10 +40,15 @@ single-repository cycle it always ran.
 - When `doctrina workspace attach <name> --path <dir>` runs, the system shall record the new repository path before linking.
 - When `doctrina workspace detach <name>` runs, the system shall remove each link the shadow put in the repository — never what a link points at — and the exclude block, and keep the shadow.
 - When `doctrina workspace list` runs, the system shall print each project with its mode, its state — `ready` when it has a capability spec and no pending intake, `pending` when it still has to be absorbed, `missing` when its path is gone — and its open changes.
+- When `doctrina workspace tool <name>` runs, the system shall declare or update a tool — its MCP server name, from a preset (jira, confluence, figma, playwright, datadog, databricks, sql) or `--server`, its roles, its purpose and its access, `read` unless `--access write` — and with `--remove` take it out; a tool with no preset and no `--server` is a usage error.
+- When `doctrina workspace guard --hook cursor|claude` reads an MCP call on stdin, the system shall answer in that agent's format — deny a call that would write through a server declared read-only, ask the human for a write through a server declared read/write, allow a read — deciding a write from a SQL statement in the input when there is one and from the verbs in the tool's name otherwise, and shall give no opinion on a server the workspace does not declare.
+- When the workspace is written by `init`, `add`, `attach`, `detach` or `tool`, the system shall regenerate at its root the orchestrator files — `AGENTS.md`, `.cursor/rules/00-doctrina-workspace.mdc`, `.cursor/hooks.json` and `.claude/settings.json` merged with the operator's, `.claude/agents/doctrina-<role>.md` for executor and reviewer and for qa and observer when a tool serves them, and `<name>.code-workspace` listing every repository.
+- When `doctrina prime` runs at a workspace root, the system shall print the orchestrator primer — projects and state, open deliveries, tools, the next step — with `--pulse` the open deliveries in one line, and with `--hook` the primer followed by the workspace AGENTS.md.
 
 ### Unwanted behavior
 
 - If no workspace can be found, then the system shall not guess one: it shall exit 3 naming `doctrina workspace init` as the remedy.
+- If the guard cannot read the call, then the system shall not block it: it answers allow and exits 0.
 
 ## Acceptance criteria
 
@@ -55,6 +60,7 @@ A workspace is spec-compliant when:
 4. [verified] `detach` removes the links and the block and leaves the shadow's files in place — verified by `packages/doctrina-cli/test/o-contexto-mora-num-workspace.test.js`.
 5. [verified] `workspace list` reports a project without specs as pending and points at `doctrina intake --from-code` — verified by `packages/doctrina-cli/test/o-contexto-mora-num-workspace.test.js`.
 6. [verified] The exclude block is replaced, never duplicated, and the text around it survives — verified by `packages/doctrina-cli/test/o-contexto-mora-num-workspace.test.js`.
+7. [verified] A tool takes its preset, one without needs `--server`, `--access` validates and `--remove` removes; the generated hub, rule, hooks (merged), subagents and code-workspace follow the registry; the guard denies a read-only write, asks a declared write, allows a read and an undeclared server in both agent formats and never blocks on bad input; `prime` at the root is the orchestrator primer — verified by `packages/doctrina-cli/test/o-orquestrador-sabe-o-que-pode-usar.test.js`.
 
 ## Out of scope for this spec
 

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -53,7 +53,8 @@ test("workspace init creates the versioned workspace and refuses a second init",
     const doc = JSON.parse(readFileSync(path.join(s.ws, "workspace.json"), "utf8"));
     assert.equal(doc.name, "acme");
     assert.deepEqual(doc.projects, []);
-    assert.equal(readFileSync(path.join(s.root, "home", "workspace"), "utf8").trim(), s.ws);
+    // Real paths on both sides: macOS hands out /var/... for /private/var/...
+    assert.equal(realpathSync(readFileSync(path.join(s.root, "home", "workspace"), "utf8").trim()), realpathSync(s.ws));
     assert.equal(s.run(s.root, ["workspace", "init", "ws"]).status, 3);
     // Outside any workspace, the subcommands name the remedy.
     const lost = s.run(s.back, ["workspace", "list"]);
