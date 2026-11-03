@@ -7,7 +7,7 @@
 - **Lane:** product (confident; signals: declarar)
 - **Affects specs:** workspace
 
-- **Documented surface:** `doctrina workspace tool`, `doctrina workspace guard`, `doctrina prime` at a workspace root — documented in `docs/en/cli-reference.md` and `docs/pt/cli-reference.md`
+- **Documented surface:** n/a — `workspace tool`, `workspace guard` and `prime` at a workspace root are documented in `docs/en/cli-reference.md` and `docs/pt/cli-reference.md`, committed with this change's code (9809d38) before the close resumed; `/private/var` is a test path, not an endpoint
 
 
 ## Why
