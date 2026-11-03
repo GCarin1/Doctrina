@@ -608,16 +608,7 @@
         "summary": "O `workspace.json` DECLARA cada ferramenta: o nome do servidor MCP como"
       }
     ],
-    "changes": [
-      {
-        "id": "0224-a-entrega-registra-a-subida-e-o-que-foi",
-        "title": "a entrega registra a subida e o que foi observado",
-        "path": ".doctrina/changes/0224-a-entrega-registra-a-subida-e-o-que-foi",
-        "status": "applied",
-        "opened": "2026-11-03",
-        "lane": "product (uncertain)"
-      }
-    ],
+    "changes": [],
     "changes_archive": [
       {
         "id": "0001-review-followups",
@@ -3773,6 +3764,20 @@
           }
         ],
         "lane": "product (confident; signals: declarar)"
+      },
+      {
+        "id": "0224-a-entrega-registra-a-subida-e-o-que-foi",
+        "title": "a entrega registra a subida e o que foi observado",
+        "path": ".doctrina/changes/archive/2026-11-03-0224-a-entrega-registra-a-subida-e-o-que-foi",
+        "status": "applied",
+        "applied": "2026-11-03",
+        "specs_affected": [
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

@@ -7,7 +7,7 @@
 - **Lane:** product (uncertain)
 - **Affects specs:** delivery
 
-- **Documented surface:** `doctrina delivery check`, `doctrina delivery list` — documented in `docs/en/cli-reference.md` and `docs/pt/cli-reference.md`
+- **Documented surface:** n/a — `delivery check` and `delivery list` are documented in `docs/en/cli-reference.md` and `docs/pt/cli-reference.md`, committed with this change's code (17a1fd6) before the close ran
 
 
 ## Why
