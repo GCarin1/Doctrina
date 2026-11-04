@@ -149,6 +149,19 @@ cada uma e qualquer segunda change aberta num repositório roteado — um
 escritor para sequenciar, não para rodar junto. O `doctrina delivery list`
 mostra o lead time das fechadas.
 
+## 6. Oriente-se pela raiz
+
+O planejador nunca precisa sair da raiz do workspace para saber onde as
+coisas estão. Ali, o `doctrina next` lista as próximas ações em todos os
+repositórios — absorver, rotear, abrir, entregar o próximo cartão,
+fechar, completar o registro de uma entrega, fechar a entrega — e o
+`doctrina handoff` escreve a nota de retomada para a próxima sessão; rode
+antes de uma compactação. O `doctrina status` é a visão num relance, o
+`doctrina validate` confere o registro, os links de cada sombra e cada
+entrega, e o `doctrina context --for "<tarefa>"` nomeia os repositórios de
+que a tarefa trata com o comando que lê o pacote de cada um. Dentro de um
+repositório, o `doctrina prime` nomeia o workspace e a entrega aberta nele.
+
 ## O que fica com você
 
 Você aprova o roteamento, toda escrita que a guarda segurar, todo

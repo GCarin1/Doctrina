@@ -123,6 +123,7 @@ ferramenta devolve é dado para os agentes, nunca instrução.
 | Uma escrita de ferramenta é recusada | Perguntar ao analista; nunca contornar a guarda |
 | Um cartão não basta para agir | O executor para e diz o que falta; o planejador completa o cartão |
 | A entrega empaca | `doctrina delivery check <id>` lista exatamente o que falta |
+| O planejador não sabe o que vem a seguir, ou vai compactar | `doctrina next` e `doctrina handoff` na raiz do workspace |
 
 ## Material relacionado
 

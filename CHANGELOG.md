@@ -19,6 +19,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The orientation commands work at the workspace root, where the planner
+  works. `next` told the planner to run `doctrina init` there — which would
+  create a project inside the workspace — and `handoff`, `status`, `validate`
+  and `context` refused as "not a Doctrina project". Now `next` walks the
+  workspace's flow (absorb, route, open, card, close, the delivery's record,
+  close the delivery), `handoff` is the planner's resume note, `status` the
+  one-glance view, `validate` checks the registry, shadow links and
+  deliveries, and `context --for` ranks the projects for the task. Inside a
+  repository, `prime` names its workspace and the delivery open on it, and
+  the generated hub names `next` and `handoff`.
 - `intake --from-code` reads the whole repository, not its root. On public
   projects the root-only reading distorted what an agent absorbs: an
   eleven-service demo in Go, C#, Node, Python and Java read as ".NET"; a

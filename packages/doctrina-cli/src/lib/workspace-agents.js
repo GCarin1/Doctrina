@@ -116,7 +116,9 @@ export function workspaceHub(ws, wsDir, states) {
   L.push("the analyst: they bring the item of work and approve; you read it, plan it,");
   L.push("delegate it, review it and close it (ADR 0030).", "");
   L.push("## Session start", "");
-  L.push("`doctrina prime` here: the projects, their state and the open deliveries.", "");
+  L.push("`doctrina prime` here: the projects, their state and the open deliveries.");
+  L.push("Unsure what comes next: `doctrina next`. Before a compaction or a handover:");
+  L.push("`doctrina handoff`. Both answer for the whole workspace from here.", "");
   L.push("## Projects", "");
   L.push("| Project | Mode | State | Role | Depends on | Path | What it is |");
   L.push("|---|---|---|---|---|---|---|");

@@ -142,6 +142,19 @@ second open change in a routed repository — a writer to sequence, not to
 run alongside. `doctrina delivery list` shows the lead time of the closed
 ones.
 
+## 6. Orient from the root
+
+The planner never has to leave the workspace root to know where things
+stand. There, `doctrina next` lists the next actions across every
+repository — absorb, route, open, hand the next card, close, clear a
+delivery's record, close the delivery — and `doctrina handoff` writes the
+resume note for the next session; run it before a compaction. `doctrina
+status` is the one-glance view, `doctrina validate` checks the registry,
+every shadow's links and every delivery, and `doctrina context --for
+"<task>"` names the repositories the task is about with the command that
+reads each one's pack. Inside a repository, `doctrina prime` names the
+workspace and the delivery open on it.
+
 ## What stays with you
 
 You approve the routing, every write the guard holds, every close you

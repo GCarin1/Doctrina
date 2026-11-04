@@ -15,6 +15,7 @@ import { terms as queryTerms, relevance } from "../lib/lexicon.js";
 import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
 import { adrDigest, sliceSpec, withoutComments } from "../lib/context-slice.js";
+import { contextRouting, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
 // context pack for a task, in the order an agent should read it. This is
@@ -85,6 +86,21 @@ export async function run(positional, cmdFlags) {
   const diffRef = flagString(cmdFlags, "diff");
   const query = flagString(cmdFlags, "for");
   const projectRoot = process.cwd();
+  // At a workspace root there is no one spec tree to read: the pack is per
+  // repository. Name which repositories the task is about, and the command
+  // that reads each one's pack (change 0230).
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (wsRoot) {
+    const ranked = contextRouting(workspaceSnapshot(wsRoot), query ?? capability ?? "");
+    console.log(c.bold("The context pack is read inside a repository.") + c.gray(query ? ` Projects for "${query}":` : " Projects:"));
+    for (const r of ranked) {
+      const mark = r.state === "ready" ? "" : c.yellow(` (${r.state})`);
+      console.log(`  ${r.name.padEnd(16)} ${query ? c.gray(`${r.score} shared term${r.score === 1 ? "" : "s"}${r.shared.length ? ` (${r.shared.slice(0, 5).join(", ")})` : ""}`) : ""}${mark}`);
+      console.log(`    ${c.cyan(`cd ${r.path} && doctrina context ${capability ?? "<capability>"}${query ? ` --for "${query}"` : ""} --concat`)}`);
+    }
+    if (ranked.length === 0) console.log(c.gray("  none registered — `doctrina workspace add <path>`"));
+    return 0;
+  }
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
@@ -758,6 +774,10 @@ order: product.md, the capability spec (when given — otherwise every
 active spec), open changes, accepted ADRs. Skills are
 listed name + description + when-trigger only — they are on-demand by
 design. The change archive is excluded.
+
+At a workspace root, where no one spec tree exists, it ranks the
+registered projects against --for and prints the command that reads
+each one's pack inside its repository.
 
 The pack is LEAN by default: AGENTS.md is not repeated (your agent
 loads it every turn), an accepted ADR is a digest — its title and the

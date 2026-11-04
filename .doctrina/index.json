@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.58.0",
+        "version": "0.59.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.1",
+        "version": "0.10.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -112,7 +112,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.19.0",
+        "version": "0.20.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -154,7 +154,7 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.5.2",
+        "version": "0.6.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -195,13 +195,14 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/lib/workspace.js",
           "packages/doctrina-cli/src/lib/workspace-tools.js",
           "packages/doctrina-cli/src/lib/workspace-agents.js",
+          "packages/doctrina-cli/src/lib/workspace-view.js",
           "packages/doctrina-cli/src/commands/workspace.js"
         ]
       }
@@ -3889,6 +3890,36 @@
           }
         ],
         "lane": "product (uncertain; signals: comportamento)"
+      },
+      {
+        "id": "0230-a-orientacao-funciona-na-raiz-do-workspace",
+        "title": "a orientacao funciona na raiz do workspace",
+        "path": ".doctrina/changes/archive/2026-11-04-0230-a-orientacao-funciona-na-raiz-do-workspace",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

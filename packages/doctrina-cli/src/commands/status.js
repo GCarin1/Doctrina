@@ -11,6 +11,7 @@ import { renderView, VIEWS } from "../lib/views.js";
 import { draftAgentChangelog, renderDraft } from "../lib/agent-changelog.js";
 import { cliVersion } from "../lib/version.js";
 import { suggest } from "../lib/suggest.js";
+import { contextRouting, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
 
 // One-glance project health (review 2026-06-27 passive-user feature #1): a
 // dashboard that answers "where do things stand?" in a single read, so neither
@@ -38,6 +39,8 @@ const STATUS_VIEWS = [...VIEWS, "agent-changelog"];
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (wsRoot) return workspaceStatusView(wsRoot, flags);
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
@@ -90,6 +93,9 @@ signals (index drift, framework stamp, coverage %, trace anchors, whether
 verify is configured) and the artifact counts (specs by implementation
 state, open changes, decisions, skills). Read-only; always exits 0.
 
+At a workspace root it prints the workspace instead: projects ready,
+pending and missing, open changes, deliveries open and closed, tools.
+
 Flags:
   --view <name>   Render a different shape of the same snapshot:
                     dashboard  the default one-glance health board
@@ -116,3 +122,25 @@ It is a fast summary, not the authoritative gate: run \`doctrina validate\`
 and \`doctrina verify\` for the full structural and build checks, and
 \`doctrina next\` for the recommended next action.
 `;
+
+// At a workspace root: one glance at the workspace (change 0230).
+function workspaceStatusView(wsRoot, flags) {
+  const snap = workspaceSnapshot(wsRoot);
+  const st = workspaceStatus(snap);
+  if (flagBool(flags, "json", false)) {
+    emitJson("status", { workspace: wsRoot, ...st });
+    return 0;
+  }
+  console.log(c.bold(`Doctrina workspace "${st.name}"`) + c.gray(` — ${wsRoot}`));
+  console.log("");
+  console.log(`Projects    ${st.ready}/${st.projects} ready` + (st.pending.length ? c.yellow(` · pending: ${st.pending.join(", ")}`) : "")
+    + (st.missing.length ? c.red(` · missing: ${st.missing.join(", ")}`) : "") + ` · ${st.openChanges} open change${st.openChanges === 1 ? "" : "s"}`);
+  console.log(`Deliveries  ${st.deliveries.open} open · ${st.deliveries.closed} closed`);
+  console.log(`Tools       ${st.tools} declared`);
+  const first = workspaceActions(snap)[0];
+  if (first) {
+    console.log("");
+    console.log(c.gray("next: ") + `${first.text} — ` + c.cyan(first.command));
+  }
+  return 0;
+}

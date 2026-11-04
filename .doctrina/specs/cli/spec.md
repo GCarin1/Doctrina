@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.58.0
+**Version:** 0.59.0
 
 ## Purpose
 
@@ -131,6 +131,7 @@ command shares (git, the lexicon, the usage log).
 - When `close` is given a change id that does not resolve, the system shall refuse with the usage class before sequencing any step, as every other command that takes a change id does.
 - When an invocation is refused for an undeclared flag and JSON output was requested, the system shall emit the envelope reporting the refusal and its exit code rather than an empty payload.
 - When an invocation names an operation removed from the catalog, the system shall run nothing and answer with the usage class, naming the version that removed it and the command that replaces it — in the `--json` envelope too — rather than "unknown command" and a guess.
+- When `doctrina next` runs at a workspace root, the system shall answer with the workspace's next actions, as the workspace spec states, and shall not recommend `doctrina init` there.
 
 ### State-driven
 
@@ -260,6 +261,7 @@ The CLI is v0 spec-compliant when:
 51. [verified] A repeated `--op` keeps every value in order while a single reading returns the last — verified by `packages/doctrina-cli/test/args.test.js`.
 52. [verified] Every command whose Usage line enumerates its subcommands names all it dispatches and describes each — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
 53. [verified] Every flag a command declares is described in that command's help — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
+54. [verified] `next` at a workspace root never names init, and outside any workspace and project still does — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 
 ## Out of scope for this spec
 

@@ -8,6 +8,7 @@ import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { action, computeActions, invocation } from "../lib/actions.js";
+import { contextRouting, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
 
 // `next` answers "what now?". The ANSWER lives in `lib/actions.js` as
 // records; this module renders them and, under `--run`, executes one
@@ -27,6 +28,19 @@ export const flags = { boolean: ["json", "run"], string: [] };
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
   const json = flagBool(flags, "json", false);
+  // At a workspace root the planner's next step is the workspace's — never
+  // `init`, which would create a project inside the workspace (change 0230).
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (wsRoot) {
+    const actions = workspaceActions(workspaceSnapshot(wsRoot));
+    if (json) emitJson("next", { workspace: wsRoot, actions });
+    else {
+      console.log(c.bold("Next actions in the workspace") + c.gray(" (in priority order):"));
+      console.log("");
+      actions.forEach((a, i) => console.log(`${i + 1}. ${a.text}\n     ${c.cyan(a.command)}`));
+    }
+    return 0;
+  }
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     const first = action({
       id: "not-a-project",
@@ -153,6 +167,10 @@ tasks, deltas ready to apply, applied-but-unarchived), ADRs still in
 proposed status, accepted ADRs with nothing proving them (cite Evidence
 or run "decision land"), a skill-capture nudge when a past fix went
 uncaptured, and index drift last.
+
+At a workspace root it lists the workspace's next actions instead —
+absorb, route, open, hand the next card, close, clear a delivery's
+record, close the delivery — and never names init there.
 
 Intended use: agents and humans run it to resume work without
 re-reading the whole tree.

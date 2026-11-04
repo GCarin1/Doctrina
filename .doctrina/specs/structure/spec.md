@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.5.2
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -116,6 +116,7 @@ those stays there, with the cross-cutting claim it belongs to.
 - When `doctrina validate` runs with `--strict`, the system shall count every warning as a failure and exit 1, and shall name `--strict` as the cause when it found no error.
 - When `doctrina validate` runs on a tree holding an intake, the system shall report an error for a Status that is neither pending nor converted, reading the value as every other status is read — case-folded, with a note after the value tolerated — because any other word silently means pending.
 - When `doctrina validate` enforces the project's rules, the system shall warn for a rule whose declared paths reach no file, because the constraint is then declared and never enforced; a rule that declares no paths covers the tree and shall not be reported.
+- When `doctrina validate` runs at a workspace root, the system shall check the workspace's own integrity — registered projects and their dependencies, shadow links, deliveries' status and routed projects — exiting 1 on an error, and leave each project's validation to the project.
 
 ### Unwanted-behavior (must-not)
 
@@ -140,6 +141,7 @@ those stays there, with the cross-cutting claim it belongs to.
 11. [verified] A rule scoped to a path that matches nothing is reported while a rule that reaches files, one that finds a violation, one that declares no scope, and one suppressed by its own hit cap each keep their answer — verified by `packages/doctrina-cli/test/uma-regra-que-nao-alcanca-nada.test.js`.
 12. [verified] The same vague trigger is reported in English and in Portuguese, an accent does not change the answer, a concrete trigger passes in either language, and the module counts content words through the shared lexicon — verified by `packages/doctrina-cli/test/um-gatilho-vago-e-vago-nas-duas-linguas.test.js`.
 13. [verified] A chore opened by `work --chore` validates without a ghost warning for "none" or "chore", and an aside such as "(via ops only)" beside a real name is ignored while a real ghost in the same header still warns — verified by `packages/doctrina-cli/test/a-ghost-reference-is-named.test.js`.
+14. [verified] `validate` at a workspace root exits 1 for a missing shadow link and a delivery routed to an unregistered project, and 0 once both are fixed — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 
 ## Out of scope for this spec
 

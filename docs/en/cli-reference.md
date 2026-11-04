@@ -1191,6 +1191,11 @@ or run it; wire it into your dev setup by hand.
 
 Run schema and structural checks against `.doctrina/`.
 
+**At a workspace root** it checks the workspace itself — every registered
+project's path and dependencies, every shadow's links, every delivery's
+Status and routed projects — and exits `1` on an error. Each project still
+validates inside itself.
+
 ```
 doctrina validate
 ```
@@ -1789,6 +1794,14 @@ nothing relevant is staged, or outside a git repository.
 
 Print the recommended next workflow actions, in priority order.
 
+**At a workspace root** it lists the workspace's next actions — re-link a
+missing repository, absorb a pending one, route a delivery, open its
+change in each repository, hand the next card, close a change whose tasks
+are ticked, clear the delivery's record with the command that clears it
+(`delivery tick` for the Release claims), close the delivery, or open one
+— and never names `init` there, which would create a project inside the
+workspace.
+
 ```
 doctrina next [--json] [--run]
 ```
@@ -1873,6 +1886,10 @@ a whole sequence run for you.
 ## `doctrina status`
 
 One-glance project health dashboard (ADR 0012).
+
+**At a workspace root** it prints the workspace at a glance — projects
+ready, pending and missing, open changes, deliveries open and closed,
+tools — and the first next action; `--json` carries the same fields.
 
 ```
 doctrina status
@@ -2150,6 +2167,10 @@ snapshot monthly after, compare.
 Print the exact context pack for a task, in the documented read
 order.
 
+**At a workspace root**, where no single spec tree exists, it ranks the
+registered projects against `--for` and prints, for each, the command that
+reads its pack inside the repository.
+
 ```
 doctrina context billing --for "expire the session token" --concat
 doctrina context billing --concat
@@ -2294,6 +2315,11 @@ reference into the delta's pair of coordinates.
 
 Print a session handoff note in Markdown — what the next session (a
 fresh agent, a teammate, tomorrow's you) needs to resume.
+
+**At a workspace root** it is the planner's resume note: each project with
+its mode and state, each open delivery with every routed repository's
+change and tasks, how many Release claims are ticked, and the next
+actions.
 
 ```
 doctrina handoff

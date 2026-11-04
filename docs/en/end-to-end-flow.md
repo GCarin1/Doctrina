@@ -122,6 +122,7 @@ instruction.
 | A tool write is refused | Ask the analyst; never route around the guard |
 | A card is not enough to act on | The executor stops and says what is missing; the planner completes the card |
 | The delivery stalls | `doctrina delivery check <id>` lists exactly what is missing |
+| The planner is unsure what comes next, or is about to compact | `doctrina next` and `doctrina handoff` at the workspace root |
 
 ## Related material
 

@@ -1214,6 +1214,11 @@ instala nem roda; conecte à sua configuração de dev à mão.
 
 Roda checagens de schema e estrutura contra `.doctrina/`.
 
+**Na raiz de um workspace** ele confere o próprio workspace — o caminho e
+as dependências de cada projeto registrado, os links de cada sombra, o
+Status e os projetos roteados de cada entrega — e sai com `1` num erro.
+Cada projeto continua se validando dentro dele.
+
 ```
 doctrina validate
 ```
@@ -1834,6 +1839,14 @@ quando nada relevante está staged, ou fora de um repositório git.
 Imprime as próximas ações recomendadas do workflow, em ordem de
 prioridade.
 
+**Na raiz de um workspace** ele lista as próximas ações do workspace —
+religar um repositório sumido, absorver um pendente, rotear uma entrega,
+abrir a change dela em cada repositório, entregar o próximo cartão, fechar
+uma change com as tarefas marcadas, completar o registro da entrega com o
+comando que o completa (`delivery tick` para as afirmações da Release),
+fechar a entrega ou abrir uma — e nunca indica `init` ali, que criaria um
+projeto dentro do workspace.
+
 ```
 doctrina next [--json] [--run]
 ```
@@ -1920,6 +1933,11 @@ inteira executada para você.
 ## `doctrina status`
 
 Painel de saúde do projeto em um olhar (ADR 0012).
+
+**Na raiz de um workspace** ele mostra o workspace num relance — projetos
+prontos, pendentes e sumidos, changes abertas, entregas abertas e
+fechadas, ferramentas — e a primeira próxima ação; o `--json` traz os
+mesmos campos.
 
 ```
 doctrina status
@@ -2202,6 +2220,10 @@ Doctrina, snapshot mensal depois, compare.
 Imprime o pacote de contexto exato para uma tarefa, na ordem de
 leitura documentada.
 
+**Na raiz de um workspace**, onde não existe uma árvore de specs única,
+ele ranqueia os projetos registrados contra o `--for` e imprime, para cada
+um, o comando que lê o pacote dele dentro do repositório.
+
 ```
 doctrina context billing --for "expirar o token da sessão" --concat
 doctrina context billing --concat
@@ -2351,6 +2373,11 @@ transforma uma referência `R` no par de coordenadas do delta.
 Imprime uma nota de handoff de sessão em Markdown — o que a próxima
 sessão (um agente novo, um colega, o você de amanhã) precisa para
 retomar.
+
+**Na raiz de um workspace** ele é a nota de retomada do planejador: cada
+projeto com modo e estado, cada entrega aberta com a change e as tarefas
+de cada repositório roteado, quantas afirmações da Release estão marcadas
+e as próximas ações.
 
 ```
 doctrina handoff
