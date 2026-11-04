@@ -12,6 +12,8 @@ import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
 import { REEDIT_WINDOW_DAYS, sinceWindow, computeSnapshot, parseLog, readSeries, latestSnapshot, trend, round } from "../lib/metrics-model.js";
+import { workspaceRootAt, workspaceSnapshot } from "../lib/workspace-view.js";
+import { cdThen } from "../lib/shell.js";
 
 // Local-only adoption metrics derived from git history. No network calls,
 // no telemetry: the numbers stay in the repository, versioned like any
@@ -24,6 +26,19 @@ export const flags = { boolean: ["json", "save", "commands", "trend"], string: [
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
+  // At the workspace root (change 0235): adoption is measured per repository;
+  // the deliveries' own lead time is `delivery list`.
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (wsRoot && !flagBool(flags, "commands", false)) {
+    const snap = workspaceSnapshot(wsRoot);
+    console.log(c.bold("Doctrina metrics") + c.gray(` — workspace "${snap.ws.name}"`));
+    console.log("");
+    console.log(`Deliveries  ${snap.open.length} open · ${snap.deliveries.length - snap.open.length} closed — lead time per delivery: ${c.cyan("doctrina delivery list")}`);
+    console.log("");
+    console.log("Adoption is measured in each repository:");
+    for (const p of snap.projects.filter((x) => x.state !== "missing")) console.log("  " + c.cyan(cdThen(p.project.path, "doctrina metrics")));
+    return EXIT.OK;
+  }
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }

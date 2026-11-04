@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/lib/workspace-view.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.6.0
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -31,6 +31,7 @@ single-repository cycle it always ran.
 - The system shall find the workspace from `$DOCTRINA_WORKSPACE`, else the current directory or an ancestor holding `workspace.json`, else the real path of a shadow's `.doctrina` link, else the pointer `workspace init` wrote under `$DOCTRINA_HOME` (default `~/.doctrina`) when that workspace lists the current directory.
 - The system shall name no tool product as the default in its own output: a workspace with no tool declared is pointed at `doctrina workspace tool <name> --server <mcp-server> --for <roles>`, with the presets listed as presets.
 - The system shall write the `doctrina workspace guard` hook into the Cursor and Claude Code hook files of every shadowed project, beside the workspace root's.
+- The system shall treat as a write any MCP call whose input carries, under any key or nesting, SQL that changes state — `CALL`, `EXEC`, `COPY` and `SELECT … INTO` included — or whose `action`, `operation` or `method` argument names a write, or that sends a GraphQL `mutation`.
 
 ### Event-driven
 
@@ -55,6 +56,9 @@ single-repository cycle it always ran.
 - When `doctrina workspace attach <name> --depends-on <a,b>` runs, the system shall replace the project's `dependsOn` with the registered names given, and refuse with exit 2 a name that is not another registered project.
 - When `doctrina validate` runs at a workspace root that declares tools, the system shall warn of each in-repo project whose `.cursor/hooks.json` or `.claude/settings.json` runs no `doctrina workspace guard`.
 - When a command finds no `.doctrina/` in a clone of a repository the workspace shadows elsewhere, the system shall name `doctrina workspace attach <name> --path <clone>` from the workspace, and `doctrina init` shall refuse with exit 3 unless `--force`.
+- When a tool is declared or `validate` runs at the workspace root, and an MCP configuration is readable, the system shall warn of each declared server that no configuration names, naming a key that differs only in case.
+- When a shadowed project's folder in the workspace is gone, the system shall name `doctrina workspace attach <name>`, and `attach` shall scaffold the shadow again after warning to restore it from the workspace's git.
+- When `doctrina doctor` or `doctrina metrics` runs at a workspace root, the system shall answer for the workspace and print the command that runs it in each project.
 
 ### Unwanted behavior
 
@@ -80,6 +84,9 @@ A workspace is spec-compliant when:
 13. [verified] an undeclared package dependency warns at the root, and `attach --depends-on` clears it — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 14. [verified] a shadow's hooks run the guard, and an unguarded in-repo project is named — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 15. [verified] a second clone of a shadowed repository is pointed at attach, and init plants nothing there — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+16. [verified] the guard reads writes in every place an input carries them, and reads stay reads — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
+17. [verified] a declared server no configuration names is reported — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
+18. [verified] doctor and metrics answer at the root, and a lost shadow is scaffolded again — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
 
 ## Out of scope for this spec
 

@@ -19,6 +19,22 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The fourth audit fed the multi-repo flow hostile and odd input:
+  - **Security.** Every command line the CLI prints interpolated the
+    tracker's title between double quotes, so a story titled
+    `Fix $(curl … | sh)` became a command an agent pasting the line ran;
+    a repository path with a space split every `cd`. `lib/shell.js` quotes
+    both, and a printed line now runs as printed.
+  - **Security.** The MCP guard read SQL under four keys only, took `CALL`,
+    `EXEC`, `COPY` and `SELECT … INTO` for reads, ignored an `action` or
+    `method` argument and a GraphQL `mutation`, and missed the verb in a name
+    with no separator. It also fired for nothing when the declared server's
+    key matched no MCP configuration; `workspace tool` and `validate` now
+    say so.
+  - `doctor` and `metrics` at the workspace root said `doctrina init`; a
+    shadow whose folder was gone crashed `attach` and was sent to
+    `intake --from-code`, and a shadowed repository whose links were gone
+    was told to `init`.
 - The third audit broke the multi-repo flow on purpose and fixed how it
   failed:
   - the MCP guard ran at the workspace root only; an executor works inside

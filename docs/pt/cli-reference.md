@@ -2191,7 +2191,9 @@ drift, migra o carimbo) e reimprime o `doctrina next`. Com debounce; ignora o
 ## `doctrina metrics`
 
 Deriva métricas de adoção do **histórico git local**. Zero
-chamadas de rede; nada sai do repositório.
+chamadas de rede; nada sai do repositório. Na raiz de um workspace ele
+conta as entregas, aponta o `delivery list` para o lead time delas e
+imprime a linha de `metrics` de cada repositório.
 
 **Estados de primeira execução.** Um repositório sem commits, ou um
 diretório que não é repositório, é um estado válido e não uma falha: o
@@ -2409,7 +2411,9 @@ Deliberadamente uma **view derivada, não um arquivo armazenado** — a
 ## `doctrina doctor`
 
 Diagnóstico agregado: o comando único para quando algo parece errado
-e você não sabe qual gate consultar.
+e você não sabe qual gate consultar. Na raiz de um workspace ele relata os
+achados do próprio workspace — os que o `validate` confere ali —, sai com
+`1` num erro e imprime `cd <caminho> && doctrina doctor` para cada projeto.
 
 ```
 doctrina doctor
@@ -2591,6 +2595,23 @@ vai também para os arquivos de hook de cada sombra — o executor trabalha
 dentro do repositório, onde o Cursor e o Claude Code leem os hooks daquela
 pasta; um projeto in-repo é dono dos seus arquivos, então o `validate` na
 raiz avisa quando eles não rodam a guarda.
+
+O SQL é lido onde quer que a entrada o carregue — qualquer chave, uma
+lista, um objeto aninhado — e `CALL`, `EXEC`, `COPY` e `SELECT … INTO`
+contam como escrita; um argumento `action`, `operation` ou `method`
+(`delete`, `POST`) e uma `mutation` GraphQL também, e um verbo de escrita
+dentro de um nome sem separador (`createissue`). A guarda casa o servidor
+MCP pela chave exata na configuração do agente, então o `workspace tool` e o
+`validate` na raiz avisam quando nenhum `.cursor/mcp.json`, `.mcp.json`,
+`~/.cursor/mcp.json` ou `~/.claude.json` nomeia o servidor declarado (uma
+chave que só difere na caixa é nomeada). Uma sombra cuja pasta sumiu é
+esqueletizada de novo pelo `workspace attach <nome>`, depois de um aviso
+para restaurá-la antes pelo git do workspace.
+
+Toda linha de comando que o CLI imprime — `next`, `delivery status`,
+`route`, os playbooks — põe aspas nos caminhos e títulos que carrega: um
+título do tracker com `$( )`, crase ou aspas vai entre aspas simples, e um
+caminho com espaço entre aspas duplas, então a linha roda como impressa.
 
 **Arquivos do orquestrador.** Toda escrita no workspace, e todo `list`, regenera, na raiz:
 `AGENTS.md` (o hub do planejador), `.cursor/rules/00-doctrina-workspace.mdc`,

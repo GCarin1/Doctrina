@@ -16,6 +16,7 @@ import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
 import { adrDigest, sliceSpec, withoutComments } from "../lib/context-slice.js";
 import { contextRouting, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
+import { cdThen, qarg } from "../lib/shell.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
 // context pack for a task, in the order an agent should read it. This is
@@ -96,7 +97,7 @@ export async function run(positional, cmdFlags) {
     for (const r of ranked) {
       const mark = r.state === "ready" ? "" : c.yellow(` (${r.state})`);
       console.log(`  ${r.name.padEnd(16)} ${query ? c.gray(`${r.score} shared term${r.score === 1 ? "" : "s"}${r.shared.length ? ` (${r.shared.slice(0, 5).join(", ")})` : ""}`) : ""}${mark}`);
-      console.log(`    ${c.cyan(`cd ${r.path} && doctrina context ${capability ?? "<capability>"}${query ? ` --for "${query}"` : ""} --concat`)}`);
+      console.log(`    ${c.cyan(cdThen(r.path, `doctrina context ${capability ?? "<capability>"}${query ? ` --for ${qarg(query)}` : ""} --concat`))}`);
     }
     if (ranked.length === 0) console.log(c.gray("  none registered — `doctrina workspace add <path>`"));
     return 0;

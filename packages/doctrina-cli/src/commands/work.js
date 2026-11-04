@@ -641,7 +641,9 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
 // The prompt as a `context --for` argument: one line, no double quotes, short
 // enough to read — the slicer only needs its content words.
 export function forQuery(prompt) {
-  const flat = String(prompt ?? "").replace(/["`]/g, "").replace(/\s+/g, " ").trim();
+  // `$` and `\\` too (change 0235): between the double quotes the playbook
+  // prints, `$(…)` in a prompt still ran.
+  const flat = String(prompt ?? "").replace(/["`$\\]/g, "").replace(/\s+/g, " ").trim();
   return flat.length > 80 ? flat.slice(0, 80).replace(/\s+\S*$/, "") : flat;
 }
 

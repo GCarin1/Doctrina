@@ -2140,7 +2140,9 @@ ignores the `index.json` the fix rewrites. Runs until interrupted (Ctrl-C);
 ## `doctrina metrics`
 
 Derive adoption metrics from **local git history**. No network
-calls; nothing leaves the repository.
+calls; nothing leaves the repository. At a workspace root it counts the
+deliveries, points at `delivery list` for their lead time, and prints the
+`metrics` line for each repository.
 
 **First-run states.** A repository with no commits, or a directory that is
 not a repository, is a valid state and not a failure: `metrics` reports
@@ -2350,7 +2352,9 @@ truth and never goes stale; regenerate on demand. Read-only.
 ## `doctrina doctor`
 
 Aggregate diagnostic: the one command to run when something looks
-wrong and you do not know which gate to ask.
+wrong and you do not know which gate to ask. At a workspace root it reports
+the workspace's own findings — the ones `validate` checks there — exits `1`
+on an error, and prints `cd <path> && doctrina doctor` for each project.
 
 ```
 doctrina doctor
@@ -2529,6 +2533,23 @@ blocks the agent. The hook goes into each shadow's own hook files too —
 an executor works inside the repository, where Cursor and Claude Code read
 that folder's hooks; an in-repo project owns its files, so `validate` at
 the root warns when they run no guard.
+
+The SQL is read wherever the input carries it — any key, a list, a nested
+object — and `CALL`, `EXEC`, `COPY` and `SELECT … INTO` count as writes; an
+`action`, `operation` or `method` argument (`delete`, `POST`) and a GraphQL
+`mutation` count too, and so does a write verb inside a name with no
+separator (`createissue`). The guard matches the MCP server by its exact
+key in the agent's configuration, so `workspace tool` and `validate` at the
+root warn when no `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` or
+`~/.claude.json` names the declared server (a key that differs only in
+case is named). A shadow whose folder is gone is scaffolded again by
+`workspace attach <name>`, after a warning to restore it from the
+workspace's git first.
+
+Every command line the CLI prints — `next`, `delivery status`, `route`,
+the playbooks — quotes the paths and titles it carries: a title from the
+tracker with `$( )`, a backtick or a quote is single-quoted, and a path
+with a space is double-quoted, so the line runs as printed.
 
 **Orchestrator files.** Every workspace write, and every `list`, regenerates, at its root:
 `AGENTS.md` (the planner's hub), `.cursor/rules/00-doctrina-workspace.mdc`,

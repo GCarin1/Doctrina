@@ -1,11 +1,13 @@
 // @ts-check
 import path from "node:path";
+import os from "node:os";
 import { existsSync, realpathSync } from "node:fs";
 import { git, GIT_STATE } from "./git.js";
 import { isDir, isFile, read } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
 import { absorbCommand, findWorkspace, pointerPath, projectAt, projectState, readWorkspace, linkPlan, shadowDirOf } from "./workspace.js";
 import { deliveryBlockers, deliveryChanges, listDeliveries, rankProjects, readDelivery, releaseBoxes } from "./delivery.js";
+import { cdThen, qarg, qpath } from "./shell.js";
 
 // THE WORKSPACE ROOT IS WHERE THE PLANNER WORKS (change 0230).
 //
@@ -59,6 +61,10 @@ export function workspaceActions(snap) {
     out.push({ text: `${p.project.name}'s repository is not at its path — re-link it`, command: `doctrina workspace attach ${p.project.name} --path <dir>` });
   }
   for (const p of snap.projects.filter((x) => x.state === "pending")) {
+    if (p.reason === "its shadow folder in the workspace is gone") {
+      out.push({ text: `${p.project.name}'s shadow projects/${p.project.name}/ is gone — restore it from the workspace's git, or scaffold it again`, command: absorbCommand(p.project, p.reason) });
+      continue;
+    }
     out.push(p.reason === "intake not converted"
       ? { text: `${p.project.name}'s absorb is under way (${p.reason}) — finish its playbook, then \`doctrina intake --converted\` there`, command: absorbCommand(p.project, p.reason) }
       : { text: `${p.project.name} has no specs yet (${p.reason}) — absorb it before routing work to it`, command: absorbCommand(p.project, p.reason) });
@@ -78,19 +84,19 @@ export function workspaceActions(snap) {
         continue;
       }
       if (row.changes.length === 0) {
-        out.push({ text: `${row.project} carries no change for ${d.id}`, command: `cd ${row.path} && doctrina work "${d.title}" --delivery ${d.id}` });
+        out.push({ text: `${row.project} carries no change for ${d.id}`, command: cdThen(row.path, `doctrina work ${qarg(d.title)} --delivery ${d.id}`) });
         moved = true;
         continue;
       }
       for (const ch of row.changes.filter((x) => !x.archived)) {
         if (ch.placeholders > 0) {
-          out.push({ text: `${row.project}: ${ch.id} still holds the scaffold's placeholder tasks — write its delta and its tasks as cards before handing one out`, command: `cd ${row.path} && doctrina work --resume ${ch.id}` });
+          out.push({ text: `${row.project}: ${ch.id} still holds the scaffold's placeholder tasks — write its delta and its tasks as cards before handing one out`, command: cdThen(row.path, `doctrina work --resume ${ch.id}`) });
           moved = true;
           continue;
         }
         out.push(ch.tasksDone < ch.tasksTotal
-          ? { text: `${row.project}: ${ch.id} has ${ch.tasksTotal - ch.tasksDone} task${ch.tasksTotal - ch.tasksDone === 1 ? "" : "s"} left — hand the next card to an executor`, command: `cd ${row.path} && doctrina change card ${ch.id}` }
-          : { text: `${row.project}: ${ch.id} has every task ticked — review and close it`, command: `cd ${row.path} && doctrina close ${ch.id}` });
+          ? { text: `${row.project}: ${ch.id} has ${ch.tasksTotal - ch.tasksDone} task${ch.tasksTotal - ch.tasksDone === 1 ? "" : "s"} left — hand the next card to an executor`, command: cdThen(row.path, `doctrina change card ${ch.id}`) }
+          : { text: `${row.project}: ${ch.id} has every task ticked — review and close it`, command: cdThen(row.path, `doctrina close ${ch.id}`) });
         moved = true;
       }
     }
@@ -135,7 +141,7 @@ export function workspaceFindings(snap) {
     if (p.project.mode !== "shadow" || p.state === "missing") continue;
     const shadow = shadowDirOf(snap.wsDir, p.project.name);
     if (!isDir(shadow)) {
-      errors.push(`shadow ${p.project.name}: projects/${p.project.name}/ is gone`);
+      errors.push(`shadow ${p.project.name}: projects/${p.project.name}/ is gone — restore it from the workspace's git, or \`doctrina workspace attach ${p.project.name}\` scaffolds it again`);
       continue;
     }
     const plan = linkPlan(shadow, p.project.path);
@@ -157,6 +163,20 @@ export function workspaceFindings(snap) {
           warnings.push(`project ${p.project.name} is in-repo and its ${dir}/${file} runs no \`doctrina workspace guard\` — the tools the workspace declares are unguarded in a session opened there; copy the guard entry from the workspace root's ${dir}/${file}`);
         }
       }
+    }
+  }
+  // A declared tool whose server no MCP configuration names (fourth audit,
+  // change 0235). The guard matches on the server's KEY in the agent's
+  // config; the preset guesses "atlassian", and a server the operator named
+  // "jira-cloud" made every call through it an undeclared one — allowed.
+  const servers = mcpServerNames([snap.wsDir, ...snap.ws.projects.map((p) => p.path)]);
+  if (servers.found) {
+    for (const tool of snap.ws.tools.filter((x) => x.enabled !== false)) {
+      if (servers.names.has(tool.server)) continue;
+      const near = [...servers.names].find((n) => n.toLowerCase() === String(tool.server).toLowerCase());
+      warnings.push(near
+        ? `tool ${tool.name} declares server "${tool.server}", but the MCP configuration names it "${near}" — the guard matches the exact key: \`doctrina workspace tool ${tool.name} --server ${near}\``
+        : `tool ${tool.name} declares server "${tool.server}", which no MCP configuration here names (${[...servers.names].sort().join(", ") || "none"}) — the guard never sees its calls: \`doctrina workspace tool ${tool.name} --server <the key in mcp.json>\``);
     }
   }
   // A dependency the manifests declare and the registry does not (second
@@ -294,7 +314,9 @@ function packageFacts(dir) {
  * so every command answered "run `doctrina init`", which would plant a
  * `.doctrina/` in a repository that may not carry one. Matched by the git
  * remote: the clone's origin is the registered clone, or both share an origin.
- * @returns {{ wsDir: string, name: string, path: string } | null}
+ * The registered repository itself, with its links gone, is returned with
+ * `same: true`: `attach` alone links it again.
+ * @returns {{ wsDir: string, name: string, path: string, same?: boolean } | null}
  */
 export function shadowedCloneAt(cwd) {
   if (existsSync(path.join(cwd, ".doctrina"))) return null;
@@ -314,19 +336,56 @@ export function shadowedCloneAt(cwd) {
       return path.resolve(p);
     }
   };
-  const mine = origin(cwd);
-  if (!mine) return null;
   let ws;
   try {
     ws = readWorkspace(found.dir);
   } catch {
     return null;
   }
+  // The registered repository itself, its links gone (change 0235): attach.
+  const same = ws.projects.find((x) => x.mode === "shadow" && real(x.path) === real(cwd));
+  if (same) return { wsDir: found.dir, name: same.name, path: same.path, same: true };
+  const mine = origin(cwd);
+  if (!mine) return null;
   for (const p of ws.projects.filter((x) => x.mode === "shadow")) {
-    if (real(p.path) === real(cwd)) continue;
     const theirs = isDir(p.path) ? origin(p.path) : null;
     const local = !/^[a-z][a-z0-9+.-]*:\/\/|^[^/\\]+@[^:]+:/i.test(mine) && isDir(path.resolve(cwd, mine)) && real(path.resolve(cwd, mine)) === real(p.path);
     if (local || (theirs && theirs === mine)) return { wsDir: found.dir, name: p.name, path: p.path };
   }
   return null;
+}
+
+/**
+ * The MCP server keys the agents' configurations declare: each folder's
+ * `.cursor/mcp.json` and `.mcp.json`, the user's `~/.cursor/mcp.json`, and
+ * `~/.claude.json` (its own servers and each project's). `found` is false
+ * when no configuration could be read — then nothing can be said.
+ * @param {string[]} dirs
+ */
+export function mcpServerNames(dirs, home = os.homedir()) {
+  const names = new Set();
+  let found = false;
+  const take = (/** @type {unknown} */ servers) => {
+    if (servers && typeof servers === "object") for (const k of Object.keys(servers)) names.add(k);
+  };
+  const files = [...dirs.flatMap((d) => [path.join(d, ".cursor", "mcp.json"), path.join(d, ".mcp.json")]),
+    path.join(home, ".cursor", "mcp.json"), path.join(home, ".claude.json")];
+  for (const file of files) {
+    if (!isFile(file)) continue;
+    let json;
+    try {
+      json = JSON.parse(read(file));
+    } catch {
+      continue;
+    }
+    found = true;
+    take(json?.mcpServers);
+    if (json?.projects && typeof json.projects === "object") for (const p of Object.values(json.projects)) take(p?.mcpServers);
+  }
+  return { found, names };
+}
+
+/** The command that links a shadowed repository's context into `cwd`. */
+export function attachCommand(clone, cwd) {
+  return cdThen(clone.wsDir, clone.same ? `doctrina workspace attach ${clone.name}` : `doctrina workspace attach ${clone.name} --path ${qpath(cwd)}`);
 }

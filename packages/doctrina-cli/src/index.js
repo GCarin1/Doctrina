@@ -8,7 +8,7 @@ import { cliVersion } from "./lib/version.js";
 import { surfaceHelp, OPERATIONS, deprecationFor, removalFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
-import { shadowedCloneAt } from "./lib/workspace-view.js";
+import { attachCommand, shadowedCloneAt } from "./lib/workspace-view.js";
 import { recordUsage, operationOf } from "./lib/usage.js";
 import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation, deferJson, flushJson } from "./lib/json-out.js";
 
@@ -256,7 +256,9 @@ function reportError(err, flags) {
   // A clone of a shadowed repository is not a project to init (change 0234).
   const clone = /^not a Doctrina project/.test(String(err.message)) ? shadowedCloneAt(process.cwd()) : null;
   if (clone) {
-    console.error(c.gray("hint: ") + `this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}); never \`doctrina init\` here — to work from this clone, link its context from the workspace: ${c.cyan(`cd ${clone.wsDir} && doctrina workspace attach ${clone.name} --path ${process.cwd()}`)}`);
+    console.error(c.gray("hint: ") + (clone.same
+      ? `this repository is the workspace's shadowed "${clone.name}" and its links are missing; never \`doctrina init\` here — link them again: ${c.cyan(attachCommand(clone, process.cwd()))}`
+      : `this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}); never \`doctrina init\` here — to work from this clone, link its context from the workspace: ${c.cyan(attachCommand(clone, process.cwd()))}`));
   } else if (err.remedy) {
     console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
   }

@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
+**Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions,shell}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.61.0
+**Version:** 0.62.0
 
 ## Purpose
 
@@ -73,6 +73,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall generate its shell completion scripts (bash, zsh, pwsh) from the live operations of the catalog only, leaving deprecated ones out, because completion is how a person discovers what to type and a deprecated name still runs for the script that already types it.
 - The system shall keep every value of a string flag given more than once, in order, for a command that takes it repeatedly, while a single reading of the flag still returns the last value.
 - The system shall name, in a Usage line that enumerates a command's subcommands, every subcommand that command dispatches, and shall describe each one in the help body.
+- The system shall quote every path and title it interpolates into a printed command line, so that the shell reads each back verbatim: double quotes for plain text, single quotes when the text holds a quote, a backtick, `$`, `\` or `!`.
 
 ### Event-driven
 
@@ -267,6 +268,7 @@ The CLI is v0 spec-compliant when:
 54. [verified] `next` at a workspace root never names init, and outside any workspace and project still does — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 55. [verified] `next` in a repository names the delivery routed to it, then sends the planner back to the workspace — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 56. [verified] a failing command answers in the JSON envelope — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+57. [verified] a printed line carrying a hostile tracker title and a path with a space runs as printed and executes nothing — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
 
 ## Out of scope for this spec
 

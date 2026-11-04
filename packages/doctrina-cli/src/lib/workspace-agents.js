@@ -129,7 +129,7 @@ export function workspaceHub(ws, wsDir, states) {
   }
   if (ws.projects.length === 0) L.push("| — | | | | | | register one: `doctrina workspace add <path>` |");
   L.push("");
-  L.push("A `pending` project has no specs yet: `cd <path> && doctrina intake --from-code`");
+  L.push("A `pending` project has no specs yet: `cd <path> && doctrina intake --from-code` (once its inventory is stored, a bare `doctrina intake` reprints the playbook)");
   L.push("and run the absorb playbook before routing work to it.", "");
   L.push("## Tools", "");
   if (ws.tools.length === 0) {
@@ -200,7 +200,7 @@ export function workspacePrimer(ws, wsDir, open) {
   L.push("", `Tools  ${ws.tools.length ? ws.tools.map((t) => `${t.name} (${t.access})`).join(" · ") : "none declared — doctrina workspace tool <name>"}`);
   L.push("", "Next");
   const pending = ws.projects.map((p) => ({ p, s: projectState(wsDir, p) })).filter((x) => x.s.state === "pending");
-  if (pending.length) L.push(`  absorb ${pending[0].p.name} before routing work to it: ${absorbCommand({ path: toPosix(pending[0].p.path) }, pending[0].s.reason)}`);
+  if (pending.length) L.push(`  absorb ${pending[0].p.name} before routing work to it: ${absorbCommand({ path: toPosix(pending[0].p.path), name: pending[0].p.name }, pending[0].s.reason)}`);
   if (open.length) L.push(`  continue ${open[0].id}: doctrina delivery status ${open[0].id}`);
   L.push("  new work across repositories: doctrina delivery new \"<title>\" --ref <tracker-id>");
   return L;

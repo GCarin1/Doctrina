@@ -1,6 +1,6 @@
 // @ts-check
 import path from "node:path";
-import { shadowedCloneAt } from "../lib/workspace-view.js";
+import { attachCommand, shadowedCloneAt } from "../lib/workspace-view.js";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
@@ -48,7 +48,7 @@ export async function run(_positional, flags) {
   const clone = force ? null : shadowedCloneAt(projectRoot);
   if (clone && !path.resolve(projectRoot).startsWith(path.resolve(clone.wsDir) + path.sep)) {
     console.error(c.red("error:") + ` this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}) — its context lives in the workspace, not here`);
-    console.error(c.gray("hint: ") + `link it here instead: \`cd ${clone.wsDir} && doctrina workspace attach ${clone.name} --path ${projectRoot}\` — or pass --force to init a separate project anyway`);
+    console.error(c.gray("hint: ") + `link it here instead: \`${attachCommand(clone, projectRoot)}\` — or pass --force to init a separate project anyway`);
     return EXIT.PRECONDITION;
   }
   const projectName = flagString(flags, "project-name") ?? path.basename(projectRoot);

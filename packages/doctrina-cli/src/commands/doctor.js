@@ -8,7 +8,7 @@ import { c } from "../lib/colors.js";
 import { flagBool } from "../lib/args.js";
 import { collectRuntimeFindings, checkLocalEnv } from "../lib/runtime.js";
 import { sequence, stepRerun } from "../lib/gates.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { agentsMdBudget, collectValidation } from "../lib/validation-model.js";
 import { collectIndexDrift } from "../lib/scan.js";
 import { collectReproducibility } from "../lib/reproducibility.js";
@@ -17,6 +17,8 @@ import { USAGE_ENV, summarise } from "../lib/usage.js";
 import { OPERATIONS } from "../lib/commands.js";
 
 import { coverageLabel } from "../lib/views.js";
+import { workspaceFindings, workspaceRootAt, workspaceSnapshot } from "../lib/workspace-view.js";
+import { cdThen } from "../lib/shell.js";
 
 // How many never-invoked operations the usage row names before pointing at
 // `metrics --commands` for the rest. The spec states this number, so it is
@@ -43,6 +45,24 @@ export const flags = { boolean: ["json", "env"], string: [] };
 
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
+  // At the workspace root (fourth audit, change 0235): the planner reaches
+  // for doctor when something looks wrong, and was told to `doctrina init`
+  // — a project inside the workspace. The root's diagnosis is the
+  // workspace's own integrity; each repository diagnoses itself.
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (wsRoot) {
+    const snap = workspaceSnapshot(wsRoot);
+    const { errors, warnings } = workspaceFindings(snap);
+    console.log(c.bold("Doctrina doctor") + c.gray(` — workspace "${snap.ws.name}" (read-only):`));
+    console.log("");
+    for (const e of errors) console.log(`  ${c.red("error")} ${e}`);
+    for (const w of warnings) console.log(`  ${c.yellow("warn ")} ${w}`);
+    if (errors.length + warnings.length === 0) console.log(`  ${c.green("ok   ")} the workspace is consistent`);
+    console.log("");
+    console.log("Each repository diagnoses itself:");
+    for (const p of snap.projects.filter((x) => x.state !== "missing")) console.log("  " + c.cyan(cdThen(p.project.path, "doctrina doctor")));
+    return errors.length > 0 ? EXIT.GATE : EXIT.OK;
+  }
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }

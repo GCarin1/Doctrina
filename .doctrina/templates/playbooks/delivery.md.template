@@ -14,7 +14,7 @@ File: {{DELIVERY_FILE}}
        [[c]]doctrina delivery route {{DELIVERY_ID}} <project,project>[[/c]]
 
 3. [[b]]Open one change per repository[[/b]], in the order route prints:
-       [[c]]cd <path> && doctrina work "{{DELIVERY_TITLE}}" --delivery {{DELIVERY_ID}}[[/c]]
+       [[c]]cd <path> && doctrina work {{DELIVERY_TITLE_ARG}} --delivery {{DELIVERY_ID}}[[/c]]
    Write its delta, then tasks.md as SELF-CONTAINED cards — each task with
    indented lines an executor can act on alone:
        - [ ] Add the 402 scenario to the payment feature

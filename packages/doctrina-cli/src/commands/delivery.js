@@ -15,6 +15,7 @@ import {
   rankProjects, readDelivery, resolveDeliveryId, setDeliveryHeader, daysBetween, recordBlockers,
   releaseBoxes, tickRelease, unroutable, otherWriters,
 } from "../lib/delivery.js";
+import { cdThen, qarg } from "../lib/shell.js";
 
 // `doctrina delivery` — one item of work across repositories (ADR 0030).
 // Decisions in lib/delivery.js; this module renders them.
@@ -115,6 +116,7 @@ function playbookTokens(wsDir, ws, delivery) {
   return {
     DELIVERY_ID: delivery.id,
     DELIVERY_TITLE: delivery.title,
+    DELIVERY_TITLE_ARG: qarg(delivery.title),
     DELIVERY_REF: delivery.ref === "—" ? "(no --ref given: ask the human which item this is)" : delivery.ref,
     DELIVERY_FILE: relPath(wsDir, deliveryPath(wsDir, delivery.id)),
     ROUTING: routing,
@@ -162,7 +164,7 @@ function deliveryRoute(wsDir, ws, id, raw, flags) {
     const p = ws.projects.find((x) => x.name === name);
     const has = rows.find((r) => r.project === name)?.changes ?? [];
     if (has.length > 0) console.log("  " + c.gray(`${name} already carries ${has.map((ch) => ch.id).join(", ")}`));
-    else console.log("  " + c.cyan(`cd ${p?.path} && doctrina work "${d.title}" --delivery ${id}`));
+    else console.log("  " + c.cyan(cdThen(p?.path ?? "", `doctrina work ${qarg(d.title)} --delivery ${id}`)));
   }
   return EXIT.OK;
 }
@@ -215,15 +217,15 @@ function deliveryStatus(wsDir, ws, id, json = false) {
     if (row.missing) console.log(c.red(`    ${row.missing}`));
     // A repository that moved: a `cd` into its old path fails (change 0234).
     else if (row.absent) console.log(c.red("    repository not at its path") + c.gray(` — doctrina workspace attach ${row.project} --path <dir>`));
-    else if (row.changes.length === 0 && row.abandoned?.length) console.log(c.yellow(`    abandoned ${row.abandoned.map((a) => a.id).join(", ")}`) + c.gray(` — re-route without ${row.project}, or cd ${row.path} && doctrina work "${d.title}" --delivery ${d.id}`));
-    else if (row.changes.length === 0) console.log(c.yellow("    no change yet") + c.gray(` — cd ${row.path} && doctrina work "${d.title}" --delivery ${d.id}`));
+    else if (row.changes.length === 0 && row.abandoned?.length) console.log(c.yellow(`    abandoned ${row.abandoned.map((a) => a.id).join(", ")}`) + c.gray(` — re-route without ${row.project}, or ${cdThen(row.path, `doctrina work ${qarg(d.title)} --delivery ${d.id}`)}`));
+    else if (row.changes.length === 0) console.log(c.yellow("    no change yet") + c.gray(` — ${cdThen(row.path, `doctrina work ${qarg(d.title)} --delivery ${d.id}`)}`));
     for (const ch of row.changes) {
       const colour = ch.archived ? c.green : c.yellow;
       console.log(`    ${colour(ch.status.padEnd(9))} ${ch.id}` + c.gray(`  tasks ${ch.tasksDone}/${ch.tasksTotal}`));
       // The card is read from inside the repository (change 0226): from the
       // workspace root there is no .doctrina/ to read it from.
-      if (!ch.archived && ch.placeholders > 0) console.log(c.gray(`              tasks not written yet (placeholders): cd ${row.path} && doctrina work --resume ${ch.id}`));
-      else if (!ch.archived && ch.tasksDone < ch.tasksTotal) console.log(c.gray(`              next card: cd ${row.path} && doctrina change card ${ch.id}`));
+      if (!ch.archived && ch.placeholders > 0) console.log(c.gray(`              tasks not written yet (placeholders): ${cdThen(row.path, `doctrina work --resume ${ch.id}`)}`));
+      else if (!ch.archived && ch.tasksDone < ch.tasksTotal) console.log(c.gray(`              next card: ${cdThen(row.path, `doctrina change card ${ch.id}`)}`));
     }
   }
   const others = otherWriters(wsDir, ws, d);

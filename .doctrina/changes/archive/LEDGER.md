@@ -245,3 +245,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-04 — 0232-o-change-check-ve-o-que-o-clarify-vera — o change check ve o que o clarify vera (specs: authoring MODIFIED, docs MODIFIED, gates MODIFIED)
 - 2026-11-04 — 0233-a-segunda-auditoria-fecha-os-furos-do-fluxo — a segunda auditoria fecha os furos do fluxo multi-repo (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, insight MODIFIED, workspace MODIFIED)
 - 2026-11-04 — 0234-a-terceira-auditoria-fecha-os-caminhos-de-falha — a terceira auditoria fecha os caminhos de falha (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, scaffolding MODIFIED, workspace MODIFIED)
+- 2026-11-04 — 0235-a-quarta-auditoria-fecha-as-entradas-hostis — a quarta auditoria fecha as entradas hostis (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, gates MODIFIED, insight MODIFIED, scaffolding MODIFIED, templates MODIFIED, workspace MODIFIED)

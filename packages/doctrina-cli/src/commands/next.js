@@ -8,7 +8,7 @@ import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { action, computeActions, invocation } from "../lib/actions.js";
-import { contextRouting, shadowedCloneAt, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
+import { attachCommand, contextRouting, shadowedCloneAt, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
 
 // `next` answers "what now?". The ANSWER lives in `lib/actions.js` as
 // records; this module renders them and, under `--run`, executes one
@@ -47,7 +47,7 @@ export async function run(_positional, flags) {
       ? action({
         id: "shadowed-clone",
         why: `this repository is the workspace's shadowed "${clone.name}" at another path — link its context here, never init it`,
-        text: `cd ${clone.wsDir} && doctrina workspace attach ${clone.name} --path ${projectRoot} — this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}); never \`doctrina init\` here`,
+        text: `${attachCommand(clone, projectRoot)} — this repository is the workspace's shadowed "${clone.name}"${clone.same ? " and its links are missing" : ` (registered at ${clone.path})`}; never \`doctrina init\` here`,
       })
       : action({
         id: "not-a-project",

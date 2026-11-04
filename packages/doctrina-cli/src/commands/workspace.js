@@ -16,6 +16,8 @@ import {
 } from "../lib/workspace.js";
 import { TOOL_PRESETS, guardDecision, splitClaudeToolName, toolEntry } from "../lib/workspace-tools.js";
 import { writeOrchestratorFiles } from "../lib/workspace-agents.js";
+import { cdThen } from "../lib/shell.js";
+import { mcpServerNames } from "../lib/workspace-view.js";
 
 // `doctrina workspace` — the context of several repositories in one place
 // (ADR 0029). The decisions live in lib/workspace.js; this module renders
@@ -140,22 +142,7 @@ function workspaceAdd(wsDir, pathArg, flags) {
     about: flagString(flags, "about") ?? "",
     dependsOn,
   };
-  if (mode === "shadow") {
-    const shadow = shadowDirOf(wsDir, name);
-    if (!isDir(path.join(shadow, ".doctrina"))) {
-      mkdirp(shadow);
-      const agent = flagString(flags, "agent") ?? "cursor";
-      const r = spawnSync(process.execPath, [CLI_ENTRY, "init", "--non-interactive",
-        "--project-name", name, "--project-description", project.about || `${name} (absorbed into a workspace)`,
-        "--agent", agent], { cwd: shadow, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" } });
-      if (r.status !== 0) {
-        console.error(c.red("error:") + ` could not scaffold the shadow at ${shadow}`);
-        console.error(r.stderr.trim());
-        return EXIT.GATE;
-      }
-      console.log(c.green("created") + ` shadow ${relPath(wsDir, shadow)}/ (AGENTS.md, .doctrina/, ${agent} adapter)`);
-    }
-  }
+  if (mode === "shadow" && !scaffoldShadow(wsDir, project, flagString(flags, "agent") ?? "cursor")) return EXIT.GATE;
   ws.projects.push(project);
   writeWorkspace(wsDir, ws);
   console.log(c.green("registered") + ` ${name} (${mode}) → ${repo}`);
@@ -185,7 +172,7 @@ function printProjectNext(wsDir, project) {
   if (st.state === "pending") {
     console.log("");
     console.log(`Next: ${project.name} has no specs yet (${st.reason}) — absorb it from its code:`);
-    console.log("  " + c.cyan(`cd ${project.path} && doctrina intake --from-code`));
+    console.log("  " + c.cyan(cdThen(project.path, "doctrina intake --from-code")));
   }
 }
 
@@ -194,6 +181,23 @@ function findProject(ws, name) {
   if (project) return project;
   const guess = suggest(name ?? "", ws.projects.map((p) => p.name));
   throw Object.assign(new Error(`no project named "${name ?? ""}" in this workspace` + (guess ? ` — did you mean "${guess}"?` : "")), { exitCode: EXIT.USAGE });
+}
+
+/** Scaffold a shadow's AGENTS.md, .doctrina/ and adapter when they are not there. */
+function scaffoldShadow(wsDir, project, agent) {
+  const shadow = shadowDirOf(wsDir, project.name);
+  if (isDir(path.join(shadow, ".doctrina"))) return true;
+  mkdirp(shadow);
+  const r = spawnSync(process.execPath, [CLI_ENTRY, "init", "--non-interactive",
+    "--project-name", project.name, "--project-description", project.about || `${project.name} (absorbed into a workspace)`,
+    "--agent", agent], { cwd: shadow, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" } });
+  if (r.status !== 0) {
+    console.error(c.red("error:") + ` could not scaffold the shadow at ${shadow}`);
+    console.error(r.stderr.trim());
+    return false;
+  }
+  console.log(c.green("created") + ` shadow ${relPath(wsDir, shadow)}/ (AGENTS.md, .doctrina/, ${agent} adapter)`);
+  return true;
 }
 
 function workspaceAttach(wsDir, name, flags) {
@@ -232,6 +236,14 @@ function workspaceAttach(wsDir, name, flags) {
     console.error(c.red("error:") + ` ${project.name}'s repository is not at ${project.path}`);
     console.error(c.gray("hint: ") + `point it at the clone: \`doctrina workspace attach ${project.name} --path <dir>\``);
     return EXIT.PRECONDITION;
+  }
+  // A shadow whose folder is gone (fourth audit, change 0235): attach
+  // crashed on ENOENT. A fresh, empty shadow is scaffolded and linked — the
+  // project is pending again, and says so; its history is the workspace's
+  // git, where a lost folder is restored from.
+  if (!isDir(path.join(shadowDirOf(wsDir, project.name), ".doctrina"))) {
+    console.log(c.yellow("warn") + ` ${project.name}'s shadow projects/${project.name}/ is gone — if the workspace's git has it, restore it (\`git checkout -- projects/${project.name}\`) before this; scaffolding an empty one`);
+    if (!scaffoldShadow(wsDir, project, flagString(flags, "agent") ?? "cursor")) return EXIT.GATE;
   }
   attachShadow(wsDir, project);
   return EXIT.OK;
@@ -292,6 +304,12 @@ function workspaceTool(wsDir, name, flags) {
   writeWorkspace(wsDir, ws);
   console.log(c.green(at >= 0 ? "updated" : "declared") + ` ${entry.name} → MCP server "${entry.server}", ${entry.access === "write" ? "read/write (each write asks the human)" : "read-only"}, for ${(entry.for ?? []).join(", ") || "the planner"}`);
   console.log(c.gray(`the server itself is configured in your agent (Cursor: .cursor/mcp.json; Claude Code: .mcp.json) under the name "${entry.server}"`));
+  // Said now, not only at the next validate (change 0235): a key that matches
+  // no configuration is a guard that never fires.
+  const servers = mcpServerNames([wsDir, ...ws.projects.map((p) => p.path)]);
+  if (servers.found && !servers.names.has(entry.server)) {
+    console.log(c.yellow("warn") + ` no MCP configuration here names a server "${entry.server}" (found: ${[...servers.names].sort().join(", ") || "none"}) — the guard only sees calls through the exact key; rerun with --server <that key>`);
+  }
   return EXIT.OK;
 }
 
@@ -354,7 +372,7 @@ function workspaceList(wsDir) {
   const pending = ws.projects.filter((p) => projectState(wsDir, p).state === "pending");
   if (pending.length > 0) {
     console.log("");
-    console.log(`Next: absorb ${pending.map((p) => p.name).join(", ")} — ` + c.cyan(`cd ${pending[0].path} && doctrina intake --from-code`));
+    console.log(`Next: absorb ${pending.map((p) => p.name).join(", ")} — ` + c.cyan(cdThen(pending[0].path, "doctrina intake --from-code")));
   }
   console.log("");
   if (ws.tools.length === 0) {

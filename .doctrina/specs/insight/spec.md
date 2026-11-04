@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.21.0
+**Version:** 0.21.1
 
 ## Purpose
 

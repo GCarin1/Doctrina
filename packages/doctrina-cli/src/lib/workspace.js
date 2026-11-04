@@ -9,6 +9,7 @@ import { isDir, isFile, read, toPosix, write } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
 import { openChanges } from "./snapshot.js";
 import { git as runGit, GIT_STATE } from "./git.js";
+import { cdThen } from "./shell.js";
 
 // A WORKSPACE holds the context of several repositories in one place (ADR
 // 0029): which projects exist, what each one is, how they depend on each
@@ -159,25 +160,29 @@ export function artifactRootOf(wsDir, project) {
  * project still has to be absorbed; `ready` otherwise.
  */
 const INTAKE_PENDING = "intake not converted";
+// A shadow's folder in the workspace is gone (change 0235): `attach` restores it.
+const SHADOW_GONE = "its shadow folder in the workspace is gone";
 
 /**
  * The command that moves a pending project on (second audit, change 0233).
  * `--from-code` starts an absorb and refuses once the inventory is stored —
  * every surface still named it for a project whose absorb was under way. A
  * stored, pending intake reprints its playbook with a bare `doctrina intake`.
- * @param {{ path: string }} project
+ * @param {{ path: string, name?: string }} project
  * @param {string} reason  projectState's reason
  */
 export function absorbCommand(project, reason) {
+  if (reason === SHADOW_GONE) return `doctrina workspace attach ${project.name ?? "<name>"}`;
   return reason === INTAKE_PENDING
-    ? `cd ${project.path} && doctrina intake`
-    : `cd ${project.path} && doctrina intake --from-code`;
+    ? cdThen(project.path, "doctrina intake")
+    : cdThen(project.path, "doctrina intake --from-code");
 }
 
 export function projectState(wsDir, project) {
   if (!isDir(project.path)) return { state: "missing", reason: `path not found: ${project.path}`, open: [] };
   const root = artifactRootOf(wsDir, project);
   const doctrina = path.join(root, ".doctrina");
+  if (project.mode === "shadow" && !isDir(doctrina)) return { state: "pending", reason: SHADOW_GONE, open: [] };
   if (!isDir(doctrina)) return { state: "pending", reason: "no .doctrina/ yet", open: [] };
   const intake = path.join(doctrina, "intake.md");
   if (isFile(intake) && /pending/i.test(listHeader(read(intake), "Status") ?? "")) {

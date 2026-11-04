@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.35.0",
+        "version": "0.35.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,13 +30,13 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.61.0",
+        "version": "0.62.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/index.js",
           "packages/doctrina-cli/src/commands/next.js",
-          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js",
+          "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions,shell}.js",
           "tsconfig.json"
         ]
       },
@@ -59,7 +59,7 @@
         "id": "delivery",
         "path": ".doctrina/specs/delivery/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "depends_on": [
@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.6",
+        "version": "0.10.7",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -97,7 +97,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.52.0",
+        "version": "1.52.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -112,7 +112,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.21.0",
+        "version": "0.21.1",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -124,7 +124,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.13.2",
+        "version": "0.13.3",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -166,7 +166,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.30.0",
+        "version": "0.30.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -195,7 +195,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -4032,6 +4032,52 @@
           }
         ],
         "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0235-a-quarta-auditoria-fecha-as-entradas-hostis",
+        "title": "a quarta auditoria fecha as entradas hostis",
+        "path": ".doctrina/changes/archive/2026-11-04-0235-a-quarta-auditoria-fecha-as-entradas-hostis",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "runtime (uncertain; signals: config) — opened anyway (--force)"
       }
     ],
     "skills": [

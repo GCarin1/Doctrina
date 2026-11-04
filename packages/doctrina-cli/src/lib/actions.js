@@ -10,6 +10,7 @@ import { FIX_SHAPED } from "./lexicon.js";
 import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
 import { projectWorkspaceLine } from "./workspace-view.js";
+import { cdThen, qarg } from "./shell.js";
 
 // What comes next, as DATA (change 0032).
 //
@@ -280,14 +281,14 @@ export function computeActions(projectRoot, gates = {}) {
       actions.push(action({
         id: "delivery-change-missing",
         why: `delivery ${d.id} is routed to this repository and has no change here yet`,
-        text: `doctrina work "${d.title}" --delivery ${d.id} — delivery ${d.id} is routed to this repository and has no change here yet`,
+        text: `doctrina work ${qarg(d.title)} --delivery ${d.id} — delivery ${d.id} is routed to this repository and has no change here yet`,
       }));
     } else if (d.open === 0) {
       actions.push(action({
         id: "delivery-continues-at-workspace",
         severity: "advisory",
         why: `this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
-        text: `cd ${inWorkspace?.dir} && doctrina next — this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
+        text: `${cdThen(inWorkspace?.dir ?? "", "doctrina next")} — this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
       }));
     }
   }
