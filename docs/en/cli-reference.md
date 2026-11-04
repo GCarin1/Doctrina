@@ -2479,7 +2479,7 @@ prime` at the workspace root is the orchestrator's primer.
 | `--remove` | `tool`: take the tool out. |
 | `--hook cursor\|claude` | `guard`: the agent whose pre-call payload arrives on stdin. |
 
-## `doctrina delivery new` / `route` / `list` / `status` / `check` / `close`
+## `doctrina delivery new` / `route` / `list` / `status` / `tick` / `check` / `close`
 
 One item of work that crosses repositories — a story, a screen, a fix —
 planned, routed, delegated and closed from a workspace (ADR 0030). The
@@ -2516,11 +2516,26 @@ and the `Closed` date. `list` shows each delivery's age — lead time once
 closed — and the median over the closed ones. `<id>` is the folder name
 or its number.
 
+
+A project still **pending** (no spec yet) or whose repository is missing is
+refused by `new --projects` and `route` with exit `3`: a change there would
+have no spec to change. Absorb it first (`doctrina intake --from-code`), or
+pass `--force`. `status` prints, for every open change with tasks left, the
+command that reads its next card from inside its repository, and names every
+other open change in a routed repository — a second writer to sequence, one
+writer per repository at a time. `tick` lists the `## Release` boxes and
+ticks them by number or with `--all`: they are claims `check` holds you to,
+so they go through the CLI. A change opened without `--delivery` joins one
+with `doctrina work --resume <change> --delivery <id>`; `prime` in a
+repository names the delivery an open change belongs to.
+
 | Flag | Meaning |
 |------|---------|
 | `--ref <tracker-id>` | The tracker item the delivery comes from. |
 | `--projects <a,b>` | Route at creation instead of with `route`. |
 | `--date <YYYY-MM-DD>` | Date written by `new` / `close` (default today). |
+| `--force` | `new` / `route`: route a project that is still pending or missing. |
+| `--all` | `tick`: tick every Release box. |
 
 ## `doctrina ci --emit <target>`
 

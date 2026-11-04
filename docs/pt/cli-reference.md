@@ -2542,7 +2542,7 @@ o `doctrina prime` na raiz do workspace é o primer do orquestrador.
 | `--remove` | `tool`: tira a ferramenta. |
 | `--hook cursor\|claude` | `guard`: o agente cujo payload de pré-chamada chega pelo stdin. |
 
-## `doctrina delivery new` / `route` / `list` / `status` / `check` / `close`
+## `doctrina delivery new` / `route` / `list` / `status` / `tick` / `check` / `close`
 
 Um item de trabalho que atravessa repositórios — uma história, uma tela,
 uma correção — planejado, roteado, delegado e fechado a partir de um
@@ -2580,11 +2580,27 @@ ainda aberta, e enquanto falta o registro da própria entrega — um
 `list` mostra a idade de cada entrega — o lead time depois de fechada — e
 a mediana das fechadas. O `<id>` é o nome da pasta ou o número dela.
 
+
+Um projeto ainda **pendente** (sem spec) ou cujo repositório sumiu é
+recusado pelo `new --projects` e pelo `route` com saída `3`: uma change lá
+não teria spec para mudar. Absorva-o antes (`doctrina intake --from-code`),
+ou passe `--force`. O `status` imprime, para cada change aberta com tarefas
+pendentes, o comando que lê o próximo cartão de dentro do repositório dela,
+e nomeia toda outra change aberta num repositório roteado — um segundo
+escritor a sequenciar, um escritor por repositório de cada vez. O `tick`
+lista as caixas de `## Release` e as marca pelo número ou com `--all`: são
+afirmações que o `check` cobra, então passam pelo CLI. Uma change aberta sem
+`--delivery` entra numa com `doctrina work --resume <change> --delivery
+<id>`; o `prime` num repositório nomeia a entrega a que uma change aberta
+pertence.
+
 | Flag | Significado |
 |------|-------------|
 | `--ref <id-no-rastreador>` | O item do rastreador de onde a entrega vem. |
 | `--projects <a,b>` | Roteia na criação, em vez de com `route`. |
 | `--date <AAAA-MM-DD>` | Data gravada pelo `new` / `close` (padrão: hoje). |
+| `--force` | `new` / `route`: roteia um projeto ainda pendente ou ausente. |
+| `--all` | `tick`: marca todas as caixas de Release. |
 
 ## `doctrina ci --emit <target>`
 

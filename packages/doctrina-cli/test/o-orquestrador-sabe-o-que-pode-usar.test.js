@@ -31,6 +31,7 @@ function workspace() {
   spawnSync("git", ["init", "-q"], { cwd: path.join(root, "back-end") });
   assert.equal(run(root, ["workspace", "init", "ws", "--name", "acme", "--no-git"]).status, 0);
   assert.equal(run(ws, ["workspace", "add", "../back-end", "--role", "back", "--about", "REST API"]).status, 0);
+  assert.equal(run(path.join(root, "back-end"), ["spec", "new", "core"]).status, 0);
   return { root, ws, run, done: () => rmSync(root, { recursive: true, force: true }) };
 }
 
@@ -63,7 +64,7 @@ test("the workspace generates what the orchestrating agent reads", () => {
     s.run(s.ws, ["workspace", "tool", "playwright"]);
     const hub = readFileSync(path.join(s.ws, "AGENTS.md"), "utf8");
     assert.match(hub, /You are the PLANNER/);
-    assert.match(hub, /\| back-end \| shadow \| pending \| back \|/);
+    assert.match(hub, /\| back-end \| shadow \| ready \| back \|/);
     assert.match(hub, /\| jira \| `atlassian` \| read \| planner \|/);
     assert.match(hub, /doctrina delivery new/);
     assert.ok(hub.split("\n").length <= 150);
@@ -138,7 +139,7 @@ test("prime at the workspace root is the orchestrator's primer", () => {
     const r = s.run(s.ws, ["prime"]);
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /Doctrina workspace "acme"/);
-    assert.match(r.stdout, /back-end\s+shadow\s+pending/);
+    assert.match(r.stdout, /back-end\s+shadow\s+ready/);
     assert.match(r.stdout, /0001-tela-de-login/);
     const hook = JSON.parse(s.run(s.ws, ["prime", "--hook", "cursor"]).stdout);
     assert.match(hook.additional_context, /You are the PLANNER/);

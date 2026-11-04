@@ -187,7 +187,7 @@ export function prime(s) {
       // one forgotten for three weeks used to read identically.
       const age = ch.ageDays !== null && ch.ageDays !== undefined && ch.ageDays >= STALE_CHANGE_DAYS
         ? ` · open ${ch.ageDays}d` : "";
-      out.push(`  ${c.cyan(ch.id)}  ${ch.title ?? ""}${c.gray(` (${ch.status}${tasks}${age})`)}`);
+      out.push(`  ${c.cyan(ch.id)}  ${ch.title ?? ""}${c.gray(` (${ch.status}${tasks}${age}${ch.delivery ? ` · delivery ${ch.delivery}` : ""})`)}`);
     }
   }
 
@@ -236,7 +236,7 @@ export function prime(s) {
  * Worded as facts, not orders: an agent's prompt-injection defences treat
  * imperatives from a hook with suspicion, and they should.
  *
- * @param {Array<{id: string, title: string|null, status: string}>} open
+ * @param {Array<{id: string, title: string|null, status: string, delivery?: string|null}>} open
  * @param {Array<{id: string, date: string, path: string}>} [recent]
  */
 export function pulse(open, recent = []) {
@@ -247,7 +247,7 @@ export function pulse(open, recent = []) {
     return ["Doctrina: no change is open in this project. A request that changes behaviour is opened as a change " +
       "before code is edited — `doctrina work \"<request>\"` (it classifies the lane itself); a question or a read needs none." + last];
   }
-  const named = open.slice(0, 3).map((ch) => `${ch.id}${ch.title ? ` — "${ch.title}"` : ""} (${ch.status})`).join("; ");
+  const named = open.slice(0, 3).map((ch) => `${ch.id}${ch.title ? ` — "${ch.title}"` : ""} (${ch.status}${ch.delivery ? `, part of delivery ${ch.delivery}` : ""})`).join("; ");
   const more = open.length > 3 ? ` and ${open.length - 3} more` : "";
   return [`Doctrina: open change${open.length === 1 ? "" : "s"}: ${named}${more}. Work that belongs to ${open.length === 1 ? "it" : "one of them"} ` +
     "is named by its id in the first sentence to the human and finishes with `doctrina close <id>`; " +

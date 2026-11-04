@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.20.0",
-  "last_updated": "2026-11-03",
+  "last_updated": "2026-11-04",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -59,7 +59,7 @@
         "id": "delivery",
         "path": ".doctrina/specs/delivery/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "depends_on": [
@@ -3787,6 +3787,20 @@
         "applied": "2026-11-03",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0226-o-fluxo-da-entrega-nao-tem-furos",
+        "title": "o fluxo da entrega nao tem furos",
+        "path": ".doctrina/changes/archive/2026-11-04-0226-o-fluxo-da-entrega-nao-tem-furos",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
       }
     ],
     "skills": [

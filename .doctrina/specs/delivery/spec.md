@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -36,11 +36,16 @@ those changes can be handed to an executor as a self-contained card.
 - When `doctrina change card <id> [<n>]` runs, the system shall print task `<n>` — or the first open task — with the lines indented under it, the change's Why, the delta capabilities' specs cut to the task, the card's `Verify:` command or `doctrina verify`, the tick command, and the instruction to leave opening, closing and `.doctrina/` to the planner.
 - When `doctrina delivery check <id>` runs, the system shall also require the delivery's own record — a `## Story` with text, every `## Release` box ticked and a `## Observability` with at least one line beyond its comment — naming each gap, because the changes prove the code and only the record proves the delivery reached its users and was watched after it did.
 - When `doctrina delivery list` runs, the system shall print each delivery's age — open days, or lead time from `Date` to `Closed` once closed — and the median and longest lead time over the closed ones.
+- When `doctrina delivery tick <id>` runs, the system shall list the `## Release` boxes with their numbers, and with numbers or `--all` tick them, refusing a number that names no box with the usage class.
+- When `doctrina delivery status <id>` runs, the system shall print, for every open change with unticked tasks, the command that reads its next task card from inside its repository, and shall name every other open change in a routed repository as a second writer to sequence.
+- When `doctrina work --resume <change> --delivery <id>` runs on a change that carries no delivery, the system shall write `- **Delivery:** <id>` into its proposal; on a change that already belongs to another delivery it shall refuse with the precondition class.
+- When `doctrina prime` or `doctrina prime --pulse` lists an open change that carries a delivery, the system shall name that delivery beside it.
 
 ### Unwanted behavior
 
 - If `--delivery` names a delivery that does not exist, or one not routed to the current repository, then the system shall not open the change: it exits with the usage class for an unknown delivery and the precondition class for an unrouted one, naming `delivery route`.
 - If a delivery's check fails, then the system shall not close it.
+- If `doctrina delivery new --projects` or `doctrina delivery route` names a project that is still pending or whose repository is missing, then the system shall not route it: it exits with the precondition class, naming `doctrina intake --from-code` or `doctrina workspace attach`, unless `--force` is given.
 
 ## Acceptance criteria
 
@@ -51,6 +56,7 @@ A delivery is spec-compliant when:
 3. [verified] `delivery check` exits 1 while a routed project has no change or an open one and 0 once every change is archived; `delivery close` refuses before that and closes after — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 4. [verified] `change card` prints the next open task with its indented lines, the Why, the spec slice and its Verify command, and says so when every task is ticked — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 5. [verified] With every routed change archived, `delivery check` still exits 1 naming an empty Story, each unticked Release box and an empty Observability, and exits 0 once they are written; `delivery list` prints the lead time and the median — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
+6. [verified] A pending project is refused by `delivery new --projects` and `delivery route` with exit 3 naming `intake --from-code` and routed with `--force`; `delivery tick` lists, ticks and refuses a bad number; `delivery status` prints the card command and the second writer; `prime` and the pulse name the delivery; `work --resume --delivery` joins a change and refuses one already in another delivery — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
 
 ## Out of scope for this spec
 

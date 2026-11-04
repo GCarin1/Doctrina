@@ -151,8 +151,9 @@ export function workspaceHub(ws, wsDir, states) {
   L.push("   repository at a time.");
   L.push("4. Review with `doctrina-reviewer`, then close each change yourself:");
   L.push("   `doctrina close <id>`. Executors never close.");
-  L.push("5. Fill the delivery's Release and Observability, then");
-  L.push("   `doctrina delivery check <id>` → `doctrina delivery close <id>`.");
+  L.push("5. Record the release under the delivery's Release and tick each claim");
+  L.push("   (`doctrina delivery tick <id> <n>`), record what was watched under");
+  L.push("   Observability, then `doctrina delivery check <id>` → `doctrina delivery close <id>`.");
   L.push("6. Name the delivery id in your first sentence to the human, repeat the");
   L.push("   `Tell the human:` lines, and commit the workspace when a delivery closes.", "");
   L.push("## Rules", "");

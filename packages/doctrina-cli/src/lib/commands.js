@@ -96,6 +96,7 @@ export const OPERATIONS = [
   ["delivery route", "Choose the projects a delivery touches, dependencies first"],
   ["delivery list", "Deliveries with status, ref and closed/total changes"],
   ["delivery status", "Per project: the changes carrying a delivery and their tasks"],
+  ["delivery tick", "List or tick a delivery's Release claims"],
   ["delivery check", "What still keeps a delivery from closing (exit 1 while anything does)"],
   ["delivery close", "Close a delivery once every project's change is closed"],
   ["templates list", "List the templates shipped by the installed CLI"],

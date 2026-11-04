@@ -3,10 +3,10 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { isDir, isFile, read, write } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
-import { checklistProgress, setHeader } from "./doc-model.js";
+import { checklistProgress, maskComments, parseChecklist, setHeader } from "./doc-model.js";
 import { terms } from "./lexicon.js";
 import { slugify, padNumber } from "./dates.js";
-import { artifactRootOf } from "./workspace.js";
+import { artifactRootOf, projectState } from "./workspace.js";
 
 // A DELIVERY is one item of work that crosses repositories (ADR 0030): a
 // story, a screen, a fix. It lives in the workspace's `deliveries/` and
@@ -205,4 +205,69 @@ export function deliveryBlockers(wsDir, ws, delivery) {
   }
   blockers.push(...recordBlockers(delivery));
   return blockers;
+}
+
+/**
+ * The `## Release` boxes of a delivery, in order, with their line index in
+ * the LF-normalised text (change 0226). The other sections are prose the
+ * planner writes; these are claims, and a claim is ticked through the CLI.
+ */
+export function releaseBoxes(text) {
+  // One owner for the box grammar (ADR 0021): the document model reads the
+  // boxes; a box inside a comment is the template's example, not a claim.
+  const lf = String(text).replace(/\r\n/g, "\n");
+  return parseChecklist(maskComments(lf), { section: "Release" })
+    .filter((b) => b.section === "Release")
+    .map((b, i) => ({ ordinal: i + 1, line: b.line, checked: b.checked, text: b.text }));
+}
+
+/** The text with the given Release boxes ticked (all when `ordinals` is "all"). */
+export function tickRelease(text, ordinals) {
+  const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+  for (const box of releaseBoxes(text)) {
+    if (ordinals === "all" || ordinals.includes(box.ordinal)) {
+      lines[box.line] = lines[box.line].replace(/\[\s\]/, "[x]");
+    }
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Projects a delivery cannot be routed to yet (change 0226): one whose
+ * repository is missing, or one still `pending` — no spec to write a delta
+ * against, so the change opened there would have nothing to change.
+ * @returns {{ name: string, state: string, reason: string, path: string }[]}
+ */
+export function unroutable(wsDir, ws, names) {
+  const out = [];
+  for (const name of names) {
+    const project = ws.projects.find((p) => p.name === name);
+    if (!project) continue;
+    const st = projectState(wsDir, project);
+    if (st.state !== "ready") out.push({ name, state: st.state, reason: st.reason, path: project.path });
+  }
+  return out;
+}
+
+/**
+ * Open changes in a routed repository that do NOT belong to this delivery
+ * (change 0226). Each is a second writer the planner must sequence: one
+ * writer per repository at a time holds across deliveries too.
+ * @returns {{ project: string, id: string, delivery: string|null }[]}
+ */
+export function otherWriters(wsDir, ws, delivery) {
+  const out = [];
+  for (const name of delivery.projects) {
+    const project = ws.projects.find((p) => p.name === name);
+    if (!project) continue;
+    const changesDir = path.join(artifactRootOf(wsDir, project), ".doctrina", "changes");
+    if (!isDir(changesDir)) continue;
+    for (const entry of readdirSync(changesDir).sort()) {
+      const proposal = path.join(changesDir, entry, "proposal.md");
+      if (entry === "archive" || !isFile(proposal)) continue;
+      const of = (listHeader(read(proposal), "Delivery") ?? "").trim() || null;
+      if (of !== delivery.id) out.push({ project: name, id: entry, delivery: of });
+    }
+  }
+  return out;
 }

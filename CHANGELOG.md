@@ -17,6 +17,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The delivery flow, audited step by step: `delivery tick` lists and ticks the
+  Release claims (they were hand-edited); `delivery new --projects` and `route`
+  refuse a project with no spec yet (exit 3, `--force` to override); `delivery
+  status` prints the command that reads each repository's next task card and
+  names a second writer in the same repository; `prime` and the pulse name the
+  delivery an open change belongs to; `work --resume <change> --delivery <id>`
+  joins a change opened without the flag.
+
 ## [0.20.0] — 2026-11-03
 
 ### Upgrading from 0.19

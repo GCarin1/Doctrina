@@ -33,6 +33,8 @@ function workspace() {
   assert.equal(run(ws, ["workspace", "add", "../back-end", "--role", "back", "--about", "login API and sessions"]).status, 0);
   assert.equal(run(ws, ["workspace", "add", "../front-core", "--role", "front", "--about", "screens", "--depends-on", "back-end"]).status, 0);
   assert.equal(run(ws, ["workspace", "add", "../app", "--role", "app"]).status, 0);
+  // A routed project must be ready — a spec to change (change 0226).
+  for (const name of ["back-end", "front-core", "app"]) assert.equal(run(path.join(root, name), ["spec", "new", "core"]).status, 0);
   return { root, ws, run, done: () => rmSync(root, { recursive: true, force: true }) };
 }
 

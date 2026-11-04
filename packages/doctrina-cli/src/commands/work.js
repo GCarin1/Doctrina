@@ -11,6 +11,7 @@ import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
 import { readDelivery, resolveDeliveryId } from "../lib/delivery.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
+import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
@@ -81,7 +82,7 @@ export async function run(positional, flags) {
   // open a new one (review G1 — `work "continue"` used to slug the word and
   // fabricate a junk `NNNN-continue` change the operator had to delete).
   if (flags.has("resume")) {
-    return resumeChange(projectRoot, flagString(flags, "resume"));
+    return resumeChange(projectRoot, flagString(flags, "resume"), delivery);
   }
 
   // --from-diff backfills from code already written (review F8): the
@@ -481,7 +482,7 @@ function printResumeSuggestion(open) {
 
 // Reprint the work playbook for an already-open change, ranking capabilities
 // from its recorded title (the original prompt). Creates nothing.
-function resumeChange(projectRoot, resumeId) {
+function resumeChange(projectRoot, resumeId, delivery = null) {
   const open = openChanges(projectRoot);
   if (!resumeId || resumeId === true) {
     console.error(c.red("error:") + " --resume needs a change id");
@@ -495,6 +496,25 @@ function resumeChange(projectRoot, resumeId) {
     console.error(c.red("error:") + ` no open change "${resumeId}"`);
     if (open.length) console.error(c.gray("open: ") + open.map((ch) => ch.id).join(", "));
     return 1;
+  }
+  // --resume <id> --delivery <id> (change 0226): a change opened before its
+  // delivery existed — or without the flag — joins it, so the delivery's
+  // status and check see it. A change already in another delivery is not
+  // moved silently.
+  if (delivery) {
+    const proposalPath = path.join(projectRoot, ".doctrina", "changes", resumeId, "proposal.md");
+    const text = isFile(proposalPath) ? read(proposalPath) : "";
+    const current = (listHeader(text, "Delivery") ?? "").trim();
+    if (current && current !== delivery) {
+      console.error(c.red("error:") + ` ${resumeId} already belongs to delivery ${current}`);
+      return EXIT.PRECONDITION;
+    }
+    if (!current) {
+      const stamped = text.replace(/^(-[ \t]+\*\*Lane:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
+      const updated = stamped !== text ? stamped : text.replace(/^(-[ \t]+\*\*Status:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
+      write(proposalPath, updated, { force: true });
+      console.log(c.green("joined") + ` ${resumeId} to delivery ${delivery}`);
+    }
   }
   const prompt = entry?.title ?? resumeId;
   const matches = rankCapabilities(projectRoot, prompt);
