@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.32.0
+**Version:** 0.33.0
 
 ## Purpose
 
@@ -52,6 +52,7 @@ keep the checks and the read path.
 - The system shall scaffold a change's `tasks.md` with implementation tasks only, and shall count its boxes through one counter that leaves out a legacy `## Closing steps` list, so no surface asks an agent to tick "apply", "archive" or "update the index" before the command that performs them has run.
 - The system shall let a MODIFIED delta take a requirement or an acceptance criterion out — `remove-requirement <section> <n>` and `remove-criterion <n>`, the criteria after a removed one renumbered — and every op that replaces or removes an item shall take it whole, continuation lines included.
 - The system shall keep the line ending a change file already uses when `change tick` ticks its boxes or `work` writes its Why, its pinned capability or its `Delivery:` line, so a CRLF checkout does not see every line of the file change.
+- The system shall print, in the bootstrap and absorb playbooks, the rules that keep a spec to what its source states — no requirement without the intake sentence or the code that does it, numbers and messages verbatim, a contradiction or a missing value as a question — and a step that checks the facts before the gates: the bootstrap rereads the intake sentence by sentence, the absorb hands each spec to a reader that did not write it.
 
 ### Event-driven
 
@@ -268,7 +269,7 @@ keep the checks and the read path.
 - When `work --consolidate <capability>` is run, the system shall open a change pinned to that capability with a MODIFIED delta scaffolded and print the spec's measured shape — lines, requirements per EARS subsection, criteria — with a consolidation playbook, leaving what is redundant for the agent to decide (ADR 0005).
 - When a change's delta targets a capability — scaffolded by `work`, pinned or ranked, or written by `change delta` — the system shall name that capability in the proposal's `Affects specs:` header once, leaving a chore's declared none untouched.
 - When `work` opens a change, the system shall end with the sentence for the human naming the change id, its title and its folder.
-- When `doctrina intake --from-code` runs, the system shall store the code inventory of the current directory as `.doctrina/intake.md` with `Status: pending` — stack and frameworks read from manifests, file and test counts, CI and runtime manifests, candidate areas under the conventional source roots, the build and test commands it can see, and the variable NAMES of env example files, never their values — and print the absorb playbook, which asks the agent to describe what the code does today and to leave what the code cannot tell as open questions for the human.
+- When `doctrina intake --from-code` runs, the system shall store the code inventory of the current directory as `.doctrina/intake.md` with `Status: pending` — read from the whole repository, not its root: every unit (a directory with its own manifest) with its build, name, package manager, frameworks and test count; the workspace tooling; languages by file extension; candidate areas inside each unit, a JVM tree's feature packages included; entry points; interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI, route folders); migrations and schemas; CI and runtime manifests at any depth; env example NAMES, never values, and the real env files named as present and not read; the documentation, decisions and agent instructions that already exist; and the facts it had no access to — each fact with the file it came from — and print the absorb playbook.
 - When `doctrina work --resume <change> --delivery <id>` runs on a change that carries no delivery, the system shall write `- **Delivery:** <id>` into its proposal; on a change that already belongs to another delivery it shall refuse with the precondition class.
 
 ### Unwanted-behavior (must-not)
@@ -302,6 +303,7 @@ keep the checks and the read path.
 - The system shall not resolve a change reference given to `change apply|archive|check|tick|abandon`, `close`, `analyze` or `work --resume` that is not a single folder name under `.doctrina/changes/` — one containing a path separator, `.`, `..`, or the archive's own folder name — and shall refuse it with the usage class before touching the filesystem, while still resolving an existing change whose id predates the `NNNN-slug` grammar.
 - The system shall not scaffold a change whose request mostly repeats an open change or one archived in the last 14 days — measured as term overlap from either side, each side counting only its own terms — without `--force`: it shall hold the request with the precondition class, naming the change and either the resume command or the archive path.
 - If `doctrina intake --from-code` meets a converted intake, then the system shall not replace it — it refuses with the precondition class — and over a pending one it shall not replace it unless `--force` is given.
+- If a declared script is long-running, interactive or npm's `no test specified` placeholder, or a unit has test files and declares no runner for them, then the code inventory shall not offer it to `verify --init`, and shall list it with the reason instead.
 
 ## Acceptance criteria
 
@@ -359,6 +361,9 @@ The authoring commands are v0 spec-compliant when:
 50. [verified] `work --resume --delivery` stamps a CRLF proposal and `change tick` ticks a CRLF tasks file, neither leaving a line that ends in LF alone — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
 51. [verified] `change delta` given two --requirement, two --criterion and two --op writes them as six ops in the order given, then the bump — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
 52. [verified] `change check --verbose` previews an ops delta as the spec before against the spec after apply — the new requirement and the bumped version as changes, unchanged lines as context — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
+53. [verified] On reductions of five public projects the inventory reads every build a polyglot repository declares, a full-stack monorepo's units, package manager and areas, a Spring app's own name, feature packages and entry point, interfaces, delivery and migrations, never names or reads a real `.env`, and names the facts it had no access to — verified by `packages/doctrina-cli/test/o-intake-le-o-projeto-inteiro.test.js`.
+54. [verified] `--watch`, `--ui` and the npm placeholder are listed and not seeded, and test files with no declared runner seed nothing — verified by `packages/doctrina-cli/test/o-intake-le-o-projeto-inteiro.test.js`.
+55. [verified] The bootstrap playbook prints the no-invention rules and the sentence-by-sentence check before the gates — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 
 ## Out of scope for this spec
 

@@ -87,13 +87,14 @@ export async function run(_positional, flags) {
     // leaving the agent to copy by hand what the CLI had just read. With no
     // candidate the starter stays fail-closed: a gate nobody declared must
     // not pass.
-    const seeded = inventory(projectRoot).checks.map((ch) => ({ name: ch.name, run: ch.command }));
+    // A check that belongs to one unit of a monorepo runs there (`cwd`).
+    const seeded = inventory(projectRoot).checks.map((ch) => ({ name: ch.name, run: ch.command, ...(ch.cwd ? { cwd: ch.cwd } : {}) }));
     const config = seeded.length > 0
       ? { ...STARTER, $comment: SEEDED_COMMENT, checks: seeded }
       : STARTER;
     write(configPath, JSON.stringify(config, null, 2) + "\n", { force: true });
     console.log(c.green("created") + ` ${CONFIG_REL}` +
-      (seeded.length > 0 ? c.gray(` — seeded from the code inventory: ${seeded.map((s) => s.run).join(", ")}`) : ""));
+      (seeded.length > 0 ? c.gray(` — seeded from the code inventory: ${seeded.map((s) => s.cwd ? `${s.run} (in ${s.cwd}/)` : s.run).join(", ")}`) : ""));
     console.log(c.gray(seeded.length > 0
       ? "Confirm each check runs what its name says (add an \"expect\" block where a run could execute nothing), then run `doctrina verify`."
       : "Edit the `checks` array with your real commands, then run `doctrina verify`."));

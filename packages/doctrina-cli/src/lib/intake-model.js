@@ -15,7 +15,7 @@ import { stateWord } from "./spec-ops.js";
 // Clarification gate (review Topic A). A description too thin to spec from is
 // the moment to ask the user, not to let the agent invent requirements. Prints
 // the specific gaps before the bootstrap playbook; advisory, never blocking —
-// the intake is still captured verbatim (the playbook step 6 resolves it).
+// the intake is still captured verbatim (the playbook step 8 resolves it).
 /**
  * Does this argument read as a FILE PATH, or as the description itself?
  *

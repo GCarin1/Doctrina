@@ -71,6 +71,11 @@ import { expandMarkup, renderPlaybook, PLAYBOOKS } from "../src/lib/playbook.js"
 // playbook no longer says "closing steps included". The work, pinned, thin
 // and ANSI goldens were re-captured for that one line.
 
+// And change 0229 added two steps to the BOOTSTRAP playbook — no requirement
+// the intake does not state, and a re-read that checks nothing was dropped or
+// added — so the steps after them renumber. The bootstrap golden was
+// re-captured with the test's own invocation; the lines around the two new
+// steps are the original.
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cliEntry = path.resolve(here, "..", "src", "index.js");
 // The recorded expectation, with its line terminators normalised.

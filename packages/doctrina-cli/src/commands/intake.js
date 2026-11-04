@@ -43,7 +43,7 @@ export async function run(positional, flags) {
   // a bootstrap that was already done.
   if (flagBool(flags, "converted", false)) {
     ensureDoctrinaProject(projectRoot);
-    // Converting is the claim that the bootstrap is done — step 6 of the
+    // Converting is the claim that the bootstrap is done — step 8 of the
     // playbook, "fix everything the gates report", made checkable (change
     // 0194). It used to convert over a tree `validate` failed, so the specs
     // became "the source of truth" while an error still said they were not

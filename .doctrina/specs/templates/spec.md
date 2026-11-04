@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.29.0
+**Version:** 0.30.0
 
 ## Purpose
 
@@ -62,6 +62,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall state the change cycle in the AGENTS.md template and in the always-applied Cursor rule alike — a request that changes behaviour opens a change before code is edited, one change per activity, the change id in the first sentence to the human, `context --for` rather than `prime` for the spec, the exported project skills, and the archive path repeated after `close` — keeping every other rule in AGENTS.md.
 - The system shall render the work playbook's read step with `--for` and the request, one quote-free line of at most 80 characters, through the documented `FOR` token.
 - The system shall ship `delivery.md.template` and the `delivery` playbook, resolved through the per-file chain like every other template, with the delivery tokens (`DELIVERY_ID`, `DELIVERY_TITLE`, `DELIVERY_REF`, `DELIVERY_PROJECTS`) and the playbook tokens (`DELIVERY_FILE`, `ROUTING`, `TOOLS`) documented in the templates README.
+- The system shall ship the absorb playbook as a template resolved project-over-bundled, like the bootstrap playbook, each carrying the rules that keep a spec to its source and the fact check before the gates.
 
 ### Event-driven
 
@@ -191,6 +192,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 33. [verified] The consolidation playbook renders from its template with the change id, the capability and its measured shape — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
 34. [verified] The AGENTS.md template and the Cursor rule template each state all eight parts of the cycle, and the rule stays always-applied — verified by `packages/doctrina-cli/test/o-ciclo-vale-sem-citar-o-framework.test.js`.
 35. [verified] The work playbook for `expire the "session" token` prints `doctrina context auth --for "expire the session token" --concat`, and the query is quote-free and at most 80 characters — verified by `packages/doctrina-cli/test/o-prime-entrega-o-comando-de-leitura.test.js`.
+36. [verified] The absorb playbook printed by `intake --from-code` prints no requirement without the code that does it and the fact check by a reader that did not write the spec, and the bootstrap playbook renders the no-invention step and the re-read before the gates — verified by `packages/doctrina-cli/test/o-codigo-existente-vira-intake.test.js` and `packages/doctrina-cli/test/playbooks.test.js`.
 
 ## Out of scope for this spec
 

@@ -124,7 +124,10 @@ and print the **bootstrap playbook** — the ordered instruction
 sequence the host AI agent executes to turn that intent into
 `product.md` content and capability specs. The CLI itself performs no
 natural-language interpretation; the intelligence lives in the
-executing agent (see ADR 0005).
+executing agent (see ADR 0005). The playbook holds the agent to the
+intake: every requirement comes from a sentence of it, values exactly as
+written, a contradiction or a missing value as a question, and before
+the gates a re-read that checks nothing was dropped or added.
 
 ```
 doctrina intake description.md
@@ -137,7 +140,7 @@ doctrina intake --from-code           # an existing codebase: its inventory is t
 | Flag | Purpose |
 |------|---------|
 | `--text "<description>"` | Inline description instead of a file. |
-| `--from-code` | For a repository that already has code: store its **code inventory** as the intake — stack and frameworks read from manifests, file and test counts, CI and runtime manifests, candidate areas under the conventional source roots, the build and test commands it can see, and the variable **names** of env example files (never their values) — and print the **absorb playbook**, which asks for what the code does today and sends what the code cannot tell to the human as open questions. Refuses a converted intake (exit `3`) and a pending one without `--force`. |
+| `--from-code` | For a repository that already has code: store its **code inventory** as the intake, read from the whole repository: every **unit** (a directory with its own manifest — each service of a polyglot repository, each package of a monorepo) with its build, name, package manager, frameworks and tests; the workspace tooling; languages by file extension; candidate areas inside each unit (a JVM tree's feature packages included); entry points; interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI, route folders); migrations and schemas; CI and runtime manifests; the variable **names** of env example files (never their values; a real `.env` is named as present and never read); the documentation, decisions and agent instructions that already exist; and **what it could not see**. Each fact names the file it came from. The build and test commands are split into those `verify --init` seeds and those it does not — long-running, interactive, npm's placeholder, or test files with no declared runner. It prints the **absorb playbook**: what the code does today and nothing else, no requirement without the code that does it, values as the code writes them, a fact check by a reader that did not write the spec, and every question the code cannot answer sent to the human. Refuses a converted intake (exit `3`) and a pending one without `--force`. |
 | `--converted` | Mark the stored intake converted, ending the bootstrap. Nothing else writes that header, and `validate` refuses any value but `pending` or `converted` — every other word used to read as pending in silence. Refuses with exit `1` while `validate` reports an error, listing them — converting claims the bootstrap is done; `--force` converts anyway. Exits `3` when there is no intake to mark. |
 | `--force` | With `--converted`, convert although `validate` fails. Otherwise, overwrite an existing `.doctrina/intake.md` that is still `pending`. A **converted** intake is never reopened — `--force` refuses with exit `3` and points at `doctrina intent add` (new intent) and `doctrina work` (a change of behaviour). |
 

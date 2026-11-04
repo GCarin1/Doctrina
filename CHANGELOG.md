@@ -19,6 +19,26 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `intake --from-code` reads the whole repository, not its root. On public
+  projects the root-only reading distorted what an agent absorbs: an
+  eleven-service demo in Go, C#, Node, Python and Java read as ".NET"; a
+  FastAPI + React template read as "no framework" with one candidate area and
+  `npm` for a bun workspace; a Spring app was named after its parent pom, its
+  areas were `src/main/` and `src/test/`, and its entry point was dropped. The
+  inventory now lists every unit (a directory with its own manifest) with its
+  build, name, package manager, frameworks and tests, the workspace tooling,
+  languages by extension, areas inside each unit (JVM feature packages
+  included), entry points, interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI,
+  route folders), migrations and schemas, CI and runtime manifests at any
+  depth, the documentation, decisions and agent instructions already written,
+  and what it could not see. A real `.env` is named as present and never read.
+- `verify --init` seeds only commands that return on their own, each unit's
+  with its `cwd`: `--watch`, `--ui`, npm's `no test specified` placeholder and
+  test files with no declared runner are listed with the reason instead.
+- The absorb and bootstrap playbooks hold the agent to its source: no
+  requirement without the code that does it (absorb) or the intake sentence
+  that states it (bootstrap), values verbatim, contradictions and missing
+  values as questions, and a fact check before the gates.
 - The delivery flow, audited step by step: `delivery tick` lists and ticks the
   Release claims (they were hand-edited); `delivery new --projects` and `route`
   refuse a project with no spec yet (exit 3, `--force` to override); `delivery

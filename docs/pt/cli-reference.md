@@ -130,7 +130,10 @@ Armazena a descrição completa do projeto literalmente em
 sequência ordenada de instruções que o agente de IA hospedeiro executa
 para converter essa intenção no conteúdo de `product.md` e nas specs de
 capabilities. O próprio CLI não faz nenhuma interpretação de linguagem
-natural; a inteligência mora no agente executor (ver ADR 0005).
+natural; a inteligência mora no agente executor (ver ADR 0005). O
+playbook prende o agente ao intake: todo requisito vem de uma frase dele,
+valores exatamente como escritos, uma contradição ou um valor ausente vira
+pergunta, e antes dos gates uma releitura confere que nada caiu nem entrou.
 
 ```
 doctrina intake descricao.md
@@ -141,7 +144,7 @@ doctrina intake --converted           # encerra o bootstrap
 
 | Flag | Função |
 |------|--------|
-| `--from-code` | Para um repositório que já tem código: guarda o **inventário do código** como intake — stack e frameworks lidos dos manifestos, contagem de arquivos e de testes, manifestos de CI e de runtime, áreas candidatas sob as raízes de código usuais, os comandos de build e teste que ele enxerga e os **nomes** das variáveis dos arquivos `.env` de exemplo (nunca os valores) — e imprime o **playbook de absorção**, que pede o que o código faz hoje e manda o que o código não diz para o humano como perguntas abertas. Recusa um intake convertido (saída `3`) e um pendente sem `--force`. |
+| `--from-code` | Para um repositório que já tem código: guarda o **inventário do código** como intake, lido do repositório inteiro: cada **unidade** (um diretório com manifesto próprio — cada serviço de um repositório poliglota, cada pacote de um monorepo) com seu build, nome, gerenciador de pacotes, frameworks e testes; o ferramental de workspace; as linguagens por extensão; as áreas candidatas dentro de cada unidade (os pacotes de funcionalidade de uma árvore JVM inclusive); os pontos de entrada; as interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI, pastas de rotas); migrations e schemas; os manifestos de CI e de runtime; os **nomes** das variáveis dos `.env` de exemplo (nunca os valores; um `.env` real é citado como presente e nunca lido); a documentação, as decisões e as instruções de agente que já existem; e **o que ele não conseguiu ver**. Cada fato nomeia o arquivo de onde veio. Os comandos de build e teste se dividem entre os que o `verify --init` semeia e os que não — longos, interativos, o placeholder do npm, ou arquivos de teste sem runner declarado. Ele imprime o **playbook de absorção**: o que o código faz hoje e nada mais, nenhum requisito sem o código que o faz, valores como o código os escreve, uma checagem dos fatos por um leitor que não escreveu a spec, e toda pergunta que o código não responde enviada ao humano. Recusa um intake convertido (saída `3`) e um pendente sem `--force`. |
 | `--text "<descrição>"` | Descrição inline em vez de um arquivo. |
 | `--converted` | Marca o intake armazenado como convertido, encerrando o bootstrap. Nada mais escreve esse cabeçalho, e o `validate` recusa qualquer valor além de `pending` ou `converted`. Recusa com saída `1` enquanto o `validate` reporta erro, listando-os — converter é afirmar que o bootstrap terminou; `--force` converte mesmo assim. Sai `3` quando não há intake para marcar. |
 | `--force` | Com `--converted`, converte mesmo com o `validate` falhando. Fora isso, sobrescreve um `.doctrina/intake.md` existente que ainda esteja `pending`. Um intake **convertido** nunca é reaberto — `--force` recusa com saída `3` e aponta `doctrina intent add` (intenção nova) e `doctrina work` (mudança de comportamento). |
