@@ -222,7 +222,9 @@ bidirectionally.
 
 One task of a change, printed by `doctrina change card` with everything an
 executor needs to do it alone: the task and its `Files:`, `Requirement:`
-and `Verify:` lines, the change's Why and the spec cut to the task.
+and `Verify:` lines, the change's Why, the delivery's story, what the
+change's delta does to the spec, the spec cut to the task and the
+decisions that bind it.
 
 ## Validate
 

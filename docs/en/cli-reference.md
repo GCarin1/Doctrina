@@ -653,9 +653,12 @@ doctrina change card 0042-payment-declined 3    # task 3
 The card holds the task and the lines indented under it in `tasks.md`
 — write them as `Files:`, `Requirement:` (a `doctrina show` reference such
 as `auth-R7`, counted from the spec and never written into it) and
-`Verify:` — the change's
-`## Why`, each delta capability's spec cut to the task, and what to do
-when done: run the card's `Verify:` command (or `doctrina verify`), tick
+`Verify:` — the change's `## Why`, the story of the delivery the change
+belongs to (read from the workspace), what the change does to each spec —
+every requirement and criterion its delta adds, replaces or removes,
+verbatim, since the spec as it stands does not hold them yet — each delta
+capability's spec cut to the task (whole when nothing in it matches), the
+accepted decisions that bind those capabilities, and what to do when done: run the card's `Verify:` command (or `doctrina verify`), tick
 the box with the `change tick` line it prints, and report back. It tells
 the executor to leave opening, closing and `.doctrina/` to the planner.
 Exit `0` with a note when every task is ticked; `3` for a task number

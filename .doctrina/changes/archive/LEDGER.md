@@ -241,3 +241,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-04 — 0228-o-que-ficou-pela-metade-na-entrega-e-na — o que ficou pela metade na entrega e na documentacao (specs: authoring MODIFIED, cli MODIFIED, core MODIFIED, delivery MODIFIED, docs MODIFIED, gates MODIFIED, insight MODIFIED, scaffolding MODIFIED, skills MODIFIED, workspace MODIFIED)
 - 2026-11-04 — 0229-o-intake-absorve-projetos-complexos-sem — o intake absorve projetos complexos sem distorcer (specs: authoring MODIFIED, docs MODIFIED, gates MODIFIED, templates MODIFIED)
 - 2026-11-04 — 0230-a-orientacao-funciona-na-raiz-do-workspace — a orientacao funciona na raiz do workspace (specs: cli MODIFIED, docs MODIFIED, insight MODIFIED, structure MODIFIED, workspace MODIFIED)
+- 2026-11-04 — 0231-o-cartao-leva-o-que-a-change-faz — o cartao leva o que a change faz (specs: authoring MODIFIED, delivery MODIFIED, docs MODIFIED)

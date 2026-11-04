@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.33.0",
+        "version": "0.33.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -59,7 +59,7 @@
         "id": "delivery",
         "path": ".doctrina/specs/delivery/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "depends_on": [
@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.2",
+        "version": "0.10.3",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -3920,6 +3920,28 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0231-o-cartao-leva-o-que-a-change-faz",
+        "title": "o cartao leva o que a change faz",
+        "path": ".doctrina/changes/archive/2026-11-04-0231-o-cartao-leva-o-que-a-change-faz",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: change, aceite)"
       }
     ],
     "skills": [

@@ -114,7 +114,8 @@ porque os dois mantêm um escritor por artefato:
   tarefas de uma change como cartões autocontidos — a tarefa e as
   linhas `Files:`, `Requirement:` e `Verify:` — e entrega um de cada vez
   a um subagente executor com `doctrina change card <id>`. O cartão
-  carrega o Why da change e a spec recortada para a tarefa, então o
+  carrega o Why da change, a história da entrega, o que o delta faz na
+  spec, a spec recortada para a tarefa e as decisões que a vinculam, então o
   executor não precisa do trace do planejador; um cartão que precisa não
   está terminado. O executor edita, verifica, marca e reporta. Ele nunca
   abre, fecha nem arquiva — o planejador revisa e fecha. O executor pode

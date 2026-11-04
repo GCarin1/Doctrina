@@ -107,7 +107,8 @@ writing, because each keeps one writer per artifact:
   tasks as self-contained cards — the task and its `Files:`,
   `Requirement:` and `Verify:` lines — and hands one at a time to an
   executor subagent with `doctrina change card <id>`. The card carries
-  the change's Why and the spec cut to the task, so the executor does
+  the change's Why, the delivery's story, what the delta does to the
+  spec, the spec cut to the task and the decisions that bind it, so the executor does
   not need the planner's trace; a card that does is not finished. The
   executor edits, verifies, ticks and reports. It never opens, closes
   or archives — the planner reviews and closes. The executor may run on

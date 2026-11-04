@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A task card carries what the change does. It cut the spec as it stands to
+  the task, so the requirement the executor was there to implement — which
+  lives in the delta until apply — reached the card only if the planner
+  copied it by hand; and a spec nothing in the task matched was dropped,
+  leaving a card with no spec at all. The card now lists every requirement
+  and criterion the delta adds, replaces or removes, verbatim, gives a spec
+  whole when nothing matched, carries the story of the delivery the change
+  belongs to and names the accepted decisions that bind the capability.
 - The orientation commands work at the workspace root, where the planner
   works. `next` told the planner to run `doctrina init` there — which would
   create a project inside the workspace — and `handoff`, `status`, `validate`

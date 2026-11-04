@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -34,7 +34,7 @@ those changes can be handed to an executor as a self-contained card.
 - When `doctrina delivery status <id>` runs, the system shall print, per routed project, the changes carrying the delivery with their state and task progress.
 - When `doctrina delivery check <id>` runs, the system shall exit 1 while a routed project carries no change for the delivery or carries one not yet archived, naming each, and exit 0 otherwise.
 - When `doctrina delivery close <id>` runs and the check passes, the system shall set `Status: closed` and the `Closed` date, and print the `Tell the human:` line.
-- When `doctrina change card <id> [<n>]` runs, the system shall print task `<n>` — or the first open task — with the lines indented under it, the change's Why, the delta capabilities' specs cut to the task, the card's `Verify:` command or `doctrina verify`, the tick command, and the instruction to leave opening, closing and `.doctrina/` to the planner.
+- When `doctrina change card <id> [<n>]` runs, the system shall print task `<n>` — or the first open task — with the lines indented under it, the change's Why, the story of the delivery the change belongs to, what the change does to each spec (every requirement and criterion its delta adds, replaces or removes, verbatim), the delta capabilities' specs as they stand cut to the task — whole when nothing in one matches — the accepted decisions that bind those capabilities, the card's `Verify:` command or `doctrina verify`, the tick command, and the instruction to leave opening, closing and `.doctrina/` to the planner.
 - When `doctrina delivery check <id>` runs, the system shall also require the delivery's own record — a `## Story` with text, every `## Release` box ticked and a `## Observability` with at least one line beyond its comment — naming each gap, because the changes prove the code and only the record proves the delivery reached its users and was watched after it did.
 - When `doctrina delivery list` runs, the system shall print each delivery's age — open days, or lead time from `Date` to `Closed` once closed — and the median and longest lead time over the closed ones.
 - When `doctrina delivery tick <id>` runs, the system shall list the `## Release` boxes with their numbers, and with numbers or `--all` tick them, refusing a number that names no box with the usage class.
@@ -58,6 +58,7 @@ A delivery is spec-compliant when:
 5. [verified] With every routed change archived, `delivery check` still exits 1 naming an empty Story, each unticked Release box and an empty Observability, and exits 0 once they are written; `delivery list` prints the lead time and the median — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 6. [verified] A pending project is refused by `delivery new --projects` and `delivery route` with exit 3 naming `intake --from-code` and routed with `--force`; `delivery tick` lists, ticks and refuses a bad number; `delivery status` prints the card command and the second writer; `prime` and the pulse name the delivery; `work --resume --delivery` joins a change and refuses one already in another delivery — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
 7. [verified] `delivery tick` keeps a CRLF delivery CRLF and counts only fresh ticks; the header writer adds a line in the file's own ending; `delivery check` names a `+ [ ]` Release box that `tick` lists — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
+8. [verified] The card carries the requirement and the criterion the delta adds verbatim, the delivery's story, the decisions scoped to or citing the capability and not one scoped elsewhere, and a spec whole when nothing matched; a change with none of them gets the card it had — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
 
 ## Out of scope for this spec
 

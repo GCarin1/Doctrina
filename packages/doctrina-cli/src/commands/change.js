@@ -103,8 +103,21 @@ function changeCard(args) {
   if (card.why) {
     L.push("", "## Why the change exists", "", card.why);
   }
+  if (card.story) {
+    L.push("", `## The story (delivery ${card.delivery})`, "", card.story);
+  }
+  // What the change does to the spec — the requirement the card implements
+  // is here, not in the spec as it stands (change 0231).
+  if (card.changes.length > 0) {
+    L.push("", "## What this change does to the spec", "");
+    for (const ch of card.changes) L.push(`- ${ch.capability} ${ch.line}`);
+  }
   for (const s of card.slices) {
-    L.push("", `## Spec — ${s.capability} (cut to this task)`, "", s.text.trim());
+    L.push("", `## Spec — ${s.capability} as it stands (${s.whole ? "whole: nothing in it matched the task" : "cut to this task"})`, "", s.text.trim());
+  }
+  if (card.decisions.length > 0) {
+    L.push("", "## Decisions that bind it", "");
+    for (const d of card.decisions) L.push(`- ADR ${d.id} — ${d.title} (\`doctrina show ${d.id}\`)`);
   }
   L.push("", "## When done", "");
   L.push(card.fields.verify

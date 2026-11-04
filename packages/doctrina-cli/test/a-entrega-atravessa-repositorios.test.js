@@ -167,7 +167,7 @@ test("change card hands the next open task over with everything it needs", () =>
     assert.match(r.stdout, /# Task card — 0001-recusa, task 2 of 3/);
     assert.match(r.stdout, /- Files: features\/pagamento\.feature/);
     assert.match(r.stdout, /O cliente precisa saber/);
-    assert.match(r.stdout, /## Spec — pagamento \(cut to this task\)/);
+    assert.match(r.stdout, /## Spec — pagamento as it stands \(cut to this task\)/);
     assert.match(r.stdout, /402/);
     assert.match(r.stdout, /`behave features\/pagamento\.feature`/);
     assert.match(r.stdout, /doctrina change tick 0001-recusa 2/);

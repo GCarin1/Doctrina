@@ -230,8 +230,9 @@ bidireccionalmente.
 
 Uma tarefa de uma change, impressa pelo `doctrina change card` com tudo de
 que um executor precisa para fazê-la sozinho: a tarefa e as linhas
-`Files:`, `Requirement:` e `Verify:`, o Why da change e a spec recortada
-para a tarefa.
+`Files:`, `Requirement:` e `Verify:`, o Why da change, a história da
+entrega, o que o delta da change faz na spec, a spec recortada para a
+tarefa e as decisões que a vinculam.
 
 ## Validate
 

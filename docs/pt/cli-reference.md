@@ -670,9 +670,13 @@ doctrina change card 0042-pagamento-recusado 3    # a tarefa 3
 O cartão traz a tarefa e as linhas indentadas sob ela no `tasks.md` —
 escreva-as como `Files:`, `Requirement:` (uma referência do `doctrina
 show` como `auth-R7`, contada a partir da spec e nunca escrita nela) e
-`Verify:` —, o `## Why` da
-change, a spec de cada capability do delta recortada para a tarefa e o que
-fazer ao terminar: rodar o comando `Verify:` do cartão (ou `doctrina
+`Verify:` —, o `## Why` da change, a história da entrega a que a change
+pertence (lida do workspace), o que a change faz em cada spec — todo
+requisito e critério que o delta acrescenta, substitui ou remove,
+literalmente, já que a spec atual ainda não os tem —, a spec de cada
+capability do delta recortada para a tarefa (inteira quando nada nela
+casa), as decisões aceitas que vinculam essas capabilities e o que fazer ao
+terminar: rodar o comando `Verify:` do cartão (ou `doctrina
 verify`), marcar a caixa com a linha de `change tick` que ele imprime e
 reportar. Ele diz ao executor que abrir, fechar e mexer em `.doctrina/` é
 do planejador. Sai `0` com um aviso quando toda tarefa está marcada; `3`
