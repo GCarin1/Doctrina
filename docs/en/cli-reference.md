@@ -532,7 +532,10 @@ Three passes plus an advisory:
    memory against its target spec: an op that would fail at apply time
    (missing header, no such criterion or requirement, unknown verb) is
    reported here, not at close time. A delta with no ops block is
-   flagged as a manual merge so the close is planned around it.
+   flagged as a manual merge so the close is planned around it. The spec
+   the ops produce is also scanned with the clarify lexicons: a weasel or
+   vague word the delta writes is a warning now, not a red `clarify`
+   after the merge.
 3. **archive gate** — the unchecked boxes `archive` will refuse, with
    the bulk fix (`change tick <id> --all`) named.
 

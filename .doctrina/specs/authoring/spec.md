@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.33.1
+**Version:** 0.33.2
 
 ## Purpose
 
@@ -365,6 +365,7 @@ The authoring commands are v0 spec-compliant when:
 54. [verified] `--watch`, `--ui` and the npm placeholder are listed and not seeded, and test files with no declared runner seed nothing — verified by `packages/doctrina-cli/test/o-intake-le-o-projeto-inteiro.test.js`.
 55. [verified] The bootstrap playbook prints the no-invention rules and the sentence-by-sentence check before the gates — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 56. [verified] `change card` renders the card the delivery spec states — the story, what the delta does, the spec as it stands, the binding decisions — and a plain change's card unchanged — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
+57. [verified] `change check` prints the clarify warnings for the spec a delta writes — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
 
 ## Out of scope for this spec
 

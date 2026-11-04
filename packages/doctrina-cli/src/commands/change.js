@@ -21,6 +21,7 @@ import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
+import { scanText } from "../lib/clarify-scan.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta", "card"];
 
@@ -430,6 +431,13 @@ async function changeCheck(id, { verbose = false } = {}) {
       opsFindings += 1;
     } else {
       console.log(c.green("✓ ") + `${rel}: ${result.applied.length} op${result.applied.length === 1 ? "" : "s"} would apply cleanly`);
+      // What clarify will say about the spec once this lands (change 0232):
+      // the smells the merged spec has and the current one does not.
+      // Advisory — clarify is not a close gate — but a project that runs
+      // `clarify --all` in its build learned about the word mid-close.
+      for (const smell of newSmells(read(targetPath), result.text, projectRoot)) {
+        console.log(c.yellow("! ") + `${rel}: writes ${smell.rule} "${smell.token}" into ${capability}'s spec — ${smell.hint} (\`clarify\` flags it after apply)`);
+      }
     }
   }
   if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
@@ -886,6 +894,22 @@ function extractDeltaBody(text) {
   return text.slice(idxSep + 5).replace(/^\n+/, "");
 }
 
+
+// The smells `after` has that `before` does not, matched by rule, token and
+// the line's own text — line numbers shift when a delta inserts a line.
+function newSmells(before, after, projectRoot) {
+  const key = (/** @type {string} */ text, /** @type {{ line: number, rule: string, token: string }} */ sm) =>
+    `${sm.rule}|${sm.token.toLowerCase()}|${text.split("\n")[sm.line - 1] ?? ""}`;
+  const seen = new Map();
+  for (const sm of scanText(before, projectRoot)) seen.set(key(before, sm), (seen.get(key(before, sm)) ?? 0) + 1);
+  const out = [];
+  for (const sm of scanText(after, projectRoot)) {
+    const k = key(after, sm);
+    if ((seen.get(k) ?? 0) > 0) seen.set(k, seen.get(k) - 1);
+    else out.push(sm);
+  }
+  return out;
+}
 
 export const help = `
 Usage: doctrina change <subcommand> [args]

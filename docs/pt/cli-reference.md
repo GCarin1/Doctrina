@@ -545,7 +545,9 @@ Três passes mais um advisory:
    do apply (header ausente, critério ou requisito inexistente, verbo
    desconhecido) é reportada aqui, não no fechamento. Um delta sem bloco
    ops é sinalizado como merge manual, para o fechamento ser planejado
-   em volta dele.
+   em volta dele. A spec que as ops produzem também passa pelos
+   léxicos do clarify: uma palavra vaga que o delta escreve vira aviso
+   agora, e não um `clarify` vermelho depois do merge.
 3. **gate do archive** — as caixas desmarcadas que o `archive` vai
    recusar, com o conserto em lote (`change tick <id> --all`) nomeado.
 

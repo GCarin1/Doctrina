@@ -162,3 +162,24 @@ test("change check --verbose previews an ops delta as the spec before against th
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// Change 0232: `change check` scans the spec a delta will write. A weasel
+// word in a delta used to surface only after the close had merged it.
+test("change check warns, before apply, about a smell the delta writes into the spec", () => {
+  const { dir, run } = setup();
+  try {
+    assert.equal(run(["change", "delta", "0001-expiry", "auth",
+      "--requirement", "event: When a token expires, the system could refuse it after several retries."]).status, 0);
+    const out = run(["change", "check", "0001-expiry"]).stdout;
+    assert.match(out, /! \.doctrina\/changes\/0001-expiry\/specs\/auth\/delta\.md: writes weasel "could" into auth's spec/);
+    assert.match(out, /writes vague "several" into auth's spec/);
+    assert.doesNotMatch(out, /✗[^\n]*(could|several)/, "advisory: clarify is not a close gate, so the smell is a warning, never a failure");
+    // A smell the spec already had is not this delta's.
+    const spec = path.join(dir, ".doctrina", "specs", "auth", "spec.md");
+    writeFileSync(spec, readFileSync(spec, "utf8").replace("Auth.", "Auth, which could change."));
+    run(["index", "rebuild"]);
+    assert.equal((run(["change", "check", "0001-expiry"]).stdout.match(/writes weasel "could"/g) ?? []).length, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

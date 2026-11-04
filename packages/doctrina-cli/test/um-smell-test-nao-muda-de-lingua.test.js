@@ -73,7 +73,7 @@ test("the quantifier pair still answers the same on both sides", () => {
 // Both lexicons must offer the same CATEGORIES. A rule present on one side
 // and absent on the other is the shape of the defect, whatever its members.
 test("both lexicons declare the same rule names", () => {
-  const source = readFileSync(path.resolve(here, "..", "src", "commands", "clarify.js"), "utf8");
+  const source = readFileSync(path.resolve(here, "..", "src", "lib", "clarify-scan.js"), "utf8");
   const namesIn = (constName) => {
     const block = new RegExp(`const ${constName} = \\[([\\s\\S]*?)\\n\\];`).exec(source)?.[1] ?? "";
     assert.ok(block, `precondition: ${constName} is a declared array`);

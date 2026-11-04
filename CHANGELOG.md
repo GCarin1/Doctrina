@@ -19,6 +19,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `change check` scans the spec each delta will write with the clarify
+  lexicons and warns of every weasel or vague word the delta adds. Such a word
+  used to surface only after the close had merged it — in this repository, as
+  a red living-documents test in the middle of a close. The scanner moved
+  from the `clarify` command to `lib/clarify-scan.js` so both read one
+  lexicon.
 - A task card carries what the change does. It cut the spec as it stands to
   the task, so the requirement the executor was there to implement — which
   lives in the delta until apply — reached the card only if the planner
