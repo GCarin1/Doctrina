@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -25,6 +25,7 @@ those changes can be handed to an executor as a self-contained card.
 - The system shall read a delivery's state from the changes its routed projects carry — a change carries it through the proposal header `- **Delivery:** <id>` — and shall never copy that state into the delivery file.
 - The system shall order a delivery's projects so that each comes after every routed project it depends on.
 - The system shall read a delivery's `## Release` boxes through one reader, the document model's checklist, so every box `delivery check` holds open — whatever its bullet marker — is one `delivery tick` lists and ticks, and a box inside a comment is neither.
+- The system shall slice a task card's spec by the task's words, the change's title and the text of the requirements its delta adds or replaces, and shall carry no HTML comment of the spec.
 
 ### Event-driven
 
@@ -59,6 +60,7 @@ A delivery is spec-compliant when:
 6. [verified] A pending project is refused by `delivery new --projects` and `delivery route` with exit 3 naming `intake --from-code` and routed with `--force`; `delivery tick` lists, ticks and refuses a bad number; `delivery status` prints the card command and the second writer; `prime` and the pulse name the delivery; `work --resume --delivery` joins a change and refuses one already in another delivery — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
 7. [verified] `delivery tick` keeps a CRLF delivery CRLF and counts only fresh ticks; the header writer adds a line in the file's own ending; `delivery check` names a `+ [ ]` Release box that `tick` lists — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
 8. [verified] The card carries the requirement and the criterion the delta adds verbatim, the delivery's story, the decisions scoped to or citing the capability and not one scoped elsewhere, and a spec whole when nothing matched; a change with none of them gets the card it had — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
+9. [verified] a card keeps the requirement its delta names and the task does not, and no template comment — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 
 ## Out of scope for this spec
 

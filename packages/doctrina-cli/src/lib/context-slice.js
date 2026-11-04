@@ -75,7 +75,12 @@ export function adrDigest(text, title, id) {
  */
 export function sliceSpec(text, queryTerms, rel) {
   if (queryTerms.length === 0) return null;
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  // Read without the template's comments (second audit, change 0233). The
+  // EARS comment lists the five forms as bullets — "- Ubiquitous: The system
+  // shall <action>." — and they were counted as requirements: every pack of
+  // a scaffolded spec reported "… 5 not matching the task" for bullets no
+  // one wrote, and carried the forty-line header comment besides.
+  const lines = (withoutComments(text) ?? text.replace(/\r\n/g, "\n")).split("\n");
   // Items: a bullet or numbered entry with its continuation lines.
   /** @type {Array<{ start: number, end: number, kind: "req"|"crit", score: number }>} */
   const items = [];
@@ -137,7 +142,8 @@ export function sliceSpec(text, queryTerms, rel) {
   }
   flushOmitted();
   const kept = keep.size;
-  out.push("", `(sliced for "${queryTerms.join(" ")}" — ${kept} of ${items.length} requirements and criteria kept; ` +
+  const shownTerms = queryTerms.length > 12 ? `${queryTerms.slice(0, 12).join(" ")} …` : queryTerms.join(" ");
+  out.push("", `(sliced for "${shownTerms}" — ${kept} of ${items.length} requirements and criteria kept; ` +
     `full text: ${rel}, or \`context --full\`)`);
   return { text: out.join("\n").replace(/\n{3,}/g, "\n\n"), kept, total: items.length };
 }

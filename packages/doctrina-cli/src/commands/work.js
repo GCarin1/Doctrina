@@ -9,7 +9,7 @@ import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
-import { readDelivery, resolveDeliveryId } from "../lib/delivery.js";
+import { readDelivery, resolveDeliveryId, sectionText } from "../lib/delivery.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
@@ -68,6 +68,7 @@ export async function run(positional, flags) {
   // workspace delivery. Checked BEFORE anything is scaffolded, so a typo or a
   // repository the delivery was never routed to opens nothing.
   let delivery = null;
+  let deliveryStory = "";
   if (flags.has("delivery")) {
     const resolved = resolveDeliveryFor(projectRoot, flagString(flags, "delivery"));
     if (resolved.error) {
@@ -76,6 +77,7 @@ export async function run(positional, flags) {
       return resolved.code;
     }
     delivery = resolved.id;
+    deliveryStory = resolved.story ?? "";
   }
 
   // --resume <id>: reprint the playbook for an existing open change rather than
@@ -245,7 +247,10 @@ export async function run(positional, flags) {
   // (review F10 — rank by what the working tree touched, not just prompt words).
   const allChanged = fromDiff ? files : changedFiles(projectRoot).files;
   const diffMatches = pinned ? [] : rankCapabilitiesByDiff(projectRoot, allChanged);
-  const promptMatches = pinned || fromDiff ? [] : rankCapabilities(projectRoot, effPrompt);
+  // A delivery's change is ranked by its story too (second audit, change
+  // 0233): the title of a tracker item rarely names the capability — "lock
+  // the account after 3 wrong passwords" — while its story says "login".
+  const promptMatches = pinned || fromDiff ? [] : rankCapabilities(projectRoot, deliveryStory ? `${effPrompt}\n${deliveryStory}` : effPrompt);
   const matches = pinned ? [] : (fromDiff ? diffMatches : promptMatches);
   const capability = pinned ?? matches[0]?.id ?? null;
   const clarity = assessBrief(effPrompt, { kind: "prompt" });
@@ -400,7 +405,7 @@ function resolveDeliveryFor(projectRoot, ref) {
       code: EXIT.PRECONDITION,
     };
   }
-  return { id };
+  return { id, story: sectionText(d.text, "Story") ?? "" };
 }
 
 function writeLane(projectRoot, id, verdict, opts) {

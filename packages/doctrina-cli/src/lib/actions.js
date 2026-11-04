@@ -8,6 +8,7 @@ import { collectRuntimeFindings } from "./runtime.js";
 import { FIX_SHAPED } from "./lexicon.js";
 import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
+import { projectWorkspaceLine } from "./workspace-view.js";
 
 // What comes next, as DATA (change 0032).
 //
@@ -250,6 +251,33 @@ export function computeActions(projectRoot, gates = {}) {
             `or close it as metadata-only: doctrina close ${id}`,
         }));
       }
+    }
+  }
+
+  // A delivery open on this repository (second audit, change 0233). `prime`
+  // named it, `next` did not: after the close of this repository's part,
+  // "Next: doctrina next" answered with this project's own chores, and the
+  // planner lost the delivery that was still going on at the workspace.
+  let inWorkspace = null;
+  try {
+    inWorkspace = projectWorkspaceLine(projectRoot);
+  } catch {
+    inWorkspace = null;
+  }
+  for (const d of inWorkspace?.deliveries ?? []) {
+    if (d.changes.length === 0) {
+      actions.push(action({
+        id: "delivery-change-missing",
+        why: `delivery ${d.id} is routed to this repository and has no change here yet`,
+        text: `doctrina work "${d.title}" --delivery ${d.id} — delivery ${d.id} is routed to this repository and has no change here yet`,
+      }));
+    } else if (d.open === 0) {
+      actions.push(action({
+        id: "delivery-continues-at-workspace",
+        severity: "advisory",
+        why: `this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
+        text: `cd ${inWorkspace?.dir} && doctrina next — this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
+      }));
     }
   }
 

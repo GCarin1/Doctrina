@@ -210,6 +210,20 @@ function workspaceAttach(wsDir, name, flags) {
     writeWorkspace(wsDir, ws);
     console.log(c.green("moved") + ` ${project.name} → ${repo}`);
   }
+  // --depends-on on a registered project (second audit, change 0233): the
+  // edge `delivery route` orders by could only be given at `add`, before the
+  // project it names was always registered.
+  if (flags.has("depends-on")) {
+    const dependsOn = (flagString(flags, "depends-on") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const unknown = dependsOn.filter((d) => d === project.name || !ws.projects.some((p) => p.name === d));
+    if (unknown.length > 0) {
+      console.error(c.red("error:") + ` --depends-on names no other registered project: ${unknown.join(", ")}`);
+      return EXIT.USAGE;
+    }
+    project.dependsOn = dependsOn;
+    writeWorkspace(wsDir, ws);
+    console.log(c.green("depends on") + ` ${project.name} → ${dependsOn.join(", ") || "nothing"}`);
+  }
   if (project.mode !== "shadow") {
     console.log(c.gray(`${project.name} is in-repo — its .doctrina/ is its own; nothing to link`));
     return EXIT.OK;
@@ -381,9 +395,10 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
       scaffolded under projects/<name>/, linked into the repository, and
       hidden from its git through .git/info/exclude.
 
-  attach <name> [--path <dir>]
+  attach <name> [--path <dir>] [--depends-on <a,b>]
       Re-create a shadow's links (after cloning the workspace on another
-      machine, or with --path after the repository moved).
+      machine, or with --path after the repository moved). --depends-on
+      replaces the projects it builds on — the order \`delivery route\` uses.
 
   detach <name>
       Remove a shadow's links and its exclude block; the shadow stays.

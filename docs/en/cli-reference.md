@@ -132,7 +132,7 @@ the gates a re-read that checks nothing was dropped or added.
 ```
 doctrina intake description.md
 doctrina intake --text "A shop with login, catalog, and checkout"
-doctrina intake                       # reprint the playbook for a pending intake
+doctrina intake                       # reprint the playbook for a pending intake (absorb or bootstrap)
 doctrina intake --converted           # close the bootstrap
 doctrina intake --from-code           # an existing codebase: its inventory is the intake
 ```
@@ -2497,6 +2497,12 @@ absorbed project, an executor model). The workspace is found from
 `$DOCTRINA_HOME` (default `~/.doctrina`). Commit the workspace yourself:
 it is the version history of every shadowed project's context.
 
+`--depends-on` is the order `delivery route` follows; `attach <name>
+--depends-on <a,b>` replaces it on a project already registered.
+`doctrina validate` at the workspace root warns when a project's
+`package.json` depends on the package another project publishes and the
+registry does not say so.
+
 **Tools and the guard** (ADR 0031). `doctrina workspace tool <name>`
 declares a tool the work uses — presets `jira`, `confluence`, `figma`,
 `playwright`, `datadog`, `databricks`, `sql`, or any name with
@@ -2575,7 +2581,8 @@ or its number.
 
 A project still **pending** (no spec yet) or whose repository is missing is
 refused by `new --projects` and `route` with exit `3`: a change there would
-have no spec to change. Absorb it first (`doctrina intake --from-code`), or
+have no spec to change. Absorb it first (`doctrina intake --from-code`; once
+the inventory is stored, a bare `doctrina intake` reprints its playbook), or
 pass `--force`. `status` prints, for every open change with tasks left, the
 command that reads its next card from inside its repository, and names every
 other open change in a routed repository — a second writer to sequence, one

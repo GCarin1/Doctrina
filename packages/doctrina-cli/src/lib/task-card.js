@@ -6,7 +6,7 @@ import { listHeader, deltaCapabilities, parseAdrScope } from "./scan.js";
 import { extractOps } from "./spec-ops.js";
 import { findWorkspace } from "./workspace.js";
 import { deliveryPath, resolveDeliveryId, sectionText } from "./delivery.js";
-import { sliceSpec } from "./context-slice.js";
+import { sliceSpec, withoutComments } from "./context-slice.js";
 import { terms } from "./lexicon.js";
 
 // A TASK CARD (change 0222, ADR 0030): one task of a change, carrying what
@@ -76,19 +76,7 @@ export function taskCard(projectRoot, changeId, ordinal = null) {
   // CRLF on a Windows checkout: the Why is read paragraph by paragraph.
   const proposal = isFile(path.join(changeDir, "proposal.md")) ? read(path.join(changeDir, "proposal.md")).replace(/\r\n/g, "\n") : "";
   const fields = cardFields(box.details);
-  const query = terms([box.text, ...box.details].join(" "));
-  const slices = [];
-  for (const cap of deltaCapabilities(changeDir)) {
-    const rel = `.doctrina/specs/${cap}/spec.md`;
-    const specPath = path.join(projectRoot, rel);
-    if (!isFile(specPath)) continue;
-    // Nothing in the spec matched the task: the whole spec, as `context`
-    // gives it (change 0231). Dropping it left a card with no spec at all.
-    const text = read(specPath);
-    const slice = sliceSpec(text, query, rel);
-    slices.push(slice ? { capability: cap, ...slice } : { capability: cap, text, kept: null, total: null, whole: true });
-  }
-  // What this change DOES to each spec (change 0231). The slice above is
+  // What this change DOES to each spec (change 0231). The slice below is
   // the spec as it stands — the current truth, before apply — so the
   // requirement the executor is there to implement lived only in the delta,
   // and reached the card only if the planner copied it into a line by hand.
@@ -104,6 +92,24 @@ export function taskCard(projectRoot, changeId, ordinal = null) {
       else if (op.verb === "replace-criterion") changes.push({ capability: cap, line: `replaces criterion ${op.n} with: ${op.value}` });
       else if (op.verb === "remove-criterion") changes.push({ capability: cap, line: `removes criterion ${op.n}` });
     }
+  }
+  // The task's words AND what the change writes into the spec (second
+  // audit, change 0233): a card for "lock the account on the third wrong
+  // password" cut the spec's only /login requirement, because the task never
+  // said "login" — the delta it implements did. Requirements only: a
+  // criterion's "[unverified] … — verified by `…`" matched any spec's
+  // placeholder on the boilerplate alone.
+  const query = terms([box.text, ...box.details, parseChangeTitle(proposal) ?? "", ...changes.filter((ch) => / requirement[^:]*: /.test(ch.line)).map((ch) => ch.line.slice(ch.line.indexOf(": ") + 2))].join(" "));
+  const slices = [];
+  for (const cap of deltaCapabilities(changeDir)) {
+    const rel = `.doctrina/specs/${cap}/spec.md`;
+    const specPath = path.join(projectRoot, rel);
+    if (!isFile(specPath)) continue;
+    // Nothing in the spec matched the task: the whole spec, as `context`
+    // gives it (change 0231). Dropping it left a card with no spec at all.
+    const text = read(specPath);
+    const slice = sliceSpec(text, query, rel);
+    slices.push(slice ? { capability: cap, ...slice } : { capability: cap, text: withoutComments(text) ?? text, kept: null, total: null, whole: true });
   }
   return {
     card: {

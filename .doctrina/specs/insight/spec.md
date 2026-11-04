@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.20.0
+**Version:** 0.21.0
 
 ## Purpose
 
@@ -43,6 +43,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - The system shall print, with `prime --pulse`, one factual line naming the open changes by id — or stating that a request changing behaviour is opened as a change with `doctrina work` — reading only the open changes, and, with `prime --hook <agent>`, the primer and that line in the format the agent's session hook reads, without colour codes and within 9,000 characters.
 - The system shall list, in `prime`, the changes archived in the last 7 days with their archive paths, and shall name the last one in the pulse when no change is open.
 - The system shall end `prime` with the read for the first open change that carries a delta, as the exact `doctrina context <cap> --for "<title>" --concat` command.
+- The system shall slice a spec without its HTML comments, so a bullet inside a comment is never counted or shown as a requirement.
 
 ### Event-driven
 
@@ -148,6 +149,7 @@ The read path is spec-compliant when:
 30. [verified] `prime` and the pulse name the delivery an open change carries — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
 31. [verified] The change in focus is read without the delta template's comment, its ops kept, and `--full` restores the comment — verified by `packages/doctrina-cli/test/o-pacote-de-contexto-e-enxuto.test.js`.
 32. [verified] `handoff`, `status` and `context` answer at a workspace root and `prime` names the workspace and the open delivery in a repository — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
+33. [verified] a scaffolded spec's slice counts no EARS form from the template comment — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 
 ## Out of scope for this spec
 

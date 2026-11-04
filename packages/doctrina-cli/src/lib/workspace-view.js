@@ -1,9 +1,9 @@
 // @ts-check
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { isDir, isFile } from "./fs-ops.js";
+import { isDir, isFile, read } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
-import { findWorkspace, projectAt, projectState, readWorkspace, linkPlan, shadowDirOf } from "./workspace.js";
+import { absorbCommand, findWorkspace, projectAt, projectState, readWorkspace, linkPlan, shadowDirOf } from "./workspace.js";
 import { deliveryBlockers, deliveryChanges, listDeliveries, rankProjects, readDelivery, releaseBoxes } from "./delivery.js";
 
 // THE WORKSPACE ROOT IS WHERE THE PLANNER WORKS (change 0230).
@@ -58,7 +58,9 @@ export function workspaceActions(snap) {
     out.push({ text: `${p.project.name}'s repository is not at its path — re-link it`, command: `doctrina workspace attach ${p.project.name} --path <dir>` });
   }
   for (const p of snap.projects.filter((x) => x.state === "pending")) {
-    out.push({ text: `${p.project.name} has no specs yet (${p.reason}) — absorb it before routing work to it`, command: `cd ${p.project.path} && doctrina intake --from-code` });
+    out.push(p.reason === "intake not converted"
+      ? { text: `${p.project.name}'s absorb is under way (${p.reason}) — finish its playbook, then \`doctrina intake --converted\` there`, command: absorbCommand(p.project, p.reason) }
+      : { text: `${p.project.name} has no specs yet (${p.reason}) — absorb it before routing work to it`, command: absorbCommand(p.project, p.reason) });
   }
   for (const { delivery: d, rows, blockers } of snap.open) {
     if (d.projects.length === 0) {
@@ -130,6 +132,20 @@ export function workspaceFindings(snap) {
     if (unlinked.length > 0) errors.push(`shadow ${p.project.name}: ${unlinked.length} link${unlinked.length === 1 ? "" : "s"} missing from the repository — \`doctrina workspace attach ${p.project.name}\``);
     if (conflicts.length > 0) warnings.push(`shadow ${p.project.name}: the repository has its own ${conflicts.map((l) => l.rel).slice(0, 3).join(", ")} where a link would go`);
   }
+  // A dependency the manifests declare and the registry does not (second
+  // audit, change 0233): `delivery route` orders projects by --depends-on, so
+  // a front end that imports the shared library's package but was registered
+  // without the edge could be changed before the library it builds on.
+  const pkgs = new Map(snap.ws.projects.map((p) => [p.name, packageFacts(p.path)]));
+  for (const p of snap.ws.projects) {
+    const mine = pkgs.get(p.name);
+    if (!mine) continue;
+    for (const other of snap.ws.projects) {
+      const theirs = pkgs.get(other.name);
+      if (other === p || !theirs?.name || !mine.deps.has(theirs.name) || (p.dependsOn ?? []).includes(other.name)) continue;
+      warnings.push(`project ${p.name}'s package.json depends on ${theirs.name}, which is ${other.name} — declare it so routing orders them: \`doctrina workspace attach ${p.name} --depends-on ${[...(p.dependsOn ?? []), other.name].join(",")}\``);
+    }
+  }
   for (const d of snap.deliveries) {
     const status = (listHeader(d.text, "Status") ?? "").trim().toLowerCase();
     if (!["open", "closed"].includes(status)) errors.push(`delivery ${d.id}: Status must be open or closed (got "${status}")`);
@@ -198,7 +214,7 @@ export function workspaceStatus(snap) {
  * For `prime` inside a project of a workspace: the workspace it belongs to
  * and the open deliveries routed to it — an executor or a session opened in
  * the repository otherwise never learns a delivery is waiting on it.
- * @returns {{ name: string, dir: string, project: string, deliveries: Array<{ id: string, title: string, changes: string[] }> } | null}
+ * @returns {{ name: string, dir: string, project: string, deliveries: Array<{ id: string, title: string, changes: string[], open: number }> } | null}
  */
 export function projectWorkspaceLine(projectRoot) {
   const found = findWorkspace(projectRoot);
@@ -216,7 +232,22 @@ export function projectWorkspaceLine(projectRoot) {
     const full = readDelivery(found.dir, d.id);
     if (full.status === "closed" || !full.projects.includes(project.name)) continue;
     const row = deliveryChanges(found.dir, ws, full).find((r) => r.project === project.name);
-    deliveries.push({ id: full.id, title: full.title, changes: (row?.changes ?? []).map((ch) => `${ch.id} ${ch.status}`) });
+    const changes = row?.changes ?? [];
+    deliveries.push({ id: full.id, title: full.title, changes: changes.map((ch) => `${ch.id} ${ch.status}`), open: changes.filter((ch) => !ch.archived).length });
   }
   return { name: ws.name, dir: found.dir, project: project.name, deliveries };
+}
+
+/** The package name a repository publishes and the names it depends on — from its root package.json. */
+function packageFacts(dir) {
+  const file = path.join(dir, "package.json");
+  if (!isFile(file)) return null;
+  try {
+    const pkg = JSON.parse(read(file));
+    const deps = new Set(["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]
+      .flatMap((k) => Object.keys(pkg?.[k] ?? {})));
+    return { name: typeof pkg?.name === "string" ? pkg.name : null, deps };
+  } catch {
+    return null;
+  }
 }

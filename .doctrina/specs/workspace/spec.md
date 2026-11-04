@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/lib/workspace-view.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Purpose
 
@@ -49,6 +49,9 @@ single-repository cycle it always ran.
 - When `doctrina handoff`, `doctrina status` or `doctrina validate` runs at a workspace root, the system shall describe the workspace — projects with their state, open deliveries with each routed repository's changes, the next actions; the validate checks the registry, every shadow's links and every delivery's status and routed projects, exiting 1 on an error.
 - When `doctrina context` runs at a workspace root, the system shall rank the registered projects against the task and print, for each, the command that reads its pack inside the repository.
 - When `doctrina prime` runs in a repository that a workspace registers, the system shall name the workspace and every open delivery routed to the repository with this repository's change for it.
+- When a registered project's intake is stored and still pending, the system shall name `doctrina intake` to resume its absorb at the workspace root, never `--from-code`, which refuses it.
+- When `doctrina validate` runs at a workspace root and a project's `package.json` depends on the package another registered project publishes without a `dependsOn` edge to it, the system shall warn and name `doctrina workspace attach <name> --depends-on <a,b>`.
+- When `doctrina workspace attach <name> --depends-on <a,b>` runs, the system shall replace the project's `dependsOn` with the registered names given, and refuse with exit 2 a name that is not another registered project.
 
 ### Unwanted behavior
 
@@ -70,6 +73,8 @@ A workspace is spec-compliant when:
 9. [verified] After a project is absorbed in its repository and an executor model is edited into `workspace.json`, `workspace list` rewrites the hub to `ready` and the executor to that model, and a second list writes nothing; with no tool declared, the list and the hub point at a generic declaration — verified by `packages/doctrina-cli/test/o-orquestrador-sabe-o-que-pode-usar.test.js`.
 10. [verified] At the workspace root `next` walks absorb, open, card, close, story, release tick, observability and delivery close, never naming init, and still names init outside any workspace — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 11. [verified] `handoff`, `status` (and `--json`), `validate` and `context --for` answer at the root, validate finding a missing shadow link and a delivery routed to an unregistered project, `prime` in a repository names its workspace and open delivery, and the generated hub names `next` and `handoff` — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
+12. [verified] the root's `next` resumes a stored inventory with a bare `intake` — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+13. [verified] an undeclared package dependency warns at the root, and `attach --depends-on` clears it — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 
 ## Out of scope for this spec
 

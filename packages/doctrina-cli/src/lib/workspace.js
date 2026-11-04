@@ -158,6 +158,22 @@ export function artifactRootOf(wsDir, project) {
  * `pending` while it has no spec or its intake is unconverted — the
  * project still has to be absorbed; `ready` otherwise.
  */
+const INTAKE_PENDING = "intake not converted";
+
+/**
+ * The command that moves a pending project on (second audit, change 0233).
+ * `--from-code` starts an absorb and refuses once the inventory is stored —
+ * every surface still named it for a project whose absorb was under way. A
+ * stored, pending intake reprints its playbook with a bare `doctrina intake`.
+ * @param {{ path: string }} project
+ * @param {string} reason  projectState's reason
+ */
+export function absorbCommand(project, reason) {
+  return reason === INTAKE_PENDING
+    ? `cd ${project.path} && doctrina intake`
+    : `cd ${project.path} && doctrina intake --from-code`;
+}
+
 export function projectState(wsDir, project) {
   if (!isDir(project.path)) return { state: "missing", reason: `path not found: ${project.path}`, open: [] };
   const root = artifactRootOf(wsDir, project);
@@ -165,7 +181,7 @@ export function projectState(wsDir, project) {
   if (!isDir(doctrina)) return { state: "pending", reason: "no .doctrina/ yet", open: [] };
   const intake = path.join(doctrina, "intake.md");
   if (isFile(intake) && /pending/i.test(listHeader(read(intake), "Status") ?? "")) {
-    return { state: "pending", reason: "intake not converted", open: openChanges(root) };
+    return { state: "pending", reason: INTAKE_PENDING, open: openChanges(root) };
   }
   const specs = path.join(doctrina, "specs");
   const count = isDir(specs) ? readdirSync(specs).filter((d) => isFile(path.join(specs, d, "spec.md"))).length : 0;

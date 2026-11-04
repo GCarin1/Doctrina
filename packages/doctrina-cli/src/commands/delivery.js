@@ -8,7 +8,7 @@ import { today } from "../lib/dates.js";
 import { EXIT, PreconditionError } from "../lib/exit-codes.js";
 import { readTemplate, substitute } from "../lib/templates.js";
 import { renderPlaybook } from "../lib/playbook.js";
-import { findWorkspace, readWorkspace } from "../lib/workspace.js";
+import { absorbCommand, findWorkspace, readWorkspace } from "../lib/workspace.js";
 import {
   deliveryBlockers, deliveryChanges, deliveryPath, dependencyOrder, listDeliveries, nextDeliveryId,
   rankProjects, readDelivery, resolveDeliveryId, setDeliveryHeader, daysBetween, recordBlockers,
@@ -66,7 +66,7 @@ function refuseUnroutable(wsDir, ws, names, flags) {
     console.error(c.red("error:") + ` ${b.name} is ${b.state} (${b.reason}) — a change there would have no spec to change`);
     console.error(c.gray("hint: ") + (b.state === "missing"
       ? `point the workspace at the clone: \`doctrina workspace attach ${b.name} --path <dir>\``
-      : `absorb it first: \`cd ${b.path} && doctrina intake --from-code\` — or route anyway with --force`));
+      : `absorb it first: \`${absorbCommand(b, b.reason)}\` — or route anyway with --force`));
   }
   return true;
 }

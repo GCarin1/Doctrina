@@ -19,6 +19,30 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The second audit walked a workspace of four repositories — a shared
+  front-end library, the web shop importing it, the API and the mobile app —
+  from the absorb to the delivery's close, and fixed what went wrong:
+  - the code inventory seeded `jest --watchAll` (and `ng test`,
+    `react-scripts test`, `karma start`), which never return, and refused
+    `--watch=false`; it claimed documentation "beyond the root README" of a
+    repository with no README, and counted "1 commits";
+  - a bare `doctrina intake` reprinted the BOOTSTRAP playbook for a stored
+    code inventory — what `next` sends a resuming agent to — and the
+    absorb's workspace step was numbered 8 after step 9;
+  - the workspace told a project whose absorb was under way to rerun
+    `--from-code`, which refuses it; it now names `doctrina intake`;
+  - a spec slice counted the five EARS forms in the template comment as
+    requirements ("… 5 not matching the task") and carried the forty-line
+    header comment, in the context pack and in every task card;
+  - a task card cut the requirement its own delta was about when the task's
+    words missed it: the slice now reads the delta's requirements too;
+  - `work --delivery` ranked capabilities by the title alone; it reads the
+    delivery's story too;
+  - `next` inside a repository never named the delivery routed to it, and
+    after its close sent the planner to the project's own chores;
+  - a front end whose `package.json` imports another project's package with
+    no `--depends-on` could be routed before it: `validate` at the root
+    warns, and `workspace attach <name> --depends-on <a,b>` sets the edge.
 - `change check` scans the spec each delta will write with the clarify
   lexicons and warns of every weasel or vague word the delta adds. Such a word
   used to surface only after the close had merged it — in this repository, as

@@ -120,7 +120,23 @@ const NOT_A_UNIT_SEGMENT = /^(examples?|samples?|fixtures?|templates?|docs?|demo
 // package `org.springframework.samples.petclinic`, and that is the code.
 const isAside = (/** @type {string} */ p) => p.split("/").slice(0, 2).some((s) => NOT_A_UNIT_SEGMENT.test(s));
 // A script is offered to `verify --init` only when it returns on its own.
-const LONG_RUNNING = /(--watch\b|\bwatch\b|--ui\b|--update\b|\b-u\b|\bserve\b|\bdev\b|\bstart\b|--open\b|\bstorybook\b(?!\s+build))/;
+const LONG_RUNNING = /(--watch(All)?\b|\bwatch\b|\s-w(\s|$)|--ui\b|--update\b|\b-u\b|\bserve\b|\bdev\b|\bstart\b|--open\b|\bnodemon\b|\bstorybook\b(?!\s+build))/;
+// The flags that make a watching runner return (second audit, change 0233):
+// `jest --watchAll` was seeded — `\bwatch\b` cannot see a word that goes on —
+// while `vitest --watch=false` was refused for the word it switches off.
+const RETURNS = /--(no-watch|watch(All)?=false|single-run)\b|\bCI=(true|1)\b/g;
+// Runners that watch unless told not to: Angular's `ng test` and Create
+// React App's `react-scripts test` and `karma start` never return on their own.
+const WATCHES_BY_DEFAULT = /\bng\s+test\b|\breact-scripts\s+test\b|\bkarma\s+start\b/;
+
+/** True when a package script keeps running until someone stops it. */
+export function scriptLongRunning(body) {
+  const text = String(body);
+  const off = new RegExp(RETURNS.source).test(text);
+  if (WATCHES_BY_DEFAULT.test(text) && !off) return true;
+  // Told not to watch: the runner itself (`karma start`) is no longer a server.
+  return LONG_RUNNING.test(text.replace(RETURNS, " ").replace(new RegExp(WATCHES_BY_DEFAULT.source, "g"), " "));
+}
 
 function walk(root) {
   const files = [];
@@ -367,7 +383,7 @@ function unitCommands(root, unit, units, workspaces, files) {
       for (const [name, body] of Object.entries(unit.scripts ?? {})) {
         const canonical = ["typecheck", "lint", "test", "build"].includes(name);
         if (!canonical && !/^(test|e2e|lint|typecheck|check)(:|$)/.test(name)) continue;
-        const longRunning = LONG_RUNNING.test(String(body)) || /(:watch|:ui|:update|:dev)$/.test(name);
+        const longRunning = scriptLongRunning(body) || /(:watch|:ui|:update|:dev)$/.test(name);
         // `npm init` writes this; it fails by design and tests nothing.
         const placeholder = /no test specified/i.test(String(body));
         out.push({
@@ -665,7 +681,7 @@ export function inventoryMarkdown(inv, projectName) {
   if (inv.git) {
     L.push(inv.git.shallow
       ? `- History: shallow clone — ${inv.git.commits} commit${inv.git.commits === 1 ? "" : "s"} fetched (${inv.git.first} → ${inv.git.last}); the project's real age and churn are not visible`
-      : `- History: ${inv.git.commits} commits, ${inv.git.first} → ${inv.git.last}`);
+      : `- History: ${inv.git.commits} commit${inv.git.commits === 1 ? "" : "s"}, ${inv.git.first} → ${inv.git.last}`);
   }
   L.push("");
   const real = inv.units.filter((u) => !u.example);
@@ -684,11 +700,11 @@ export function inventoryMarkdown(inv, projectName) {
     L.push("");
   }
   L.push("## Where the code is", "");
-  for (const [dir, n] of inv.topDirs) L.push(`- \`${dir}/\` — ${n} files`);
+  for (const [dir, n] of inv.topDirs) L.push(`- \`${dir}/\` — ${n} file${n === 1 ? "" : "s"}`);
   if (inv.topDirs.length === 0) L.push("- (flat repository)");
   L.push("");
   L.push("## Candidate areas (folder layout — a hint to read, not a capability yet)", "");
-  for (const [dir, n] of inv.areas) L.push(`- \`${dir}/\` — ${n} files`);
+  for (const [dir, n] of inv.areas) L.push(`- \`${dir}/\` — ${n} file${n === 1 ? "" : "s"}`);
   if (inv.areas.length === 0) L.push("- none under the conventional roots — derive areas from the top-level folders");
   L.push("");
   L.push("## Entry points (start reading here)", "");
@@ -705,7 +721,7 @@ export function inventoryMarkdown(inv, projectName) {
   if (!i.http.length && !i.grpc.length && !i.graphql.length && !i.events.length && !i.routeDirs.length) L.push("- none found by name");
   L.push("");
   L.push("## Data", "");
-  for (const [d, n] of inv.data.migrations) L.push(`- Migrations: \`${d}/\` — ${n} files`);
+  for (const [d, n] of inv.data.migrations) L.push(`- Migrations: \`${d}/\` — ${n} file${n === 1 ? "" : "s"}`);
   if (inv.data.schemas.length) L.push(`- Schemas: ${list(inv.data.schemas)}`);
   if (inv.data.sqlFiles) L.push(`- SQL files: ${inv.data.sqlFiles}`);
   if (!inv.data.migrations.length && !inv.data.schemas.length && !inv.data.sqlFiles) L.push("- no migration, schema or SQL file found");
@@ -741,7 +757,7 @@ export function inventoryMarkdown(inv, projectName) {
   if (d.files.length) L.push(`- ${list(d.files)}`);
   if (d.readmes.length) L.push(`- READMEs below the root: ${list(d.readmes, 15)}`);
   if (d.agents.length) L.push(`- Agent instructions already written: ${list(d.agents, 10)}`);
-  if (!d.docDirs.length && !d.adrs.length && !d.files.length && !d.readmes.length && !d.agents.length) L.push("- none beyond the root README");
+  if (!d.docDirs.length && !d.adrs.length && !d.files.length && !d.readmes.length && !d.agents.length) L.push(inv.readme ? "- none beyond the root README" : "- none found — the repository has no README either");
   L.push("");
   L.push("## What this inventory could not see", "");
   L.push("- Why any rule exists, who the users are, what is out of scope — ask the human.");

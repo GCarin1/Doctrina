@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.33.2",
+        "version": "0.34.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.59.0",
+        "version": "0.60.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -59,7 +59,7 @@
         "id": "delivery",
         "path": ".doctrina/specs/delivery/spec.md",
         "status": "active",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "depends_on": [
@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.4",
+        "version": "0.10.5",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -112,7 +112,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.20.0",
+        "version": "0.21.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -195,7 +195,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -3964,6 +3964,40 @@
           }
         ],
         "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0233-a-segunda-auditoria-fecha-os-furos-do-fluxo",
+        "title": "a segunda auditoria fecha os furos do fluxo multi-repo",
+        "path": ".doctrina/changes/archive/2026-11-04-0233-a-segunda-auditoria-fecha-os-furos-do-fluxo",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: spec, requisito)"
       }
     ],
     "skills": [

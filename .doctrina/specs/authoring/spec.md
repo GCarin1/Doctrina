@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.33.2
+**Version:** 0.34.0
 
 ## Purpose
 
@@ -271,6 +271,8 @@ keep the checks and the read path.
 - When `work` opens a change, the system shall end with the sentence for the human naming the change id, its title and its folder.
 - When `doctrina intake --from-code` runs, the system shall store the code inventory of the current directory as `.doctrina/intake.md` with `Status: pending` — read from the whole repository, not its root: every unit (a directory with its own manifest) with its build, name, package manager, frameworks and test count; the workspace tooling; languages by file extension; candidate areas inside each unit, a JVM tree's feature packages included; entry points; interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI, route folders); migrations and schemas; CI and runtime manifests at any depth; env example NAMES, never values, and the real env files named as present and not read; the documentation, decisions and agent instructions that already exist; and the facts it had no access to — each fact with the file it came from — and print the absorb playbook.
 - When `doctrina work --resume <change> --delivery <id>` runs on a change that carries no delivery, the system shall write `- **Delivery:** <id>` into its proposal; on a change that already belongs to another delivery it shall refuse with the precondition class.
+- When `doctrina intake` runs with no source and the stored pending intake is a code inventory, the system shall print the absorb playbook, never the bootstrap one.
+- When `work --delivery` ranks the capabilities a change may touch, the system shall rank them by the prompt and the delivery's `## Story` together.
 
 ### Unwanted-behavior (must-not)
 
@@ -304,6 +306,8 @@ keep the checks and the read path.
 - The system shall not scaffold a change whose request mostly repeats an open change or one archived in the last 14 days — measured as term overlap from either side, each side counting only its own terms — without `--force`: it shall hold the request with the precondition class, naming the change and either the resume command or the archive path.
 - If `doctrina intake --from-code` meets a converted intake, then the system shall not replace it — it refuses with the precondition class — and over a pending one it shall not replace it unless `--force` is given.
 - If a declared script is long-running, interactive or npm's `no test specified` placeholder, or a unit has test files and declares no runner for them, then the code inventory shall not offer it to `verify --init`, and shall list it with the reason instead.
+- The system shall not seed into `verify --init` a package script that keeps running — `--watchAll`, `-w`, `nodemon`, and `ng test`, `react-scripts test` or `karma start` without `--watch=false`, `--no-watch`, `--single-run` or `CI=true` — and shall seed one those flags make return.
+- The system shall not write, in a code inventory, that documentation exists beyond a root README the repository does not have.
 
 ## Acceptance criteria
 
@@ -366,6 +370,9 @@ The authoring commands are v0 spec-compliant when:
 55. [verified] The bootstrap playbook prints the no-invention rules and the sentence-by-sentence check before the gates — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 56. [verified] `change card` renders the card the delivery spec states — the story, what the delta does, the spec as it stands, the binding decisions — and a plain change's card unchanged — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
 57. [verified] `change check` prints the clarify warnings for the spec a delta writes — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
+58. [verified] a watching script is listed as not seeded, and the flags that make a runner return are seeded — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+59. [verified] a bare `intake` reprints the absorb playbook for a stored inventory, its workspace step numbered after step 9 — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+60. [verified] a delivery's story ranks the capability its title does not name — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 
 ## Out of scope for this spec
 

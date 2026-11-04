@@ -2,7 +2,7 @@
 import path from "node:path";
 import { isFile, read, relPath, toPosix, write } from "./fs-ops.js";
 import { mergeJson } from "./adapters.js";
-import { projectState } from "./workspace.js";
+import { absorbCommand, projectState } from "./workspace.js";
 
 // The ORCHESTRATOR's files, generated at the workspace root from
 // workspace.json (change 0223, ADR 0031) — what Cursor or Claude Code read
@@ -198,8 +198,8 @@ export function workspacePrimer(ws, wsDir, open) {
   if (open.length === 0) L.push("  none");
   L.push("", `Tools  ${ws.tools.length ? ws.tools.map((t) => `${t.name} (${t.access})`).join(" · ") : "none declared — doctrina workspace tool <name>"}`);
   L.push("", "Next");
-  const pending = ws.projects.filter((p) => projectState(wsDir, p).state === "pending");
-  if (pending.length) L.push(`  absorb ${pending[0].name} before routing work to it: cd ${toPosix(pending[0].path)} && doctrina intake --from-code`);
+  const pending = ws.projects.map((p) => ({ p, s: projectState(wsDir, p) })).filter((x) => x.s.state === "pending");
+  if (pending.length) L.push(`  absorb ${pending[0].p.name} before routing work to it: ${absorbCommand({ path: toPosix(pending[0].p.path) }, pending[0].s.reason)}`);
   if (open.length) L.push(`  continue ${open[0].id}: doctrina delivery status ${open[0].id}`);
   L.push("  new work across repositories: doctrina delivery new \"<title>\" --ref <tracker-id>");
   return L;

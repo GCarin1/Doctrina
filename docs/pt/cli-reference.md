@@ -138,7 +138,7 @@ pergunta, e antes dos gates uma releitura confere que nada caiu nem entrou.
 ```
 doctrina intake descricao.md
 doctrina intake --text "Uma loja com login, catálogo e checkout"
-doctrina intake                       # reimprime o playbook de um intake pendente
+doctrina intake                       # reimprime o playbook de um intake pendente (absorb ou bootstrap)
 doctrina intake --converted           # encerra o bootstrap
 ```
 
@@ -2557,6 +2557,12 @@ grava em `$DOCTRINA_HOME` (padrão `~/.doctrina`). Faça os commits do
 workspace você mesmo: ele é o histórico de versões do contexto de cada
 projeto sombra.
 
+O `--depends-on` é a ordem que o `delivery route` segue; `attach <nome>
+--depends-on <a,b>` a substitui num projeto já registrado. O
+`doctrina validate` na raiz do workspace avisa quando o `package.json` de
+um projeto depende do pacote que outro projeto publica e o registro não
+diz isso.
+
 **Ferramentas e a guarda** (ADR 0031). O `doctrina workspace tool <nome>`
 declara uma ferramenta que o trabalho usa — presets `jira`, `confluence`,
 `figma`, `playwright`, `datadog`, `databricks`, `sql`, ou qualquer nome com
@@ -2636,8 +2642,9 @@ a mediana das fechadas. O `<id>` é o nome da pasta ou o número dela.
 
 Um projeto ainda **pendente** (sem spec) ou cujo repositório sumiu é
 recusado pelo `new --projects` e pelo `route` com saída `3`: uma change lá
-não teria spec para mudar. Absorva-o antes (`doctrina intake --from-code`),
-ou passe `--force`. O `status` imprime, para cada change aberta com tarefas
+não teria spec para mudar. Absorva-o antes (`doctrina intake --from-code`;
+com o inventário já gravado, um `doctrina intake` sem flag reimprime o
+playbook dele), ou passe `--force`. O `status` imprime, para cada change aberta com tarefas
 pendentes, o comando que lê o próximo cartão de dentro do repositório dela,
 e nomeia toda outra change aberta num repositório roteado — um segundo
 escritor a sequenciar, um escritor por repositório de cada vez. O `tick`
