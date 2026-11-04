@@ -3801,6 +3801,15 @@
           }
         ],
         "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0227-o-fluxo-de-ponta-a-ponta-na-documentacao",
+        "title": "o fluxo de ponta a ponta na documentacao",
+        "path": ".doctrina/changes/archive/2026-11-04-0227-o-fluxo-de-ponta-a-ponta-na-documentacao",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [],
+        "lane": "product (confident; signals: documentar) — opened as chore"
       }
     ],
     "skills": [

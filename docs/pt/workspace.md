@@ -13,6 +13,11 @@ e aprova, um agente **planejador** que lê o trabalho e o delega, e agentes
 [ADR 0030](../../.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md),
 [ADR 0031](../../.doctrina/decisions/0031-o-workspace-declara-as-ferramentas-e-o-agente-as-guarda.md)).
 
+O fluxo sem amarrar ferramenta — quem faz o quê, passo a passo — está em
+[O fluxo de ponta a ponta](end-to-end-flow.md); esta página é a preparação
+em detalhe. Os nomes de ferramenta abaixo são exemplos; qualquer servidor
+MCP serve.
+
 ## 1. Crie o workspace
 
 ```

@@ -237,3 +237,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-03 — 0224-a-entrega-registra-a-subida-e-o-que-foi — a entrega registra a subida e o que foi observado (specs: delivery MODIFIED)
 - 2026-11-03 — 0225-cortar-a-0-20-0 — cortar a 0.20.0
 - 2026-11-04 — 0226-o-fluxo-da-entrega-nao-tem-furos — o fluxo da entrega nao tem furos (specs: delivery MODIFIED)
+- 2026-11-04 — 0227-o-fluxo-de-ponta-a-ponta-na-documentacao — o fluxo de ponta a ponta na documentacao

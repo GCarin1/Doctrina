@@ -10,8 +10,7 @@ leu.
 ## O ciclo
 
 Toda mudança não-trivial passa por quatro fases coordenadas por um
-orquestrador único e linear (você, ou um agente de IA agindo em
-seu nome):
+escritor único (você, ou um agente de IA agindo em seu nome):
 
 ```
 intenção -> spec  ->  plano  ->  implementar  ->  revisar  ->  curar
@@ -31,10 +30,10 @@ intenção -> spec  ->  plano  ->  implementar  ->  revisar  ->  curar
    enquanto a verificação estiver desmarcada). O index é atualizado.
    Próximo ciclo.
 
-Não há agentes paralelos escrevendo em fase nenhuma. Subagentes
-podem explorar o codebase para contexto, mas só um escritor toca um
-dado artefato por vez. Veja [multi-agent.md](multi-agent.md) para o
-modelo operacional e o ADR 0004 para a justificativa.
+Um escritor toca um repositório por vez; subagentes podem explorar
+para contexto. Veja [multi-agent.md](multi-agent.md) e o ADR 0030 para
+o porquê, e [end-to-end-flow.md](end-to-end-flow.md) para trabalho entre
+repositórios.
 
 ## O caminho guiado
 
@@ -62,7 +61,7 @@ determinístico (veja o ADR 0005):
 O CLI faz a metade determinística (montar, sluggar, indexar, casar
 termos) e o agente faz a metade semântica (escrever product, specs,
 deltas, código). Um playbook é consumido por um agente num único passe
-linear — a disciplina de orquestrador único do ADR 0004 não muda. Se uma
+linear — a disciplina de um escritor do ADR 0030 não muda. Se uma
 descrição ou prompt é genuinamente ambíguo, o agente pergunta antes de
 assumir.
 

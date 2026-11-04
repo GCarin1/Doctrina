@@ -10,8 +10,8 @@ The bottleneck of AI-assisted development is not code generation — it is
 the reliable transfer of intent and the persistence of context across
 sessions and agents. Doctrina treats **specifications as the single
 source of truth**, keeps architectural decisions as **immutable ADRs**,
-and orchestrates work through a **single linear coordinator** instead of
-competing parallel agents. Everything is plain Markdown and JSON in git:
+and orchestrates work through **one planner, one writer per repository**
+instead of competing parallel agents. Everything is plain Markdown and JSON in git:
 no database, no vector store, no telemetry, zero runtime dependencies.
 
 | | |

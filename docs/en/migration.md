@@ -20,9 +20,10 @@ What carries over from any of the five sources:
 
 What does **not** carry over:
 
-- Role-based agent topologies (BMAD). Doctrina rejects parallel
-  writers per ADR 0004; role labels become phase personas the
-  single orchestrator adopts in sequence.
+- Role-based agent topologies (BMAD) as parallel writers. Doctrina
+  keeps one writer per repository (ADR 0030): a planner routes and
+  closes, executors take one task card at a time — BMAD's story
+  file survives as the task card.
 - LLM-generated context files. The ETH Zurich AGENTbench result
   is the reason; any framework that ships such files should not
   blindly port them.
@@ -34,7 +35,7 @@ What does **not** carry over:
 
 | Spec Kit artifact | Doctrina equivalent |
 |-------------------|--------------------|
-| `.specify/memory/constitution.md` | The accepted ADRs (`0001`, `0003`, `0004` in this repo) plus the design-principles section of the README |
+| `.specify/memory/constitution.md` | `doctrina prime --rules` — the accepted ADRs plus the product non-goals, assembled on demand |
 | `/speckit.specify` slash command | `doctrina spec new <capability>` |
 | `/speckit.plan` slash command | `proposal.md` + `design.md` inside a change folder |
 | `/speckit.tasks` slash command | `tasks.md` inside a change folder |
@@ -86,7 +87,7 @@ Migration sketch:
 
 | BMAD artifact | Doctrina equivalent |
 |---------------|--------------------|
-| Agent persona files (Analyst, PM, Architect, Dev, QA, etc.) | Phase personas the single orchestrator adopts in sequence (see `multi-agent.md`) |
+| Agent persona files (Analyst, PM, Architect, Dev, QA, etc.) | The planner, the executor, the reviewer and the specialists a workspace generates (see `multi-agent.md`) |
 | Story file (per task, self-contained context) | The change folder (`proposal.md` + `tasks.md` + `design.md` + delta) |
 | PRD / architecture plan from the Planning phase | `.doctrina/product.md` plus accepted ADRs |
 | `bmad-core` config | Combination of `AGENTS.md` (operational) and `.doctrina/product.md` (vision/scope) |

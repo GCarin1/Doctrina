@@ -83,6 +83,19 @@ flowchart TD
         watch["doctrina watch<br/>validate --fix + next ao salvar"]
     end
 
+    subgraph ORCH["Orquestrar — trabalho entre repositórios (a partir de um workspace)"]
+        direction TB
+        wsinit["doctrina workspace init / add<br/>registrar repositórios · sombras"]
+        wstool["doctrina workspace tool<br/>declarar ferramentas · só leitura por padrão"]
+        absorb["doctrina intake --from-code<br/>absorver um repositório sem spec"]
+        dnew["doctrina delivery new · route<br/>um item de trabalho · dependências primeiro"]
+        dwork["doctrina work --delivery<br/>uma change por repositório"]
+        dcard["doctrina change card<br/>uma tarefa autocontida para um executor"]
+        dtick["doctrina delivery tick<br/>afirmações da Release"]
+        dclose["doctrina delivery check · close"]
+        wsinit --> wstool --> absorb --> dnew --> dwork --> dcard --> dtick --> dclose
+    end
+
     subgraph OPS["Manutenção / setup"]
         direction TB
         doctor["doctrina doctor<br/>diagnóstico agregado + correções"]
@@ -106,6 +119,7 @@ flowchart TD
     next -. "retoma" .-> work
     LOOP -. "registra decisões" .-> GOV
     LOOP -. "captura lições" .-> MEM
+    dwork -. "o ciclo da change, por repositório" .-> work
     NAV -. "orienta qualquer tarefa" .-> work
 ```
 

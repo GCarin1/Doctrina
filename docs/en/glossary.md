@@ -143,9 +143,10 @@ produced by an ADDED delta.
 ## Orchestrator
 
 The component that coordinates the workflow phases. Doctrina's
-reference orchestrator is a single linear loop (ADR 0004). It may
-fan out subagents for read-only investigation but never for parallel
-writing. See [multi-agent.md](multi-agent.md) for the operating
+reference orchestrator is one planner (ADR 0030, superseding ADR
+0004): it reads, routes, writes task cards and closes; executors
+implement one card at a time; one writer per repository. Read-only
+subagents may fan out freely. See [multi-agent.md](multi-agent.md) for the operating
 model.
 
 ## Propose
@@ -193,3 +194,44 @@ bidirectionally.
 `doctrina validate`. Runs schema and structural checks against the
 `.doctrina/` tree. Exits 0 on no errors. Intended for pre-commit
 hooks.
+
+## Delivery
+
+One item of work that crosses repositories — a story, a screen, a fix —
+kept in the workspace's `deliveries/`. Each routed repository carries one
+change for it; its state is read from those changes. See
+[end-to-end-flow.md](end-to-end-flow.md).
+
+## Executor
+
+A subagent that implements one task card in one repository, verifies it,
+ticks it and reports back. It never opens, closes or archives a change.
+
+## Guard
+
+The pre-call hook the workspace installs in the agent: every MCP call is
+answered allow, deny or ask from the access the workspace declares for
+that tool — read-only unless declared otherwise.
+
+## Planner
+
+The agent session opened on the workspace. It reads the work, routes it,
+writes the changes and task cards, delegates, reviews and closes.
+
+## Shadow project
+
+A repository that cannot carry `.doctrina/`. Its artifacts live in the
+workspace and are linked into it, hidden from its git by
+`.git/info/exclude`.
+
+## Task card
+
+One task of a change, printed by `doctrina change card` with everything an
+executor needs to do it alone: the task and its `Files:`, `Requirement:`
+and `Verify:` lines, the change's Why and the spec cut to the task.
+
+## Workspace
+
+A private git repository that registers the repositories the work touches,
+what each one is and what it depends on, the tools the work uses, and the
+artifacts of every shadow project. See [workspace.md](workspace.md).

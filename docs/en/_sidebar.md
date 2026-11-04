@@ -6,6 +6,7 @@
   - [Getting started](/en/getting-started.md)
   - [Flow diagram (every command)](/en/flow.md)
   - [Workflow](/en/workflow.md)
+  - [The end-to-end flow (across repositories)](/en/end-to-end-flow.md)
   - [Gating — when to use the pipeline](/en/gating.md)
 
 - Guides

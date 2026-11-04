@@ -6,6 +6,7 @@
   - [Primeiros passos](/pt/getting-started.md)
   - [Diagrama de fluxo (cada comando)](/pt/flow.md)
   - [Workflow](/pt/workflow.md)
+  - [O fluxo de ponta a ponta (entre repositórios)](/pt/end-to-end-flow.md)
   - [Gating — quando usar o pipeline](/pt/gating.md)
 
 - Guias

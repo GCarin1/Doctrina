@@ -14,8 +14,8 @@ O gargalo do desenvolvimento assistido por IA não é gerar código — é a
 transferência confiável de intenção e a persistência de contexto entre
 sessões e agentes. Doctrina trata **specs como fonte única de verdade**,
 guarda decisões de arquitetura como **ADRs imutáveis** e orquestra o
-trabalho por um **coordenador linear único** em vez de agentes paralelos
-competindo. Tudo é Markdown e JSON em git: sem banco, sem vector store,
+trabalho por **um planejador, um escritor por repositório** em vez de
+agentes paralelos competindo. Tudo é Markdown e JSON em git: sem banco, sem vector store,
 sem telemetria, zero dependências de runtime.
 
 | | |

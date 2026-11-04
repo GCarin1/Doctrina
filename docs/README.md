@@ -10,14 +10,14 @@
 
 **Doctrina** is a spec-driven, AGENTS.md-native framework for multi-agent
 AI development. Specifications are the single source of truth,
-architectural decisions are immutable ADRs, and one linear orchestrator
-coordinates the work — everything as plain files in git, portable across
+architectural decisions are immutable ADRs, and one planner — one
+writer per repository — coordinates the work — everything as plain files in git, portable across
 12 coding agents, with zero runtime dependencies.
 
 **Doctrina** é um framework spec-driven e AGENTS.md-native para
 desenvolvimento com agentes de IA. Specs são a fonte única de verdade,
-decisões de arquitetura são ADRs imutáveis e um orquestrador linear
-coordena o trabalho — tudo como arquivos em git, portável entre 12
+decisões de arquitetura são ADRs imutáveis e um planejador — um
+escritor por repositório — coordena o trabalho — tudo como arquivos em git, portável entre 12
 agentes, com zero dependências.
 
 ## Choose your language · Escolha seu idioma

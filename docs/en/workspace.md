@@ -10,6 +10,10 @@ one **planner** agent that reads the work and delegates it, and
 [ADR 0030](../../.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md),
 [ADR 0031](../../.doctrina/decisions/0031-o-workspace-declara-as-ferramentas-e-o-agente-as-guarda.md)).
 
+The tool-agnostic flow — who does what, step by step — is in
+[The end-to-end flow](end-to-end-flow.md); this page is the setup in
+detail. The tool names below are examples; any MCP server works.
+
 ## 1. Create the workspace
 
 ```

@@ -45,9 +45,11 @@ faz merge incoerente.
 **Reconheça por:** specs com duas estruturas competindo, ou deltas
 que se contradizem no mesmo change.
 
-**Evite com:** ADR 0004 — orquestrador único e linear. Subagentes
-paralelos são OK para investigação read-only; nunca para escrita
-em artefatos compartilhados. Veja [multi-agent.md](multi-agent.md)
+**Evite com:** ADR 0030 — um planejador, um escritor por
+repositório. Subagentes paralelos são OK para investigação
+read-only, e executores em repositórios diferentes podem rodar ao
+mesmo tempo; nunca dois escritores nos artefatos do mesmo
+repositório. Veja [multi-agent.md](multi-agent.md)
 para o modelo construtivo que substitui esse pattern.
 
 ## 4. Editar um ADR aceito

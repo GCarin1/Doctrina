@@ -42,9 +42,10 @@ incoherently.
 **Recognise it by:** spec files with two competing structures, or
 deltas that contradict each other on the same change.
 
-**Avoid by:** ADR 0004 — single linear orchestrator. Parallel
-subagents are fine for read-only investigation; never for writes
-to shared artifacts. See [multi-agent.md](multi-agent.md) for the
+**Avoid by:** ADR 0030 — one planner, one writer per repository.
+Parallel subagents are fine for read-only investigation, and
+executors in different repositories may run at once; never two
+writers on the same repository's artifacts. See [multi-agent.md](multi-agent.md) for the
 constructive model that replaces this pattern.
 
 ## 4. Editing an accepted ADR

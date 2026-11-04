@@ -151,9 +151,10 @@ no caminho da spec alvo durante o apply". Uma spec materializada
 ## Orchestrator
 
 O componente que coordena as fases do workflow. O orquestrador de
-referência do Doctrina é um loop único e linear (ADR 0004). Pode
-fanout subagentes para investigação read-only, mas nunca para
-escrita paralela. Veja [multi-agent.md](multi-agent.md) para o
+referência do Doctrina é um planejador (ADR 0030, que substitui o
+ADR 0004): ele lê, roteia, escreve os cartões e fecha; executores
+implementam um cartão por vez; um escritor por repositório.
+Subagentes só de leitura podem se espalhar à vontade. Veja [multi-agent.md](multi-agent.md) para o
 modelo operacional.
 
 ## Propose
@@ -201,3 +202,45 @@ bidireccionalmente.
 `doctrina validate`. Roda checagens de schema e estrutura contra
 a árvore `.doctrina/`. Sai 0 sem erros. Pensado para pre-commit
 hooks.
+
+## Delivery (entrega)
+
+Um item de trabalho que atravessa repositórios — uma história, uma tela,
+uma correção — guardado em `deliveries/` do workspace. Cada repositório
+roteado carrega uma change para ela; o estado dela é lido dessas changes.
+Veja [end-to-end-flow.md](end-to-end-flow.md).
+
+## Executor
+
+Um subagente que implementa um cartão de tarefa num repositório, verifica,
+marca e reporta. Ele nunca abre, fecha nem arquiva uma change.
+
+## Guarda
+
+O hook de pré-chamada que o workspace instala no agente: toda chamada MCP
+recebe allow, deny ou ask a partir do acesso que o workspace declara para
+aquela ferramenta — só leitura, a menos que declarado o contrário.
+
+## Planejador
+
+A sessão do agente aberta no workspace. Ela lê o trabalho, roteia, escreve
+as changes e os cartões, delega, revisa e fecha.
+
+## Projeto sombra
+
+Um repositório que não pode carregar `.doctrina/`. Os artefatos dele moram
+no workspace e são ligados nele, escondidos do git dele pelo
+`.git/info/exclude`.
+
+## Cartão de tarefa
+
+Uma tarefa de uma change, impressa pelo `doctrina change card` com tudo de
+que um executor precisa para fazê-la sozinho: a tarefa e as linhas
+`Files:`, `Requirement:` e `Verify:`, o Why da change e a spec recortada
+para a tarefa.
+
+## Workspace
+
+Um repositório git privado que registra os repositórios que o trabalho
+toca, o que cada um é e de quem depende, as ferramentas que o trabalho usa
+e os artefatos de todo projeto sombra. Veja [workspace.md](workspace.md).
