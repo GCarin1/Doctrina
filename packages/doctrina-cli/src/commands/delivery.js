@@ -1,6 +1,6 @@
 // @ts-check
 import process from "node:process";
-import { read, relPath, write } from "../lib/fs-ops.js";
+import { eolOf, read, relPath, withEol, write } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
@@ -230,9 +230,14 @@ function deliveryTick(wsDir, id, args, flags) {
       return EXIT.USAGE;
     }
   }
-  write(file, tickRelease(text, ordinals), { force: true });
-  const n = ordinals === "all" ? boxes.filter((b) => !b.checked).length : ordinals.length;
-  console.log(c.green("ticked") + ` ${n} Release box${n === 1 ? "" : "es"} in ${id}`);
+  // Count what this call changes: a box already ticked, or named twice, is
+  // not news, and "ticked 2" for one new tick is a claim the file contradicts.
+  const fresh = boxes.filter((b) => !b.checked && (ordinals === "all" || ordinals.includes(b.ordinal)));
+  if (fresh.length > 0) write(file, withEol(tickRelease(text, ordinals), eolOf(text)), { force: true });
+  const n = fresh.length;
+  console.log(n === 0
+    ? c.gray(`nothing to tick in ${id} — every named Release box is already ticked`)
+    : c.green("ticked") + ` ${n} Release box${n === 1 ? "" : "es"} in ${id}`);
   return EXIT.OK;
 }
 
@@ -265,7 +270,7 @@ function deliveryClose(wsDir, ws, id, flags) {
 }
 
 export const help = `
-Usage: doctrina delivery <new|route|list|status|check|close> [options]
+Usage: doctrina delivery <new|route|list|status|tick|check|close> [options]
 
 One item of work across repositories (ADR 0030) — a story, a screen, a fix.
 It lives in the workspace's deliveries/ and holds what no single repository
@@ -296,8 +301,9 @@ from those changes, never copied into it.
       Exit 1 while a routed project has no change for it or one still open,
       while ## Story is empty, a ## Release box is unticked, or
       ## Observability records nothing.
-  close <id>
-      The check, then Status: closed and the Closed date.
+  close <id> [--date <YYYY-MM-DD>]
+      The check, then Status: closed and the Closed date (--date overrides
+      today, as it does for the Date that \`new\` writes).
 
 <id> is the folder name or its number (\`1\`, \`0001\`).
 `;

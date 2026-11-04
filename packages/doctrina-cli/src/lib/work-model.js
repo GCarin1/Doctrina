@@ -16,7 +16,13 @@ import { globToRegExp } from "./runtime.js";
 // file scores its capability when the file sits under a path segment named for
 // it, or when the spec cites the file as evidence. A deterministic overlap
 // hint for the agent — never a decision (ADR 0005).
-export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
+//
+// `pending` (change 0228) is, per capability, the spec as the change under
+// review will leave it: the criterion a change adds cites its new test, a
+// `set-header Source:` claims new paths, and `review` runs before `apply`
+// merges either — so without it the files the change itself claims were
+// reported as belonging to no capability.
+export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3, pending = new Map() } = {}) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   if (!files || files.length === 0 || !isDir(specsDir)) return [];
   const norm = files.map((f) => f.replace(/\\/g, "/"));
@@ -25,7 +31,7 @@ export function rankCapabilitiesByDiff(projectRoot, files, { limit = 3 } = {}) {
   for (const cap of readdirSync(specsDir).sort()) {
     const specPath = path.join(specsDir, cap, "spec.md");
     if (!isFile(specPath)) continue;
-    const text = read(specPath);
+    const text = pending.get(cap) ?? read(specPath);
     specs.push({ cap, text, declared: parseSourceGlobs(text).map((g) => globToRegExp(g)) });
   }
 

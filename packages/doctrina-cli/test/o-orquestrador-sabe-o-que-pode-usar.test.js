@@ -159,3 +159,44 @@ test("a write is told from a read by the call, not by the server", () => {
   assert.equal(guardDecision([], "x", "delete_all", {}).decision, "none");
   assert.throws(() => toolEntry("Bad Name", {}), /must match/);
 });
+
+// Change 0228: what the orchestrator files carry also changes WITHOUT a
+// workspace write — a project absorbed in its own repository turns ready, an
+// executor model is edited into workspace.json. `workspace list` refreshes
+// them, writing only what differs.
+test("workspace list refreshes the orchestrator files a project's state or workspace.json changed", () => {
+  const s = workspace();
+  try {
+    const front = path.join(s.root, "front-end");
+    mkdirSync(front);
+    spawnSync("git", ["init", "-q"], { cwd: front });
+    assert.equal(s.run(s.ws, ["workspace", "add", "../front-end", "--role", "front"]).status, 0);
+    assert.match(readFileSync(path.join(s.ws, "AGENTS.md"), "utf8"), /\| front-end \| shadow \| pending \|/);
+    assert.equal(s.run(front, ["spec", "new", "screens"]).status, 0, "absorbed in its own repository");
+    const p = path.join(s.ws, "workspace.json");
+    const doc = JSON.parse(readFileSync(p, "utf8"));
+    doc.agents = { executor: { model: "small-model" } };
+    writeFileSync(p, JSON.stringify(doc, null, 2) + "\n");
+    const listed = s.run(s.ws, ["workspace", "list"]);
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.match(listed.stdout, /orchestrator files: .*AGENTS\.md/);
+    assert.match(readFileSync(path.join(s.ws, "AGENTS.md"), "utf8"), /\| front-end \| shadow \| ready \|/);
+    assert.match(readFileSync(path.join(s.ws, ".claude", "agents", "doctrina-executor.md"), "utf8"), /model: small-model/);
+    assert.doesNotMatch(s.run(s.ws, ["workspace", "list"]).stdout, /orchestrator files:/, "nothing to refresh the second time");
+  } finally {
+    s.done();
+  }
+});
+
+test("a workspace with no tool is pointed at a generic declaration, not at one product", () => {
+  const s = workspace();
+  try {
+    const out = s.run(s.ws, ["workspace", "list"]).stdout;
+    assert.match(out, /no tool declared — `doctrina workspace tool <name> --server <mcp-server> --for <roles>`/);
+    const hub = readFileSync(path.join(s.ws, "AGENTS.md"), "utf8");
+    assert.match(hub, /`doctrina workspace tool <name> --server <mcp-server> --for <roles>`/);
+    assert.doesNotMatch(hub, /tool jira|tool datadog/, "the hub names no product as the default");
+  } finally {
+    s.done();
+  }
+});

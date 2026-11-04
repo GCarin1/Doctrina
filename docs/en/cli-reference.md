@@ -537,6 +537,11 @@ Advisory (never gates): the accepted ADRs whose text cites the change's
 touched capabilities — if the change alters what an ADR decided, amend
 it (`decision supersede` / `decision new`) instead of drifting past it.
 
+With `--verbose` it also prints each delta as it would land: a MODIFIED
+delta with an ops block as the spec before against the spec after apply,
+unchanged lines as context; ADDED with its line count; REMOVED with its
+target; a MODIFIED delta without ops as a line diff against the spec.
+
 Exits 0 with `ready to close` when all three areas are clear. Accepts
 multiple ids.
 
@@ -614,6 +619,8 @@ doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The 
 Each flag becomes one op line — `--requirement` an `append-requirement`,
 `--criterion` an `append-criterion`, `--bump` a `bump-version`, and
 `--op "<line>"` (or the words after the capability) any op verb as written.
+`--requirement`, `--criterion` and `--op` repeat: each occurrence is one
+op, written in the order given.
 The lines are parsed by the grammar `apply` reads, and the whole block —
 what was there plus what is added — is executed in memory against the spec
 before anything is written: an op that would not apply is refused now
@@ -641,7 +648,9 @@ doctrina change card 0042-payment-declined 3    # task 3
 ```
 
 The card holds the task and the lines indented under it in `tasks.md`
-— write them as `Files:`, `Requirement:` and `Verify:` — the change's
+— write them as `Files:`, `Requirement:` (a `doctrina show` reference such
+as `auth-R7`, counted from the spec and never written into it) and
+`Verify:` — the change's
 `## Why`, each delta capability's spec cut to the task, and what to do
 when done: run the card's `Verify:` command (or `doctrina verify`), tick
 the box with the `change tick` line it prints, and report back. It tells
@@ -1546,7 +1555,11 @@ doctrina verify --list
 doctrina verify --signoff "chronicle=reads well, approved"
 ```
 
-Checks live in `.doctrina/verify.json`. A check with `"type": "manual"` is
+Checks live in `.doctrina/verify.json`. `--init` writes the build and
+test commands the code inventory finds in the project's manifests — the
+`typecheck`, `lint`, `test` and `build` scripts of a `package.json`,
+`pytest`, `go test ./...`, `cargo test` — for you to confirm, or a
+fail-closed example when it finds none. A check with `"type": "manual"` is
 the qualitative gate (ADR 0012): judged by a human/eval and recorded as a
 sign-off, not run as a command.
 
@@ -1564,7 +1577,10 @@ sign-off, not run as a command.
 
 Each `run` executes in order through the shell with output streamed;
 `verify` exits non-zero if any command check fails. With no config it exits
-1 and points at `--init`. Sign-offs live in
+1 and points at `--init`. An optional per-check `cwd` (relative to the
+project root) targets a sub-package in a monorepo. A manual check passes
+once signed off and is reported *pending* otherwise — non-blocking by
+default, failing only under `--strict`. Sign-offs live in
 `.doctrina/verify.signoffs.json`. Under `--json` every check is teed, so
 the envelope's `stdout`/`stderr` carry what the checks printed — carriage
 returns stripped — and standard output stays pure JSON.
@@ -1685,8 +1701,9 @@ doctrina contract check
 
 `contract new` scaffolds `.doctrina/contracts/<name>.md` (Ports,
 Environment, **Wiring**, **Selectors**, **Budgets**, Interfaces,
-References) and indexes it. `contract check` verifies the mechanically
-checkable parts.
+References) and indexes it; it refuses an existing contract unless
+`--force` is given. `contract check` verifies the mechanically checkable
+parts.
 
 **Structure:**
 
@@ -2142,8 +2159,10 @@ the opening of its Decision, with `doctrina show NNNN` for the rest. With
 `--for "<task>"` the task's spec, and the specs it depends on, are
 **sliced**: the headers, the Purpose, and the requirements and criteria
 the task matches best, each gap named in place (`… 3 not matching the
-task`) and a footer saying how many were kept. `--full` restores every
-text whole. A field review found agents skipping `context` for `prime`;
+task`) and a footer saying how many were kept. The change in focus is
+read without its HTML comments — the authoring instructions every
+proposal, tasks and delta template carries. `--full` restores every text
+whole. A field review found agents skipping `context` for `prime`;
 measured here, `context gates --concat` was ~40k tokens and `--for` cut
 nothing below the budget. The same task's pack is now ~5k.
 
@@ -2435,7 +2454,9 @@ and `close` read and write the shadow through the link.
 
 `list` prints each project's mode and state — `ready`, `pending` (no spec
 yet: absorb it with `doctrina intake --from-code`) or `missing` (its path
-is gone) — and its open changes. The workspace is found from
+is gone) — and its open changes, and refreshes the orchestrator files when
+a project's state or `workspace.json` changed since they were written (an
+absorbed project, an executor model). The workspace is found from
 `$DOCTRINA_WORKSPACE`, the current directory or an ancestor holding
 `workspace.json`, a shadow's link, or the pointer `init` writes under
 `$DOCTRINA_HOME` (default `~/.doctrina`). Commit the workspace yourself:
@@ -2456,7 +2477,7 @@ not declare gets no opinion. A SQL statement in the call decides whether
 it writes; otherwise the verbs in the tool's name do. Bad input never
 blocks the agent.
 
-**Orchestrator files.** Every workspace write regenerates, at its root:
+**Orchestrator files.** Every workspace write, and every `list`, regenerates, at its root:
 `AGENTS.md` (the planner's hub), `.cursor/rules/00-doctrina-workspace.mdc`,
 `.cursor/hooks.json` and `.claude/settings.json` (merged with yours),
 `.claude/agents/doctrina-executor.md` and `doctrina-reviewer.md` — plus
@@ -2525,7 +2546,9 @@ command that reads its next card from inside its repository, and names every
 other open change in a routed repository — a second writer to sequence, one
 writer per repository at a time. `tick` lists the `## Release` boxes and
 ticks them by number or with `--all`: they are claims `check` holds you to,
-so they go through the CLI. A change opened without `--delivery` joins one
+so they go through the CLI. It counts only what it turned from open to
+ticked — a box already ticked, or named twice, is not ticked again — and
+keeps the file's line endings. A change opened without `--delivery` joins one
 with `doctrina work --resume <change> --delivery <id>`; `prime` in a
 repository names the delivery an open change belongs to.
 

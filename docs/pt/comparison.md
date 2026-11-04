@@ -25,7 +25,7 @@ documentação pública dos projetos; nada é inventado.
 | Detecção de stale-reference | sim | não | parcial | não | não | não |
 | Protocolo A/B empírico shipped | sim (spec + doc) | não | não | não | não | não |
 | Docs bilíngues | EN + PT | EN | EN | EN | EN | EN |
-| Agentes nativos | 12 | 30+ | IDE próprio | 5+ | vários | muitos |
+| Agentes nativos | 12 | 30+ | IDE próprio | 5+ | 8 personas | 100+ skills |
 | Examples reais shipped | em repo | sim | sim | sim | sim | sim |
 | Tamanho da comunidade | muito pequena | apoiado pela Microsoft | apoiado pela AWS | crescendo | crescendo | crescendo |
 
@@ -81,6 +81,11 @@ documentação pública dos projetos; nada é inventado.
   os não-objetivos do produto — então os inegociáveis têm uma
   leitura só, sem uma segunda casa para os fatos. Equivalente na
   intenção; Doctrina deriva, Spec Kit escreve.
+- **Comandos de workflow dentro do agente.** Spec Kit expõe os
+  slash commands `/specify`, `/plan` e `/tasks`. Os adapters
+  `claude` e `cursor` do Doctrina instalam `/doctrina-work`,
+  `/doctrina-next`, `/doctrina-context`, `/doctrina-status` e
+  `/doctrina-why`, cada um um prompt fino sobre o CLI.
 
 ## Onde Doctrina está abaixo do campo
 

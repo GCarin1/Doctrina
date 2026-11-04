@@ -344,18 +344,26 @@ function workspaceList(wsDir) {
   }
   console.log("");
   if (ws.tools.length === 0) {
-    console.log(c.gray("no tool declared — `doctrina workspace tool jira` (presets: " + Object.keys(TOOL_PRESETS).join(", ") + ")"));
+    // Named generically (change 0228): which tools a team connects is the
+    // team's choice, and a hint that names one product reads as the default.
+    console.log(c.gray("no tool declared — `doctrina workspace tool <name> --server <mcp-server> --for <roles>` (presets: " + Object.keys(TOOL_PRESETS).join(", ") + ")"));
   } else {
     console.log(c.bold("Tools"));
     for (const t of ws.tools) {
       console.log(`  ${c.cyan(t.name.padEnd(12))} ${t.server.padEnd(12)} ${t.access.padEnd(6)} ${(t.for ?? []).join(", ").padEnd(16)} ${c.gray(t.purpose ?? "")}`);
     }
   }
+  // The orchestrator files carry what changes without a workspace write — a
+  // project absorbed in its own repository turns ready, an executor model
+  // edited into workspace.json (change 0228). The hub kept saying "pending"
+  // and the subagent kept `model: inherit` until the next add or tool.
+  // Listing refreshes them; only a file whose content differs is written.
+  regenerate(wsDir);
   return EXIT.OK;
 }
 
 export const help = `
-Usage: doctrina workspace <init|add|attach|detach|list> [options]
+Usage: doctrina workspace <init|add|attach|detach|list|tool|guard> [options]
 
 The context of several repositories in one place (ADR 0029). Keep the
 workspace directory as a PRIVATE git repository: it versions the
@@ -382,7 +390,8 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
 
   list
       Every project with its mode, state (ready / pending / missing) and
-      open changes, then the declared tools.
+      open changes, then the declared tools; refreshes the orchestrator
+      files when a project's state or workspace.json changed since.
 
   tool <name> [--server <mcp-name>] [--access read|write] [--for <roles>]
               [--purpose "<what for>"] [--remove]
@@ -397,11 +406,12 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
       Claude Code PreToolUse): reads the call on stdin and answers allow,
       deny or ask from the declared access. Never blocks on bad input.
 
-Every write (init, add, attach, detach, tool) regenerates the orchestrator
-files at the workspace root: AGENTS.md, .cursor/rules/00-doctrina-
-workspace.mdc, .cursor/hooks.json and .claude/settings.json (merged),
-.claude/agents/doctrina-*.md (read by Claude Code and Cursor) and
-<name>.code-workspace, which opens every repository in one window.
+Every write (init, add, attach, detach, tool) and every list regenerates
+the orchestrator files at the workspace root: AGENTS.md,
+.cursor/rules/00-doctrina-workspace.mdc, .cursor/hooks.json and
+.claude/settings.json (merged), .claude/agents/doctrina-*.md (read by
+Claude Code and Cursor) and <name>.code-workspace, which opens every
+repository in one window.
 
 The workspace is found from $DOCTRINA_WORKSPACE, the current directory
 or an ancestor holding ${WORKSPACE_FILE}, a shadow's .doctrina link, or

@@ -8,12 +8,25 @@
 //   -x=value or -x value            -> string value
 //   --                              -> stop flag parsing; rest is positional
 //
-// Anything else becomes positional. Repeated flags overwrite the previous value.
+// Anything else becomes positional. Repeated flags overwrite the previous value
+// in `flags`; every value is still kept, in order, for `flagAll` — a command
+// that takes a flag more than once (`change delta --op a --op b`) reads them
+// all there instead of losing every one but the last (change 0228).
+
+/** @type {WeakMap<Map<string, string|boolean>, Map<string, string[]>>} */
+const EVERY_VALUE = new WeakMap();
 
 export function parseArgs(argv, opts = {}) {
   const booleanFlags = new Set(opts.boolean ?? []);
   const positional = [];
+  /** @type {Map<string, string|boolean>} */
   const flags = new Map();
+  /** @type {Map<string, string[]>} */
+  const every = new Map();
+  EVERY_VALUE.set(flags, every);
+  const keep = (/** @type {string} */ name, /** @type {string|boolean} */ value) => {
+    if (typeof value === "string") every.set(name, [...(every.get(name) ?? []), value]);
+  };
   let i = 0;
   let stopped = false;
 
@@ -37,12 +50,14 @@ export function parseArgs(argv, opts = {}) {
       const eq = body.indexOf("=");
       if (eq >= 0) {
         flags.set(body.slice(0, eq), body.slice(eq + 1));
+        keep(body.slice(0, eq), body.slice(eq + 1));
         i += 1;
       } else if (booleanFlags.has(body) || isNextTokenFlag(argv[i + 1])) {
         flags.set(body, true);
         i += 1;
       } else {
         flags.set(body, argv[i + 1] ?? true);
+        keep(body, argv[i + 1] ?? true);
         i += 2;
       }
       continue;
@@ -53,12 +68,14 @@ export function parseArgs(argv, opts = {}) {
       const eq = body.indexOf("=");
       if (eq >= 0) {
         flags.set(body.slice(0, eq), body.slice(eq + 1));
+        keep(body.slice(0, eq), body.slice(eq + 1));
         i += 1;
       } else if (booleanFlags.has(body) || isNextTokenFlag(argv[i + 1])) {
         flags.set(body, true);
         i += 1;
       } else {
         flags.set(body, argv[i + 1] ?? true);
+        keep(body, argv[i + 1] ?? true);
         i += 2;
       }
       continue;
@@ -89,6 +106,21 @@ export function parsePositiveInt(raw) {
   if (!/^\d+$/.test(s)) return null;
   const n = Number(s);
   return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * Every value a string flag was given, in the order given — `[]` when absent.
+ * A Map built by hand (tests, callers that never parsed argv) answers with
+ * its one value.
+ * @param {Map<string, string|boolean>} flags
+ * @param {string} name
+ * @returns {string[]}
+ */
+export function flagAll(flags, name) {
+  const every = EVERY_VALUE.get(flags)?.get(name);
+  if (every) return every;
+  const one = flags.get(name);
+  return typeof one === "string" ? [one] : [];
 }
 
 export function flagString(flags, name, fallback = undefined) {

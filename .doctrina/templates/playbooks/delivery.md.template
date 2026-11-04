@@ -21,6 +21,9 @@ File: {{DELIVERY_FILE}}
          - Files: features/payment.feature, steps/payment_steps.py
          - Requirement: payment-R4
          - Verify: behave features/payment.feature
+   `Requirement:` names what the card implements as `doctrina show` reads it —
+   `<capability>-R<n>` is counted from the spec, never written into it — or,
+   for a requirement the delta adds, the requirement in words.
 
 4. [[b]]Delegate, one writer per repository.[[/b]] For each card, from inside the repository:
        [[c]]cd <path> && doctrina change card <change-id>[[/c]]   (the next open card, with its spec slice)

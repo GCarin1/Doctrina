@@ -98,8 +98,9 @@ Migration sketch:
 2. The story-file insight (self-contained handoff package)
    transfers directly to the change folder. Your existing story
    files become the proposal/tasks/design inside a change.
-3. The role-based agent prompts compress into personas the same
-   orchestrator switches between. See `multi-agent.md` for the
+3. The role-based agent prompts compress into personas the
+   planner switches between, and the Dev agent becomes an executor
+   working one task card at a time. See `multi-agent.md` for the
    five canonical personas.
 4. Move your PRD content into `.doctrina/product.md` and your
    architecture decisions into ADRs via

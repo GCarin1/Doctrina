@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.13.0
+**Version:** 0.13.1
 
 ## Purpose
 
@@ -231,6 +231,7 @@ Project scaffolding is spec-compliant when:
 16. [verified] After a description typed at the terminal the closing line sends the person to their agent, without an intake `init` and `next` name the same command, and an intake given as a flag still prints the agent's playbook — verified by `packages/doctrina-cli/test/o-primeiro-uso-tem-uma-instrucao.test.js`.
 17. [verified] `adapter add claude` merges the SessionStart and UserPromptSubmit hooks into an existing `.claude/settings.json` keeping its permissions and its own hook, adds nothing on a second run, and `adapter remove claude` restores the file exactly; the cursor hook file is created and removed whole — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
 18. [verified] Of three code commits two carried a change (0.667), docs-only and Doctrina-only commits are not counted, a window with no code reports no rate, the trend follows the rate, and `metrics --commands` prints 0.5 context and 1.0 close per work for its sample — verified by `packages/doctrina-cli/test/a-aderencia-ao-ciclo-e-medida.test.js`.
+19. [verified] `init --help` describes `--overwrite-content` beside `--force`, which re-scaffolds only untouched files — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
 
 ## Out of scope for this spec
 

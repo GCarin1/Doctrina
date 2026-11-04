@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -29,6 +29,7 @@ single-repository cycle it always ran.
 - The system shall register each project with a name matching `[a-z0-9][a-z0-9._-]*`, its repository path, its mode (`in-repo` or `shadow`), and optionally a role, a one-line description and the names of the registered projects it depends on.
 - The system shall keep a shadow project's artifacts under `<workspace>/projects/<name>/` and never commit anything into the shadowed repository.
 - The system shall find the workspace from `$DOCTRINA_WORKSPACE`, else the current directory or an ancestor holding `workspace.json`, else the real path of a shadow's `.doctrina` link, else the pointer `workspace init` wrote under `$DOCTRINA_HOME` (default `~/.doctrina`) when that workspace lists the current directory.
+- The system shall name no tool product as the default in its own output: a workspace with no tool declared is pointed at `doctrina workspace tool <name> --server <mcp-server> --for <roles>`, with the presets listed as presets.
 
 ### Event-driven
 
@@ -42,7 +43,7 @@ single-repository cycle it always ran.
 - When `doctrina workspace list` runs, the system shall print each project with its mode, its state — `ready` when it has a capability spec and no pending intake, `pending` when it still has to be absorbed, `missing` when its path is gone — and its open changes.
 - When `doctrina workspace tool <name>` runs, the system shall declare or update a tool — its MCP server name, from a preset (jira, confluence, figma, playwright, datadog, databricks, sql) or `--server`, its roles, its purpose and its access, `read` unless `--access write` — and with `--remove` take it out; a tool with no preset and no `--server` is a usage error.
 - When `doctrina workspace guard --hook cursor|claude` reads an MCP call on stdin, the system shall answer in that agent's format — deny a call that would write through a server declared read-only, ask the human for a write through a server declared read/write, allow a read — deciding a write from a SQL statement in the input when there is one and from the verbs in the tool's name otherwise, and shall give no opinion on a server the workspace does not declare.
-- When the workspace is written by `init`, `add`, `attach`, `detach` or `tool`, the system shall regenerate at its root the orchestrator files — `AGENTS.md`, `.cursor/rules/00-doctrina-workspace.mdc`, `.cursor/hooks.json` and `.claude/settings.json` merged with the operator's, `.claude/agents/doctrina-<role>.md` for executor and reviewer and for qa and observer when a tool serves them, and `<name>.code-workspace` listing every repository.
+- When the workspace is written by `init`, `add`, `attach`, `detach` or `tool`, or listed by `list`, the system shall regenerate at its root the orchestrator files — `AGENTS.md`, `.cursor/rules/00-doctrina-workspace.mdc`, `.cursor/hooks.json` and `.claude/settings.json` merged with the operator's, `.claude/agents/doctrina-<role>.md` for executor and reviewer and for qa and observer when a tool serves them, and `<name>.code-workspace` listing every repository — writing only a file whose content differs, so a project absorbed in its own repository or an executor model edited into `workspace.json` reaches them without a workspace write.
 - When `doctrina prime` runs at a workspace root, the system shall print the orchestrator primer — projects and state, open deliveries, tools, the next step — with `--pulse` the open deliveries in one line, and with `--hook` the primer followed by the workspace AGENTS.md.
 
 ### Unwanted behavior
@@ -61,6 +62,8 @@ A workspace is spec-compliant when:
 5. [verified] `workspace list` reports a project without specs as pending and points at `doctrina intake --from-code` — verified by `packages/doctrina-cli/test/o-contexto-mora-num-workspace.test.js`.
 6. [verified] The exclude block is replaced, never duplicated, and the text around it survives — verified by `packages/doctrina-cli/test/o-contexto-mora-num-workspace.test.js`.
 7. [verified] A tool takes its preset, one without needs `--server`, `--access` validates and `--remove` removes; the generated hub, rule, hooks (merged), subagents and code-workspace follow the registry; the guard denies a read-only write, asks a declared write, allows a read and an undeclared server in both agent formats and never blocks on bad input; `prime` at the root is the orchestrator primer — verified by `packages/doctrina-cli/test/o-orquestrador-sabe-o-que-pode-usar.test.js`.
+8. [verified] The workspace help's Usage line names every subcommand the command dispatches, `tool` and `guard` included — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
+9. [verified] After a project is absorbed in its repository and an executor model is edited into `workspace.json`, `workspace list` rewrites the hub to `ready` and the executor to that model, and a second list writes nothing; with no tool declared, the list and the hub point at a generic declaration — verified by `packages/doctrina-cli/test/o-orquestrador-sabe-o-que-pode-usar.test.js`.
 
 ## Out of scope for this spec
 

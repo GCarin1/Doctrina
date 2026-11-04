@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.18.0
+**Version:** 0.19.0
 
 ## Purpose
 
@@ -95,6 +95,8 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - When `doctrina prime` runs without `--rules`, the system shall keep the primer a fixed-size read: the accepted ADRs by title and the number of non-goals, never their full text.
 - When resolving an `<cap>-RN` reference, the system shall number requirements over authored bullets only, skipping any bullet that lies inside an HTML comment.
 - When reading a declared section of `product.md`, the system shall count a paragraph as one item alongside a bullet, and shall never read the template's own instructional comment as a declared item.
+- When `doctrina prime` or `doctrina prime --pulse` lists an open change that carries a delivery, the system shall name that delivery beside it.
+- When `doctrina context` assembles the change in focus without `--full`, the system shall leave out the HTML comments of its proposal, tasks and deltas — the templates' authoring instructions — and say so in each item's note.
 
 ### State-driven
 
@@ -142,6 +144,8 @@ The read path is spec-compliant when:
 27. [verified] `prime` lists a change archived today under Recently closed with its archive path, and the pulse names it as last closed — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
 28. [verified] On this repository `context gates --for "verify reuse fingerprint" --concat` stays within 10k tokens, omits AGENTS.md, digests the ADRs and slices the spec keeping the `verify --reuse` requirement, while `--full` is at least three times larger and includes AGENTS.md; the slice keeps headers, Purpose and an item's continuation lines and names each gap, and a spec the query does not touch stays whole — verified by `packages/doctrina-cli/test/o-pacote-de-contexto-e-enxuto.test.js`.
 29. [verified] With a change open on `auth`, `prime` prints `Read for <id>: doctrina context auth --for "<title>" --concat` — verified by `packages/doctrina-cli/test/o-prime-entrega-o-comando-de-leitura.test.js`.
+30. [verified] `prime` and the pulse name the delivery an open change carries — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
+31. [verified] The change in focus is read without the delta template's comment, its ops kept, and `--full` restores the comment — verified by `packages/doctrina-cli/test/o-pacote-de-contexto-e-enxuto.test.js`.
 
 ## Out of scope for this spec
 

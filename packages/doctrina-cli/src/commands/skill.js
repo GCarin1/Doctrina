@@ -455,7 +455,8 @@ knowledge loaded only when relevant.
 
 Subcommands:
   new <name>    Scaffold a new skill from the template and index
-                it. Name must match [a-z][a-z0-9-]*.
+                it. Name must match [a-z][a-z0-9-]*. --force
+                overwrites an existing skill.
   list          Print one line per skill with name + description.
                 Read-only.
   sync          Copy each skill's frontmatter description into

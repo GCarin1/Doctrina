@@ -6,6 +6,7 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { applyOps, extractOps } from "../lib/spec-ops.js";
 import { readLedger, churnByCapability } from "../lib/ledger.js";
 import { changedFiles, windowCutoff, historyState, refExists } from "../lib/git.js";
 import { dependentsOf, deltaCapabilities } from "../lib/scan.js";
@@ -67,6 +68,8 @@ export async function run(_positional, flags) {
   const changeId = flagString(flags, "change");
   /** @type {Set<string> | null} */
   let changeCaps = null;
+  /** @type {Map<string, string>} the change's delta text per capability */
+  const pending = new Map();
   if (changeId !== undefined) {
     const refused = refuseChangeRef(changeId);
     if (refused !== null) return refused;
@@ -76,6 +79,19 @@ export async function run(_positional, flags) {
       return EXIT.USAGE;
     }
     changeCaps = new Set(deltaCapabilities(changeDir));
+    // The specs as this change leaves them: an ops delta applied in memory,
+    // as `change check` dry-runs it; a delta without ops (a manual merge)
+    // read beside the spec, since nothing can apply it.
+    for (const cap of changeCaps) {
+      const delta = path.join(changeDir, "specs", cap, "delta.md");
+      const spec = path.join(projectRoot, ".doctrina", "specs", cap, "spec.md");
+      if (!isFile(delta)) continue;
+      const deltaText = read(delta);
+      const current = isFile(spec) ? read(spec) : "";
+      const ops = extractOps(deltaText);
+      const after = ops.length > 0 ? applyOps(current, ops) : null;
+      pending.set(cap, after && after.errors.length === 0 ? after.text : `${current}\n${deltaText}`);
+    }
   }
 
   const { all, sourceFiles } = reviewScope(projectRoot, against);
@@ -102,7 +118,7 @@ export async function run(_positional, flags) {
     all.filter((f) => /(^|\/)\.doctrina\/specs\/[^/]+\/spec\.md$/.test(f.replace(/\\/g, "/")))
       .map((f) => f.replace(/\\/g, "/").match(/\.doctrina\/specs\/([^/]+)\/spec\.md$/)[1]),
   );
-  const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity });
+  const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity, pending });
   const touched = new Set([...specChanged, ...ranked.map((m) => m.id)]);
   const stale = ranked.map((m) => m.id).filter((id) => !specChanged.has(id) && !changeCaps?.has(id));
   if (changeCaps === null) {
@@ -151,7 +167,7 @@ export async function run(_positional, flags) {
   //    file in the change. A review of an adapter change reported
   //    "Capabilities touched: docs" and said nothing about the adapter.
   const orphans = sourceFiles.filter(
-    (f) => rankCapabilitiesByDiff(projectRoot, [f], { limit: 1 }).length === 0,
+    (f) => rankCapabilitiesByDiff(projectRoot, [f], { limit: 1, pending }).length === 0,
   );
   if (orphans.length > 0) {
     const shown = orphans.slice(0, ORPHAN_LIST_LIMIT).map((f) => `\`${f}\``).join(", ");

@@ -1,7 +1,7 @@
 // @ts-check
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { isDir, isFile, read, write } from "./fs-ops.js";
+import { eolOf, isDir, isFile, read, withEol, write } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
 import { checklistProgress, maskComments, parseChecklist, setHeader } from "./doc-model.js";
 import { terms } from "./lexicon.js";
@@ -72,8 +72,8 @@ export function setDeliveryHeader(wsDir, id, name, value) {
   let text = read(p);
   const next = setHeader(text, name, value);
   if (next !== null) text = next;
-  else text = text.replace(/^(- \*\*Projects:\*\*.*)$/m, `$1\n- **${name}:** ${value}`);
-  write(p, text, { force: true });
+  else text = text.replace(/^(- \*\*Projects:\*\*[^\r\n]*)/m, `$1\n- **${name}:** ${value}`);
+  write(p, withEol(text, eolOf(read(p))), { force: true });
 }
 
 /**
@@ -181,9 +181,9 @@ export function daysBetween(from, to) {
 export function recordBlockers(delivery) {
   const out = [];
   if (sectionText(delivery.text, "Story") === "") out.push("## Story is empty — copy the tracker item's story and acceptance criteria, verbatim");
-  const release = sectionText(delivery.text, "Release");
-  const open = release.split("\n").filter((l) => /^[-*]\s*\[\s\]/.test(l));
-  for (const box of open) out.push(`## Release: unticked — ${box.replace(/^[-*]\s*\[\s\]\s*/, "")}`);
+  // The same boxes `delivery tick` lists and ticks — one reader, so a box
+  // the check holds you to is always one the CLI can tick.
+  for (const box of releaseBoxes(delivery.text).filter((b) => !b.checked)) out.push(`## Release: unticked — ${box.text}`);
   if (sectionText(delivery.text, "Observability") === "") out.push("## Observability is empty — record what was watched after the release (monitor, dashboard or query, the window, what it showed)");
   return out;
 }

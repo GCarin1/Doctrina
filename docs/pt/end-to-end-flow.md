@@ -68,7 +68,7 @@ flowchart TD
    qualquer nome funciona com `--server`.
 5. **Escolha os modelos.** O planejador roda no modelo do seu agente; o dos
    executores fica no `workspace.json` (`"agents": {"executor": {"model":
-   "<id>"}}`), ou `inherit`.
+   "<id>"}}`) e o `doctrina workspace list` aplica, ou fica `inherit`.
 6. **Abra o workspace no seu agente** — o `<nome>.code-workspace` gerado
    abre todos os repositórios numa janela — e commite o workspace.
 

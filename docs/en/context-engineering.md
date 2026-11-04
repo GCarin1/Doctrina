@@ -15,7 +15,7 @@ split between tool-call count and model choice. Adding more agents, more roles, 
 moves the multi-agent literature naturally reaches for — does not
 move that 80%. Reshaping what the agent reads does.
 
-Doctrina's design follows the data: one orchestrator, one canonical
+Doctrina's design follows the data: one planner, one canonical
 AGENTS.md per scope, size caps, read-order rules, archive out of
 the default read path. Every framework decision that looks like
 "less" rather than "more" is downstream of this finding.

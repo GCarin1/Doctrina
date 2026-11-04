@@ -454,6 +454,7 @@ Options:
   --from <path>                  Local conventions directory; if it contains AGENTS.md and/or
                                  .doctrina/product.md, the content is folded into the new project
   --date <YYYY-MM-DD>            Override the system date
-  --force                        Overwrite existing files
+  --force                        Overwrite existing files that are still untouched scaffolds
+  --overwrite-content            With --force, also overwrite an authored AGENTS.md or product.md
   --non-interactive              Fail instead of prompting for missing values
 `;

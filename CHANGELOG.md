@@ -26,6 +26,44 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   names a second writer in the same repository; `prime` and the pulse name the
   delivery an open change belongs to; `work --resume <change> --delivery <id>`
   joins a change opened without the flag.
+- A CRLF file stays CRLF: `delivery tick`, `change tick`, the `Delivery:` line
+  `work --delivery` stamps and the header `delivery close` adds wrote LF back,
+  so on a Windows checkout every line of the file showed as changed.
+- `delivery tick` counts only the boxes it turned from open to ticked, and
+  `delivery check` reads the Release boxes through the same reader — a `+ [ ]`
+  claim was tickable and invisible to the check.
+- `change delta` writes every repeated `--requirement`, `--criterion` and
+  `--op`, in order; it kept only the last one and still reported success.
+- `change check --verbose` previews an ops delta as the spec before against
+  the spec after apply, instead of printing every line of the spec as removed.
+- `review --change` reads each spec as the change will leave it — its ops
+  applied in memory — when it asks who owns a file, so the test a change adds,
+  or a path a `Source:` it sets claims, is no longer reported as belonging to
+  no capability before `apply` merges it.
+- `workspace list` refreshes the orchestrator files when a project's state or
+  `workspace.json` changed: an absorbed project stayed `pending` in the hub,
+  and an executor model edited into `workspace.json` never reached the
+  subagent. With no tool declared, the list and the hub suggest a generic
+  `workspace tool <name> --server <mcp-server>` instead of one product.
+- `verify --init` writes the build and test commands the code inventory finds
+  in the project's manifests, as the absorb playbook promised, and keeps the
+  fail-closed example for a project whose manifests declare none.
+- `context` reads the change in focus without the templates' HTML comments:
+  every delta repeated forty lines of authoring instructions, and a change
+  with eight deltas pushed the repository's own task pack over its 10k-token
+  budget. `--full` keeps them.
+- The delivery playbook, the workspace guide and the CLI reference say what a
+  card's `Requirement:` line is — a `doctrina show` reference, counted from
+  the spec and never written into it; an agent walking the flow wrote
+  `login-R1:` into its spec's bullets.
+- Every help names every subcommand in its Usage line and every flag its
+  command declares — `delivery tick`, `workspace tool|guard`, `work
+  --delivery`, `delivery close --date`, `change check --verbose`, `contract
+  new --force`, `skill new --force` and `init --overwrite-content` were missing.
+- The documentation follows ADR 0030 throughout (`multi-agent.md`, migration,
+  context engineering), the glossary is in alphabetical order, the Portuguese
+  pages caught up with the English ones where they had drifted, and the
+  end-to-end guide runs as written in a test.
 
 ## [0.20.0] — 2026-11-03
 

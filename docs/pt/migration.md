@@ -104,7 +104,8 @@ Esboço da migração:
    files existentes viram proposal/tasks/design dentro de uma
    change.
 3. Os prompts de agente por papel comprimem em personas que o
-   mesmo orquestrador troca. Veja `multi-agent.md` para as cinco
+   planejador troca, e o agente Dev vira um executor que trabalha
+   um cartão de tarefa por vez. Veja `multi-agent.md` para as cinco
    personas canônicas.
 4. Mova conteúdo do PRD para `.doctrina/product.md` e decisões
    de arquitetura para ADRs via

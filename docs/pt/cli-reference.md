@@ -551,6 +551,11 @@ capabilities tocadas — se a change altera o que um ADR decidiu, registre
 o amendment (`decision supersede` / `decision new`) em vez de passar por
 cima em silêncio.
 
+Com `--verbose` ele também imprime cada delta como cairia: um delta
+MODIFIED com bloco de ops como a spec antes contra a spec depois do apply,
+com as linhas inalteradas como contexto; ADDED com a contagem de linhas;
+REMOVED com o alvo; um MODIFIED sem ops como diff de linhas contra a spec.
+
 Sai com 0 e `ready to close` quando as três áreas estão limpas. Aceita
 vários ids.
 
@@ -632,7 +637,8 @@ doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The 
 Cada flag vira uma linha de op — `--requirement` um `append-requirement`,
 `--criterion` um `append-criterion`, `--bump` um `bump-version`, e
 `--op "<linha>"` (ou as palavras depois da capability) qualquer verbo de op
-como escrito. As linhas são lidas pela gramática que o `apply` lê, e o bloco
+como escrito. `--requirement`, `--criterion` e `--op` se repetem: cada
+ocorrência é uma op, escrita na ordem dada. As linhas são lidas pela gramática que o `apply` lê, e o bloco
 inteiro — o que já havia mais o que entra — é executado em memória contra a
 spec antes de qualquer escrita: uma op que não aplicaria é recusada agora
 (saída `1`, nada escrito), não no close. O delta é criado a partir do
@@ -659,7 +665,9 @@ doctrina change card 0042-pagamento-recusado 3    # a tarefa 3
 ```
 
 O cartão traz a tarefa e as linhas indentadas sob ela no `tasks.md` —
-escreva-as como `Files:`, `Requirement:` e `Verify:` —, o `## Why` da
+escreva-as como `Files:`, `Requirement:` (uma referência do `doctrina
+show` como `auth-R7`, contada a partir da spec e nunca escrita nela) e
+`Verify:` —, o `## Why` da
 change, a spec de cada capability do delta recortada para a tarefa e o que
 fazer ao terminar: rodar o comando `Verify:` do cartão (ou `doctrina
 verify`), marcar a caixa com a linha de `change tick` que ele imprime e
@@ -1588,7 +1596,11 @@ doctrina verify --list
 doctrina verify --signoff "chronicle=lê bem, aprovado"
 ```
 
-As checagens vivem em `.doctrina/verify.json`. Uma checagem com
+As checagens vivem em `.doctrina/verify.json`. O `--init` grava os
+comandos de build e teste que o inventário de código acha nos manifestos
+do projeto — os scripts `typecheck`, `lint`, `test` e `build` de um
+`package.json`, `pytest`, `go test ./...`, `cargo test` — para você
+confirmar, ou um exemplo que falha quando não acha nenhum. Uma checagem com
 `"type": "manual"` é o gate qualitativo (ADR 0012): julgada por
 humano/eval e registrada como sign-off, não rodada como comando.
 
@@ -1732,7 +1744,8 @@ doctrina contract check
 
 `contract new` esqueletiza `.doctrina/contracts/<name>.md` (Ports,
 Environment, **Wiring**, **Selectors**, **Budgets**, Interfaces,
-References) e o indexa. `contract check` verifica a parte mecanicamente
+References) e o indexa; ele recusa um contrato que já existe, a menos que
+`--force` seja dado. `contract check` verifica a parte mecanicamente
 checável.
 
 **Estrutura:**
@@ -2198,8 +2211,9 @@ a abertura da Decision, com `doctrina show NNNN` para o resto. Com
 `--for "<tarefa>"` a spec da tarefa, e as specs de que ela depende, são
 **recortadas**: os headers, o Purpose e os requisitos e critérios que a
 tarefa mais casa, cada lacuna nomeada no lugar (`… 3 not matching the
-task`) e um rodapé dizendo quantos ficaram. `--full` devolve todo texto
-inteiro. Uma review de campo achou agentes pulando o `context` pelo
+task`) e um rodapé dizendo quantos ficaram. A change em foco é lida sem
+os comentários HTML — as instruções de autoria que todo template de
+proposal, tasks e delta carrega. `--full` devolve todo texto inteiro. Uma review de campo achou agentes pulando o `context` pelo
 `prime`; medido aqui, `context gates --concat` custava ~40k tokens e o
 `--for` não cortava nada abaixo do orçamento. O pacote da mesma tarefa
 agora fica em ~5k.
@@ -2497,7 +2511,10 @@ leem e gravam a sombra pelo link.
 
 O `list` mostra o modo e o estado de cada projeto — `ready`, `pending`
 (sem spec ainda: absorva com `doctrina intake --from-code`) ou `missing`
-(o caminho sumiu) — e as changes abertas. O workspace é encontrado por
+(o caminho sumiu) — e as changes abertas, e atualiza os arquivos do
+orquestrador quando o estado de um projeto ou o `workspace.json` mudou
+desde que foram escritos (um projeto absorvido, um modelo de executor). O
+workspace é encontrado por
 `$DOCTRINA_WORKSPACE`, pelo diretório atual ou um ancestral com
 `workspace.json`, pelo link de uma sombra, ou pelo ponteiro que o `init`
 grava em `$DOCTRINA_HOME` (padrão `~/.doctrina`). Faça os commits do
@@ -2519,7 +2536,7 @@ humano, uma leitura passa, e um servidor que o workspace não declara não
 recebe opinião. Um SQL na chamada decide se ela escreve; senão, os verbos
 do nome da ferramenta. Entrada ilegível nunca bloqueia o agente.
 
-**Arquivos do orquestrador.** Toda escrita no workspace regenera, na raiz:
+**Arquivos do orquestrador.** Toda escrita no workspace, e todo `list`, regenera, na raiz:
 `AGENTS.md` (o hub do planejador), `.cursor/rules/00-doctrina-workspace.mdc`,
 `.cursor/hooks.json` e `.claude/settings.json` (mesclados com os seus),
 `.claude/agents/doctrina-executor.md` e `doctrina-reviewer.md` — mais
@@ -2589,7 +2606,9 @@ pendentes, o comando que lê o próximo cartão de dentro do repositório dela,
 e nomeia toda outra change aberta num repositório roteado — um segundo
 escritor a sequenciar, um escritor por repositório de cada vez. O `tick`
 lista as caixas de `## Release` e as marca pelo número ou com `--all`: são
-afirmações que o `check` cobra, então passam pelo CLI. Uma change aberta sem
+afirmações que o `check` cobra, então passam pelo CLI. Ele conta só o que
+passou de aberta para marcada — uma caixa já marcada, ou citada duas vezes,
+não é marcada de novo — e mantém o fim de linha do arquivo. Uma change aberta sem
 `--delivery` entra numa com `doctrina work --resume <change> --delivery
 <id>`; o `prime` num repositório nomeia a entrega a que uma change aberta
 pertence.

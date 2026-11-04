@@ -14,7 +14,7 @@ import { GIT_STATE, historyState, changedFiles } from "../lib/git.js";
 import { terms as queryTerms, relevance } from "../lib/lexicon.js";
 import { notADoctrinaProject, EXIT } from "../lib/exit-codes.js";
 import * as idx from "../lib/index-json.js";
-import { adrDigest, sliceSpec } from "../lib/context-slice.js";
+import { adrDigest, sliceSpec, withoutComments } from "../lib/context-slice.js";
 
 // Materialise the AGENTS.md read order as a command: print the exact
 // context pack for a task, in the order an agent should read it. This is
@@ -319,7 +319,17 @@ export async function run(positional, cmdFlags) {
     for (const ch of open) {
       if (ch.id === focusId) {
         // The change being worked on: every file, whole, in CORE.
-        for (const f of ch.files) pushFile(relPath(projectRoot, f), `open change: ${ch.id}`);
+        for (const f of ch.files) {
+          const item = pushFile(relPath(projectRoot, f), `open change: ${ch.id}`);
+          // Read, not written: the templates' authoring comments stay out
+          // unless --full (change 0228).
+          const bare = item && !full ? withoutComments(read(f)) : null;
+          if (item && bare !== null) {
+            item.slice = bare;
+            item.tokens = estimateTokens(bare);
+            item.note = `${item.note} — comments left out`;
+          }
+        }
         continue;
       }
       // A PARKED change is ONE entry in a queue, not three documents. It

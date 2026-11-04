@@ -95,3 +95,36 @@ test("close runs the review scoped to the change it closes", () => {
   const src = readFileSync(path.resolve(here, "..", "src", "commands", "close.js"), "utf8");
   assert.match(src, /review\.run\(\[\], new Map\(\[\["change", id\]\]\)\)/);
 });
+
+// Change 0228: the test a change adds is cited by the criterion its delta
+// appends — and `review` runs before `apply` merges that delta. Read without
+// it, the change's own test was reported as belonging to no capability.
+test("review --change reads the change's deltas when it asks who owns a file", () => {
+  const { dir, run } = project();
+  try {
+    assert.equal(run(["change", "new", "0001-health-check", "Health check"]).status, 0);
+    const delta = path.join(dir, ".doctrina", "changes", "0001-health-check", "specs", "health", "delta.md");
+    mkdirSync(path.dirname(delta), { recursive: true });
+    writeFileSync(delta, "# Spec Delta — capability: health\n\n**Operation:** MODIFIED\n" +
+      "**Target spec on apply:** `.doctrina/specs/health/spec.md`\n\n---\n\n```ops\n" +
+      "append-criterion The check answers — verified by `test/health-check.test.js`.\n```\n");
+    mkdirSync(path.join(dir, "test"));
+    writeFileSync(path.join(dir, "test", "health-check.test.js"), "// the check\n");
+    const scoped = run(["review", "--change", "0001-health-check"]);
+    assert.equal(scoped.status, 0, scoped.stderr);
+    assert.doesNotMatch(scoped.stdout, /belong to no capability/, scoped.stdout);
+    const plain = run(["review"]);
+    assert.match(plain.stdout, /belong to no capability: `test\/health-check\.test\.js`/,
+      "without the change, nothing claims it yet — and the review says so");
+    // A Source the delta sets is read the same way: the spec as the change
+    // leaves it, its ops applied in memory.
+    mkdirSync(path.join(dir, "generated"));
+    writeFileSync(path.join(dir, "generated", "out.json"), "{}\n");
+    assert.match(run(["review", "--change", "0001-health-check"]).stdout, /belong to no capability: `generated\/out\.json`/);
+    writeFileSync(delta, readFileSync(delta, "utf8").replace("```ops\n", "```ops\nset-header Source: `src/health/**`, `generated/**`\n"));
+    assert.doesNotMatch(run(["review", "--change", "0001-health-check"]).stdout, /belong to no capability/,
+      "the Source the delta sets claims it before apply merges it");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

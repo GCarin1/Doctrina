@@ -67,7 +67,8 @@ waits for you, and a server the workspace does not declare is left alone.
 
 ## 4. Open the workspace in your agent
 
-Every workspace write regenerates the orchestrator files at its root:
+Every workspace write, and every `doctrina workspace list`, regenerates the
+orchestrator files at its root:
 
 | File | For |
 |---|---|
@@ -85,7 +86,7 @@ The subagents are `doctrina-executor` and `doctrina-reviewer` always,
 `doctrina-qa` when a tool serves `qa` (Playwright, Figma) and
 `doctrina-observer` when one serves `observer` (Datadog). To run executors
 on a smaller model, set it in `workspace.json` — `"agents": { "executor":
-{ "model": "<id>" } }` — and run any workspace command to regenerate.
+{ "model": "<id>" } }` — and run `doctrina workspace list` to regenerate.
 Cursor takes a model id such as `composer-2`; Claude Code takes `sonnet`,
 `haiku` or a full id. `inherit` uses the planner's model.
 
@@ -103,7 +104,8 @@ and follows the playbook it prints:
 1. Read the story through the tracker tool and copy it **verbatim** under
    `## Story`; link the docs and designs under `## Sources`.
 2. Route it — `doctrina delivery route 1 back-end,front-core` — dependencies
-   first.
+   first. A repository still `pending` (no spec yet) or `missing` is
+   refused with exit 3: absorb it first (section 2), or pass `--force`.
 3. In each repository, open ONE change: `doctrina work "<title>"
    --delivery <id>`; write its delta and its tasks as **cards**:
 
@@ -114,20 +116,31 @@ and follows the playbook it prints:
      - Verify: npm test -- lockout
    ```
 
+   `Requirement:` is a `doctrina show` reference — `auth-R7` is counted
+   from the spec, never written into it — or, for a requirement the delta
+   adds, the requirement in words.
+
+   A change opened without `--delivery` joins it later:
+   `doctrina work --resume <change> --delivery <id>`.
+
 4. Hand each card — `doctrina change card <id>` — to `doctrina-executor`
    (or `doctrina-qa`). **One writer per repository at a time**; different
    repositories may run in parallel.
 5. Review with `doctrina-reviewer` and close each change itself:
    `doctrina close <id>`. Executors never close.
 6. Record the release under `## Release` (pipeline, environment, evidence)
-   and what was watched after it under `## Observability` —
-   `doctrina-observer` reads the monitors.
+   and tick each claim there — `doctrina delivery tick <id>` lists them,
+   `doctrina delivery tick <id> <n>` ticks one. Record what was watched
+   after it under `## Observability` — `doctrina-observer` reads the
+   monitors.
 7. `doctrina delivery check <id>` → `doctrina delivery close <id>`, then
    commit the workspace.
 
 `doctrina delivery status <id>` shows every repository's change and its
-tasks at any time; `doctrina delivery list` shows the lead time of the
-closed ones.
+tasks at any time, the command that reads each one's next card, and any
+second open change in a routed repository — a writer to sequence, not to
+run alongside. `doctrina delivery list` shows the lead time of the closed
+ones.
 
 ## What stays with you
 

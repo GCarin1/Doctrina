@@ -2,7 +2,7 @@
 import { parseChecklist, getSection, getHeader, parseChangeTitle } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
-import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
+import { eolOf, exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, withEol, write } from "../lib/fs-ops.js";
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
@@ -11,7 +11,7 @@ import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gates.js";
 import { today } from "../lib/dates.js";
-import { flagBool, flagString } from "../lib/args.js";
+import { flagAll, flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js";
 import { suggest } from "../lib/suggest.js";
@@ -484,14 +484,17 @@ function changeDelta(args, flags) {
   }
   // In the order a reader expects them: requirement, criterion, any raw op,
   // and the bump last.
+  // `--requirement`, `--criterion` and `--op` repeat (change 0228): each
+  // occurrence is one op, in the order given. The parser keeps the last
+  // value of a repeated flag, so reading them with flagString wrote one op
+  // and reported success for a command line that asked for three.
   const lines = [];
-  const requirement = flagString(flags, "requirement");
-  const criterion = flagString(flags, "criterion");
-  const raw = flagString(flags, "op") ?? (rest.length > 0 ? rest.join(" ") : undefined);
+  const raw = flagAll(flags, "op");
+  if (raw.length === 0 && rest.length > 0) raw.push(rest.join(" "));
   const bump = flagString(flags, "bump");
-  if (requirement) lines.push(`append-requirement ${requirement}`);
-  if (criterion) lines.push(`append-criterion ${criterion}`);
-  if (raw) lines.push(raw);
+  for (const r of flagAll(flags, "requirement")) lines.push(`append-requirement ${r}`);
+  for (const r of flagAll(flags, "criterion")) lines.push(`append-criterion ${r}`);
+  lines.push(...raw);
   if (bump) lines.push(`bump-version ${bump}`);
 
   const r = addDeltaOps(projectRoot, id, capability, lines);
@@ -614,11 +617,12 @@ function changeTick(args, flags) {
     byPath.get(box.file.path).push(box);
   }
   for (const [filePath, hits] of byPath) {
-    const lines = read(filePath).split(/\r?\n/);
+    const before = read(filePath);
+    const lines = before.split(/\r?\n/);
     for (const box of hits) {
       lines[box.lineIndex] = lines[box.lineIndex].replace(/\[ \]/, "[x]");
     }
-    write(filePath, lines.join("\n"), { force: true });
+    write(filePath, withEol(lines.join("\n"), eolOf(before)), { force: true });
   }
   console.log(c.green("ticked ") + `${picked.length} box${picked.length === 1 ? "" : "es"} in ${byPath.size} file${byPath.size === 1 ? "" : "s"}`);
   return 0;
@@ -830,6 +834,26 @@ export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
         continue;
       }
       console.log(c.yellow("MODIFIED") + ` ${targetRel}`);
+      // A delta with an ops block is previewed as the spec it produces (change
+      // 0228): the ops run in memory, as apply runs them, and the diff is the
+      // spec before against the spec after. Diffing the spec against the
+      // delta FILE printed every line of the spec as a '-' — three hundred
+      // lines of noise around the four that change.
+      const ops = extractOps(text);
+      if (ops.length > 0) {
+        const current = read(targetPath);
+        const after = applyOps(current, ops);
+        if (after.errors.length > 0) {
+          for (const e of after.errors) console.error(c.red("error:") + ` ${rel}: ${e}`);
+          errors += 1;
+          continue;
+        }
+        console.log(formatUnified(diffLines(current, after.text), {
+          aLabel: targetRel,
+          bLabel: `${targetRel} (after apply)`,
+        }));
+        continue;
+      }
       console.log(c.gray("note: the delta body is a fragment to merge — '-' lines are current"));
       console.log(c.gray("      spec content absent from the delta, not necessarily removals."));
       const out = formatUnified(diffLines(read(targetPath), body), {
@@ -872,6 +896,7 @@ Subcommands:
                          its target + the archive gate preview + an advisory
                          list of accepted ADRs citing the touched capabilities.
                          Everything close would refuse, listed BEFORE it runs.
+                         --verbose also prints each delta as it would land.
   tick <id> [n... |--all]  List the unchecked boxes (tasks.md + proposal
                          ## Verification) with ordinals; tick the given ones,
                          or every one with --all. No args = list only.
@@ -883,7 +908,9 @@ Subcommands:
                          capability — created from the template when absent —
                          parsed by the grammar apply reads and dry-run against
                          the spec first: nothing is written unless the whole
-                         block applies. A second --bump replaces the first.
+                         block applies. --requirement, --criterion and --op
+                         repeat, one op each, in order; a second --bump
+                         replaces the first.
   card <id> [<n>]        Print task <n> (default: the next open one) as a
                          self-contained card for an executor: the task and the
                          lines indented under it (Files:, Requirement:, Verify:),

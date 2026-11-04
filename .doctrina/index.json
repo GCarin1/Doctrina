@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.31.0",
+        "version": "0.32.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.57.2",
+        "version": "0.58.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -44,7 +44,7 @@
         "id": "core",
         "path": ".doctrina/specs/core/spec.md",
         "status": "active",
-        "version": "0.1.1",
+        "version": "0.2.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "realizes": [
@@ -59,7 +59,7 @@
         "id": "delivery",
         "path": ".doctrina/specs/delivery/spec.md",
         "status": "active",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "depends_on": [
@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.9.0",
+        "version": "0.10.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -87,6 +87,7 @@
           "scripts/check-docs.js",
           "CHANGELOG.md",
           "README*.md",
+          "packages/doctrina-cli/README.md",
           "SECURITY.md",
           "CONTRIBUTING.md",
           "CONVENTIONS.md"
@@ -96,7 +97,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.49.0",
+        "version": "1.50.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -111,7 +112,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.18.0",
+        "version": "0.19.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -123,7 +124,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.13.0",
+        "version": "0.13.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -138,13 +139,15 @@
         "id": "skills",
         "path": ".doctrina/specs/skills/spec.md",
         "status": "active",
-        "version": "0.8.0",
+        "version": "0.8.1",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/skill.js",
           "packages/doctrina-cli/src/lib/skill-candidates.js",
-          "packages/doctrina-cli/src/lib/skill-export.js"
+          "packages/doctrina-cli/src/lib/skill-export.js",
+          ".agents/skills/**",
+          ".claude/skills/**"
         ]
       },
       {
@@ -192,7 +195,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -3810,6 +3813,56 @@
         "applied": "2026-11-04",
         "specs_affected": [],
         "lane": "product (confident; signals: documentar) — opened as chore"
+      },
+      {
+        "id": "0228-o-que-ficou-pela-metade-na-entrega-e-na",
+        "title": "o que ficou pela metade na entrega e na documentacao",
+        "path": ".doctrina/changes/archive/2026-11-04-0228-o-que-ficou-pela-metade-na-entrega-e-na",
+        "status": "applied",
+        "applied": "2026-11-04",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "core",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "skills",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [
@@ -3842,6 +3895,12 @@
         "path": ".doctrina/skills/patch-doctrina-files-as-crlf.md",
         "description": "Edit files under .doctrina/ knowing they are CRLF, so a regex or script patch cannot silently match nothing and report success.",
         "last_updated": "2026-09-07"
+      },
+      {
+        "id": "read-the-grammar-through-the-document-model",
+        "path": ".doctrina/skills/read-the-grammar-through-the-document-model.md",
+        "description": "Read checkboxes, headers, sections and comments of a .doctrina artifact through lib/doc-model.js instead of a new regex, so every surface counts the same thing.",
+        "last_updated": "2026-11-04"
       },
       {
         "id": "split-an-oversized-spec",

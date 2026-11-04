@@ -18,7 +18,13 @@ or gate-checked from it. Touch the steps in this order:
 
 1. Implement the handler in
    `packages/doctrina-cli/src/commands/<command>.js` (subcommands go in
-   the existing file's dispatch switch). Update its `help` export.
+   the existing file's dispatch switch). Update its `help` export: a
+   Usage line that enumerates subcommands names every one in
+   `SUBCOMMANDS`, and every flag in the module's `flags` declaration is
+   described in the help — `test/o-help-lista-todo-subcomando.test.js`
+   fails otherwise. A flag a command reads more than once
+   (`--op a --op b`) is read with `flagAll`; `flagString` keeps only
+   the last value.
 2. Register the operation in `OPERATIONS` in
    `packages/doctrina-cli/src/lib/commands.js` (workflow order, not
    alphabetical). Top-level `--help` is generated from this list. A new
@@ -58,6 +64,14 @@ or gate-checked from it. Touch the steps in this order:
   neither the proposal template nor the refusal that needed it.
 - Documenting a command in a diagram (`docs/en/flow.md`) but giving it
   no cli-reference section: readers see it exists but cannot learn it.
+- Adding a subcommand to the dispatcher and the help BODY but not to
+  the Usage line, or declaring a flag the help never names
+  (`delivery tick`, `work --delivery` in 0.20.0): the first line a
+  reader sees describes a smaller command than the one that runs.
+- A command that rewrites a file the person owns (a tick, a header
+  stamp) writing LF into a CRLF file. Read the ending with `eolOf` and
+  write back with `withEol` (`lib/fs-ops.js`), and test it from a CRLF
+  fixture: a Linux run never sees the bug.
 - Updating the EN docs and leaving PT for "later".
 
 ## Related material

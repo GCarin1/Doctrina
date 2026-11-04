@@ -1,6 +1,6 @@
 // @ts-check
 import { fold } from "./lexicon.js";
-import { getSection } from "./doc-model.js";
+import { commentRanges, getSection } from "./doc-model.js";
 
 // The lean read pack (change 0216).
 //
@@ -16,6 +16,31 @@ import { getSection } from "./doc-model.js";
 const ADR_DIGEST_CHARS = 700;
 // How many requirements and criteria a sliced spec keeps at most, each.
 const SLICE_MAX_ITEMS = 25;
+
+/**
+ * A change file as a reader needs it: without its HTML comments (change
+ * 0228). The proposal, tasks and delta templates carry their authoring
+ * instructions in comments — forty lines of "for ADDED… for MODIFIED…" in
+ * every delta — and the change in focus enters the pack whole, so a change
+ * with eight deltas spent ~2.6k tokens repeating the template to an agent
+ * that was reading, not writing. Null when the text has no comment.
+ *
+ * @param {string} text
+ * @returns {string | null}
+ */
+export function withoutComments(text) {
+  const lf = String(text).replace(/\r\n/g, "\n");
+  const ranges = commentRanges(lf);
+  if (ranges.length === 0) return null;
+  let out = "";
+  let at = 0;
+  for (const [a, b] of ranges) {
+    out += lf.slice(at, a);
+    at = b;
+  }
+  out += lf.slice(at);
+  return out.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 
 /**
  * An ADR as a reader deciding whether it binds the task needs it: the

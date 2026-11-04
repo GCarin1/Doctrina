@@ -238,3 +238,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-03 — 0225-cortar-a-0-20-0 — cortar a 0.20.0
 - 2026-11-04 — 0226-o-fluxo-da-entrega-nao-tem-furos — o fluxo da entrega nao tem furos (specs: delivery MODIFIED)
 - 2026-11-04 — 0227-o-fluxo-de-ponta-a-ponta-na-documentacao — o fluxo de ponta a ponta na documentacao
+- 2026-11-04 — 0228-o-que-ficou-pela-metade-na-entrega-e-na — o que ficou pela metade na entrega e na documentacao (specs: authoring MODIFIED, cli MODIFIED, core MODIFIED, delivery MODIFIED, docs MODIFIED, gates MODIFIED, insight MODIFIED, scaffolding MODIFIED, skills MODIFIED, workspace MODIFIED)

@@ -130,8 +130,8 @@ export function workspaceHub(ws, wsDir, states) {
   L.push("and run the absorb playbook before routing work to it.", "");
   L.push("## Tools", "");
   if (ws.tools.length === 0) {
-    L.push("None declared. Declare each MCP server the work uses, e.g.");
-    L.push("`doctrina workspace tool jira` · `doctrina workspace tool datadog`.");
+    L.push("None declared. Declare each MCP server the work uses:");
+    L.push("`doctrina workspace tool <name> --server <mcp-server> --for <roles>`.");
   } else {
     L.push("| Tool | MCP server | Access | Used by | For |");
     L.push("|---|---|---|---|---|");

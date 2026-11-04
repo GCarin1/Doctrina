@@ -65,7 +65,8 @@ flowchart TD
    `--server`.
 5. **Choose the models.** The planner runs on your agent's model; set the
    executors' in `workspace.json` (`"agents": {"executor": {"model":
-   "<id>"}}`), or leave `inherit`.
+   "<id>"}}`) and run `doctrina workspace list` to apply it, or leave
+   `inherit`.
 6. **Open the workspace in your agent** — the generated
    `<name>.code-workspace` opens every repository in one window — and
    commit the workspace.

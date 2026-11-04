@@ -2,7 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { exists, isDir, isFile, mkdirp, read, relPath, write } from "../lib/fs-ops.js";
+import { eolOf, exists, isDir, isFile, mkdirp, read, relPath, withEol, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
@@ -238,7 +238,7 @@ export async function run(positional, flags) {
     if (delivery) {
       updated = updated.replace(/^(-[ \t]+\*\*Lane:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
     }
-    if (updated !== txt) write(proposalPath, updated, { force: true });
+    if (updated !== txt) write(proposalPath, withEol(updated, eolOf(txt)), { force: true });
   }
 
   // Capability hint: term overlap for a prompt, changed-file overlap for a diff
@@ -512,7 +512,7 @@ function resumeChange(projectRoot, resumeId, delivery = null) {
     if (!current) {
       const stamped = text.replace(/^(-[ \t]+\*\*Lane:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
       const updated = stamped !== text ? stamped : text.replace(/^(-[ \t]+\*\*Status:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
-      write(proposalPath, updated, { force: true });
+      write(proposalPath, withEol(updated, eolOf(text)), { force: true });
       console.log(c.green("joined") + ` ${resumeId} to delivery ${delivery}`);
     }
   }
@@ -687,6 +687,8 @@ Options:
                        (backlog entry; reprint later with --resume <id>)
   --id <id>            Override the derived change id
   --resume <id>        Reprint the playbook for an open change; create nothing
+  --delivery <id>      Stamp the change with the workspace delivery it is part
+                       of (ADR 0030); with --resume, join an open change to it
   --from-diff          Backfill: scaffold from the working-tree changes (no
                        prompt needed) and print a code-first playbook (F8)
   --consolidate <cap>  Open a change that consolidates <cap>'s spec — merge

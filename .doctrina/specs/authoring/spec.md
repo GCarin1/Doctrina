@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.31.0
+**Version:** 0.32.0
 
 ## Purpose
 
@@ -51,6 +51,7 @@ keep the checks and the read path.
 - The system shall keep a version or a number from the prompt in a derived change slug — "cortar a 0.17.0" slugs to `cortar-0-17-0`, "migrar para Node 24" to `migrar-node-24` — reading the slug's own tokens rather than the retrieval tokenizer's letter-first words, while still dropping stopwords and one-letter words.
 - The system shall scaffold a change's `tasks.md` with implementation tasks only, and shall count its boxes through one counter that leaves out a legacy `## Closing steps` list, so no surface asks an agent to tick "apply", "archive" or "update the index" before the command that performs them has run.
 - The system shall let a MODIFIED delta take a requirement or an acceptance criterion out — `remove-requirement <section> <n>` and `remove-criterion <n>`, the criteria after a removed one renumbered — and every op that replaces or removes an item shall take it whole, continuation lines included.
+- The system shall keep the line ending a change file already uses when `change tick` ticks its boxes or `work` writes its Why, its pinned capability or its `Delivery:` line, so a CRLF checkout does not see every line of the file change.
 
 ### Event-driven
 
@@ -263,11 +264,12 @@ keep the checks and the read path.
 - When `doctrina intent add` is given a text that an existing anchor already states — compared with case, accents, spacing and trailing punctuation folded away, pinned id or not — the system shall refuse without writing, naming the anchor that states it, because the twin would stay dropped once a spec realizes the first and `trace --strict` would fail on a gap no spec can close.
 - When `doctrina spec set` refuses an operation, the system shall answer the usage class if any error lies in the invocation — a value outside the header's or the mark's domain, a malformed flag, a criterion the spec does not declare — and the gate class only when every error lies in the spec itself, because retrying an invocation error unchanged never succeeds.
 - When `doctrina work` runs with `--design`, the system shall also scaffold the change's `design.md`, identical to the one `doctrina change new --design` writes, and without the flag shall scaffold none, so a change that needs a design document never has to leave the recommended door for the manual one.
-- When `change delta <id> <capability>` is given a requirement, a criterion, a bump or an op line, the system shall write them into the change's MODIFIED delta for that capability — creating it from the template when absent — parsed by the grammar `apply` reads, with a later bump replacing an earlier one, and shall write nothing unless the whole block applies to the spec.
+- When `change delta <id> <capability>` is given requirements, criteria, a bump or op lines, the system shall write them into the change's MODIFIED delta for that capability — creating it from the template when absent — parsed by the grammar `apply` reads, one op for every `--requirement`, `--criterion` and `--op` given, in the order given, with a later bump replacing an earlier one, and shall write nothing unless the whole block applies to the spec.
 - When `work --consolidate <capability>` is run, the system shall open a change pinned to that capability with a MODIFIED delta scaffolded and print the spec's measured shape — lines, requirements per EARS subsection, criteria — with a consolidation playbook, leaving what is redundant for the agent to decide (ADR 0005).
 - When a change's delta targets a capability — scaffolded by `work`, pinned or ranked, or written by `change delta` — the system shall name that capability in the proposal's `Affects specs:` header once, leaving a chore's declared none untouched.
 - When `work` opens a change, the system shall end with the sentence for the human naming the change id, its title and its folder.
 - When `doctrina intake --from-code` runs, the system shall store the code inventory of the current directory as `.doctrina/intake.md` with `Status: pending` — stack and frameworks read from manifests, file and test counts, CI and runtime manifests, candidate areas under the conventional source roots, the build and test commands it can see, and the variable NAMES of env example files, never their values — and print the absorb playbook, which asks the agent to describe what the code does today and to leave what the code cannot tell as open questions for the human.
+- When `doctrina work --resume <change> --delivery <id>` runs on a change that carries no delivery, the system shall write `- **Delivery:** <id>` into its proposal; on a change that already belongs to another delivery it shall refuse with the precondition class.
 
 ### Unwanted-behavior (must-not)
 
@@ -354,6 +356,9 @@ The authoring commands are v0 spec-compliant when:
 47. [verified] `work --chore` ends with `Tell the human: opened change 0001-tidy` naming its title and folder — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
 48. [verified] A request for "the doctrina work" of payment and admin scenarios is held with exit 3 naming the archived change and its path and scaffolds nothing, an open change is offered with `work --resume`, unrelated work and `--force` go through, and a term shared only with the Why does not match — verified by `packages/doctrina-cli/test/o-work-nao-repete-trabalho-feito.test.js`.
 49. [verified] `intake --from-code` stores the inventory — stack, test count, candidate areas, build command, env names without values — prints the absorb playbook naming the workspace when there is one, refuses a converted intake with exit 3 and a pending one without `--force` — verified by `packages/doctrina-cli/test/o-codigo-existente-vira-intake.test.js`.
+50. [verified] `work --resume --delivery` stamps a CRLF proposal and `change tick` ticks a CRLF tasks file, neither leaving a line that ends in LF alone — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
+51. [verified] `change delta` given two --requirement, two --criterion and two --op writes them as six ops in the order given, then the bump — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
+52. [verified] `change check --verbose` previews an ops delta as the spec before against the spec after apply — the new requirement and the bumped version as changes, unchanged lines as context — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
 
 ## Out of scope for this spec
 

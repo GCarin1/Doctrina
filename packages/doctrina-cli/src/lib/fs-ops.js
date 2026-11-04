@@ -19,6 +19,29 @@ import path from "node:path";
 // A file that had one loses it when a command rewrites it. That is a
 // normalisation, and the right one — nothing in this tree is served by
 // keeping it.
+/**
+ * The line ending a file already uses: CRLF when it carries one, LF otherwise.
+ * A command that rewrites a file a person owns keeps the file's ending — a
+ * Windows checkout with `core.autocrlf` stores CRLF, and turning it into LF
+ * on a tick makes every line of the file show as changed in the diff.
+ * @param {string} text
+ * @returns {"\r\n"|"\n"}
+ */
+export function eolOf(text) {
+  return /\r\n/.test(String(text)) ? "\r\n" : "\n";
+}
+
+/**
+ * `text` with every line ending made `eol` — what a rewrite hands to `write`
+ * after editing in LF, so an inserted line never mixes endings.
+ * @param {string} text
+ * @param {"\r\n"|"\n"} eol
+ */
+export function withEol(text, eol) {
+  const lf = String(text).replace(/\r\n/g, "\n");
+  return eol === "\n" ? lf : lf.replace(/\n/g, "\r\n");
+}
+
 export function read(p) {
   const text = readFileSync(p, "utf8");
   return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;

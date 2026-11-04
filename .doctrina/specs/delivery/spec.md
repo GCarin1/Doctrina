@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.3.0
+**Version:** 0.4.0
 
 ## Purpose
 
@@ -24,6 +24,7 @@ those changes can be handed to an executor as a self-contained card.
 - The system shall keep a delivery at `<workspace>/deliveries/<NNNN-slug>/delivery.md` with list headers `Status`, `Date`, `Ref` and `Projects`, and the sections Story, Sources, Plan, Release and Observability.
 - The system shall read a delivery's state from the changes its routed projects carry — a change carries it through the proposal header `- **Delivery:** <id>` — and shall never copy that state into the delivery file.
 - The system shall order a delivery's projects so that each comes after every routed project it depends on.
+- The system shall read a delivery's `## Release` boxes through one reader, the document model's checklist, so every box `delivery check` holds open — whatever its bullet marker — is one `delivery tick` lists and ticks, and a box inside a comment is neither.
 
 ### Event-driven
 
@@ -38,8 +39,7 @@ those changes can be handed to an executor as a self-contained card.
 - When `doctrina delivery list` runs, the system shall print each delivery's age — open days, or lead time from `Date` to `Closed` once closed — and the median and longest lead time over the closed ones.
 - When `doctrina delivery tick <id>` runs, the system shall list the `## Release` boxes with their numbers, and with numbers or `--all` tick them, refusing a number that names no box with the usage class.
 - When `doctrina delivery status <id>` runs, the system shall print, for every open change with unticked tasks, the command that reads its next task card from inside its repository, and shall name every other open change in a routed repository as a second writer to sequence.
-- When `doctrina work --resume <change> --delivery <id>` runs on a change that carries no delivery, the system shall write `- **Delivery:** <id>` into its proposal; on a change that already belongs to another delivery it shall refuse with the precondition class.
-- When `doctrina prime` or `doctrina prime --pulse` lists an open change that carries a delivery, the system shall name that delivery beside it.
+- When `doctrina delivery tick <id> <n>...` ticks boxes, the system shall count only the boxes this call turned from open to ticked — a box already ticked or named twice is not counted again — and write nothing when there is none.
 
 ### Unwanted behavior
 
@@ -57,6 +57,7 @@ A delivery is spec-compliant when:
 4. [verified] `change card` prints the next open task with its indented lines, the Why, the spec slice and its Verify command, and says so when every task is ticked — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 5. [verified] With every routed change archived, `delivery check` still exits 1 naming an empty Story, each unticked Release box and an empty Observability, and exits 0 once they are written; `delivery list` prints the lead time and the median — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 6. [verified] A pending project is refused by `delivery new --projects` and `delivery route` with exit 3 naming `intake --from-code` and routed with `--force`; `delivery tick` lists, ticks and refuses a bad number; `delivery status` prints the card command and the second writer; `prime` and the pulse name the delivery; `work --resume --delivery` joins a change and refuses one already in another delivery — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
+7. [verified] `delivery tick` keeps a CRLF delivery CRLF and counts only fresh ticks; the header writer adds a line in the file's own ending; `delivery check` names a `+ [ ]` Release box that `tick` lists — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
 
 ## Out of scope for this spec
 
