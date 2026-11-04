@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.6.0
+**Version:** 0.7.0
 
 ## Purpose
 
@@ -41,12 +41,17 @@ those changes can be handed to an executor as a self-contained card.
 - When `doctrina delivery tick <id>` runs, the system shall list the `## Release` boxes with their numbers, and with numbers or `--all` tick them, refusing a number that names no box with the usage class.
 - When `doctrina delivery status <id>` runs, the system shall print, for every open change with unticked tasks, the command that reads its next task card from inside its repository, and shall name every other open change in a routed repository as a second writer to sequence.
 - When `doctrina delivery tick <id> <n>...` ticks boxes, the system shall count only the boxes this call turned from open to ticked — a box already ticked or named twice is not counted again — and write nothing when there is none.
+- When a project's only change for a delivery was abandoned, the system shall show it abandoned in the delivery's `status`, `check` and `handoff`, and name the re-route without that project as the next action.
+- When `delivery route` would drop a project that carries an open change for the delivery, the system shall refuse with exit 3 unless `--force`, and `validate` at the root shall warn of a change naming a delivery that does not route its project.
+- When a routed project's repository is not at its registered path, the system shall report it as moved with `doctrina workspace attach <name> --path <dir>`, and print no command that changes into the missing path.
+- When `delivery status --json` runs, the system shall emit a payload with the delivery's rows, release boxes, other writers and blockers.
 
 ### Unwanted behavior
 
 - If `--delivery` names a delivery that does not exist, or one not routed to the current repository, then the system shall not open the change: it exits with the usage class for an unknown delivery and the precondition class for an unrouted one, naming `delivery route`.
 - If a delivery's check fails, then the system shall not close it.
 - If `doctrina delivery new --projects` or `doctrina delivery route` names a project that is still pending or whose repository is missing, then the system shall not route it: it exits with the precondition class, naming `doctrina intake --from-code` or `doctrina workspace attach`, unless `--force` is given.
+- The system shall not offer a task card, nor count tasks left, for a change whose `tasks.md` still holds the scaffold's placeholder boxes; it shall name `doctrina work --resume <id>` instead.
 
 ## Acceptance criteria
 
@@ -61,6 +66,10 @@ A delivery is spec-compliant when:
 7. [verified] `delivery tick` keeps a CRLF delivery CRLF and counts only fresh ticks; the header writer adds a line in the file's own ending; `delivery check` names a `+ [ ]` Release box that `tick` lists — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
 8. [verified] The card carries the requirement and the criterion the delta adds verbatim, the delivery's story, the decisions scoped to or citing the capability and not one scoped elsewhere, and a spec whole when nothing matched; a change with none of them gets the card it had — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
 9. [verified] a card keeps the requirement its delta names and the task does not, and no template comment — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+10. [verified] a change of placeholder tasks is sent back to be written, never handed out — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+11. [verified] an abandoned change stays on the delivery's record and blocks its close — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+12. [verified] routing out a project with an open change is refused, and an orphan warns — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+13. [verified] a moved repository is reported as moved — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 
 ## Out of scope for this spec
 

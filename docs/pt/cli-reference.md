@@ -66,8 +66,11 @@ Todo payload carrega o mesmo envelope:
 
 Dois níveis de suporte, declarados em vez de escondidos:
 
-- **Estruturado** — `validate`, `status`, `next`, `coverage`, `trace` montam
-  um payload que descreve o resultado, ao lado dos campos do envelope.
+- **Estruturado** — `validate`, `status`, `next`, `coverage`, `trace` e
+  `delivery status` montam um payload que descreve o resultado, ao lado dos
+  campos do envelope. Um que para antes de montá-lo — não é um projeto
+  Doctrina, um id desconhecido — ainda responde com o envelope, `ok: false`
+  e um campo `error`.
 - **Envelope** — todo outro comando devolve sua saída humana como arrays de
   strings `stdout` / `stderr` dentro do envelope, com ANSI removido.
   Ramifique por `ok` e `exit_code`; as linhas estão ali por completude, não
@@ -80,7 +83,11 @@ mudam de forma sem um bump de `$schema_version`.
 
 ## `doctrina init`
 
-Esqueletiza `AGENTS.md` e a árvore `.doctrina/` no diretório atual.
+Esqueletiza `AGENTS.md` e a árvore `.doctrina/` no diretório atual. Num
+segundo clone de um repositório que um workspace sombreia, ele recusa
+(saída `3`) e nomeia `doctrina workspace attach <nome> --path <aqui>`: o
+contexto desse repositório mora no workspace. O `next` e o erro "não é um
+projeto Doctrina" dizem o mesmo; `--force` inicializa mesmo assim.
 
 ```
 doctrina init [opções]
@@ -615,7 +622,10 @@ Deleta a pasta da change aberta e sua entrada no `index.json`,
 anexa um registro de abandono de uma linha ao
 `.doctrina/changes/archive/LEDGER.md` (a história preserva o rastro
 mesmo do trabalho que não foi adiante) e reconstrói o index a
-partir da árvore.
+partir da árvore. Uma change que pertencia a uma entrega do workspace a
+mantém na linha do ledger — `(delivery <id>)` — para que o `status`, o
+`check` e o `next` da entrega a mostrem como abandonada em vez de "nenhuma
+change ainda". Uma change nova nunca reaproveita o número de uma abandonada.
 
 | Flag | Propósito |
 |------|-----------|
@@ -2576,7 +2586,11 @@ Ele instala um hook de pré-chamada que roda `doctrina workspace guard
 negada, uma escrita por uma ferramenta de leitura e escrita pergunta ao
 humano, uma leitura passa, e um servidor que o workspace não declara não
 recebe opinião. Um SQL na chamada decide se ela escreve; senão, os verbos
-do nome da ferramenta. Entrada ilegível nunca bloqueia o agente.
+do nome da ferramenta. Entrada ilegível nunca bloqueia o agente. O hook
+vai também para os arquivos de hook de cada sombra — o executor trabalha
+dentro do repositório, onde o Cursor e o Claude Code leem os hooks daquela
+pasta; um projeto in-repo é dono dos seus arquivos, então o `validate` na
+raiz avisa quando eles não rodam a guarda.
 
 **Arquivos do orquestrador.** Toda escrita no workspace, e todo `list`, regenera, na raiz:
 `AGENTS.md` (o hub do planejador), `.cursor/rules/00-doctrina-workspace.mdc`,
@@ -2644,7 +2658,14 @@ Um projeto ainda **pendente** (sem spec) ou cujo repositório sumiu é
 recusado pelo `new --projects` e pelo `route` com saída `3`: uma change lá
 não teria spec para mudar. Absorva-o antes (`doctrina intake --from-code`;
 com o inventário já gravado, um `doctrina intake` sem flag reimprime o
-playbook dele), ou passe `--force`. O `status` imprime, para cada change aberta com tarefas
+playbook dele), ou passe `--force`. O `route` também recusa (saída `3`)
+tirar um projeto que carrega uma change aberta da entrega — a change ficaria
+órfã — a menos que `--force`, e o `validate` na raiz avisa de uma change que
+nomeia uma entrega que não roteia o projeto dela. Um repositório que mudou
+de lugar é reportado como tal, com `workspace attach --path`. Uma change
+cujas tarefas ainda são os placeholders do scaffold volta para
+`doctrina work --resume <id>`, nunca sai como cartão.
+O `status` imprime, para cada change aberta com tarefas
 pendentes, o comando que lê o próximo cartão de dentro do repositório dela,
 e nomeia toda outra change aberta num repositório roteado — um segundo
 escritor a sequenciar, um escritor por repositório de cada vez. O `tick`

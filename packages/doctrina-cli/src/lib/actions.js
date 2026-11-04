@@ -4,6 +4,7 @@ import { readdirSync } from "node:fs";
 import { isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import * as idx from "./index-json.js";
 import { deriveIndex, indexesMatch, listHeader, specHeader } from "./scan.js";
+import { checklistProgress } from "./doc-model.js";
 import { collectRuntimeFindings } from "./runtime.js";
 import { FIX_SHAPED } from "./lexicon.js";
 import { summarize as coverageSummary } from "./coverage-model.js";
@@ -215,9 +216,19 @@ export function computeActions(projectRoot, gates = {}) {
         continue;
       }
       const tasksPath = path.join(changesDir, id, "tasks.md");
-      const unchecked = isFile(tasksPath)
-        ? (read(tasksPath).match(/^-\s+\[ \]/gm) ?? []).length
-        : 0;
+      const progress = isFile(tasksPath) ? checklistProgress(read(tasksPath)) : { total: 0, done: 0, open: [], placeholders: 0 };
+      const unchecked = progress.total - progress.done;
+      if (progress.placeholders > 0) {
+        // Scaffold boxes are not open work (third audit, change 0234): "complete 3
+        // open tasks" sent an agent to do work no one had written down.
+        actions.push(action({
+          id: "change-tasks-unwritten",
+          command: "work",
+          args: ["--resume", id],
+          why: `write the ${unchecked} open task${unchecked === 1 ? "" : "s"} in .doctrina/changes/${id}/tasks.md first — ${progress.placeholders === unchecked ? (unchecked === 1 ? "it is" : "all are") : `${progress.placeholders} are`} still the scaffold's placeholder${progress.placeholders === 1 ? "" : "s"}, and the delta with them`,
+        }));
+        continue;
+      }
       if (unchecked > 0) {
         // Deliberately NOT runnable, and deliberately without a command:
         // the only thing that clears this is doing the work. `change tick`

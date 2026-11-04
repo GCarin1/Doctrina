@@ -10,6 +10,7 @@ import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
 import { readDelivery, resolveDeliveryId, sectionText } from "../lib/delivery.js";
+import { parseLedger } from "../lib/ledger.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
@@ -443,6 +444,11 @@ function nextChangeNumber(projectRoot) {
       harvest(entry.replace(/^\d{4}-\d{2}-\d{2}-/, ""));
     }
   }
+  // An abandoned change leaves no folder, only its ledger line (third audit,
+  // change 0234): its number was handed out again, and the ledger then named
+  // two different changes by one id — the abandoned part of a delivery among them.
+  const ledger = path.join(archiveDir, "LEDGER.md");
+  if (isFile(ledger)) for (const e of parseLedger(read(ledger)).entries) harvest(e.id);
   return String(max + 1).padStart(4, "0");
 }
 

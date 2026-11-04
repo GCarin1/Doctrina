@@ -1,9 +1,10 @@
 // @ts-check
 import path from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
+import { git, GIT_STATE } from "./git.js";
 import { isDir, isFile, read } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
-import { absorbCommand, findWorkspace, projectAt, projectState, readWorkspace, linkPlan, shadowDirOf } from "./workspace.js";
+import { absorbCommand, findWorkspace, pointerPath, projectAt, projectState, readWorkspace, linkPlan, shadowDirOf } from "./workspace.js";
 import { deliveryBlockers, deliveryChanges, listDeliveries, rankProjects, readDelivery, releaseBoxes } from "./delivery.js";
 
 // THE WORKSPACE ROOT IS WHERE THE PLANNER WORKS (change 0230).
@@ -69,13 +70,24 @@ export function workspaceActions(snap) {
     }
     let moved = false;
     for (const row of rows) {
-      if (row.missing) continue;
+      if (row.missing || row.absent) continue;
+      if (row.changes.length === 0 && row.abandoned?.length) {
+        const a = row.abandoned[row.abandoned.length - 1];
+        out.push({ text: `${row.project}'s change ${a.id} for ${d.id} was abandoned${a.reason ? ` (${a.reason})` : ""} — re-route the delivery without ${row.project}, or open a new change there`, command: `doctrina delivery route ${d.id} ${d.projects.filter((n) => n !== row.project).join(",") || "<a,b>"}` });
+        moved = true;
+        continue;
+      }
       if (row.changes.length === 0) {
         out.push({ text: `${row.project} carries no change for ${d.id}`, command: `cd ${row.path} && doctrina work "${d.title}" --delivery ${d.id}` });
         moved = true;
         continue;
       }
       for (const ch of row.changes.filter((x) => !x.archived)) {
+        if (ch.placeholders > 0) {
+          out.push({ text: `${row.project}: ${ch.id} still holds the scaffold's placeholder tasks — write its delta and its tasks as cards before handing one out`, command: `cd ${row.path} && doctrina work --resume ${ch.id}` });
+          moved = true;
+          continue;
+        }
         out.push(ch.tasksDone < ch.tasksTotal
           ? { text: `${row.project}: ${ch.id} has ${ch.tasksTotal - ch.tasksDone} task${ch.tasksTotal - ch.tasksDone === 1 ? "" : "s"} left — hand the next card to an executor`, command: `cd ${row.path} && doctrina change card ${ch.id}` }
           : { text: `${row.project}: ${ch.id} has every task ticked — review and close it`, command: `cd ${row.path} && doctrina close ${ch.id}` });
@@ -132,6 +144,21 @@ export function workspaceFindings(snap) {
     if (unlinked.length > 0) errors.push(`shadow ${p.project.name}: ${unlinked.length} link${unlinked.length === 1 ? "" : "s"} missing from the repository — \`doctrina workspace attach ${p.project.name}\``);
     if (conflicts.length > 0) warnings.push(`shadow ${p.project.name}: the repository has its own ${conflicts.map((l) => l.rel).slice(0, 3).join(", ")} where a link would go`);
   }
+  // An in-repo project owns its hook files, so the workspace does not write
+  // them (third audit, change 0234): say when they leave the declared tools
+  // unguarded for a session opened in that repository.
+  if (snap.ws.tools.length > 0) {
+    for (const p of snap.projects) {
+      if (p.project.mode !== "in-repo" || p.state === "missing") continue;
+      for (const [dir, file] of [[".cursor", "hooks.json"], [".claude", "settings.json"]]) {
+        if (!isDir(path.join(p.project.path, dir))) continue;
+        const f = path.join(p.project.path, dir, file);
+        if (!isFile(f) || !read(f).includes("doctrina workspace guard")) {
+          warnings.push(`project ${p.project.name} is in-repo and its ${dir}/${file} runs no \`doctrina workspace guard\` — the tools the workspace declares are unguarded in a session opened there; copy the guard entry from the workspace root's ${dir}/${file}`);
+        }
+      }
+    }
+  }
   // A dependency the manifests declare and the registry does not (second
   // audit, change 0233): `delivery route` orders projects by --depends-on, so
   // a front end that imports the shared library's package but was registered
@@ -151,6 +178,14 @@ export function workspaceFindings(snap) {
     if (!["open", "closed"].includes(status)) errors.push(`delivery ${d.id}: Status must be open or closed (got "${status}")`);
     for (const name of d.projects) if (!names.has(name)) errors.push(`delivery ${d.id} routes "${name}", which the workspace does not register`);
     if (status === "closed" && !listHeader(d.text, "Closed")) warnings.push(`delivery ${d.id} is closed with no Closed date`);
+    // A change that names this delivery from a project it does not route
+    // (change 0234): no status, check or close of the delivery counts it.
+    const outside = snap.ws.projects.map((p) => p.name).filter((n) => !d.projects.includes(n));
+    for (const row of deliveryChanges(snap.wsDir, snap.ws, { ...d, projects: outside })) {
+      for (const ch of row.changes.filter((x) => !x.archived)) {
+        warnings.push(`${row.project}'s change ${ch.id} names delivery ${d.id}, which does not route ${row.project} — route it back (\`doctrina delivery route ${d.id} ${[...d.projects, row.project].join(",")}\`) or close the change outside it`);
+      }
+    }
   }
   if (!isFile(path.join(snap.wsDir, "AGENTS.md"))) warnings.push("the workspace has no AGENTS.md hub — any workspace write regenerates it");
   return { errors, warnings };
@@ -170,6 +205,7 @@ export function workspaceHandoff(snap, date) {
     L.push(`### ${d.id} — ${d.title}${d.ref && d.ref !== "—" ? ` (${d.ref})` : ""}`, "");
     for (const row of rows) {
       if (row.missing) { L.push(`- ${row.project}: ${row.missing}`); continue; }
+      if (row.changes.length === 0 && row.abandoned?.length) { L.push(`- ${row.project}: ${row.abandoned.map((a) => `${a.id} abandoned${a.reason ? ` (${a.reason})` : ""}`).join(", ")} — no change left`); continue; }
       if (row.changes.length === 0) { L.push(`- ${row.project}: no change yet`); continue; }
       for (const ch of row.changes) L.push(`- ${row.project}: ${ch.id} — ${ch.status}, tasks ${ch.tasksDone}/${ch.tasksTotal}`);
     }
@@ -250,4 +286,47 @@ function packageFacts(dir) {
   } catch {
     return null;
   }
+}
+
+/**
+ * A clone of a SHADOWED repository at another path (third audit, change
+ * 0234): it has no `.doctrina/` — the links live in the registered clone —
+ * so every command answered "run `doctrina init`", which would plant a
+ * `.doctrina/` in a repository that may not carry one. Matched by the git
+ * remote: the clone's origin is the registered clone, or both share an origin.
+ * @returns {{ wsDir: string, name: string, path: string } | null}
+ */
+export function shadowedCloneAt(cwd) {
+  if (existsSync(path.join(cwd, ".doctrina"))) return null;
+  // The pointer route finds a workspace only for a REGISTERED path; a clone
+  // elsewhere is exactly what it cannot match, so the pointer is read here.
+  const pointed = isFile(pointerPath()) ? read(pointerPath()).trim() : "";
+  const found = findWorkspace(cwd) ?? (pointed && isFile(path.join(pointed, "workspace.json")) ? { dir: pointed } : null);
+  if (!found) return null;
+  const origin = (/** @type {string} */ dir) => {
+    const r = git(dir, ["remote", "get-url", "origin"]);
+    return r.state === GIT_STATE.OK ? r.stdout.trim().replace(/\.git$/, "").replace(/\/+$/, "") : null;
+  };
+  const real = (/** @type {string} */ p) => {
+    try {
+      return realpathSync(p);
+    } catch {
+      return path.resolve(p);
+    }
+  };
+  const mine = origin(cwd);
+  if (!mine) return null;
+  let ws;
+  try {
+    ws = readWorkspace(found.dir);
+  } catch {
+    return null;
+  }
+  for (const p of ws.projects.filter((x) => x.mode === "shadow")) {
+    if (real(p.path) === real(cwd)) continue;
+    const theirs = isDir(p.path) ? origin(p.path) : null;
+    const local = !/^[a-z][a-z0-9+.-]*:\/\/|^[^/\\]+@[^:]+:/i.test(mine) && isDir(path.resolve(cwd, mine)) && real(path.resolve(cwd, mine)) === real(p.path);
+    if (local || (theirs && theirs === mine)) return { wsDir: found.dir, name: p.name, path: p.path };
+  }
+  return null;
 }

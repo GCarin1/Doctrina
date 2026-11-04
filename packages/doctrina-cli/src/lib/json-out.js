@@ -71,12 +71,14 @@ export function deferJson() {
  * Write the held payload with the exit code the command actually returned,
  * and leave deferred mode. A no-op when the command emitted nothing.
  */
+/** Write the held payload; false when the command held none. */
 export function flushJson(code) {
   deferring = false;
-  if (!held) return;
+  if (!held) return false;
   const { command, data } = held;
   held = null;
   writeEnvelope(command, data, { ok: code === EXIT.OK, exitCode: code });
+  return true;
 }
 
 // Print a structured payload. `command` is the invocation, `data` whatever
@@ -165,6 +167,12 @@ export async function captureOutput(fn) {
   try {
     const code = await fn();
     return { code: code ?? EXIT.OK, stdout, stderr };
+  } catch (err) {
+    // A thrown precondition still answers inside the envelope (change 0234):
+    // it escaped as English on stderr, with no JSON on stdout at all.
+    stderr.push(`error: ${err?.message ?? err}`);
+    if (err?.remedy) stderr.push(`hint: run ${err.remedy} first, then retry`);
+    return { code: err?.exitCode ?? EXIT.GATE, stdout, stderr, error: err };
   } finally {
     console.log = origLog;
     console.error = origError;

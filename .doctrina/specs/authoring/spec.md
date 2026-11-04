@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.34.0
+**Version:** 0.35.0
 
 ## Purpose
 
@@ -53,6 +53,7 @@ keep the checks and the read path.
 - The system shall let a MODIFIED delta take a requirement or an acceptance criterion out — `remove-requirement <section> <n>` and `remove-criterion <n>`, the criteria after a removed one renumbered — and every op that replaces or removes an item shall take it whole, continuation lines included.
 - The system shall keep the line ending a change file already uses when `change tick` ticks its boxes or `work` writes its Why, its pinned capability or its `Delivery:` line, so a CRLF checkout does not see every line of the file change.
 - The system shall print, in the bootstrap and absorb playbooks, the rules that keep a spec to what its source states — no requirement without the intake sentence or the code that does it, numbers and messages verbatim, a contradiction or a missing value as a question — and a step that checks the facts before the gates: the bootstrap rereads the intake sentence by sentence, the absorb hands each spec to a reader that did not write it.
+- The system shall number a new change past every id the ledger records, abandoned ones included.
 
 ### Event-driven
 
@@ -273,6 +274,7 @@ keep the checks and the read path.
 - When `doctrina work --resume <change> --delivery <id>` runs on a change that carries no delivery, the system shall write `- **Delivery:** <id>` into its proposal; on a change that already belongs to another delivery it shall refuse with the precondition class.
 - When `doctrina intake` runs with no source and the stored pending intake is a code inventory, the system shall print the absorb playbook, never the bootstrap one.
 - When `work --delivery` ranks the capabilities a change may touch, the system shall rank them by the prompt and the delivery's `## Story` together.
+- When `change abandon` deletes a change whose proposal names a delivery, the system shall record `(delivery <id>)` on its ledger line.
 
 ### Unwanted-behavior (must-not)
 
@@ -373,6 +375,7 @@ The authoring commands are v0 spec-compliant when:
 58. [verified] a watching script is listed as not seeded, and the flags that make a runner return are seeded — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 59. [verified] a bare `intake` reprints the absorb playbook for a stored inventory, its workspace step numbered after step 9 — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 60. [verified] a delivery's story ranks the capability its title does not name — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+61. [verified] the ledger keeps the abandoned change's delivery and its number is not reused — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 
 ## Out of scope for this spec
 

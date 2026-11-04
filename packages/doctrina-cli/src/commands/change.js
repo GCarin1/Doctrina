@@ -6,7 +6,7 @@ import { eolOf, exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, r
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
-import { archivedChangeEntry, deriveIndex } from "../lib/scan.js";
+import { archivedChangeEntry, deriveIndex, listHeader } from "../lib/scan.js";
 import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gates.js";
@@ -796,13 +796,22 @@ async function changeAbandon(args, flags) {
 
   const reason = flagString(flags, "reason") ?? "";
   const date = today();
+  // The delivery it belonged to stays on record (third audit, change 0234):
+  // the proposal that carried it is deleted, and the delivery's status went
+  // back to "no change yet", as if the planner had never decided anything.
+  const proposalFile = path.join(changeDir, "proposal.md");
+  const delivery = isFile(proposalFile) ? (listHeader(read(proposalFile), "Delivery") ?? "").trim() : "";
+  const recorded = delivery ? `${reason ? `${reason} ` : ""}(delivery ${delivery})` : reason;
 
   remove(changeDir);
   console.log(c.green("removed") + ` ${relPath(projectRoot, changeDir)}`);
 
   // Ledger line so the abandonment is part of the visible history.
-  const ledgerFile = appendLedgerLine(projectRoot, abandonedLine(id, reason, date));
+  const ledgerFile = appendLedgerLine(projectRoot, abandonedLine(id, recorded, date));
   console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
+  if (delivery) {
+    console.log(c.gray("hint: ") + `it was this repository's part of delivery ${delivery} — from the workspace, re-route the delivery without this repository (\`doctrina delivery route ${delivery} <the others>\`) or open a new change here with \`doctrina work "<title>" --delivery ${delivery}\``);
+  }
 
   // Drop the change entry; rebuild from the tree so nothing drifts.
   const current = idx.load(projectRoot);

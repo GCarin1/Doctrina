@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/lib/workspace-view.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.5.0
+**Version:** 0.6.0
 
 ## Purpose
 
@@ -30,6 +30,7 @@ single-repository cycle it always ran.
 - The system shall keep a shadow project's artifacts under `<workspace>/projects/<name>/` and never commit anything into the shadowed repository.
 - The system shall find the workspace from `$DOCTRINA_WORKSPACE`, else the current directory or an ancestor holding `workspace.json`, else the real path of a shadow's `.doctrina` link, else the pointer `workspace init` wrote under `$DOCTRINA_HOME` (default `~/.doctrina`) when that workspace lists the current directory.
 - The system shall name no tool product as the default in its own output: a workspace with no tool declared is pointed at `doctrina workspace tool <name> --server <mcp-server> --for <roles>`, with the presets listed as presets.
+- The system shall write the `doctrina workspace guard` hook into the Cursor and Claude Code hook files of every shadowed project, beside the workspace root's.
 
 ### Event-driven
 
@@ -52,6 +53,8 @@ single-repository cycle it always ran.
 - When a registered project's intake is stored and still pending, the system shall name `doctrina intake` to resume its absorb at the workspace root, never `--from-code`, which refuses it.
 - When `doctrina validate` runs at a workspace root and a project's `package.json` depends on the package another registered project publishes without a `dependsOn` edge to it, the system shall warn and name `doctrina workspace attach <name> --depends-on <a,b>`.
 - When `doctrina workspace attach <name> --depends-on <a,b>` runs, the system shall replace the project's `dependsOn` with the registered names given, and refuse with exit 2 a name that is not another registered project.
+- When `doctrina validate` runs at a workspace root that declares tools, the system shall warn of each in-repo project whose `.cursor/hooks.json` or `.claude/settings.json` runs no `doctrina workspace guard`.
+- When a command finds no `.doctrina/` in a clone of a repository the workspace shadows elsewhere, the system shall name `doctrina workspace attach <name> --path <clone>` from the workspace, and `doctrina init` shall refuse with exit 3 unless `--force`.
 
 ### Unwanted behavior
 
@@ -75,6 +78,8 @@ A workspace is spec-compliant when:
 11. [verified] `handoff`, `status` (and `--json`), `validate` and `context --for` answer at the root, validate finding a missing shadow link and a delivery routed to an unregistered project, `prime` in a repository names its workspace and open delivery, and the generated hub names `next` and `handoff` — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 12. [verified] the root's `next` resumes a stored inventory with a bare `intake` — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 13. [verified] an undeclared package dependency warns at the root, and `attach --depends-on` clears it — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+14. [verified] a shadow's hooks run the guard, and an unguarded in-repo project is named — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+15. [verified] a second clone of a shadowed repository is pointed at attach, and init plants nothing there — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 
 ## Out of scope for this spec
 

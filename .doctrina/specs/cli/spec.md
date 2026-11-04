@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.60.0
+**Version:** 0.61.0
 
 ## Purpose
 
@@ -133,6 +133,7 @@ command shares (git, the lexicon, the usage log).
 - When an invocation names an operation removed from the catalog, the system shall run nothing and answer with the usage class, naming the version that removed it and the command that replaces it — in the `--json` envelope too — rather than "unknown command" and a guess.
 - When `doctrina next` runs at a workspace root, the system shall answer with the workspace's next actions, as the workspace spec states, and shall not recommend `doctrina init` there.
 - When `doctrina next` runs inside a project that an open workspace delivery is routed to, the system shall name `doctrina work "<title>" --delivery <id>` while the project has no change for it, and the workspace's `doctrina next` once every change it has for it is archived.
+- When a command run with `--json` stops before it builds its payload, the system shall still print the JSON envelope with `ok: false`, the exit code and an `error` field.
 
 ### State-driven
 
@@ -174,6 +175,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not reinterpret a malformed flag value as a different request: a count that is not digits above zero, a `metrics --since` window that is not a day count, a real calendar date or "<n> <unit>s ago", and a negative number given to a value-taking flag are refused with the usage class, naming the value, because git reads any text as a date and a truncated number runs as a request nobody made.
 - The system shall not point an applied change, or a change with no delta, at `change archive` or `change apply` from `next`: the action is `doctrina close <id>`, which `next --run` can execute.
 - The system shall not tell an agent, in the generated command surface, to run `triage` before `work`: `work` classifies the lane itself, and `triage` is reached for when diagnosing an incident.
+- The system shall not tell `doctrina next` readers to complete the open tasks of a change whose tasks are the scaffold's placeholders.
 
 ### Optional
 
@@ -264,6 +266,7 @@ The CLI is v0 spec-compliant when:
 53. [verified] Every flag a command declares is described in that command's help — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
 54. [verified] `next` at a workspace root never names init, and outside any workspace and project still does — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 55. [verified] `next` in a repository names the delivery routed to it, then sends the planner back to the workspace — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+56. [verified] a failing command answers in the JSON envelope — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 
 ## Out of scope for this spec
 

@@ -2,7 +2,8 @@
 import path from "node:path";
 import { isFile, read, relPath, toPosix, write } from "./fs-ops.js";
 import { mergeJson } from "./adapters.js";
-import { absorbCommand, projectState } from "./workspace.js";
+import { absorbCommand, projectState, shadowDirOf } from "./workspace.js";
+import { isDir } from "./fs-ops.js";
 
 // The ORCHESTRATOR's files, generated at the workspace root from
 // workspace.json (change 0223, ADR 0031) — what Cursor or Claude Code read
@@ -258,5 +259,21 @@ export function writeOrchestratorFiles(ws, wsDir, states) {
   put(".claude/settings.json", mergedJson(path.join(wsDir, ".claude", "settings.json"), CLAUDE_SETTINGS));
   for (const role of agentRoles(ws)) put(`.claude/agents/doctrina-${role}.md`, agentFile(ws, role));
   put(`${ws.name}.code-workspace`, codeWorkspace(ws, wsDir));
+  // The guard inside every shadow too (third audit, change 0234). It was
+  // installed at the root only, and an executor works INSIDE the repository
+  // (ADR 0030): Cursor and Claude Code read that folder's own hook files, so
+  // every MCP call an executor made there went through no guard at all.
+  for (const p of ws.projects.filter((x) => x.mode === "shadow")) {
+    const shadow = shadowDirOf(wsDir, p.name);
+    const rel = relPath(wsDir, shadow);
+    if (isDir(path.join(shadow, ".cursor"))) put(`${rel}/.cursor/hooks.json`, mergedJson(path.join(shadow, ".cursor", "hooks.json"), GUARD_HOOKS.cursor));
+    if (isDir(path.join(shadow, ".claude"))) put(`${rel}/.claude/settings.json`, mergedJson(path.join(shadow, ".claude", "settings.json"), GUARD_HOOKS.claude));
+  }
   return out;
 }
+
+/** The guard's own hook entries — what a shadow's hook files need beside their session hook. */
+export const GUARD_HOOKS = {
+  cursor: { version: 1, hooks: { beforeMCPExecution: CURSOR_HOOKS.hooks.beforeMCPExecution } },
+  claude: { hooks: { PreToolUse: CLAUDE_SETTINGS.hooks.PreToolUse } },
+};

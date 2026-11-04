@@ -19,6 +19,29 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The third audit broke the multi-repo flow on purpose and fixed how it
+  failed:
+  - the MCP guard ran at the workspace root only; an executor works inside
+    the repository, whose own hook files Cursor and Claude Code read, so its
+    calls through a read-only tool were never checked. Every shadow's hook
+    files now run it, and `validate` at the root names an in-repo project
+    whose hooks do not;
+  - a change whose tasks were still the scaffold's placeholders was counted
+    as "3 tasks left — hand the next card", and `change card` answered
+    "every task is ticked — ready to close"; both now send the planner to
+    write the tasks;
+  - a change abandoned inside a delivery vanished from it ("no change yet");
+    the ledger now keeps `(delivery <id>)`, the delivery shows it abandoned
+    and proposes the re-route, and a new change never reuses its number;
+  - `delivery route` dropped a project carrying an open change for the
+    delivery, orphaning it; it refuses without `--force`, and `validate`
+    warns of an orphan;
+  - a repository that moved got a `cd` into its old path;
+  - a second clone of a shadowed repository was told to `doctrina init`;
+    `next`, the error and `init` itself name `workspace attach --path`;
+  - `--json` on a command that failed before building its payload printed
+    English only; it now answers with the envelope and an `error`, and
+    `delivery status --json` builds a real payload.
 - The second audit walked a workspace of four repositories — a shared
   front-end library, the web shop importing it, the API and the mobile app —
   from the absorb to the delivery's close, and fixed what went wrong:

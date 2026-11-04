@@ -3,6 +3,7 @@ import process from "node:process";
 import { eolOf, read, relPath, withEol, write } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
+import { emitJson } from "../lib/json-out.js";
 import { suggest } from "../lib/suggest.js";
 import { today } from "../lib/dates.js";
 import { EXIT, PreconditionError } from "../lib/exit-codes.js";
@@ -21,6 +22,8 @@ import {
 const SUBCOMMANDS = ["new", "route", "list", "status", "tick", "check", "close"];
 
 export const flags = { boolean: ["json", "all", "force"], string: ["ref", "projects", "date"] };
+// `delivery status` builds its own payload (change 0234); the rest answer in the envelope.
+export const jsonNative = (/** @type {string[]} */ args) => args[0] === "status";
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -46,7 +49,7 @@ export async function run(positional, flags) {
   }
   if (sub === "route") return deliveryRoute(wsDir, ws, id, positional[2] ?? flagString(flags, "projects"), flags);
   if (sub === "tick") return deliveryTick(wsDir, id, positional.slice(2), flags);
-  if (sub === "status") return deliveryStatus(wsDir, ws, id);
+  if (sub === "status") return deliveryStatus(wsDir, ws, id, flagBool(flags, "json", false));
   if (sub === "check") return deliveryCheck(wsDir, ws, id);
   return deliveryClose(wsDir, ws, id, flags);
 }
@@ -132,15 +135,34 @@ function deliveryRoute(wsDir, ws, id, raw, flags) {
     return EXIT.USAGE;
   }
   if (refuseUnroutable(wsDir, ws, names, flags)) return EXIT.PRECONDITION;
+  // Routing a project OUT while it carries an open change for the delivery
+  // (third audit, change 0234) orphaned the change: it kept its Delivery
+  // header, the delivery stopped seeing it, and the delivery could close
+  // around work still in flight.
+  const before = readDelivery(wsDir, id);
+  const dropped = before.projects.filter((n) => !names.includes(n));
+  const carrying = deliveryChanges(wsDir, ws, { ...before, projects: dropped })
+    .flatMap((row) => row.changes.filter((ch) => !ch.archived).map((ch) => ({ project: row.project, id: ch.id })));
+  if (carrying.length > 0 && !flagBool(flags, "force", false)) {
+    for (const x of carrying) {
+      console.error(c.red("error:") + ` ${x.project} carries ${x.id} for ${id} — routing it out would orphan the change`);
+    }
+    console.error(c.gray("hint: ") + `close or abandon it there first (\`doctrina change abandon <id> --reason "<why>" --force\`), or pass --force to route it out anyway`);
+    return EXIT.PRECONDITION;
+  }
   const ordered = dependencyOrder(ws, names);
   setDeliveryHeader(wsDir, id, "Projects", ordered.join(", "));
   const d = readDelivery(wsDir, id);
   console.log(c.green("routed") + ` ${id} → ${ordered.join(" → ")}` + c.gray(" (dependencies first)"));
+  for (const x of carrying) console.log(c.yellow("warn") + ` ${x.project}'s ${x.id} still names ${id} in its Delivery header — routed out with --force`);
   console.log("");
+  const rows = deliveryChanges(wsDir, ws, d);
   console.log("Open one change in each, in this order:");
   for (const name of ordered) {
     const p = ws.projects.find((x) => x.name === name);
-    console.log("  " + c.cyan(`cd ${p?.path} && doctrina work "${d.title}" --delivery ${id}`));
+    const has = rows.find((r) => r.project === name)?.changes ?? [];
+    if (has.length > 0) console.log("  " + c.gray(`${name} already carries ${has.map((ch) => ch.id).join(", ")}`));
+    else console.log("  " + c.cyan(`cd ${p?.path} && doctrina work "${d.title}" --delivery ${id}`));
   }
   return EXIT.OK;
 }
@@ -169,20 +191,39 @@ function deliveryList(wsDir, ws) {
   return EXIT.OK;
 }
 
-function deliveryStatus(wsDir, ws, id) {
+function deliveryStatus(wsDir, ws, id, json = false) {
   const d = readDelivery(wsDir, id);
+  // A structured payload for the planner's loop (third audit, change 0234):
+  // the envelope's text lines were all an agent got to branch on.
+  if (json) {
+    emitJson("delivery status", {
+      id: d.id, title: d.title, ref: d.ref, status: d.status, date: d.date ?? null, projects: d.projects,
+      rows: deliveryChanges(wsDir, ws, d).map((r) => ({
+        project: r.project, path: r.path ?? null, missing: r.missing ?? null, absent: r.absent ?? false,
+        changes: r.changes, abandoned: r.abandoned ?? [],
+      })),
+      otherWriters: otherWriters(wsDir, ws, d),
+      release: releaseBoxes(d.text).map(({ ordinal, checked, text }) => ({ ordinal, checked, text })),
+      blockers: deliveryBlockers(wsDir, ws, d),
+    });
+    return EXIT.OK;
+  }
   console.log(c.bold(`Delivery ${d.id}`) + ` — ${d.title}` + c.gray(` (${d.status}, ref ${d.ref}, opened ${d.date ?? "?"})`));
   console.log("");
   for (const row of deliveryChanges(wsDir, ws, d)) {
     console.log(`  ${c.cyan(row.project)}${row.path ? c.gray(" " + row.path) : ""}`);
     if (row.missing) console.log(c.red(`    ${row.missing}`));
+    // A repository that moved: a `cd` into its old path fails (change 0234).
+    else if (row.absent) console.log(c.red("    repository not at its path") + c.gray(` — doctrina workspace attach ${row.project} --path <dir>`));
+    else if (row.changes.length === 0 && row.abandoned?.length) console.log(c.yellow(`    abandoned ${row.abandoned.map((a) => a.id).join(", ")}`) + c.gray(` — re-route without ${row.project}, or cd ${row.path} && doctrina work "${d.title}" --delivery ${d.id}`));
     else if (row.changes.length === 0) console.log(c.yellow("    no change yet") + c.gray(` — cd ${row.path} && doctrina work "${d.title}" --delivery ${d.id}`));
     for (const ch of row.changes) {
       const colour = ch.archived ? c.green : c.yellow;
       console.log(`    ${colour(ch.status.padEnd(9))} ${ch.id}` + c.gray(`  tasks ${ch.tasksDone}/${ch.tasksTotal}`));
       // The card is read from inside the repository (change 0226): from the
       // workspace root there is no .doctrina/ to read it from.
-      if (!ch.archived && ch.tasksDone < ch.tasksTotal) console.log(c.gray(`              next card: cd ${row.path} && doctrina change card ${ch.id}`));
+      if (!ch.archived && ch.placeholders > 0) console.log(c.gray(`              tasks not written yet (placeholders): cd ${row.path} && doctrina work --resume ${ch.id}`));
+      else if (!ch.archived && ch.tasksDone < ch.tasksTotal) console.log(c.gray(`              next card: cd ${row.path} && doctrina change card ${ch.id}`));
     }
   }
   const others = otherWriters(wsDir, ws, d);
@@ -287,6 +328,8 @@ from those changes, never copied into it.
       Set the projects (dependencies first) and print the \`work\` line for each.
       A project still pending (no spec) or missing is refused — absorb it with
       \`doctrina intake --from-code\` first, or pass --force.
+      Dropping a project that carries an open change for the delivery is
+      refused too — close or abandon the change there first, or --force.
   list
       Every delivery with its status, ref, closed/total changes and age —
       lead time once closed, with the median over the closed ones.
@@ -294,6 +337,7 @@ from those changes, never copied into it.
       Per project: the changes carrying this delivery, their state and tasks,
       the command that reads the next task card, and any other open change
       in the same repository — one writer per repository at a time.
+      --json: the same as a payload (rows, release boxes, blockers).
   tick <id> [<n>... | --all]
       List the ## Release boxes, or tick them: they are claims the check
       holds you to, so they are ticked through the CLI.

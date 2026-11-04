@@ -8,6 +8,7 @@ import { cliVersion } from "./lib/version.js";
 import { surfaceHelp, OPERATIONS, deprecationFor, removalFor } from "./lib/commands.js";
 import { GLOBAL_FLAGS } from "./lib/flag-catalog.js";
 import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
+import { shadowedCloneAt } from "./lib/workspace-view.js";
 import { recordUsage, operationOf } from "./lib/usage.js";
 import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation, deferJson, flushJson } from "./lib/json-out.js";
 
@@ -207,12 +208,13 @@ async function main(argv) {
       ? command.jsonNative(positional.slice(1))
       : command.jsonNative === true;
     if (wantsJson(flags) && !jsonNative) {
-      const { code, stdout, stderr } = await captureOutput(
+      const { code, stdout, stderr, error } = await captureOutput(
         () => command.run(positional.slice(1), flags),
       );
       emitJson(operationName(positional), {
         stdout: stdout.map(stripAnsi),
         stderr: stderr.map(stripAnsi),
+        ...(error ? { error: String(error.message ?? error) } : {}),
       }, { ok: code === EXIT.OK, exitCode: code, args: operationArgs(positional) });
       return code;
     }
@@ -222,27 +224,49 @@ async function main(argv) {
     if (wantsJson(flags)) {
       deferJson();
       let code = EXIT.OK;
+      let thrown = null;
       try {
         code = (await command.run(positional.slice(1), flags)) ?? EXIT.OK;
-      } finally {
-        flushJson(code);
+      } catch (err) {
+        thrown = err;
+        code = err.exitCode ?? EXIT.GATE;
       }
+      // A native command that failed before building its payload still
+      // answers in JSON (third audit, change 0234): "not a Doctrina project"
+      // or an unknown delivery printed English only, and a loop parsing the
+      // payload read nothing at all.
+      if (!flushJson(code)) {
+        emitJson(operationName(positional), {
+          error: thrown ? String(thrown.message) : "the command stopped before it built its payload — stderr says why",
+          ...(thrown?.remedy ? { remedy: thrown.remedy } : {}),
+        }, { ok: code === EXIT.OK, exitCode: code, args: operationArgs(positional) });
+      }
+      if (thrown) reportError(thrown, flags);
       return code;
     }
     return await command.run(positional.slice(1), flags);
   } catch (err) {
-    console.error(c.red("error:") + ` ${err.message}`);
-    if (err.remedy) {
-      console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
-    }
-    if (flags.get("debug") && err.stack) {
-      console.error(c.gray(err.stack));
-    }
-    // A typed error carries its own class (precondition vs environment).
-    // An untyped throw is an unexpected failure of the work itself, which
-    // is the GATE class: something is wrong here, fix it and retry (C7).
-    return err.exitCode ?? EXIT.GATE;
+    return reportError(err, flags);
   }
+}
+
+/** The human report of a thrown error, and the exit class it carries. */
+function reportError(err, flags) {
+  console.error(c.red("error:") + ` ${err.message}`);
+  // A clone of a shadowed repository is not a project to init (change 0234).
+  const clone = /^not a Doctrina project/.test(String(err.message)) ? shadowedCloneAt(process.cwd()) : null;
+  if (clone) {
+    console.error(c.gray("hint: ") + `this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}); never \`doctrina init\` here — to work from this clone, link its context from the workspace: ${c.cyan(`cd ${clone.wsDir} && doctrina workspace attach ${clone.name} --path ${process.cwd()}`)}`);
+  } else if (err.remedy) {
+    console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
+  }
+  if (flags.get("debug") && err.stack) {
+    console.error(c.gray(err.stack));
+  }
+  // A typed error carries its own class (precondition vs environment).
+  // An untyped throw is an unexpected failure of the work itself, which
+  // is the GATE class: something is wrong here, fix it and retry (C7).
+  return err.exitCode ?? EXIT.GATE;
 }
 
 // The OPERATION an invocation names, and the arguments it carries — the two

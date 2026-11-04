@@ -4,6 +4,7 @@ import path from "node:path";
 import { eolOf, isDir, isFile, read, withEol, write } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
 import { checklistProgress, maskComments, parseChecklist, setHeader } from "./doc-model.js";
+import { parseLedger } from "./ledger.js";
 import { terms } from "./lexicon.js";
 import { slugify, padNumber } from "./dates.js";
 import { artifactRootOf, projectState } from "./workspace.js";
@@ -138,16 +139,26 @@ export function deliveryChanges(wsDir, ws, delivery) {
         const text = read(proposal);
         if ((listHeader(text, "Delivery") ?? "").trim() !== delivery.id) continue;
         const tasks = path.join(dir, entry, "tasks.md");
-        const progress = isFile(tasks) ? checklistProgress(read(tasks)) : { total: 0, done: 0 };
+        const progress = isFile(tasks) ? checklistProgress(read(tasks)) : { total: 0, done: 0, placeholders: 0 };
         changes.push({
           id: archived ? entry.replace(/^\d{4}-\d{2}-\d{2}-/, "") : entry,
           archived,
           status: archived ? "archived" : (listHeader(text, "Status") ?? "proposed").toLowerCase(),
           tasksDone: progress.done, tasksTotal: progress.total,
+          // Scaffold boxes no one wrote (third audit, change 0234): counted
+          // as tasks, they read "3 tasks left — hand the next card" for a
+          // change whose card command answers that none is written.
+          placeholders: progress.placeholders ?? 0,
         });
       }
     }
-    out.push({ project: name, path: project.path, changes });
+    // Abandoned for this delivery: the ledger keeps the delivery's id (change 0234).
+    const ledger = path.join(changesDir, "archive", "LEDGER.md");
+    const abandoned = isFile(ledger)
+      ? parseLedger(read(ledger)).entries.filter((e) => e.kind === "abandoned" && new RegExp(`\\(delivery ${delivery.id}\\)\\s*$`).test(e.title))
+        .map((e) => ({ id: e.id, reason: e.title.replace(/^abandoned\s*(—\s*)?/i, "").replace(/\s*\(delivery [^)]*\)\s*$/, "") }))
+      : [];
+    out.push({ project: name, path: project.path, absent: !isDir(project.path), changes, abandoned });
   }
   return out;
 }
@@ -198,6 +209,8 @@ export function deliveryBlockers(wsDir, ws, delivery) {
   if (delivery.projects.length === 0) blockers.push("no project routed — `doctrina delivery route <id> <a,b>`");
   for (const row of deliveryChanges(wsDir, ws, delivery)) {
     if (row.missing) blockers.push(`${row.project}: ${row.missing}`);
+    else if (row.absent) blockers.push(`${row.project}: the repository is not at ${row.path} — \`doctrina workspace attach ${row.project} --path <dir>\``);
+    else if (row.changes.length === 0 && row.abandoned?.length) blockers.push(`${row.project}: its change ${row.abandoned.map((a) => a.id).join(", ")} was abandoned — re-route the delivery without ${row.project}, or open a new change there with \`doctrina work "<title>" --delivery ${delivery.id}\``);
     else if (row.changes.length === 0) blockers.push(`${row.project}: no change carries this delivery — open one there with \`doctrina work "<title>" --delivery ${delivery.id}\``);
     else for (const ch of row.changes.filter((x) => !x.archived)) {
       blockers.push(`${row.project}: change ${ch.id} is ${ch.status} (${ch.tasksDone}/${ch.tasksTotal} tasks) — close it there with \`doctrina close ${ch.id}\``);

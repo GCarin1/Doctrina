@@ -67,6 +67,10 @@ export function taskCard(projectRoot, changeId, ordinal = null) {
   let box;
   if (ordinal === null) {
     box = boxes.find((b) => !b.checked && !b.placeholder);
+    // Only scaffold boxes left is not "every task is ticked" (third audit,
+    // change 0234): the planner was told to review and close a change
+    // whose tasks no one had written.
+    if (!box && boxes.some((b) => !b.checked && b.placeholder)) return { card: null, reason: "tasks.md holds only the scaffold's placeholder boxes — write the tasks as cards first" };
     if (!box) return { card: null, reason: "every task is ticked — the change is ready for review and close" };
   } else {
     box = boxes.find((b) => b.ordinal === ordinal);

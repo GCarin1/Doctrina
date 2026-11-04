@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.13.1
+**Version:** 0.13.2
 
 ## Purpose
 

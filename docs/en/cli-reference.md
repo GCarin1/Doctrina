@@ -60,8 +60,11 @@ Every payload carries the same envelope:
 
 Two levels of support, stated rather than hidden:
 
-- **Structured** — `validate`, `status`, `next`, `coverage`, `trace` build a
-  payload describing their result, alongside the envelope fields.
+- **Structured** — `validate`, `status`, `next`, `coverage`, `trace` and
+  `delivery status` build a payload describing their result, alongside the
+  envelope fields. One that stops before building it — not a Doctrina
+  project, an unknown id — still answers with the envelope, `ok: false` and
+  an `error` field.
 - **Envelope** — every other command returns its human output as
   `stdout` / `stderr` string arrays inside the envelope, with ANSI stripped.
   Branch on `ok` and `exit_code`; the lines are there for completeness, not
@@ -75,7 +78,10 @@ change shape without a `$schema_version` bump.
 ## `doctrina init`
 
 Scaffold `AGENTS.md` and the `.doctrina/` skeleton in the current
-working directory.
+working directory. In a second clone of a repository a workspace shadows
+it refuses (exit `3`) and names `doctrina workspace attach <name> --path
+<here>`: that repository's context lives in the workspace. `next` and the
+"not a Doctrina project" error say the same; `--force` inits anyway.
 
 ```
 doctrina init [options]
@@ -598,7 +604,10 @@ doctrina change abandon 0042-add-saml --reason "superseded by 0043"
 Deletes the open change folder and its `index.json` entry, appends a
 one-line abandonment record to `.doctrina/changes/archive/LEDGER.md`
 (history keeps the trace even for work that went nowhere), and
-rebuilds the index from the tree.
+rebuilds the index from the tree. A change that belonged to a workspace
+delivery keeps it on the ledger line — `(delivery <id>)` — so the
+delivery's `status`, `check` and `next` show it as abandoned instead of
+"no change yet". A new change never reuses an abandoned change's number.
 
 | Flag | Purpose |
 |------|---------|
@@ -2516,7 +2525,10 @@ write through a read-only tool is denied, a write through a read/write
 tool asks the human, a read is allowed, and a server the workspace does
 not declare gets no opinion. A SQL statement in the call decides whether
 it writes; otherwise the verbs in the tool's name do. Bad input never
-blocks the agent.
+blocks the agent. The hook goes into each shadow's own hook files too —
+an executor works inside the repository, where Cursor and Claude Code read
+that folder's hooks; an in-repo project owns its files, so `validate` at
+the root warns when they run no guard.
 
 **Orchestrator files.** Every workspace write, and every `list`, regenerates, at its root:
 `AGENTS.md` (the planner's hub), `.cursor/rules/00-doctrina-workspace.mdc`,
@@ -2583,7 +2595,14 @@ A project still **pending** (no spec yet) or whose repository is missing is
 refused by `new --projects` and `route` with exit `3`: a change there would
 have no spec to change. Absorb it first (`doctrina intake --from-code`; once
 the inventory is stored, a bare `doctrina intake` reprints its playbook), or
-pass `--force`. `status` prints, for every open change with tasks left, the
+pass `--force`. `route` also refuses (exit `3`) to drop a project that
+carries an open change for the delivery — the change would be orphaned —
+unless `--force`, and `validate` at the root warns of a change naming a
+delivery that does not route its project. A repository that moved is
+reported as moved, with `workspace attach --path`. A change whose tasks
+are still the scaffold's placeholders is sent back to
+`doctrina work --resume <id>`, never handed out as a card.
+`status` prints, for every open change with tasks left, the
 command that reads its next card from inside its repository, and names every
 other open change in a routed repository — a second writer to sequence, one
 writer per repository at a time. `tick` lists the `## Release` boxes and
