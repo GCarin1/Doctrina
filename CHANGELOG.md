@@ -19,6 +19,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The docs gate no longer takes every UPPER_SNAKE name for an environment
+  variable. Fixing a login in a project whose error codes are MAIUSCULAS_SNAKE,
+  the close stopped asking documentation for "environment:
+  CREDENCIAIS_INVALIDAS, NOME_INDISPONIVEL". A name now counts when it is read
+  as a variable, named on a line about the environment, carries a
+  configuration suffix (`_URL`, `_TOKEN`, `_PORT`…) or sits in the project's
+  `.env.example`.
 - The cursor adapter installs the core loop as Cursor skills,
   `.cursor/skills/doctrina-*/SKILL.md` with `disable-model-invocation: true`:
   Cursor's documentation describes skills and no longer `.cursor/commands/`,

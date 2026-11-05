@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.10",
+        "version": "0.10.11",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -97,7 +97,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.53.0",
+        "version": "1.54.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -4166,6 +4166,24 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0239-o-gate-de-docs-distingue-variavel-de-ambiente-de",
+        "title": "o gate de docs distingue variavel de ambiente de constante",
+        "path": ".doctrina/changes/archive/2026-11-05-0239-o-gate-de-docs-distingue-variavel-de-ambiente-de",
+        "status": "applied",
+        "applied": "2026-11-05",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "runtime (confident; signals: vars, variavel de ambiente) — opened anyway (--force)"
       }
     ],
     "skills": [

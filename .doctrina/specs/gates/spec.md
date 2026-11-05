@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.53.0
+**Version:** 1.54.0
 
 ## Purpose
 
@@ -252,6 +252,7 @@ codes, zero-deps, no-network).
 - The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
 - The system shall not accept a `Documented surface` declaration that lies inside an HTML comment, because annotation is not something a person wrote.
 - The system shall not print the full skill-candidate listing at the end of a close: once per run, it shall name the candidate a just-closed fix-shaped change produced and count every other one, printing nothing when there is none.
+- The system shall not count an UPPER_SNAKE name in a change's text as an environment-variable signal unless the text reads it as a variable (`process.env.X`, `$X`, `X=`, `getenv`), names it on a line about the environment, it carries a configuration suffix, or the project's env example file declares it.
 
 ### Optional
 
@@ -366,6 +367,7 @@ The gate surface is spec-compliant when:
 96. [verified] `verify --init` on a polyglot repository writes each unit's test command with its `cwd`, and npm's placeholder never reaches the gate — verified by `packages/doctrina-cli/test/o-intake-le-o-projeto-inteiro.test.js`.
 97. [verified] `change check` warns of the weasel and vague words a delta writes, not of one the spec already had, and never as a failure — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
 98. [verified] a bare review counts an open change's delta as the spec update — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
+99. [verified] an error code or a constant cited by a change raises no environment signal, while a variable shown in each of those ways still does — verified by `packages/doctrina-cli/test/o-gate-de-docs-distingue-variavel-de-ambiente.test.js`.
 
 ## Out of scope for this spec
 

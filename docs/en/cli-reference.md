@@ -2088,7 +2088,12 @@ an environment variable or a config key *your* project publishes is
 surface, the same way ADR 0023 makes the runtime declared rather than
 inferred. Surface a change is *adding* is not in the contract yet, so that
 is matched by shape instead: a route, an HTTP method in front of one, an
-environment-variable identifier, a `--flag`, an exit code. A project with
+environment-variable identifier, a `--flag`, an exit code. An UPPER_SNAKE
+name counts as a variable only when something marks it as one — read the
+way code reads one (`process.env.X`, `$X`, `X=`, `getenv("X")`), on a line
+about the environment, with a configuration suffix (`_URL`, `_TOKEN`,
+`_PORT`…), or in the project's `.env.example` — so an error code or a
+constant the change cites is not surface. A project with
 no contract falls back to Doctrina's own command catalog and behaves
 exactly as it did. Outside a git repository
 the gate cannot see what moved and stays silent rather than accusing.

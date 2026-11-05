@@ -2139,7 +2139,12 @@ publica é superfície, do mesmo jeito que o ADR 0023 torna o runtime
 declarado em vez de inferido. A superfície que uma change está
 *acrescentando* ainda não está no contrato, então essa é reconhecida por
 forma: uma rota, um método HTTP diante de uma rota, um identificador de
-variável de ambiente, uma `--flag`, um código de saída. Um projeto sem
+variável de ambiente, uma `--flag`, um código de saída. Um nome em
+MAIUSCULAS_SNAKE só conta como variável quando algo o marca como tal — lido
+como o código lê uma (`process.env.X`, `$X`, `X=`, `getenv("X")`), numa
+linha que fala de ambiente, com um sufixo de configuração (`_URL`,
+`_TOKEN`, `_PORT`…) ou no `.env.example` do projeto —, então um código de
+erro ou uma constante que a change cita não é superfície. Um projeto sem
 contrato recai no catálogo de comandos do próprio Doctrina e se comporta
 exatamente como antes. Fora de um repositório git o gate não tem como ver o que mudou e
 fica em silêncio em vez de acusar. Quando recusa, a dica nomeia os lugares
