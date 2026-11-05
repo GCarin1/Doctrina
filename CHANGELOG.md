@@ -17,6 +17,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-11-05
+
+### Upgrading from 0.20
+
+`npm i -g doctrina-cli@0.21.0`, then `doctrina upgrade --write` in each
+project — it moves a Cursor install's slash commands to `.cursor/skills/`,
+in a shadowed repository through the shadow — and any workspace write (or
+`doctrina workspace list`) refreshes the orchestrator files and the shadows'
+guard hooks. The 0.20.0 on npm was published on 2026-11-03 from `004dd50`;
+everything below, merged after it, ships as this version.
+
 ### Fixed
 
 - The docs gate no longer takes every UPPER_SNAKE name for an environment

@@ -23,6 +23,28 @@ jobs:
           node-version: "20.12"
           registry-url: "https://registry.npmjs.org"
 
+      # A TAG THAT CANNOT BE PUBLISHED STOPS HERE, NOT AFTER THE GATES.
+      #
+      # v0.20.0 was tagged on a later merge while 0.20.0 was already on npm:
+      # every gate passed, two minutes in, and the publish was refused with a
+      # 403 — the registry never lets a published version be replaced. The
+      # tag must name the version package.json declares, and that version
+      # must not be on npm yet; both are checked first and said plainly.
+      - name: The tag names an unpublished version
+        shell: bash
+        run: |
+          version=$(node -p "require('./packages/doctrina-cli/package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not name packages/doctrina-cli/package.json's version (${version}) — tag the commit that bumps it, as v${version}"
+            exit 1
+          fi
+          published=$(npm view "doctrina-cli@${version}" version 2>/dev/null || true)
+          if [ -n "${published}" ]; then
+            echo "::error::doctrina-cli@${version} is already on npm, and npm never replaces a published version — bump the version, then tag that commit"
+            exit 1
+          fi
+          echo "v${version} is not on npm yet — publishing it"
+
       # The CLI ships zero RUNTIME dependencies, so this job never installed
       # anything. The typecheck gate needs TypeScript (a devDependency), and
       # a release is the last place to be running a weakened gate.
