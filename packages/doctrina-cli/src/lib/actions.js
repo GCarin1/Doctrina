@@ -4,10 +4,13 @@ import { readdirSync } from "node:fs";
 import { isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import * as idx from "./index-json.js";
 import { deriveIndex, indexesMatch, listHeader, specHeader } from "./scan.js";
+import { checklistProgress } from "./doc-model.js";
 import { collectRuntimeFindings } from "./runtime.js";
 import { FIX_SHAPED } from "./lexicon.js";
 import { summarize as coverageSummary } from "./coverage-model.js";
 import { summarize as traceSummary } from "./trace-model.js";
+import { projectWorkspaceLine } from "./workspace-view.js";
+import { cdThen, qarg } from "./shell.js";
 
 // What comes next, as DATA (change 0032).
 //
@@ -214,9 +217,19 @@ export function computeActions(projectRoot, gates = {}) {
         continue;
       }
       const tasksPath = path.join(changesDir, id, "tasks.md");
-      const unchecked = isFile(tasksPath)
-        ? (read(tasksPath).match(/^-\s+\[ \]/gm) ?? []).length
-        : 0;
+      const progress = isFile(tasksPath) ? checklistProgress(read(tasksPath)) : { total: 0, done: 0, open: [], placeholders: 0 };
+      const unchecked = progress.total - progress.done;
+      if (progress.placeholders > 0) {
+        // Scaffold boxes are not open work (third audit, change 0234): "complete 3
+        // open tasks" sent an agent to do work no one had written down.
+        actions.push(action({
+          id: "change-tasks-unwritten",
+          command: "work",
+          args: ["--resume", id],
+          why: `write the ${unchecked} open task${unchecked === 1 ? "" : "s"} in .doctrina/changes/${id}/tasks.md first — ${progress.placeholders === unchecked ? (unchecked === 1 ? "it is" : "all are") : `${progress.placeholders} are`} still the scaffold's placeholder${progress.placeholders === 1 ? "" : "s"}, and the delta with them`,
+        }));
+        continue;
+      }
       if (unchecked > 0) {
         // Deliberately NOT runnable, and deliberately without a command:
         // the only thing that clears this is doing the work. `change tick`
@@ -250,6 +263,33 @@ export function computeActions(projectRoot, gates = {}) {
             `or close it as metadata-only: doctrina close ${id}`,
         }));
       }
+    }
+  }
+
+  // A delivery open on this repository (second audit, change 0233). `prime`
+  // named it, `next` did not: after the close of this repository's part,
+  // "Next: doctrina next" answered with this project's own chores, and the
+  // planner lost the delivery that was still going on at the workspace.
+  let inWorkspace = null;
+  try {
+    inWorkspace = projectWorkspaceLine(projectRoot);
+  } catch {
+    inWorkspace = null;
+  }
+  for (const d of inWorkspace?.deliveries ?? []) {
+    if (d.changes.length === 0) {
+      actions.push(action({
+        id: "delivery-change-missing",
+        why: `delivery ${d.id} is routed to this repository and has no change here yet`,
+        text: `doctrina work ${qarg(d.title)} --delivery ${d.id} — delivery ${d.id} is routed to this repository and has no change here yet`,
+      }));
+    } else if (d.open === 0) {
+      actions.push(action({
+        id: "delivery-continues-at-workspace",
+        severity: "advisory",
+        why: `this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
+        text: `${cdThen(inWorkspace?.dir ?? "", "doctrina next")} — this repository's part of delivery ${d.id} is closed; the delivery goes on at the workspace`,
+      }));
     }
   }
 

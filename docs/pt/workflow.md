@@ -3,15 +3,13 @@
 > Tradução da [versão em inglês](../en/workflow.md). O inglês é a
 > fonte de verdade; este arquivo o segue.
 
-Este doc explica como o trabalho se move por um projeto Doctrina.
-Leia [getting-started.md](getting-started.md) antes, se ainda não
-leu.
+Este doc explica como o trabalho se move por um projeto Doctrina. Leia
+[getting-started.md](getting-started.md) antes, se ainda não leu.
 
 ## O ciclo
 
 Toda mudança não-trivial passa por quatro fases coordenadas por um
-orquestrador único e linear (você, ou um agente de IA agindo em
-seu nome):
+escritor único (você, ou um agente de IA agindo em seu nome):
 
 ```
 intenção -> spec  ->  plano  ->  implementar  ->  revisar  ->  curar
@@ -31,10 +29,10 @@ intenção -> spec  ->  plano  ->  implementar  ->  revisar  ->  curar
    enquanto a verificação estiver desmarcada). O index é atualizado.
    Próximo ciclo.
 
-Não há agentes paralelos escrevendo em fase nenhuma. Subagentes
-podem explorar o codebase para contexto, mas só um escritor toca um
-dado artefato por vez. Veja [multi-agent.md](multi-agent.md) para o
-modelo operacional e o ADR 0004 para a justificativa.
+Um escritor toca um repositório por vez; subagentes podem explorar
+para contexto. Veja [multi-agent.md](multi-agent.md) e o ADR 0030 para
+o porquê, e [end-to-end-flow.md](end-to-end-flow.md) para trabalho entre
+repositórios.
 
 ## O caminho guiado
 
@@ -59,12 +57,11 @@ determinístico (veja o ADR 0005):
   `verify` (`doctrina verify` + `doctrina coverage`) → `archive` →
   `validate`.
 
-O CLI faz a metade determinística (montar, sluggar, indexar, casar
-termos) e o agente faz a metade semântica (escrever product, specs,
-deltas, código). Um playbook é consumido por um agente num único passe
-linear — a disciplina de orquestrador único do ADR 0004 não muda. Se uma
-descrição ou prompt é genuinamente ambíguo, o agente pergunta antes de
-assumir.
+O CLI faz a metade determinística (montar, sluggar, indexar, casar termos)
+e o agente faz a metade semântica (escrever product, specs, deltas,
+código). Um playbook é consumido por um agente num único passe linear — a
+disciplina de um escritor do ADR 0030 não muda. Se uma descrição ou prompt
+é genuinamente ambíguo, o agente pergunta antes de assumir.
 
 **Os playbooks são templates, não prosa nesta página.** Os passos moram em
 `.doctrina/templates/playbooks/{work,chore,bootstrap}.md.template` e
@@ -106,11 +103,10 @@ e mande ir", não escrever documento por documento na mão.
 .doctrina/changes/archive/YYYY-MM-DD-<id>/       (Status: applied)
 ```
 
-Após arquivar, o change é **memória episódica**. Doctrina
-deliberadamente mantém ele fora do caminho de leitura padrão do
-agente. Se você precisa saber como uma capability **costumava**
-ser, leia o archive. Se você precisa saber como ela **é hoje**,
-leia a spec.
+Após arquivar, o change é **memória episódica**. Doctrina deliberadamente
+mantém ele fora do caminho de leitura padrão do agente. Se você precisa
+saber como uma capability **costumava** ser, leia o archive. Se você
+precisa saber como ela **é hoje**, leia a spec.
 
 A pasta de change funciona também como pacote de contexto autocontido
 para handoffs entre fases (e, se você troca agentes entre fases, entre
@@ -138,11 +134,10 @@ e ele toca somente os dois headers mencionados.
 
 ## Como specs e changes interagem
 
-Uma spec é a verdade atual: "é assim que billing funciona hoje". Um
-change é um delta proposto: "é isto que eu quero que billing faça
-diferente". Um delta vive só enquanto não é aplicado. Após aplicar,
-o delta vira parte da spec; após arquivar, a pasta do change é
-história.
+Uma spec é a verdade atual: "é assim que billing funciona hoje". Um change
+é um delta proposto: "é isto que eu quero que billing faça diferente". Um
+delta vive só enquanto não é aplicado. Após aplicar, o delta vira parte da
+spec; após arquivar, a pasta do change é história.
 
 O diff entre duas versões de uma spec é o resultado cumulativo de
 cada delta aplicado. O archive é o log de como a spec chegou lá.
@@ -168,9 +163,8 @@ quando a spec está certa e o código que driftou.
 
 ### Pattern de refactor
 
-Um refactor muda estrutura sem mudar comportamento observável. A
-pasta de change para refactor se apoia no `design.md` mais do que
-no delta:
+Um refactor muda estrutura sem mudar comportamento observável. A pasta de
+change para refactor se apoia no `design.md` mais do que no delta:
 
 - O delta é frequentemente **REMOVED depois ADDED** para a
   capability afetada (o corpo da spec muda de forma mesmo que o
@@ -185,11 +179,10 @@ no delta:
 
 ### Skills como complemento, não estágio
 
-Skills não são estágio do workflow. São memória procedural
-on-demand carregada quando uma tarefa específica casa. Uma
-pasta de change captura um delta transitório; uma skill captura
-um procedimento durável. Agentes pegam a skill relevante em
-qualquer estágio onde o trigger dispara. Veja
+Skills não são estágio do workflow. São memória procedural on-demand
+carregada quando uma tarefa específica casa. Uma pasta de change captura
+um delta transitório; uma skill captura um procedimento durável. Agentes
+pegam a skill relevante em qualquer estágio onde o trigger dispara. Veja
 [skills.md](skills.md) para o design.
 
 ## A lane em que a change nasceu
@@ -203,15 +196,20 @@ O `doctrina work` classifica todo prompt numa lane — PRODUCT, RUNTIME ou CHORE
 ```
 
 É histórico, não gate: nada o lê para decidir, e um valor sem sentido não muda
-comportamento nenhum. Com ele, o `doctrina status --view report` diz que tipo de trabalho um
-período teve — pergunta que nenhum relatório respondia enquanto o veredito era
-calculado, impresso e descartado — e o classificador ganha acertos e erros.
+comportamento nenhum. Duas coisas decorrem de registrá-lo:
 
-**Os desacordos também são registrados** (`— opened anyway (--force)`, `—
-opened as chore`): registrar só as concordâncias formaria um conjunto de
-calibração feito dos casos que não precisam dela. Uma change sem lane — aberta
-antes do campo, ou à mão — conta como **unknown**, nunca dobrada numa lane à
-qual pode não pertencer.
+- O `doctrina status --view report` diz que tipo de trabalho um período teve —
+  pergunta que nenhum relatório respondia enquanto o veredito era calculado,
+  impresso e descartado.
+- O classificador ganha acertos e erros. **Os desacordos também são
+  registrados** — `— opened anyway (--force)` quando o operador passou por
+  cima de uma retenção, `— opened as chore` quando escolheu outra lane.
+  Registrar só as concordâncias formaria um conjunto de calibração feito
+  dos casos que não precisam dela.
+
+Uma change aberta antes do campo existir, ou à mão com `change new`,
+simplesmente não tem lane. Os relatórios contam essas como **unknown**, em
+vez de dobrá-las numa lane à qual podem não pertencer.
 
 ## Lendo a árvore: um coletor, quatro vistas
 
@@ -232,11 +230,10 @@ diferentes para o mesmo repositório. Cada uma também é alcançável como
 
 ## Quando pular o ciclo
 
-O ciclo completo é overhead. Pule quando o custo excede a economia
-de ambiguidade. Veja [gating.md](gating.md) para gatilhos
-concretos. Versão curta: se você não ficaria irritado com um agente
-interpretando o requisito de forma diferente da sua intenção, você
-não precisa de spec.
+O ciclo completo é overhead. Pule quando o custo excede a economia de
+ambiguidade. Veja [gating.md](gating.md) para gatilhos concretos. Versão
+curta: se você não ficaria irritado com um agente interpretando o
+requisito de forma diferente da sua intenção, você não precisa de spec.
 
 ## Memória
 

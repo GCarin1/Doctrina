@@ -14,7 +14,7 @@ own documentation; nothing is invented.
 | Native AGENTS.md | yes | via adapter | no (steering) | yes | no | yes |
 | EARS requirements | template-guided | no | native | partial | no | optional |
 | Immutable ADRs + supersede | yes (command) | not primary | partial | yes (schema) | no | partial |
-| Multi-agent posture | single linear orchestrator (documented) | implicit | implicit | implicit | role-based (rejected) | flexible |
+| Multi-agent posture | one planner, one writer per repository (documented) | implicit | implicit | implicit | role-based (rejected) | flexible |
 | Greenfield fit | strong | excellent | excellent | strong | strong | strong |
 | Brownfield fit | strong (dedicated guide) | weak (research) | partial | strong (first-class) | partial | strong |
 | Quality gates shipped | analyze + clarify + validate | clarify + checklist + analyze | on-save hooks | validate | none built-in | validate |
@@ -44,7 +44,7 @@ own documentation; nothing is invented.
   spec and ADR for Markdown links pointing at files that no
   longer exist. The other validators in this space catch schema
   errors but not silent rot.
-- **Single linear orchestrator is argued, not assumed.** The
+- **One writer per repository is argued, not assumed.** The
   multi-agent doc names BMAD's role-based topology, cites the
   Cognition and Anthropic findings against it for code work, and
   documents the five workflow-phase personas that replace

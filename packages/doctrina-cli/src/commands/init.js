@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import { attachCommand, shadowedCloneAt } from "../lib/workspace-view.js";
 import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
@@ -41,6 +42,15 @@ export async function run(_positional, flags) {
   const force = flagBool(flags, "force", false);
   const nonInteractive = flagBool(flags, "non-interactive", false);
   const projectRoot = process.cwd();
+  // A clone of a shadowed repository (third audit, change 0234): its context
+  // lives in the workspace, and a .doctrina/ planted here is one the
+  // repository may not carry — and one the workspace would never see.
+  const clone = force ? null : shadowedCloneAt(projectRoot);
+  if (clone && !path.resolve(projectRoot).startsWith(path.resolve(clone.wsDir) + path.sep)) {
+    console.error(c.red("error:") + ` this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}) — its context lives in the workspace, not here`);
+    console.error(c.gray("hint: ") + `link it here instead: \`${attachCommand(clone, projectRoot)}\` — or pass --force to init a separate project anyway`);
+    return EXIT.PRECONDITION;
+  }
   const projectName = flagString(flags, "project-name") ?? path.basename(projectRoot);
   const date = flagString(flags, "date") ?? today();
 
@@ -454,6 +464,8 @@ Options:
   --from <path>                  Local conventions directory; if it contains AGENTS.md and/or
                                  .doctrina/product.md, the content is folded into the new project
   --date <YYYY-MM-DD>            Override the system date
-  --force                        Overwrite existing files
+  --force                        Overwrite existing files that are still untouched scaffolds;
+                                 also init a second clone of a repository a workspace shadows
+  --overwrite-content            With --force, also overwrite an authored AGENTS.md or product.md
   --non-interactive              Fail instead of prompting for missing values
 `;

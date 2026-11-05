@@ -33,6 +33,8 @@ function workspace() {
   assert.equal(run(ws, ["workspace", "add", "../back-end", "--role", "back", "--about", "login API and sessions"]).status, 0);
   assert.equal(run(ws, ["workspace", "add", "../front-core", "--role", "front", "--about", "screens", "--depends-on", "back-end"]).status, 0);
   assert.equal(run(ws, ["workspace", "add", "../app", "--role", "app"]).status, 0);
+  // A routed project must be ready — a spec to change (change 0226).
+  for (const name of ["back-end", "front-core", "app"]) assert.equal(run(path.join(root, name), ["spec", "new", "core"]).status, 0);
   return { root, ws, run, done: () => rmSync(root, { recursive: true, force: true }) };
 }
 
@@ -165,7 +167,7 @@ test("change card hands the next open task over with everything it needs", () =>
     assert.match(r.stdout, /# Task card — 0001-recusa, task 2 of 3/);
     assert.match(r.stdout, /- Files: features\/pagamento\.feature/);
     assert.match(r.stdout, /O cliente precisa saber/);
-    assert.match(r.stdout, /## Spec — pagamento \(cut to this task\)/);
+    assert.match(r.stdout, /## Spec — pagamento as it stands \(cut to this task\)/);
     assert.match(r.stdout, /402/);
     assert.match(r.stdout, /`behave features\/pagamento\.feature`/);
     assert.match(r.stdout, /doctrina change tick 0001-recusa 2/);

@@ -6,6 +6,14 @@
 Definições curtas dos termos que Doctrina usa. Fontes linkadas
 quando não-óbvias.
 
+## Adapter
+
+Um arquivo-ponteiro fino instalado por
+`doctrina init --agent <nome>` que direciona um agente que
+prefere outro nome de arquivo (como `CLAUDE.md` do Claude Code
+ou `.cursor/rules/*.mdc` do Cursor) ao `AGENTS.md` canônico.
+Adapters não carregam regras próprias e têm cap de 30 linhas.
+
 ## ADR — Architecture Decision Record
 
 Documento curto (uma a duas páginas) que registra uma única
@@ -22,17 +30,9 @@ Um padrão aberto para o arquivo de fonte-de-verdade operacional
 na raiz de um projeto. Introduzido pela OpenAI em agosto/2025,
 doado à Linux Foundation's Agentic AI Foundation em
 dezembro/2025. Adotado por Codex, Cursor, Claude Code (via
-import de `CLAUDE.md`), Copilot, Devin, Gemini CLI e muitos
-outros. Doctrina constrói sobre esse padrão em vez de inventar
+import de `CLAUDE.md`), Copilot, Devin, Gemini CLI e mais de
+60.000 projetos open source. Doctrina constrói sobre esse padrão em vez de inventar
 o próprio (ADR 0001).
-
-## Adapter
-
-Um arquivo-ponteiro fino instalado por
-`doctrina init --agent <nome>` que direciona um agente que
-prefere outro nome de arquivo (como `CLAUDE.md` do Claude Code
-ou `.cursor/rules/*.mdc` do Cursor) ao `AGENTS.md` canônico.
-Adapters não carregam regras próprias e têm cap de 30 linhas.
 
 ## Apply
 
@@ -79,6 +79,13 @@ O arquivo que Claude Code lê automaticamente ao iniciar num
 projeto. O adapter de Claude no Doctrina é um `CLAUDE.md` fino
 que `@`-importa `AGENTS.md`.
 
+## Delivery (entrega)
+
+Um item de trabalho que atravessa repositórios — uma história, uma tela,
+uma correção — guardado em `deliveries/` do workspace. Cada repositório
+roteado carrega uma change para ela; o estado dela é lido dessas changes.
+Veja [end-to-end-flow.md](end-to-end-flow.md).
+
 ## Delta
 
 Uma mudança de spec empacotada dentro de uma pasta de change.
@@ -102,11 +109,22 @@ unwanted-behaviour (`the system shall not...`) e optional
 (`where X, the system may...`). Templates de spec do Doctrina
 usam cabeçalhos EARS.
 
+## Executor
+
+Um subagente que implementa um cartão de tarefa num repositório, verifica,
+marca e reporta. Ele nunca abre, fecha nem arquiva uma change.
+
 ## Greenfield
 
 Um projeto construído do zero com Doctrina desde o dia um.
 Contraste com brownfield. A maioria dos frameworks SDD brilha em
 greenfield e sofre em brownfield; Doctrina mira ambos.
+
+## Guard (guarda)
+
+O hook de pré-chamada que o workspace instala no agente: toda chamada MCP
+recebe allow, deny ou ask a partir do acesso que o workspace declara para
+aquela ferramenta — só leitura, a menos que declarado o contrário.
 
 ## Index
 
@@ -119,6 +137,12 @@ caminho, status, versão e datas. Lido pelo `doctrina validate`.
 Um template moderno de ADR que estende o original de Nygard com
 alternativas explícitas. O `decision.md.template` do Doctrina é
 MADR-adjacente.
+
+## Materialise
+
+Usado neste codebase para significar "escrever o corpo do delta
+no caminho da spec alvo durante o apply". Uma spec materializada
+é a verdade ativa produzida por um delta ADDED.
 
 ## Memória (episódica, semântica, procedural)
 
@@ -142,19 +166,19 @@ recorrente vira ADR). Sem essa disciplina de consolidação, memória
 episódica só acumula. Este é o modo de falha que o ADR 0003 cita
 ao adiar a pasta `memory/`.
 
-## Materialise
-
-Usado neste codebase para significar "escrever o corpo do delta
-no caminho da spec alvo durante o apply". Uma spec materializada
-é a verdade ativa produzida por um delta ADDED.
-
 ## Orchestrator
 
 O componente que coordena as fases do workflow. O orquestrador de
-referência do Doctrina é um loop único e linear (ADR 0004). Pode
-fanout subagentes para investigação read-only, mas nunca para
-escrita paralela. Veja [multi-agent.md](multi-agent.md) para o
+referência do Doctrina é um planejador (ADR 0030, que substitui o
+ADR 0004): ele lê, roteia, escreve os cartões e fecha; executores
+implementam um cartão por vez; um escritor por repositório.
+Subagentes só de leitura podem se espalhar à vontade. Veja [multi-agent.md](multi-agent.md) para o
 modelo operacional.
+
+## Planner (planejador)
+
+A sessão do agente aberta no workspace. Ela lê o trabalho, roteia, escreve
+as changes e os cartões, delega, revisa e fecha.
 
 ## Propose
 
@@ -163,12 +187,11 @@ começa com `Status: proposed`. Um proposal vira `applied` só
 quando `doctrina change apply` termina sem erros e sem nenhum delta
 MODIFIED para mesclar à mão.
 
-## Spec
+## Shadow project (projeto sombra)
 
-`.doctrina/specs/<capability>/spec.md`. A descrição canônica de
-como uma capability funciona hoje. Usa EARS para requisitos.
-Atualizada aplicando deltas, nunca editada freehand fora do
-workflow de change.
+Um repositório que não pode carregar `.doctrina/`. Os artefatos dele moram
+no workspace e são ligados nele, escondidos do git dele pelo
+`.git/info/exclude`.
 
 ## Skill
 
@@ -180,6 +203,13 @@ decidam barato se carregam o corpo completo. Complementa o
 `AGENTS.md` (procedural-always) sem substituir. Veja
 [skills.md](skills.md) para design e semântica de loading
 por agente.
+
+## Spec
+
+`.doctrina/specs/<capability>/spec.md`. A descrição canônica de
+como uma capability funciona hoje. Usa EARS para requisitos.
+Atualizada aplicando deltas, nunca editada freehand fora do
+workflow de change.
 
 ## Spec-driven development (SDD)
 
@@ -196,8 +226,22 @@ mantém o corpo e ganha `superseded by NNNN` no header `Status:`.
 O novo ADR carrega `Supersedes: <antigo>`. Os dois são linkados
 bidireccionalmente.
 
+## Task card (cartão de tarefa)
+
+Uma tarefa de uma change, impressa pelo `doctrina change card` com tudo de
+que um executor precisa para fazê-la sozinho: a tarefa e as linhas
+`Files:`, `Requirement:` e `Verify:`, o Why da change, a história da
+entrega, o que o delta da change faz na spec, a spec recortada para a
+tarefa e as decisões que a vinculam.
+
 ## Validate
 
 `doctrina validate`. Roda checagens de schema e estrutura contra
 a árvore `.doctrina/`. Sai 0 sem erros. Pensado para pre-commit
 hooks.
+
+## Workspace
+
+Um repositório git privado que registra os repositórios que o trabalho
+toca, o que cada um é e de quem depende, as ferramentas que o trabalho usa
+e os artefatos de todo projeto sombra. Veja [workspace.md](workspace.md).

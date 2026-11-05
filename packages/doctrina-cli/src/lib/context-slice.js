@@ -1,6 +1,6 @@
 // @ts-check
 import { fold } from "./lexicon.js";
-import { getSection } from "./doc-model.js";
+import { commentRanges, getSection } from "./doc-model.js";
 
 // The lean read pack (change 0216).
 //
@@ -16,6 +16,31 @@ import { getSection } from "./doc-model.js";
 const ADR_DIGEST_CHARS = 700;
 // How many requirements and criteria a sliced spec keeps at most, each.
 const SLICE_MAX_ITEMS = 25;
+
+/**
+ * A change file as a reader needs it: without its HTML comments (change
+ * 0228). The proposal, tasks and delta templates carry their authoring
+ * instructions in comments — forty lines of "for ADDED… for MODIFIED…" in
+ * every delta — and the change in focus enters the pack whole, so a change
+ * with eight deltas spent ~2.6k tokens repeating the template to an agent
+ * that was reading, not writing. Null when the text has no comment.
+ *
+ * @param {string} text
+ * @returns {string | null}
+ */
+export function withoutComments(text) {
+  const lf = String(text).replace(/\r\n/g, "\n");
+  const ranges = commentRanges(lf);
+  if (ranges.length === 0) return null;
+  let out = "";
+  let at = 0;
+  for (const [a, b] of ranges) {
+    out += lf.slice(at, a);
+    at = b;
+  }
+  out += lf.slice(at);
+  return out.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 
 /**
  * An ADR as a reader deciding whether it binds the task needs it: the
@@ -50,7 +75,12 @@ export function adrDigest(text, title, id) {
  */
 export function sliceSpec(text, queryTerms, rel) {
   if (queryTerms.length === 0) return null;
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  // Read without the template's comments (second audit, change 0233). The
+  // EARS comment lists the five forms as bullets — "- Ubiquitous: The system
+  // shall <action>." — and they were counted as requirements: every pack of
+  // a scaffolded spec reported "… 5 not matching the task" for bullets no
+  // one wrote, and carried the forty-line header comment besides.
+  const lines = (withoutComments(text) ?? text.replace(/\r\n/g, "\n")).split("\n");
   // Items: a bullet or numbered entry with its continuation lines.
   /** @type {Array<{ start: number, end: number, kind: "req"|"crit", score: number }>} */
   const items = [];
@@ -112,7 +142,8 @@ export function sliceSpec(text, queryTerms, rel) {
   }
   flushOmitted();
   const kept = keep.size;
-  out.push("", `(sliced for "${queryTerms.join(" ")}" — ${kept} of ${items.length} requirements and criteria kept; ` +
+  const shownTerms = queryTerms.length > 12 ? `${queryTerms.slice(0, 12).join(" ")} …` : queryTerms.join(" ");
+  out.push("", `(sliced for "${shownTerms}" — ${kept} of ${items.length} requirements and criteria kept; ` +
     `full text: ${rel}, or \`context --full\`)`);
   return { text: out.join("\n").replace(/\n{3,}/g, "\n\n"), kept, total: items.length };
 }

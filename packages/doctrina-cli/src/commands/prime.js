@@ -1,10 +1,11 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { exists, read } from "../lib/fs-ops.js";
+import { exists, isFile, read } from "../lib/fs-ops.js";
 import { findWorkspace, readWorkspace } from "../lib/workspace.js";
 import { listDeliveries } from "../lib/delivery.js";
 import { workspacePrimer } from "../lib/workspace-agents.js";
+import { projectWorkspaceLine } from "../lib/workspace-view.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
@@ -51,6 +52,14 @@ export async function run(_positional, flags) {
   // --pulse: one line for a per-prompt hook — the open changes only, read
   // without collecting the gates, because it runs before every prompt.
   if (flagBool(flags, "pulse", false)) {
+    // Run by Cursor as the Claude adapter's UserPromptSubmit (sixth audit,
+    // change 0237): Cursor imports `.claude/settings.json` hooks and runs it
+    // as beforeSubmitPrompt, whose answer is `{"continue": …}` and cannot add
+    // context. The plain-text line Claude Code reads is not that.
+    if (underCursor()) {
+      console.log(JSON.stringify({ continue: true }));
+      return 0;
+    }
     for (const line of pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))) console.log(line);
     return 0;
   }
@@ -60,15 +69,53 @@ export async function run(_positional, flags) {
       console.error(c.red("error:") + ` --hook needs one of ${HOOK_AGENTS.join(", ")} (got "${agent ?? ""}")`);
       return EXIT.USAGE;
     }
+    const as = hookFlavour(agent, projectRoot);
+    if (as === null) return 0;
     const text = ["Doctrina session primer (`doctrina prime`) — the project's gates, rules and open work:", "",
-      ...renderView("prime", collectSnapshot(projectRoot)), "", ...pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))]
+      ...renderView("prime", collectSnapshot(projectRoot)), ...workspaceLines(projectRoot), "", ...pulse(openChanges(projectRoot), recentlyClosed(projectRoot, { limit: 1 }))]
       .join("\n").replace(/\x1b\[[0-9;]*m/g, "").slice(0, HOOK_MAX_CHARS);
-    console.log(agent === "cursor" ? JSON.stringify({ additional_context: text }) : text);
+    console.log(as === "cursor" ? JSON.stringify({ additional_context: text }) : text);
     return 0;
   }
   const view = flagBool(flags, "rules", false) ? "rules" : "prime";
   for (const line of renderView(view, collectSnapshot(projectRoot))) console.log(line);
+  if (view === "prime") for (const line of workspaceLines(projectRoot)) console.log(line);
   return 0;
+}
+
+// Cursor runs the hooks Claude Code's `.claude/settings.json` declares too
+// (its "third-party" import, on by default), and sets CURSOR_VERSION and
+// CURSOR_PROJECT_DIR for every hook it runs (sixth audit, change 0237).
+function underCursor(env = process.env) {
+  return Boolean(env.CURSOR_VERSION && env.CURSOR_PROJECT_DIR);
+}
+
+/**
+ * The format a session hook answers in, or null to answer nothing. The
+ * Claude adapter's SessionStart, run by Cursor, printed plain text where
+ * Cursor reads JSON — and beside the Cursor adapter's own sessionStart it
+ * put the primer in twice. Under Cursor it yields to that hook when the
+ * folder has one, and speaks Cursor's format when it has not.
+ * @returns {"claude" | "cursor" | null}
+ */
+function hookFlavour(agent, dir) {
+  if (agent !== "claude" || !underCursor()) return /** @type {"claude" | "cursor"} */ (agent);
+  const own = path.join(dir, ".cursor", "hooks.json");
+  return isFile(own) && /prime --hook cursor/.test(read(own)) ? null : "cursor";
+}
+
+// A project inside a workspace says so (change 0230): a session opened in
+// the repository — an executor's, or the human's — otherwise never learns a
+// delivery is open on it, or where its planner works.
+function workspaceLines(projectRoot) {
+  const w = projectWorkspaceLine(projectRoot);
+  if (!w) return [];
+  const out = ["", `Workspace  ${w.name} (${w.dir}) — this repository is "${w.project}"`];
+  for (const d of w.deliveries) {
+    out.push(`  open delivery ${d.id} — ${d.title}: ${d.changes.length ? `this project's change ${d.changes.join(", ")}` : "no change here yet"}`);
+  }
+  if (w.deliveries.length === 0) out.push("  no open delivery routes here");
+  return out;
 }
 
 function primeWorkspace(wsDir, flags) {
@@ -87,8 +134,10 @@ function primeWorkspace(wsDir, flags) {
       console.error(c.red("error:") + ` --hook needs one of ${HOOK_AGENTS.join(", ")} (got "${agent ?? ""}")`);
       return EXIT.USAGE;
     }
+    const as = hookFlavour(agent, wsDir);
+    if (as === null) return 0;
     const text = [...lines, "", read(path.join(wsDir, "AGENTS.md"))].join("\n").replace(/\x1b\[[0-9;]*m/g, "").slice(0, HOOK_MAX_CHARS);
-    console.log(agent === "cursor" ? JSON.stringify({ additional_context: text }) : text);
+    console.log(as === "cursor" ? JSON.stringify({ additional_context: text }) : text);
     return 0;
   }
   for (const line of lines) console.log(line);

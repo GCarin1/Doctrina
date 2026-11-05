@@ -236,3 +236,4 @@ permanece intacto.
 - Leia [antipatterns.md](antipatterns.md) antes de bater neles na
   prática.
 - Leia [cli-reference.md](cli-reference.md) para todas as flags.
+- Trabalho que atravessa repositórios? Leia [end-to-end-flow.md](end-to-end-flow.md).

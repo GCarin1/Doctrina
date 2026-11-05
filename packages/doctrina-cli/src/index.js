@@ -11,54 +11,52 @@ import { EXIT, exitCodeHelp } from "./lib/exit-codes.js";
 import { recordUsage, operationOf } from "./lib/usage.js";
 import { wantsJson, emitJson, captureOutput, stripAnsi, setDeprecation, deferJson, flushJson } from "./lib/json-out.js";
 
-import * as init from "./commands/init.js";
-import * as spec from "./commands/spec.js";
-import * as change from "./commands/change.js";
-import * as decision from "./commands/decision.js";
-import * as validate from "./commands/validate.js";
-import * as hooks from "./commands/hooks.js";
-import * as analyze from "./commands/analyze.js";
-import * as clarify from "./commands/clarify.js";
-import * as templates from "./commands/templates.js";
-import * as skill from "./commands/skill.js";
-import * as indexCmd from "./commands/index-rebuild.js";
-import * as next from "./commands/next.js";
-import * as metrics from "./commands/metrics.js";
-import * as context from "./commands/context.js";
-import * as search from "./commands/search.js";
-import * as intake from "./commands/intake.js";
-import * as work from "./commands/work.js";
-import * as coverage from "./commands/coverage.js";
-import * as verify from "./commands/verify.js";
-import * as contract from "./commands/contract.js";
-import * as trace from "./commands/trace.js";
-import * as status from "./commands/status.js";
-import * as close from "./commands/close.js";
-import * as review from "./commands/review.js";
-import * as watch from "./commands/watch.js";
-import * as why from "./commands/why.js";
-import * as prime from "./commands/prime.js";
-import * as handoff from "./commands/handoff.js";
-import * as show from "./commands/show.js";
-import * as doctor from "./commands/doctor.js";
-import * as report from "./commands/report.js";
-import * as completion from "./commands/completion.js";
-import * as intent from "./commands/intent.js";
-import * as upgrade from "./commands/upgrade.js";
-import * as adapter from "./commands/adapter.js";
-import * as triage from "./commands/triage.js";
-import * as ci from "./commands/ci.js";
-import * as workspace from "./commands/workspace.js";
-import * as delivery from "./commands/delivery.js";
 
+// Each command is loaded when it is the one invoked (fifth audit, change
+// 0236): the 39 static imports cost ~150 ms before any command ran, and
+// `workspace guard` runs on EVERY MCP call an agent makes — a Playwright
+// session's hundred clicks paid it a hundred times.
+/** @type {Record<string, () => Promise<any>>} */
 const COMMANDS = {
-  init, spec, change, decision, validate, hooks, analyze, clarify,
-  templates, skill, index: indexCmd, next, metrics, context, search,
-  intake, work, coverage, verify, contract, trace,
-  status, close, review, watch, why,
-  prime, handoff, show, doctor, report, completion,
-  intent, upgrade, adapter, triage, ci,
-  workspace, delivery,
+  init: () => import("./commands/init.js"),
+  spec: () => import("./commands/spec.js"),
+  change: () => import("./commands/change.js"),
+  decision: () => import("./commands/decision.js"),
+  validate: () => import("./commands/validate.js"),
+  hooks: () => import("./commands/hooks.js"),
+  analyze: () => import("./commands/analyze.js"),
+  clarify: () => import("./commands/clarify.js"),
+  templates: () => import("./commands/templates.js"),
+  skill: () => import("./commands/skill.js"),
+  index: () => import("./commands/index-rebuild.js"),
+  next: () => import("./commands/next.js"),
+  metrics: () => import("./commands/metrics.js"),
+  context: () => import("./commands/context.js"),
+  search: () => import("./commands/search.js"),
+  intake: () => import("./commands/intake.js"),
+  work: () => import("./commands/work.js"),
+  coverage: () => import("./commands/coverage.js"),
+  verify: () => import("./commands/verify.js"),
+  contract: () => import("./commands/contract.js"),
+  trace: () => import("./commands/trace.js"),
+  status: () => import("./commands/status.js"),
+  close: () => import("./commands/close.js"),
+  review: () => import("./commands/review.js"),
+  watch: () => import("./commands/watch.js"),
+  why: () => import("./commands/why.js"),
+  prime: () => import("./commands/prime.js"),
+  handoff: () => import("./commands/handoff.js"),
+  show: () => import("./commands/show.js"),
+  doctor: () => import("./commands/doctor.js"),
+  report: () => import("./commands/report.js"),
+  completion: () => import("./commands/completion.js"),
+  intent: () => import("./commands/intent.js"),
+  upgrade: () => import("./commands/upgrade.js"),
+  adapter: () => import("./commands/adapter.js"),
+  triage: () => import("./commands/triage.js"),
+  ci: () => import("./commands/ci.js"),
+  workspace: () => import("./commands/workspace.js"),
+  delivery: () => import("./commands/delivery.js"),
 };
 
 const TOP_HELP = `Usage: doctrina <command> [options]      (\`doctrina <command> --help\` for its flags)
@@ -71,6 +69,15 @@ ${exitCodeHelp()}
 `;
 
 async function main(argv) {
+  // The MCP guard's own door (fifth audit, change 0236): it answers before
+  // every tool call an agent makes, so it loads the guard and its registry
+  // reader only. `--help` and `--json` take the ordinary path.
+  if (argv[0] === "workspace" && argv[1] === "guard" && !argv.some((a) => /^(--help|-h|--json|--debug)$/.test(a))) {
+    const at = argv.indexOf("--hook");
+    const hook = at >= 0 ? argv[at + 1] : argv.find((a) => a.startsWith("--hook="))?.slice("--hook=".length);
+    const { runGuard } = await import("./lib/workspace-guard.js");
+    return runGuard(hook);
+  }
   // `--version` is only "print the CLI version" when NO command is given.
   // With a command it is that command's flag to consume — the old global
   // intercept made `doctrina spec set x --version 0.10.0` print the CLI
@@ -89,7 +96,8 @@ async function main(argv) {
   // Declarations now live with the command, so a new command cannot
   // reintroduce the gap by forgetting to edit this file.
   const bootstrap = parseArgs(argv, { boolean: [...GLOBAL_FLAGS.boolean] });
-  const commandModule = COMMANDS[bootstrap.positional[0]];
+  const loader = Object.hasOwn(COMMANDS, bootstrap.positional[0] ?? "") ? COMMANDS[bootstrap.positional[0]] : null;
+  const commandModule = loader ? await loader() : null;
   const spec = commandModule?.flags;
   const { positional, flags } = parseArgs(argv, {
     boolean: [...GLOBAL_FLAGS.boolean, ...(spec?.boolean ?? [])],
@@ -107,7 +115,8 @@ async function main(argv) {
   }
 
   const commandName = positional[0];
-  const command = COMMANDS[commandName];
+  const command = commandName === bootstrap.positional[0] ? commandModule
+    : (Object.hasOwn(COMMANDS, commandName) ? await COMMANDS[commandName]() : null);
   const removed = removalFor(positional);
   if (removed) {
     const name = removed === removalFor([commandName]) ? commandName : positional.slice(0, 2).join(" ");
@@ -207,12 +216,13 @@ async function main(argv) {
       ? command.jsonNative(positional.slice(1))
       : command.jsonNative === true;
     if (wantsJson(flags) && !jsonNative) {
-      const { code, stdout, stderr } = await captureOutput(
+      const { code, stdout, stderr, error } = await captureOutput(
         () => command.run(positional.slice(1), flags),
       );
       emitJson(operationName(positional), {
         stdout: stdout.map(stripAnsi),
         stderr: stderr.map(stripAnsi),
+        ...(error ? { error: String(error.message ?? error) } : {}),
       }, { ok: code === EXIT.OK, exitCode: code, args: operationArgs(positional) });
       return code;
     }
@@ -222,27 +232,53 @@ async function main(argv) {
     if (wantsJson(flags)) {
       deferJson();
       let code = EXIT.OK;
+      let thrown = null;
       try {
         code = (await command.run(positional.slice(1), flags)) ?? EXIT.OK;
-      } finally {
-        flushJson(code);
+      } catch (err) {
+        thrown = err;
+        code = err.exitCode ?? EXIT.GATE;
       }
+      // A native command that failed before building its payload still
+      // answers in JSON (third audit, change 0234): "not a Doctrina project"
+      // or an unknown delivery printed English only, and a loop parsing the
+      // payload read nothing at all.
+      if (!flushJson(code)) {
+        emitJson(operationName(positional), {
+          error: thrown ? String(thrown.message) : "the command stopped before it built its payload — stderr says why",
+          ...(thrown?.remedy ? { remedy: thrown.remedy } : {}),
+        }, { ok: code === EXIT.OK, exitCode: code, args: operationArgs(positional) });
+      }
+      if (thrown) await reportError(thrown, flags);
       return code;
     }
     return await command.run(positional.slice(1), flags);
   } catch (err) {
-    console.error(c.red("error:") + ` ${err.message}`);
-    if (err.remedy) {
-      console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
-    }
-    if (flags.get("debug") && err.stack) {
-      console.error(c.gray(err.stack));
-    }
-    // A typed error carries its own class (precondition vs environment).
-    // An untyped throw is an unexpected failure of the work itself, which
-    // is the GATE class: something is wrong here, fix it and retry (C7).
-    return err.exitCode ?? EXIT.GATE;
+    return await reportError(err, flags);
   }
+}
+
+/** The human report of a thrown error, and the exit class it carries. */
+async function reportError(err, flags) {
+  console.error(c.red("error:") + ` ${err.message}`);
+  // A clone of a shadowed repository is not a project to init (change 0234).
+  // Loaded only on this error path, like the commands (change 0236).
+  const view = /^not a Doctrina project/.test(String(err.message)) ? await import("./lib/workspace-view.js") : null;
+  const clone = view ? view.shadowedCloneAt(process.cwd()) : null;
+  if (clone) {
+    console.error(c.gray("hint: ") + (clone.same
+      ? `this repository is the workspace's shadowed "${clone.name}" and its links are missing; never \`doctrina init\` here — link them again: ${c.cyan(view?.attachCommand(clone, process.cwd()))}`
+      : `this repository is the workspace's shadowed "${clone.name}" (registered at ${clone.path}); never \`doctrina init\` here — to work from this clone, link its context from the workspace: ${c.cyan(view?.attachCommand(clone, process.cwd()))}`));
+  } else if (err.remedy) {
+    console.error(c.gray("hint: ") + `run ${c.cyan(err.remedy)} first, then retry`);
+  }
+  if (flags.get("debug") && err.stack) {
+    console.error(c.gray(err.stack));
+  }
+  // A typed error carries its own class (precondition vs environment).
+  // An untyped throw is an unexpected failure of the work itself, which
+  // is the GATE class: something is wrong here, fix it and retry (C7).
+  return err.exitCode ?? EXIT.GATE;
 }
 
 // The OPERATION an invocation names, and the arguments it carries — the two

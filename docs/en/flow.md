@@ -80,6 +80,19 @@ flowchart TD
         watch["doctrina watch<br/>validate --fix + next on save"]
     end
 
+    subgraph ORCH["Orchestrate — work across repositories (from a workspace)"]
+        direction TB
+        wsinit["doctrina workspace init / add<br/>register repositories · shadows"]
+        wstool["doctrina workspace tool<br/>declare tools · read-only by default"]
+        absorb["doctrina intake --from-code<br/>absorb a repository with no spec"]
+        dnew["doctrina delivery new · route<br/>one item of work · dependencies first"]
+        dwork["doctrina work --delivery<br/>one change per repository"]
+        dcard["doctrina change card<br/>a self-contained task for an executor"]
+        dtick["doctrina delivery tick<br/>Release claims"]
+        dclose["doctrina delivery check · close"]
+        wsinit --> wstool --> absorb --> dnew --> dwork --> dcard --> dtick --> dclose
+    end
+
     subgraph OPS["Maintenance / setup"]
         direction TB
         doctor["doctrina doctor<br/>aggregate diagnostic + fixes"]
@@ -103,6 +116,7 @@ flowchart TD
     next -. "resume" .-> work
     LOOP -. "records decisions" .-> GOV
     LOOP -. "captures lessons" .-> MEM
+    dwork -. "the change loop, per repository" .-> work
     NAV -. "orient any task" .-> work
 ```
 

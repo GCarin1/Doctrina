@@ -14,8 +14,11 @@ import {
   findWorkspace, isWorkspaceDir, linkPlan, projectAt, projectState, readWorkspace, removeLinks,
   shadowDirOf, writeExclude, writePointer, writeWorkspace, gitInit,
 } from "../lib/workspace.js";
-import { TOOL_PRESETS, guardDecision, splitClaudeToolName, toolEntry } from "../lib/workspace-tools.js";
+import { TOOL_PRESETS, toolEntry } from "../lib/workspace-tools.js";
+import { workspaceGuard } from "../lib/workspace-guard.js";
 import { writeOrchestratorFiles } from "../lib/workspace-agents.js";
+import { cdThen } from "../lib/shell.js";
+import { mcpServerNames } from "../lib/workspace-view.js";
 
 // `doctrina workspace` — the context of several repositories in one place
 // (ADR 0029). The decisions live in lib/workspace.js; this module renders
@@ -140,22 +143,7 @@ function workspaceAdd(wsDir, pathArg, flags) {
     about: flagString(flags, "about") ?? "",
     dependsOn,
   };
-  if (mode === "shadow") {
-    const shadow = shadowDirOf(wsDir, name);
-    if (!isDir(path.join(shadow, ".doctrina"))) {
-      mkdirp(shadow);
-      const agent = flagString(flags, "agent") ?? "cursor";
-      const r = spawnSync(process.execPath, [CLI_ENTRY, "init", "--non-interactive",
-        "--project-name", name, "--project-description", project.about || `${name} (absorbed into a workspace)`,
-        "--agent", agent], { cwd: shadow, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" } });
-      if (r.status !== 0) {
-        console.error(c.red("error:") + ` could not scaffold the shadow at ${shadow}`);
-        console.error(r.stderr.trim());
-        return EXIT.GATE;
-      }
-      console.log(c.green("created") + ` shadow ${relPath(wsDir, shadow)}/ (AGENTS.md, .doctrina/, ${agent} adapter)`);
-    }
-  }
+  if (mode === "shadow" && !scaffoldShadow(wsDir, project, flagString(flags, "agent") ?? "cursor")) return EXIT.GATE;
   ws.projects.push(project);
   writeWorkspace(wsDir, ws);
   console.log(c.green("registered") + ` ${name} (${mode}) → ${repo}`);
@@ -185,7 +173,7 @@ function printProjectNext(wsDir, project) {
   if (st.state === "pending") {
     console.log("");
     console.log(`Next: ${project.name} has no specs yet (${st.reason}) — absorb it from its code:`);
-    console.log("  " + c.cyan(`cd ${project.path} && doctrina intake --from-code`));
+    console.log("  " + c.cyan(cdThen(project.path, "doctrina intake --from-code")));
   }
 }
 
@@ -194,6 +182,23 @@ function findProject(ws, name) {
   if (project) return project;
   const guess = suggest(name ?? "", ws.projects.map((p) => p.name));
   throw Object.assign(new Error(`no project named "${name ?? ""}" in this workspace` + (guess ? ` — did you mean "${guess}"?` : "")), { exitCode: EXIT.USAGE });
+}
+
+/** Scaffold a shadow's AGENTS.md, .doctrina/ and adapter when they are not there. */
+function scaffoldShadow(wsDir, project, agent) {
+  const shadow = shadowDirOf(wsDir, project.name);
+  if (isDir(path.join(shadow, ".doctrina"))) return true;
+  mkdirp(shadow);
+  const r = spawnSync(process.execPath, [CLI_ENTRY, "init", "--non-interactive",
+    "--project-name", project.name, "--project-description", project.about || `${project.name} (absorbed into a workspace)`,
+    "--agent", agent], { cwd: shadow, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" } });
+  if (r.status !== 0) {
+    console.error(c.red("error:") + ` could not scaffold the shadow at ${shadow}`);
+    console.error(r.stderr.trim());
+    return false;
+  }
+  console.log(c.green("created") + ` shadow ${relPath(wsDir, shadow)}/ (AGENTS.md, .doctrina/, ${agent} adapter)`);
+  return true;
 }
 
 function workspaceAttach(wsDir, name, flags) {
@@ -210,6 +215,20 @@ function workspaceAttach(wsDir, name, flags) {
     writeWorkspace(wsDir, ws);
     console.log(c.green("moved") + ` ${project.name} → ${repo}`);
   }
+  // --depends-on on a registered project (second audit, change 0233): the
+  // edge `delivery route` orders by could only be given at `add`, before the
+  // project it names was always registered.
+  if (flags.has("depends-on")) {
+    const dependsOn = (flagString(flags, "depends-on") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const unknown = dependsOn.filter((d) => d === project.name || !ws.projects.some((p) => p.name === d));
+    if (unknown.length > 0) {
+      console.error(c.red("error:") + ` --depends-on names no other registered project: ${unknown.join(", ")}`);
+      return EXIT.USAGE;
+    }
+    project.dependsOn = dependsOn;
+    writeWorkspace(wsDir, ws);
+    console.log(c.green("depends on") + ` ${project.name} → ${dependsOn.join(", ") || "nothing"}`);
+  }
   if (project.mode !== "shadow") {
     console.log(c.gray(`${project.name} is in-repo — its .doctrina/ is its own; nothing to link`));
     return EXIT.OK;
@@ -218,6 +237,14 @@ function workspaceAttach(wsDir, name, flags) {
     console.error(c.red("error:") + ` ${project.name}'s repository is not at ${project.path}`);
     console.error(c.gray("hint: ") + `point it at the clone: \`doctrina workspace attach ${project.name} --path <dir>\``);
     return EXIT.PRECONDITION;
+  }
+  // A shadow whose folder is gone (fourth audit, change 0235): attach
+  // crashed on ENOENT. A fresh, empty shadow is scaffolded and linked — the
+  // project is pending again, and says so; its history is the workspace's
+  // git, where a lost folder is restored from.
+  if (!isDir(path.join(shadowDirOf(wsDir, project.name), ".doctrina"))) {
+    console.log(c.yellow("warn") + ` ${project.name}'s shadow projects/${project.name}/ is gone — if the workspace's git has it, restore it (\`git checkout -- projects/${project.name}\`) before this; scaffolding an empty one`);
+    if (!scaffoldShadow(wsDir, project, flagString(flags, "agent") ?? "cursor")) return EXIT.GATE;
   }
   attachShadow(wsDir, project);
   return EXIT.OK;
@@ -278,46 +305,18 @@ function workspaceTool(wsDir, name, flags) {
   writeWorkspace(wsDir, ws);
   console.log(c.green(at >= 0 ? "updated" : "declared") + ` ${entry.name} → MCP server "${entry.server}", ${entry.access === "write" ? "read/write (each write asks the human)" : "read-only"}, for ${(entry.for ?? []).join(", ") || "the planner"}`);
   console.log(c.gray(`the server itself is configured in your agent (Cursor: .cursor/mcp.json; Claude Code: .mcp.json) under the name "${entry.server}"`));
+  // Said now, not only at the next validate (change 0235): a key that matches
+  // no configuration is a guard that never fires.
+  const servers = mcpServerNames([wsDir, ...ws.projects.map((p) => p.path)]);
+  if (servers.found && !servers.names.has(entry.server)) {
+    console.log(c.yellow("warn") + ` no MCP configuration here names a server "${entry.server}" (found: ${[...servers.names].sort().join(", ") || "none"}) — the guard only sees calls through the exact key; rerun with --server <that key>`);
+  }
   return EXIT.OK;
 }
 
 // Reads the agent's pre-call payload on stdin and answers in the agent's
 // own format. Never exits non-zero and never blocks on bad input: a broken
 // guard must not take the agent's tools away.
-function workspaceGuard(wsDir, hook) {
-  if (hook !== "cursor" && hook !== "claude") {
-    console.error(c.red("error:") + ` --hook needs cursor or claude (got "${hook ?? ""}")`);
-    return EXIT.USAGE;
-  }
-  let call = {};
-  try {
-    call = JSON.parse(readFileSync(0, "utf8") || "{}");
-  } catch {
-    call = {};
-  }
-  let server = null;
-  let tool = null;
-  if (hook === "cursor") {
-    server = call.mcp_server_name ?? null;
-    tool = call.tool_name ?? null;
-  } else {
-    const split = splitClaudeToolName(call.tool_name ?? "");
-    if (split) ({ server, tool } = split);
-  }
-  const tools = wsDir ? readWorkspace(wsDir).tools : [];
-  const verdict = server && tool ? guardDecision(tools, server, tool, call.tool_input) : { decision: "none", reason: "" };
-  if (hook === "cursor") {
-    const permission = verdict.decision === "none" ? "allow" : verdict.decision;
-    const out = { permission };
-    if (permission !== "allow") Object.assign(out, { user_message: verdict.reason, agent_message: verdict.reason });
-    console.log(JSON.stringify(out));
-  } else if (verdict.decision !== "none") {
-    console.log(JSON.stringify({ hookSpecificOutput: {
-      hookEventName: "PreToolUse", permissionDecision: verdict.decision, permissionDecisionReason: verdict.reason,
-    } }));
-  }
-  return EXIT.OK;
-}
 
 function workspaceList(wsDir) {
   const ws = readWorkspace(wsDir);
@@ -340,22 +339,30 @@ function workspaceList(wsDir) {
   const pending = ws.projects.filter((p) => projectState(wsDir, p).state === "pending");
   if (pending.length > 0) {
     console.log("");
-    console.log(`Next: absorb ${pending.map((p) => p.name).join(", ")} — ` + c.cyan(`cd ${pending[0].path} && doctrina intake --from-code`));
+    console.log(`Next: absorb ${pending.map((p) => p.name).join(", ")} — ` + c.cyan(cdThen(pending[0].path, "doctrina intake --from-code")));
   }
   console.log("");
   if (ws.tools.length === 0) {
-    console.log(c.gray("no tool declared — `doctrina workspace tool jira` (presets: " + Object.keys(TOOL_PRESETS).join(", ") + ")"));
+    // Named generically (change 0228): which tools a team connects is the
+    // team's choice, and a hint that names one product reads as the default.
+    console.log(c.gray("no tool declared — `doctrina workspace tool <name> --server <mcp-server> --for <roles>` (presets: " + Object.keys(TOOL_PRESETS).join(", ") + ")"));
   } else {
     console.log(c.bold("Tools"));
     for (const t of ws.tools) {
       console.log(`  ${c.cyan(t.name.padEnd(12))} ${t.server.padEnd(12)} ${t.access.padEnd(6)} ${(t.for ?? []).join(", ").padEnd(16)} ${c.gray(t.purpose ?? "")}`);
     }
   }
+  // The orchestrator files carry what changes without a workspace write — a
+  // project absorbed in its own repository turns ready, an executor model
+  // edited into workspace.json (change 0228). The hub kept saying "pending"
+  // and the subagent kept `model: inherit` until the next add or tool.
+  // Listing refreshes them; only a file whose content differs is written.
+  regenerate(wsDir);
   return EXIT.OK;
 }
 
 export const help = `
-Usage: doctrina workspace <init|add|attach|detach|list> [options]
+Usage: doctrina workspace <init|add|attach|detach|list|tool|guard> [options]
 
 The context of several repositories in one place (ADR 0029). Keep the
 workspace directory as a PRIVATE git repository: it versions the
@@ -373,16 +380,18 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
       scaffolded under projects/<name>/, linked into the repository, and
       hidden from its git through .git/info/exclude.
 
-  attach <name> [--path <dir>]
+  attach <name> [--path <dir>] [--depends-on <a,b>]
       Re-create a shadow's links (after cloning the workspace on another
-      machine, or with --path after the repository moved).
+      machine, or with --path after the repository moved). --depends-on
+      replaces the projects it builds on — the order \`delivery route\` uses.
 
   detach <name>
       Remove a shadow's links and its exclude block; the shadow stays.
 
   list
       Every project with its mode, state (ready / pending / missing) and
-      open changes, then the declared tools.
+      open changes, then the declared tools; refreshes the orchestrator
+      files when a project's state or workspace.json changed since.
 
   tool <name> [--server <mcp-name>] [--access read|write] [--for <roles>]
               [--purpose "<what for>"] [--remove]
@@ -397,11 +406,12 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
       Claude Code PreToolUse): reads the call on stdin and answers allow,
       deny or ask from the declared access. Never blocks on bad input.
 
-Every write (init, add, attach, detach, tool) regenerates the orchestrator
-files at the workspace root: AGENTS.md, .cursor/rules/00-doctrina-
-workspace.mdc, .cursor/hooks.json and .claude/settings.json (merged),
-.claude/agents/doctrina-*.md (read by Claude Code and Cursor) and
-<name>.code-workspace, which opens every repository in one window.
+Every write (init, add, attach, detach, tool) and every list regenerates
+the orchestrator files at the workspace root: AGENTS.md,
+.cursor/rules/00-doctrina-workspace.mdc, .cursor/hooks.json and
+.claude/settings.json (merged), .claude/agents/doctrina-*.md (read by
+Claude Code and Cursor) and <name>.code-workspace, which opens every
+repository in one window.
 
 The workspace is found from $DOCTRINA_WORKSPACE, the current directory
 or an ancestor holding ${WORKSPACE_FILE}, a shadow's .doctrina link, or

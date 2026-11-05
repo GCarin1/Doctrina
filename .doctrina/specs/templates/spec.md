@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.29.0
+**Version:** 0.32.0
 
 ## Purpose
 
@@ -62,6 +62,8 @@ The CLI consumes this spec to drive `doctrina init` and the
 - The system shall state the change cycle in the AGENTS.md template and in the always-applied Cursor rule alike — a request that changes behaviour opens a change before code is edited, one change per activity, the change id in the first sentence to the human, `context --for` rather than `prime` for the spec, the exported project skills, and the archive path repeated after `close` — keeping every other rule in AGENTS.md.
 - The system shall render the work playbook's read step with `--for` and the request, one quote-free line of at most 80 characters, through the documented `FOR` token.
 - The system shall ship `delivery.md.template` and the `delivery` playbook, resolved through the per-file chain like every other template, with the delivery tokens (`DELIVERY_ID`, `DELIVERY_TITLE`, `DELIVERY_REF`, `DELIVERY_PROJECTS`) and the playbook tokens (`DELIVERY_FILE`, `ROUTING`, `TOOLS`) documented in the templates README.
+- The system shall ship the absorb playbook as a template resolved project-over-bundled, like the bootstrap playbook, each carrying the rules that keep a spec to its source and the fact check before the gates.
+- The system shall run `doctrina validate --fix` among the absorb playbook's gates.
 
 ### Event-driven
 
@@ -71,14 +73,7 @@ The CLI consumes this spec to drive `doctrina init` and the
   only the adapter matching `<name>`.
 - When the CLI is invoked with `--agent all`, the system shall install
   every adapter under `templates/adapters/`.
-- When `doctrina init --agent claude` or `--agent cursor` (or `--agent all`)
-  runs, the system shall additionally install native slash commands for the
-  core workflow (`work`, `next`, `context`, `status`, `why`) — under
-  `.claude/commands/doctrina-*.md` for Claude Code and
-  `.cursor/commands/doctrina-*.md` for Cursor — so the workflow is
-  discoverable inside the agent, not only by the agent knowing to shell out
-  to the CLI. Each command is a thin prompt that invokes the CLI, which stays
-  the single source of truth.
+- When `doctrina init --agent claude` or `--agent cursor` (or `--agent all`) runs, the system shall additionally install the core workflow (`work`, `next`, `context`, `status`, `why`) where the agent discovers it — `.claude/commands/doctrina-*.md` for Claude Code and `.cursor/skills/doctrina-*/SKILL.md` for Cursor, each skill named after its folder with `disable-model-invocation: true` — every one a thin prompt that invokes the CLI, which stays the single source of truth.
 - When `doctrina templates check` runs, the system shall verify each installed agent adapter (inventoried from the shipped adapter template tree) still references `AGENTS.md`, and shall report a finding with the fix when the pointer is gone.
 - When an adapter is resolved by name, the system shall prefer a project-local directory at `.doctrina/templates/adapters/<name>/` over a bundled adapter of the same name, and shall report which source it used.
 - When an adapter is resolved by name, the system shall prefer a project-local directory at `.doctrina/templates/adapters/<name>/` over a bundled adapter of the same name, and shall report which source it used.
@@ -135,7 +130,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 |-------|-----------------|-------|
 | `claude` | `CLAUDE.md` + `.claude/commands/doctrina-{work,next,context,status,why}.md` | `@AGENTS.md` pointer plus native slash commands for the core loop. |
 | `codex` | none | OpenAI Codex CLI reads `AGENTS.md` natively. |
-| `cursor` | `.cursor/rules/00-doctrina.mdc` + `.cursor/commands/doctrina-*.md` | `alwaysApply: true` rule plus native slash commands for the core loop. |
+| `cursor` | `.cursor/rules/00-doctrina.mdc` + `.cursor/skills/doctrina-*/SKILL.md` | `alwaysApply: true` rule plus the core loop as skills, invoked with `/`. |
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot repository-level instructions; points at AGENTS.md. |
 | `gemini` | `GEMINI.md` at project root | Gemini CLI native; points at AGENTS.md. |
 | `aider` | `CONVENTIONS.md` at project root | Read-only context once wired in (`--read` / `.aider.conf.yml`); points at AGENTS.md. |
@@ -191,6 +186,9 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 33. [verified] The consolidation playbook renders from its template with the change id, the capability and its measured shape — verified by `packages/doctrina-cli/test/uma-spec-tambem-encolhe.test.js`.
 34. [verified] The AGENTS.md template and the Cursor rule template each state all eight parts of the cycle, and the rule stays always-applied — verified by `packages/doctrina-cli/test/o-ciclo-vale-sem-citar-o-framework.test.js`.
 35. [verified] The work playbook for `expire the "session" token` prints `doctrina context auth --for "expire the session token" --concat`, and the query is quote-free and at most 80 characters — verified by `packages/doctrina-cli/test/o-prime-entrega-o-comando-de-leitura.test.js`.
+36. [verified] The absorb playbook printed by `intake --from-code` prints no requirement without the code that does it and the fact check by a reader that did not write the spec, and the bootstrap playbook renders the no-invention step and the re-read before the gates — verified by `packages/doctrina-cli/test/o-codigo-existente-vira-intake.test.js` and `packages/doctrina-cli/test/playbooks.test.js`.
+37. [verified] the absorb's gate step heals the index — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
+38. [verified] the cursor adapter installs the core loop as skills with the frontmatter Cursor requires — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 
 ## Out of scope for this spec
 

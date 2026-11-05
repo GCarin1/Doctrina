@@ -31,6 +31,7 @@ function workspace() {
   spawnSync("git", ["init", "-q"], { cwd: path.join(root, "back-end") });
   assert.equal(run(root, ["workspace", "init", "ws", "--name", "acme", "--no-git"]).status, 0);
   assert.equal(run(ws, ["workspace", "add", "../back-end", "--role", "back", "--about", "REST API"]).status, 0);
+  assert.equal(run(path.join(root, "back-end"), ["spec", "new", "core"]).status, 0);
   return { root, ws, run, done: () => rmSync(root, { recursive: true, force: true }) };
 }
 
@@ -63,7 +64,7 @@ test("the workspace generates what the orchestrating agent reads", () => {
     s.run(s.ws, ["workspace", "tool", "playwright"]);
     const hub = readFileSync(path.join(s.ws, "AGENTS.md"), "utf8");
     assert.match(hub, /You are the PLANNER/);
-    assert.match(hub, /\| back-end \| shadow \| pending \| back \|/);
+    assert.match(hub, /\| back-end \| shadow \| ready \| back \|/);
     assert.match(hub, /\| jira \| `atlassian` \| read \| planner \|/);
     assert.match(hub, /doctrina delivery new/);
     assert.ok(hub.split("\n").length <= 150);
@@ -138,7 +139,7 @@ test("prime at the workspace root is the orchestrator's primer", () => {
     const r = s.run(s.ws, ["prime"]);
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /Doctrina workspace "acme"/);
-    assert.match(r.stdout, /back-end\s+shadow\s+pending/);
+    assert.match(r.stdout, /back-end\s+shadow\s+ready/);
     assert.match(r.stdout, /0001-tela-de-login/);
     const hook = JSON.parse(s.run(s.ws, ["prime", "--hook", "cursor"]).stdout);
     assert.match(hook.additional_context, /You are the PLANNER/);
@@ -157,4 +158,45 @@ test("a write is told from a read by the call, not by the server", () => {
   assert.equal(splitClaudeToolName("Bash"), null);
   assert.equal(guardDecision([], "x", "delete_all", {}).decision, "none");
   assert.throws(() => toolEntry("Bad Name", {}), /must match/);
+});
+
+// Change 0228: what the orchestrator files carry also changes WITHOUT a
+// workspace write — a project absorbed in its own repository turns ready, an
+// executor model is edited into workspace.json. `workspace list` refreshes
+// them, writing only what differs.
+test("workspace list refreshes the orchestrator files a project's state or workspace.json changed", () => {
+  const s = workspace();
+  try {
+    const front = path.join(s.root, "front-end");
+    mkdirSync(front);
+    spawnSync("git", ["init", "-q"], { cwd: front });
+    assert.equal(s.run(s.ws, ["workspace", "add", "../front-end", "--role", "front"]).status, 0);
+    assert.match(readFileSync(path.join(s.ws, "AGENTS.md"), "utf8"), /\| front-end \| shadow \| pending \|/);
+    assert.equal(s.run(front, ["spec", "new", "screens"]).status, 0, "absorbed in its own repository");
+    const p = path.join(s.ws, "workspace.json");
+    const doc = JSON.parse(readFileSync(p, "utf8"));
+    doc.agents = { executor: { model: "small-model" } };
+    writeFileSync(p, JSON.stringify(doc, null, 2) + "\n");
+    const listed = s.run(s.ws, ["workspace", "list"]);
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.match(listed.stdout, /orchestrator files: .*AGENTS\.md/);
+    assert.match(readFileSync(path.join(s.ws, "AGENTS.md"), "utf8"), /\| front-end \| shadow \| ready \|/);
+    assert.match(readFileSync(path.join(s.ws, ".claude", "agents", "doctrina-executor.md"), "utf8"), /model: small-model/);
+    assert.doesNotMatch(s.run(s.ws, ["workspace", "list"]).stdout, /orchestrator files:/, "nothing to refresh the second time");
+  } finally {
+    s.done();
+  }
+});
+
+test("a workspace with no tool is pointed at a generic declaration, not at one product", () => {
+  const s = workspace();
+  try {
+    const out = s.run(s.ws, ["workspace", "list"]).stdout;
+    assert.match(out, /no tool declared — `doctrina workspace tool <name> --server <mcp-server> --for <roles>`/);
+    const hub = readFileSync(path.join(s.ws, "AGENTS.md"), "utf8");
+    assert.match(hub, /`doctrina workspace tool <name> --server <mcp-server> --for <roles>`/);
+    assert.doesNotMatch(hub, /tool jira|tool datadog/, "the hub names no product as the default");
+  } finally {
+    s.done();
+  }
 });

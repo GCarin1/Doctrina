@@ -3,6 +3,14 @@
 Short definitions of the terms Doctrina uses. Sources are linked
 where they are non-obvious.
 
+## Adapter
+
+A thin pointer file installed by `doctrina init --agent <name>` that
+routes an agent which prefers a different filename (such as Claude
+Code's `CLAUDE.md` or Cursor's `.cursor/rules/*.mdc`) to the
+canonical `AGENTS.md`. Adapters carry no rules of their own and are
+capped at 30 lines.
+
 ## ADR — Architecture Decision Record
 
 A short document (one to two pages) that records a single
@@ -21,14 +29,6 @@ Linux Foundation's Agentic AI Foundation in December 2025. Adopted by
 Codex, Cursor, Claude Code (via `CLAUDE.md` import), Copilot, Devin,
 Gemini CLI, and 60,000+ open-source projects. Doctrina builds on
 this standard rather than inventing its own (ADR 0001).
-
-## Adapter
-
-A thin pointer file installed by `doctrina init --agent <name>` that
-routes an agent which prefers a different filename (such as Claude
-Code's `CLAUDE.md` or Cursor's `.cursor/rules/*.mdc`) to the
-canonical `AGENTS.md`. Adapters carry no rules of their own and are
-capped at 30 lines.
 
 ## Apply
 
@@ -72,6 +72,13 @@ The file Claude Code reads automatically when it starts in a
 project. Doctrina's Claude adapter is a thin `CLAUDE.md` that
 `@`-imports `AGENTS.md`.
 
+## Delivery
+
+One item of work that crosses repositories — a story, a screen, a fix —
+kept in the workspace's `deliveries/`. Each routed repository carries one
+change for it; its state is read from those changes. See
+[end-to-end-flow.md](end-to-end-flow.md).
+
 ## Delta
 
 A spec change packaged inside a change folder. Carries an
@@ -95,11 +102,22 @@ unwanted-behaviour (`the system shall not...`), and optional
 (`where X, the system may...`). Doctrina spec templates use EARS
 section headings.
 
+## Executor
+
+A subagent that implements one task card in one repository, verifies it,
+ticks it and reports back. It never opens, closes or archives a change.
+
 ## Greenfield
 
 A project built from scratch with Doctrina from day one. Contrast
 with brownfield. Most SDD frameworks shine in greenfield and
 struggle in brownfield; Doctrina aims for both.
+
+## Guard
+
+The pre-call hook the workspace installs in the agent: every MCP call is
+answered allow, deny or ask from the access the workspace declares for
+that tool — read-only unless declared otherwise.
 
 ## Index
 
@@ -111,6 +129,12 @@ path, status, version, and dates. Read by `doctrina validate`.
 
 A modern ADR template that extends Nygard's original with explicit
 alternatives. Doctrina's `decision.md.template` is MADR-adjacent.
+
+## Materialise
+
+Used in this codebase to mean "write a delta body to its target
+spec path during apply." A materialised spec is the active truth
+produced by an ADDED delta.
 
 ## Memory (episodic, semantic, procedural)
 
@@ -134,19 +158,19 @@ recurrent design choice becomes an ADR). Without that consolidation
 discipline, episodic memory just accumulates. This is the failure
 mode ADR 0003 cites when it defers a `memory/` folder.
 
-## Materialise
-
-Used in this codebase to mean "write a delta body to its target
-spec path during apply." A materialised spec is the active truth
-produced by an ADDED delta.
-
 ## Orchestrator
 
 The component that coordinates the workflow phases. Doctrina's
-reference orchestrator is a single linear loop (ADR 0004). It may
-fan out subagents for read-only investigation but never for parallel
-writing. See [multi-agent.md](multi-agent.md) for the operating
+reference orchestrator is one planner (ADR 0030, superseding ADR
+0004): it reads, routes, writes task cards and closes; executors
+implement one card at a time; one writer per repository. Read-only
+subagents may fan out freely. See [multi-agent.md](multi-agent.md) for the operating
 model.
+
+## Planner
+
+The agent session opened on the workspace. It reads the work, routes it,
+writes the changes and task cards, delegates, reviews and closes.
 
 ## Propose
 
@@ -155,12 +179,11 @@ starts at `Status: proposed`. A proposal becomes `applied` only when
 `doctrina change apply` finishes without errors and without a MODIFIED
 delta left to merge by hand.
 
-## Spec
+## Shadow project
 
-`.doctrina/specs/<capability>/spec.md`. The canonical description
-of how a capability works today. Uses EARS for requirements. Updated
-by applying deltas, never edited freehand outside the change
-workflow.
+A repository that cannot carry `.doctrina/`. Its artifacts live in the
+workspace and are linked into it, hidden from its git by
+`.git/info/exclude`.
 
 ## Skill
 
@@ -172,6 +195,13 @@ whether to load the full body. Complements `AGENTS.md`
 (procedural-always) without replacing it. See
 [skills.md](skills.md) for design and per-agent loading
 semantics.
+
+## Spec
+
+`.doctrina/specs/<capability>/spec.md`. The canonical description
+of how a capability works today. Uses EARS for requirements. Updated
+by applying deltas, never edited freehand outside the change
+workflow.
 
 ## Spec-driven development (SDD)
 
@@ -188,8 +218,22 @@ keeps its body and gets `superseded by NNNN` in its `Status:`
 header. The new ADR carries `Supersedes: <old>`. The two are linked
 bidirectionally.
 
+## Task card
+
+One task of a change, printed by `doctrina change card` with everything an
+executor needs to do it alone: the task and its `Files:`, `Requirement:`
+and `Verify:` lines, the change's Why, the delivery's story, what the
+change's delta does to the spec, the spec cut to the task and the
+decisions that bind it.
+
 ## Validate
 
 `doctrina validate`. Runs schema and structural checks against the
 `.doctrina/` tree. Exits 0 on no errors. Intended for pre-commit
 hooks.
+
+## Workspace
+
+A private git repository that registers the repositories the work touches,
+what each one is and what it depends on, the tools the work uses, and the
+artifacts of every shadow project. See [workspace.md](workspace.md).

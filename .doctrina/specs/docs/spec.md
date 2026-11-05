@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC5
-**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
+**Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `packages/doctrina-cli/README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
 **Last updated:** 2026-09-11
-**Version:** 0.9.0
+**Version:** 0.10.11
 
 ## Purpose
 
@@ -112,6 +112,7 @@ mechanically by `scripts/check-docs.js`, wired into `doctrina verify`):
 18. [verified] Both READMEs carry the install command before the flow diagram, link every guide of their language except the named exemptions, and strand no guide after the project-policy line — verified by `packages/doctrina-cli/test/o-readme-leva-a-cada-guia.test.js`.
 19. [verified] The npm README's moment-grouped summary names every live operation, and a page that teaches a deprecated or removed command outside the lines retiring it fails the check — verified by `packages/doctrina-cli/test/a-documentacao-acompanha-o-catalogo.test.js`.
 20. [verified] The guard reads CONTRIBUTING.md, the PR template, product.md, the skills, the templates and the example projects; a page outside `docs/` that teaches `doctrina analyze` fails it, the contributor pages name `doctrina close` and never say the archive must stay empty, and an `AGENTS.md` under `packages/doctrina-cli/` fails it — verified by `packages/doctrina-cli/test/a-documentacao-acompanha-o-catalogo.test.js`.
+21. [verified] The end-to-end guide's Phase 0 and Phase 1 run as written against the CLI, from an empty workspace to a closed delivery, every `close` gate included — verified by `packages/doctrina-cli/test/o-guia-de-ponta-a-ponta-roda-como-escrito.test.js`.
 
 ## Out of scope for this spec
 

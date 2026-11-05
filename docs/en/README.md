@@ -10,8 +10,8 @@ The bottleneck of AI-assisted development is not code generation — it is
 the reliable transfer of intent and the persistence of context across
 sessions and agents. Doctrina treats **specifications as the single
 source of truth**, keeps architectural decisions as **immutable ADRs**,
-and orchestrates work through a **single linear coordinator** instead of
-competing parallel agents. Everything is plain Markdown and JSON in git:
+and orchestrates work through **one planner, one writer per repository**
+instead of competing parallel agents. Everything is plain Markdown and JSON in git:
 no database, no vector store, no telemetry, zero runtime dependencies.
 
 | | |
@@ -78,7 +78,7 @@ propose → apply → archive cycle in depth.
 
 ## The command surface
 
-39 commands, 74 operations, zero dependencies — see the
+39 commands, 75 operations, zero dependencies — see the
 **[CLI reference](cli-reference.md)** for all of them. Those two numbers
 are checked against the CLI's own catalog, so this page cannot quietly
 fall behind it. The ones you will

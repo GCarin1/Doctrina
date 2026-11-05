@@ -1,12 +1,13 @@
 // @ts-check
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { isDir, isFile, read, write } from "./fs-ops.js";
+import { eolOf, isDir, isFile, read, withEol, write } from "./fs-ops.js";
 import { listHeader } from "./scan.js";
-import { checklistProgress, setHeader } from "./doc-model.js";
+import { checklistProgress, maskComments, parseChecklist, setHeader } from "./doc-model.js";
+import { parseLedger } from "./ledger.js";
 import { terms } from "./lexicon.js";
 import { slugify, padNumber } from "./dates.js";
-import { artifactRootOf } from "./workspace.js";
+import { artifactRootOf, projectState } from "./workspace.js";
 
 // A DELIVERY is one item of work that crosses repositories (ADR 0030): a
 // story, a screen, a fix. It lives in the workspace's `deliveries/` and
@@ -72,8 +73,8 @@ export function setDeliveryHeader(wsDir, id, name, value) {
   let text = read(p);
   const next = setHeader(text, name, value);
   if (next !== null) text = next;
-  else text = text.replace(/^(- \*\*Projects:\*\*.*)$/m, `$1\n- **${name}:** ${value}`);
-  write(p, text, { force: true });
+  else text = text.replace(/^(- \*\*Projects:\*\*[^\r\n]*)/m, `$1\n- **${name}:** ${value}`);
+  write(p, withEol(text, eolOf(read(p))), { force: true });
 }
 
 /**
@@ -138,16 +139,26 @@ export function deliveryChanges(wsDir, ws, delivery) {
         const text = read(proposal);
         if ((listHeader(text, "Delivery") ?? "").trim() !== delivery.id) continue;
         const tasks = path.join(dir, entry, "tasks.md");
-        const progress = isFile(tasks) ? checklistProgress(read(tasks)) : { total: 0, done: 0 };
+        const progress = isFile(tasks) ? checklistProgress(read(tasks)) : { total: 0, done: 0, placeholders: 0 };
         changes.push({
           id: archived ? entry.replace(/^\d{4}-\d{2}-\d{2}-/, "") : entry,
           archived,
           status: archived ? "archived" : (listHeader(text, "Status") ?? "proposed").toLowerCase(),
           tasksDone: progress.done, tasksTotal: progress.total,
+          // Scaffold boxes no one wrote (third audit, change 0234): counted
+          // as tasks, they read "3 tasks left — hand the next card" for a
+          // change whose card command answers that none is written.
+          placeholders: progress.placeholders ?? 0,
         });
       }
     }
-    out.push({ project: name, path: project.path, changes });
+    // Abandoned for this delivery: the ledger keeps the delivery's id (change 0234).
+    const ledger = path.join(changesDir, "archive", "LEDGER.md");
+    const abandoned = isFile(ledger)
+      ? parseLedger(read(ledger)).entries.filter((e) => e.kind === "abandoned" && new RegExp(`\\(delivery ${delivery.id}\\)\\s*$`).test(e.title))
+        .map((e) => ({ id: e.id, reason: e.title.replace(/^abandoned\s*(—\s*)?/i, "").replace(/\s*\(delivery [^)]*\)\s*$/, "") }))
+      : [];
+    out.push({ project: name, path: project.path, absent: !isDir(project.path), changes, abandoned });
   }
   return out;
 }
@@ -181,9 +192,9 @@ export function daysBetween(from, to) {
 export function recordBlockers(delivery) {
   const out = [];
   if (sectionText(delivery.text, "Story") === "") out.push("## Story is empty — copy the tracker item's story and acceptance criteria, verbatim");
-  const release = sectionText(delivery.text, "Release");
-  const open = release.split("\n").filter((l) => /^[-*]\s*\[\s\]/.test(l));
-  for (const box of open) out.push(`## Release: unticked — ${box.replace(/^[-*]\s*\[\s\]\s*/, "")}`);
+  // The same boxes `delivery tick` lists and ticks — one reader, so a box
+  // the check holds you to is always one the CLI can tick.
+  for (const box of releaseBoxes(delivery.text).filter((b) => !b.checked)) out.push(`## Release: unticked — ${box.text}`);
   if (sectionText(delivery.text, "Observability") === "") out.push("## Observability is empty — record what was watched after the release (monitor, dashboard or query, the window, what it showed)");
   return out;
 }
@@ -198,6 +209,8 @@ export function deliveryBlockers(wsDir, ws, delivery) {
   if (delivery.projects.length === 0) blockers.push("no project routed — `doctrina delivery route <id> <a,b>`");
   for (const row of deliveryChanges(wsDir, ws, delivery)) {
     if (row.missing) blockers.push(`${row.project}: ${row.missing}`);
+    else if (row.absent) blockers.push(`${row.project}: the repository is not at ${row.path} — \`doctrina workspace attach ${row.project} --path <dir>\``);
+    else if (row.changes.length === 0 && row.abandoned?.length) blockers.push(`${row.project}: its change ${row.abandoned.map((a) => a.id).join(", ")} was abandoned — re-route the delivery without ${row.project}, or open a new change there with \`doctrina work "<title>" --delivery ${delivery.id}\``);
     else if (row.changes.length === 0) blockers.push(`${row.project}: no change carries this delivery — open one there with \`doctrina work "<title>" --delivery ${delivery.id}\``);
     else for (const ch of row.changes.filter((x) => !x.archived)) {
       blockers.push(`${row.project}: change ${ch.id} is ${ch.status} (${ch.tasksDone}/${ch.tasksTotal} tasks) — close it there with \`doctrina close ${ch.id}\``);
@@ -205,4 +218,69 @@ export function deliveryBlockers(wsDir, ws, delivery) {
   }
   blockers.push(...recordBlockers(delivery));
   return blockers;
+}
+
+/**
+ * The `## Release` boxes of a delivery, in order, with their line index in
+ * the LF-normalised text (change 0226). The other sections are prose the
+ * planner writes; these are claims, and a claim is ticked through the CLI.
+ */
+export function releaseBoxes(text) {
+  // One owner for the box grammar (ADR 0021): the document model reads the
+  // boxes; a box inside a comment is the template's example, not a claim.
+  const lf = String(text).replace(/\r\n/g, "\n");
+  return parseChecklist(maskComments(lf), { section: "Release" })
+    .filter((b) => b.section === "Release")
+    .map((b, i) => ({ ordinal: i + 1, line: b.line, checked: b.checked, text: b.text }));
+}
+
+/** The text with the given Release boxes ticked (all when `ordinals` is "all"). */
+export function tickRelease(text, ordinals) {
+  const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+  for (const box of releaseBoxes(text)) {
+    if (ordinals === "all" || ordinals.includes(box.ordinal)) {
+      lines[box.line] = lines[box.line].replace(/\[\s\]/, "[x]");
+    }
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Projects a delivery cannot be routed to yet (change 0226): one whose
+ * repository is missing, or one still `pending` — no spec to write a delta
+ * against, so the change opened there would have nothing to change.
+ * @returns {{ name: string, state: string, reason: string, path: string }[]}
+ */
+export function unroutable(wsDir, ws, names) {
+  const out = [];
+  for (const name of names) {
+    const project = ws.projects.find((p) => p.name === name);
+    if (!project) continue;
+    const st = projectState(wsDir, project);
+    if (st.state !== "ready") out.push({ name, state: st.state, reason: st.reason, path: project.path });
+  }
+  return out;
+}
+
+/**
+ * Open changes in a routed repository that do NOT belong to this delivery
+ * (change 0226). Each is a second writer the planner must sequence: one
+ * writer per repository at a time holds across deliveries too.
+ * @returns {{ project: string, id: string, delivery: string|null }[]}
+ */
+export function otherWriters(wsDir, ws, delivery) {
+  const out = [];
+  for (const name of delivery.projects) {
+    const project = ws.projects.find((p) => p.name === name);
+    if (!project) continue;
+    const changesDir = path.join(artifactRootOf(wsDir, project), ".doctrina", "changes");
+    if (!isDir(changesDir)) continue;
+    for (const entry of readdirSync(changesDir).sort()) {
+      const proposal = path.join(changesDir, entry, "proposal.md");
+      if (entry === "archive" || !isFile(proposal)) continue;
+      const of = (listHeader(read(proposal), "Delivery") ?? "").trim() || null;
+      if (of !== delivery.id) out.push({ project: name, id: entry, delivery: of });
+    }
+  }
+  return out;
 }

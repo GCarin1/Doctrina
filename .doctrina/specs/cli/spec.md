@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions}.js`, `tsconfig.json`
+**Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions,shell}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.57.2
+**Version:** 0.63.0
 
 ## Purpose
 
@@ -71,6 +71,10 @@ command shares (git, the lexicon, the usage log).
 - The system shall never tell a person to run a deprecated command from its own output — a `--help` text, a closing hint, a validation warning — except on a line that says the name is deprecated, because a deprecated name keeps working and nothing else would catch the CLI teaching the path it retired.
 - The system shall label the first step of the closing sequence by the gate it holds, `structure`, in `close --help` and in the close's own output, and shall name `doctrina change check <id>` as its rerun.
 - The system shall generate its shell completion scripts (bash, zsh, pwsh) from the live operations of the catalog only, leaving deprecated ones out, because completion is how a person discovers what to type and a deprecated name still runs for the script that already types it.
+- The system shall keep every value of a string flag given more than once, in order, for a command that takes it repeatedly, while a single reading of the flag still returns the last value.
+- The system shall name, in a Usage line that enumerates a command's subcommands, every subcommand that command dispatches, and shall describe each one in the help body.
+- The system shall quote every path and title it interpolates into a printed command line, so that the shell reads each back verbatim: double quotes for plain text, single quotes when the text holds a quote, a backtick, `$`, `\` or `!`.
+- The system shall load only the command module it runs, and route `doctrina workspace guard` to a door that loads the registry reader and the guard decision alone.
 
 ### Event-driven
 
@@ -129,6 +133,10 @@ command shares (git, the lexicon, the usage log).
 - When `close` is given a change id that does not resolve, the system shall refuse with the usage class before sequencing any step, as every other command that takes a change id does.
 - When an invocation is refused for an undeclared flag and JSON output was requested, the system shall emit the envelope reporting the refusal and its exit code rather than an empty payload.
 - When an invocation names an operation removed from the catalog, the system shall run nothing and answer with the usage class, naming the version that removed it and the command that replaces it — in the `--json` envelope too — rather than "unknown command" and a guess.
+- When `doctrina next` runs at a workspace root, the system shall answer with the workspace's next actions, as the workspace spec states, and shall not recommend `doctrina init` there.
+- When `doctrina next` runs inside a project that an open workspace delivery is routed to, the system shall name `doctrina work "<title>" --delivery <id>` while the project has no change for it, and the workspace's `doctrina next` once every change it has for it is archived.
+- When a command run with `--json` stops before it builds its payload, the system shall still print the JSON envelope with `ok: false`, the exit code and an `error` field.
+- When `doctrina next` runs at a workspace root with more than ten actions, the system shall print the first ten and count the rest, while `--json` carries every one.
 
 ### State-driven
 
@@ -170,6 +178,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall not reinterpret a malformed flag value as a different request: a count that is not digits above zero, a `metrics --since` window that is not a day count, a real calendar date or "<n> <unit>s ago", and a negative number given to a value-taking flag are refused with the usage class, naming the value, because git reads any text as a date and a truncated number runs as a request nobody made.
 - The system shall not point an applied change, or a change with no delta, at `change archive` or `change apply` from `next`: the action is `doctrina close <id>`, which `next --run` can execute.
 - The system shall not tell an agent, in the generated command surface, to run `triage` before `work`: `work` classifies the lane itself, and `triage` is reached for when diagnosing an incident.
+- The system shall not tell `doctrina next` readers to complete the open tasks of a change whose tasks are the scaffold's placeholders.
 
 ### Optional
 
@@ -255,6 +264,15 @@ The CLI is v0 spec-compliant when:
 48. [verified] With an open change and a drifted index, `next` lists the index rebuild first — verified by `packages/doctrina-cli/test/actions.test.js`.
 49. [verified] `next` names `doctrina close <id>` for an applied change and for a delta-less one, its record carries `command: "close"`, and no line names `change archive` or `change apply` — verified by `packages/doctrina-cli/test/o-close-avisa-a-change-esquecida.test.js`.
 50. [verified] The surface's trigger for `work` says it runs before code is edited and classifies the lane itself, and the trigger for `triage` names an incident — verified by `packages/doctrina-cli/test/o-ciclo-vale-sem-citar-o-framework.test.js`.
+51. [verified] A repeated `--op` keeps every value in order while a single reading returns the last — verified by `packages/doctrina-cli/test/args.test.js`.
+52. [verified] Every command whose Usage line enumerates its subcommands names all it dispatches and describes each — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
+53. [verified] Every flag a command declares is described in that command's help — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
+54. [verified] `next` at a workspace root never names init, and outside any workspace and project still does — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
+55. [verified] `next` in a repository names the delivery routed to it, then sends the planner back to the workspace — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+56. [verified] a failing command answers in the JSON envelope — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+57. [verified] a printed line carrying a hostile tracker title and a path with a space runs as printed and executes nothing — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
+58. [verified] the guard's door reaches no snapshot, git, scan or command module, and answers as before — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
+59. [verified] next at a root prints ten actions and counts the rest — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 
 ## Out of scope for this spec
 

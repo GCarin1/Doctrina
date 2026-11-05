@@ -7,6 +7,7 @@ import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectValidation } from "../lib/validation-model.js";
+import { contextRouting, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
 
 // The structural gate. The checks themselves live in lib/validation-model.js
 // so a driver can ASK for them instead of spawning this binary and parsing
@@ -27,6 +28,19 @@ export async function run(_positional, flags) {
   // Outside a Doctrina project this is a PRECONDITION, not a pile of
   // gate failures about missing files: the remedy is `doctrina init`,
   // not editing artifacts that do not exist yet (C7).
+  // At a workspace root: the workspace's own integrity — registry, shadow
+  // links, deliveries (change 0230). Each project validates inside itself.
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (wsRoot) {
+    const { errors, warnings } = workspaceFindings(workspaceSnapshot(wsRoot));
+    for (const e of errors) console.log(c.red("error: ") + e);
+    for (const w of warnings) console.log(c.yellow("warn:  ") + w);
+    console.log("");
+    console.log(errors.length === 0
+      ? c.green("ok") + ` the workspace is consistent${warnings.length ? ` (${warnings.length} warning${warnings.length === 1 ? "" : "s"})` : ""} — each project validates inside itself: \`cd <path> && doctrina validate\``
+      : c.red("fail") + ` ${errors.length} workspace error${errors.length === 1 ? "" : "s"}`);
+    return errors.length > 0 || (flagBool(flags, "strict", false) && warnings.length > 0) ? 1 : 0;
+  }
   if (!isDir(path.join(projectRoot, ".doctrina"))) throw notADoctrinaProject();
 
   const { errors, warnings, fixes } = collectValidation(projectRoot, {
@@ -81,6 +95,10 @@ Usage: doctrina validate [--fix] [--runtime] [--strict] [--json]
 Run schema, artifact-existence, and structural checks against the
 .doctrina/ tree in the current working directory. Exits 0 if no errors
 (warnings allowed), 1 otherwise. With --strict, a warning fails it too.
+
+At a workspace root it checks the workspace instead — registered
+projects and their dependencies, shadow links, deliveries — and leaves
+each project's validation to \`cd <path> && doctrina validate\`.
 
 Two structural checks worth naming:
 

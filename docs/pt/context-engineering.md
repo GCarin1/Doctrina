@@ -20,11 +20,10 @@ papéis ou mais paralelismo — os movimentos para os quais a
 literatura multi-agente naturalmente puxa — não move esses 80%.
 Re-moldar o que o agente lê move.
 
-O design do Doctrina segue os dados: um orquestrador, um AGENTS.md
-canônico por escopo, caps de tamanho, regras de ordem de leitura,
-archive fora do caminho de leitura padrão. Cada decisão de
-framework que parece "menos" em vez de "mais" é downstream desse
-achado.
+O design do Doctrina segue os dados: um planejador, um AGENTS.md canônico
+por escopo, caps de tamanho, regras de ordem de leitura, archive fora do
+caminho de leitura padrão. Cada decisão de framework que parece "menos" em
+vez de "mais" é downstream desse achado.
 
 ## Densidade de sinal em AGENTS.md
 
@@ -48,14 +47,13 @@ melhor que um de 100 linhas; geralmente é menos acionável.
 
 ## Seleção em vez de despejar
 
-A arte prévia mais influente em seleção de contexto do lado do
-agente é o repo map do Aider. Aider constrói um grafo de código
-com tree-sitter, ranqueia nós via PageRank sobre o grafo de
-dependências, e envia ao agente só o código mais bem ranqueado
-que cabe num orçamento de tokens (default 1k). A lição
-generaliza: **contexto não é "despeje tudo que o agente possa
-querer"; é "ranqueie por relevância e mande a fatia mais útil
-sob um orçamento".**
+A arte prévia mais influente em seleção de contexto do lado do agente é o
+repo map do Aider. Aider constrói um grafo de código com tree-sitter,
+ranqueia nós via PageRank sobre o grafo de dependências, e envia ao agente
+só o código mais bem ranqueado que cabe num orçamento de tokens (default
+1k). A lição generaliza: **contexto não é "despeje tudo que o agente possa
+querer"; é "ranqueie por relevância e mande a fatia mais útil sob um
+orçamento".**
 
 Doctrina implementa a lição no nível dos artefatos, não no nível
 do grafo de código:
@@ -83,10 +81,9 @@ e a ferramenta: neste repositório, `doctrina context cli` eram 23
 arquivos e ~37.900 tokens, dos quais vinte ADRs aceitos eram
 ~26.200 — **69% do pack**, nada disso selecionado para a tarefa.
 
-A causa é estrutural. **ADRs são imutáveis e nunca se aposentam**,
-então toda decisão aceita entra em todo pack, para sempre. O pack
-cresce com a *idade* do projeto em vez de com a *tarefa*, e nada
-decai para fora dele.
+A causa é estrutural. **ADRs são imutáveis e nunca se aposentam**, então
+toda decisão aceita entra em todo pack, para sempre. O pack cresce com a
+*idade* do projeto em vez de com a *tarefa*, e nada decai para fora dele.
 
 Três mecanismos o limitam (ADR 0022):
 
@@ -97,22 +94,20 @@ Três mecanismos o limitam (ADR 0022):
 - **Scope:** billing, reporting
 ```
 
-Um pack com escopo carrega os ADRs que governam aquela capability
-mais todos os sem escopo. **Sem escopo significa global**, então
-um projeto que nunca adicionar o header recebe exatamente o pack
-que recebia antes — a adoção é opcional, não uma migração. O
-escopo também decide *ordem*: um ADR que **nomeia** a capability
-supera um que só a alcança por dependência declarada, então sob
-pressão de orçamento a capability fica com as decisões dela e abre
-mão das herdadas. Dividir uma spec é o que faz isso doer — os ADRs
-da nova continuam apontando para a antiga — e por isso o `validate`
-reporta uma spec que cita um ADR cujo escopo não a nomeia.
+Um pack com escopo carrega os ADRs que governam aquela capability mais
+todos os sem escopo. **Sem escopo significa global**, então um projeto que
+nunca adicionar o header recebe exatamente o pack que recebia antes — a
+adoção é opcional, não uma migração. O escopo também decide *ordem*: um
+ADR que **nomeia** a capability supera um que só a alcança por dependência
+declarada, então sob pressão de orçamento a capability fica com as
+decisões dela e abre mão das herdadas. Dividir uma spec é o que faz isso
+doer — os ADRs da nova continuam apontando para a antiga — e por isso o
+`validate` reporta uma spec que cita um ADR cujo escopo não a nomeia.
 
-Ninguém anota à mão uma pasta de documentos imutáveis, então
-`doctrina decision scope` propõe um por ADR sem escopo a partir do
-change arquivado que o cita; `--write` aplica. Revise: um escopo
-estreito demais esconde uma decisão do pack que precisava
-dela.
+Ninguém anota à mão uma pasta de documentos imutáveis, então `doctrina
+decision scope` propõe um por ADR sem escopo a partir do change arquivado
+que o cita; `--write` aplica. Revise: um escopo estreito demais esconde
+uma decisão do pack que precisava dela.
 
 **2. Orçamento.** Um teto sempre se aplica, resolvido nesta ordem:
 
@@ -141,12 +136,20 @@ excede o orçamento, o comando diz isso e sai com 1: é um achado real, não
 algo a esconder atrás de um pack grande demais.
 
 **4. Um backlog é uma fila, não um corpus.** Changes abertas eram core por
-inteiro, então o *tamanho da fila* decidia se o read path funcionava —
-vinte changes planejadas puseram todo pack acima do teto. Exatamente uma
-fica **em foco** e permanece inteira; toda outra vira uma linha de fila
-degradável (status, motivo, progresso, specs afetadas). O foco segue a
-capability nomeada e a query do `--for`, e é **singular por construção,
-nunca adivinhado**: se várias casam igualmente, nenhuma fica em foco.
+inteiro, então o *tamanho da fila* decidia se o read path funcionava:
+vinte changes planejadas e não começadas puseram todo pack acima do teto e
+o `context` saía com 1. Ter trabalho planejado nunca pode travar um
+projeto. Então exatamente uma change fica **em foco** e permanece inteira;
+toda outra vira uma linha de fila degradável:
+
+```
+0034-um-unico-mapa-de-gates  [proposed] Four gate maps for one concept · 0/10 tasks · specs: gates
+```
+
+O foco segue os mesmos sinais que ordenam o pack — a capability nomeada,
+depois a query do `--for` — e é **singular por construção, nunca
+adivinhado**: quando várias changes casam igualmente nenhuma fica em foco,
+e o backlog se lê como a fila que é.
 
 ### Recuperação por tarefa
 
@@ -178,9 +181,8 @@ subsistemas carreguem suas próprias regras sem poluir o arquivo
 global (veja [adapters.md](adapters.md) para detalhes e a
 referência das 88 pastas da OpenAI).
 
-A hierarquia é uma forma de escopo progressivo. O sistema de
-regras do Cursor oferece quatro modos de escopo que cobrem o
-mesmo espaço:
+A hierarquia é uma forma de escopo progressivo. O sistema de regras do
+Cursor oferece quatro modos de escopo que cobrem o mesmo espaço:
 
 | Modo | Quando dispara | Equivalente Doctrina |
 |------|----------------|----------------------|
@@ -203,14 +205,12 @@ opcionais) e é importado ou copiado em novos projetos no init.
 
 Doctrina suporta isso de forma leve:
 
-1. Mantenha um repo, ex: `org/conventions`, cuja raiz tem um
-   `AGENTS.md` curado mais seções de estilo de casa (convenções
-   de commit, orientação de PR template, bullets de do-and-do-not
-   de estilo de código).
-2. Em `doctrina init` num novo projeto, depois que o framework
-   esqueletiza o `AGENTS.md` local, cole o conteúdo de conventions
-   ou `@`-importe (Claude Code) antes do conteúdo
-   projeto-específico.
+1. Mantenha um repo, ex: `org/conventions`, cuja raiz tem um `AGENTS.md`
+   curado mais seções de estilo de casa (convenções de commit, orientação de
+   PR template, bullets de do-and-do-not de estilo de código).
+2. Em `doctrina init` num novo projeto, depois que o framework esqueletiza o
+   `AGENTS.md` local, cole o conteúdo de conventions ou `@`-importe (Claude
+   Code) antes do conteúdo projeto-específico.
 3. Quando o repo de conventions atualiza, projetos puxam o novo
    conteúdo manualmente. Não há sync automático; isso
    re-introduziria o problema de staleness e regras conflitantes
@@ -231,12 +231,11 @@ contexto diretamente:
   especial de contexto driftando silenciosamente à medida que o
   mesmo código é "polido" muitas vezes).
 
-O ortogonal que não está nessa lista: **confiar em qualquer
-contexto que o agente gerar sem curadoria.** O resultado do ETH
-Zurich AGENTbench é inequívoco — arquivos de contexto escritos por
-LLM reduziram sucesso da tarefa em 0,5–2% e elevaram custo de
-inferência em 20–23%. Qualquer artefato que um humano não revisou
-é passivo, não ativo.
+O ortogonal que não está nessa lista: **confiar em qualquer contexto que o
+agente gerar sem curadoria.** O resultado do ETH Zurich AGENTbench é
+inequívoco — arquivos de contexto escritos por LLM reduziram sucesso da
+tarefa em 0,5–2% e elevaram custo de inferência em 20–23%. Qualquer
+artefato que um humano não revisou é passivo, não ativo.
 
 ## Material relacionado
 

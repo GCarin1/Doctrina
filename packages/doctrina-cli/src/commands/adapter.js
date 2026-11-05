@@ -2,6 +2,8 @@
 import path from "node:path";
 import process from "node:process";
 import { exists, isFile, mkdirp, pruneEmptyDirs, read, relPath, remove, write } from "../lib/fs-ops.js";
+import { applyAdapterMigration, planAdapterMigration } from "../lib/adapters.js";
+import { relinkShadow, shadowRootOf } from "../lib/workspace.js";
 import {
   ADAPTER_STATES, adapterFiles, describeAdapter, listAdapterNames, renderAdapterFile,
   isMergedConfig, mergeJson, unmergeJson, containsJson, holdsAnyOf,
@@ -137,6 +139,14 @@ function adapterAdd(projectRoot, name, cmdFlags) {
     written += 1;
   }
 
+  // An adapter installed before its files moved (change 0238): the copies
+  // the CLI wrote under the old paths go, an edited one stays and is named.
+  const filesRoot = shadowRootOf(projectRoot) ?? projectRoot;
+  const moves = planAdapterMigration(projectRoot, tokens, filesRoot);
+  const gone = applyAdapterMigration(filesRoot, moves);
+  relinkShadow(projectRoot, gone);
+  for (const g of gone) console.log(c.green("removed") + ` ${g.rel} (replaced by its skill)`);
+  for (const rel of moves.kept) console.log(c.yellow("kept   ") + ` ${rel} (edited since install — Cursor now reads the skill; remove it once your edits are moved)`);
   console.log("");
   console.log(`${c.bold("Adapter " + name)} — ${written} file${written === 1 ? "" : "s"} written` +
     (skipped > 0 ? `, ${skipped} left alone` : "") +

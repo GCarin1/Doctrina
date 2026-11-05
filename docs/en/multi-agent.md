@@ -20,10 +20,11 @@ Doctrina is multi-agent in three concrete ways:
    sequence.** You can use Claude for spec drafting, Codex CLI for
    implementation, and another tool for review. The phase boundary
    is the handoff point.
-3. **A single orchestrator can fan out read-only subagents.** Within
-   one phase, an orchestrator may delegate isolated, read-only tasks
-   (codebase search, lint output parsing, security scanning,
-   retrieval) to subagents that return summarised context.
+3. **One planner delegates.** Within a change, the planner may fan out
+   isolated, read-only tasks (codebase search, lint output parsing,
+   security scanning, retrieval) to subagents that return summarised
+   context, and may hand one task card at a time to an executor that
+   writes it.
 
 Doctrina is **not** multi-agent in the following way: it does not
 run multiple writing agents in parallel against the same artifact.
@@ -37,18 +38,21 @@ what to do instead.
                    |
                    v
             +---------------+
-            |  orchestrator |   single, linear, holds the full trace
+            |    planner    |   one per change, holds the full trace
             +---------------+
                    |
    spec  ->  plan  ->  implement  ->  review  ->  curate
      |        |          |              |          |
-     |        |          |              |          |
      |        |          v              v          |
-     |        |     read-only      read-only       |
-     |        |     subagents      subagents       |
-     |        |    (search,         (lint,         |
-     |        |     retrieval)      tests,         |
-     |        |                     security)      |
+     |        |      executor       read-only      |
+     |        |    (one card at     subagents      |
+     |        |     a time, one     (lint,         |
+     |        |     writer per      tests,         |
+     |        |     repository)     security)      |
+     |        |          |                         |
+     |        |      read-only                     |
+     |        |      subagents                     |
+     |        |     (search, retrieval)            |
      |        |                                    |
      +--------+--- ADR triggers --------+----------+
                    |
@@ -90,8 +94,9 @@ markets well. The empirical record is unfavourable for code work:
 
 Doctrina inherits these findings as design constraints. Role labels
 ("Architect", "Tester", "Reviewer") are allowed as **prompt
-personas the single orchestrator adopts in sequence**, never as
-parallel processes contending for the same files.
+personas the planner adopts in sequence**, or as subagents with a
+bounded job — an executor on one task card, a read-only reviewer —
+never as parallel processes contending for the same files.
 
 ## Planner and executors (ADR 0030)
 
@@ -102,7 +107,8 @@ writing, because each keeps one writer per artifact:
   tasks as self-contained cards — the task and its `Files:`,
   `Requirement:` and `Verify:` lines — and hands one at a time to an
   executor subagent with `doctrina change card <id>`. The card carries
-  the change's Why and the spec cut to the task, so the executor does
+  the change's Why, the delivery's story, what the delta does to the
+  spec, the spec cut to the task and the decisions that bind it, so the executor does
   not need the planner's trace; a card that does is not finished. The
   executor edits, verifies, ticks and reports. It never opens, closes
   or archives — the planner reviews and closes. The executor may run on
@@ -122,23 +128,23 @@ generated `doctrina-executor`, `doctrina-reviewer`, `doctrina-qa` and
 ### Personas, not parallel processes
 
 If you want an "Architect mode" for design and a "Tester mode" for
-review, switch the orchestrator's persona between phases. The same
+review, switch the planner's persona between phases. The same
 agent, the same context, different framing prompt. No coordination
 problem because there is no concurrency.
 
-The five canonical personas the orchestrator adopts in sequence:
+The five canonical personas the planner adopts in sequence:
 
 | Phase | Persona | Job | Output | Human gate? |
 |-------|---------|-----|--------|-------------|
 | Intent | **Spec / PO** | Refine the request into EARS requirements; kill ambiguity. | New spec or change proposal with delta. | Spec approval. |
 | Plan | **Plan / Architect** | Produce `design.md` and `tasks.md`; surface architectural decisions. | Plan files + ADR drafts if needed. | Decisions on irreversible choices. |
-| Execute | **Implement / Dev** | Implement tasks against the approved spec. | Code commits. | None (or PR review). |
+| Execute | **Implement / Dev** | Implement tasks against the approved spec — or hand each task card to an executor subagent. | Code commits. | None (or PR review). |
 | Verify | **Review / Tester** | Run lint, tests, security scans, `doctrina validate`; check cross-artifact consistency. | Pass/fail report. | None — read-only, may run as a subagent. |
 | Curate | **Curator** | Merge applied deltas, archive the change, update the index. | Updated specs + cleaner archive. | None for mechanical work; human for any memory promotion (when `memory/` exists). |
 
 These are **prompt personas**, not separate agents. Switching
 persona means switching the framing prompt that the same
-orchestrator uses; the trace and the artifacts on disk are the
+planner uses; the trace and the artifacts on disk are the
 shared context across the switch.
 
 ### Read-only subagents
@@ -151,8 +157,9 @@ Safe to fan out:
 - Static security scanning (Semgrep, Bandit, etc.).
 - Build log analysis.
 
-Each subagent returns text. The orchestrator decides what to do
-with the text. The subagents never write to repository artifacts.
+Each subagent returns text. The planner decides what to do
+with the text. These subagents never write to repository artifacts;
+the one that writes is an executor, holding a card.
 
 ### Human approval gates
 
@@ -166,8 +173,8 @@ Doctrina has two natural human-in-the-loop checkpoints:
   `accepted`.
 
 A human-in-the-loop gate is not a multi-agent feature; it is the
-absence of one. The orchestrator pauses, the human reads, the
-orchestrator resumes.
+absence of one. The planner pauses, the human reads, the
+planner resumes.
 
 ### Multiple humans on the same change
 
@@ -187,7 +194,7 @@ You can hand off between agents at phase boundaries. Example flow:
 - A human approves.
 - Claude Code drives the review (lint summary, test results, spec
   consistency check).
-- The orchestrator (whichever tool) archives the change.
+- The planner (whichever tool) closes the change.
 
 Each agent owns one phase. None overlaps with another. The artifacts
 in `.doctrina/` are the shared trace.
@@ -200,13 +207,15 @@ in `.doctrina/` are the shared trace.
 | Local lint + CI lint at the same time | Safe. Both are validators that produce reports, not artefacts in `.doctrina/`. |
 | An agent and a human editing the same `proposal.md` | Hazard. Same artifact, two writers. Serialise. |
 | Two changes in flight on disjoint capabilities | Safe. Different artifacts, no shared writer. |
-| A subagent that "just patches a small file" | Hazard. The "small file" is a writer slot; the moment a subagent writes, the no-parallel-writers rule applies to it. |
+| A subagent that "just patches a small file" | Hazard. The "small file" is a writer slot; the moment a subagent writes, it is an executor — give it a card and keep it the only writer in that repository. |
 | An executor working a task card while the planner waits | Safe (ADR 0030). One writer in the repository; the planner reviews and closes. |
 | Executors in `back-end` and `front-core` at the same time | Safe (ADR 0030). Different repositories, no shared artifact. |
 
 ## Related material
 
-- [Workflow](workflow.md) — how the orchestrator moves through phases.
+- [Workflow](workflow.md) — how a change moves through the phases.
+- [The end-to-end flow](end-to-end-flow.md) — the roles above, step by
+  step, for work that crosses repositories.
 - [Antipatterns](antipatterns.md) — section 3 names the failure mode
   this doc helps you avoid.
 - [Adapters](adapters.md) — how each supported agent finds

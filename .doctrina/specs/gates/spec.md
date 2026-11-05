@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
+**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.49.0
+**Version:** 1.54.0
 
 ## Purpose
 
@@ -205,6 +205,10 @@ codes, zero-deps, no-network).
 - When `verify --reuse` runs — as `close` runs it — and the last run in which every check passed started from a byte-identical fingerprint of the code (the working tree minus `.doctrina/`, plus the verify configuration and the CLI version), the system shall skip the checks and say which run it reused; any difference shall run every check, and a plain `verify` shall always run them.
 - When a close archives a change, the system shall end with the sentence for the human naming the change and its archive path.
 - When `doctrina close`, `doctrina change check` or `doctrina analyze` meets a change whose proposal is already `applied`, the system shall report its pre-apply checks as not asked again and count only the integrity checks, and `doctrina change apply` shall skip an applied change before consulting the apply gate, so a close stopped after its apply can be rerun.
+- When `doctrina review --change <id>` decides which capability owns a changed file, the system shall read each spec the change targets as the change will leave it — its ops applied in memory, as `change check` dry-runs them — so a file cited by a criterion the change appends, or claimed by a `Source:` it sets, is not reported as belonging to no capability before `apply` merges the delta.
+- When `doctrina verify --init` runs in a project whose manifests declare build or test commands the code inventory recognises, the system shall write those that return on their own as the starter checks — each unit's with its `cwd` — and print them for the human to confirm; with none it shall write the fail-closed example.
+- When `doctrina change check <id>` dry-runs a MODIFIED delta's ops, the system shall scan the spec the ops produce with the clarify lexicons and warn, naming the delta and the word, of every smell the merged spec would have that the current one does not — advisory, never a failure.
+- When `doctrina review` runs without `--change` and code changed under a capability that an open change carries a delta for, the system shall report a note naming that change instead of a break.
 
 ### State-driven
 
@@ -248,6 +252,7 @@ codes, zero-deps, no-network).
 - The system shall not re-execute a change's ops block once the change is applied, since the target then holds what those ops wrote and the question has no meaning.
 - The system shall not accept a `Documented surface` declaration that lies inside an HTML comment, because annotation is not something a person wrote.
 - The system shall not print the full skill-candidate listing at the end of a close: once per run, it shall name the candidate a just-closed fix-shaped change produced and count every other one, printing nothing when there is none.
+- The system shall not count an UPPER_SNAKE name in a change's text as an environment-variable signal unless the text reads it as a variable (`process.env.X`, `$X`, `X=`, `getenv`), names it on a line about the environment, it carries a configuration suffix, or the project's env example file declares it.
 
 ### Optional
 
@@ -357,6 +362,12 @@ The gate surface is spec-compliant when:
 91. [verified] With an edit under `packages/api`, `verify --affected` runs the api check and the path-less one and skips the web check by name; an untracked file counts as touched; the partial run is not reused; plain `verify` runs all three; and `close` never passes `--affected` — verified by `packages/doctrina-cli/test/o-verify-afetado-roda-so-o-que-mudou.test.js`.
 92. [verified] Closing a chore ends with `Tell the human: change 0001-tidy is closed — archived at` its dated archive folder — verified by `packages/doctrina-cli/test/o-trabalho-aparece-para-o-humano.test.js`.
 93. [verified] Over an applied change whose ADDED spec exists, `change check` reports the pre-apply check as not asked again and `close` resumes past structure and apply — verified by `packages/doctrina-cli/test/o-close-retoma-a-change-aplicada.test.js`.
+94. [verified] A test cited only by the change's delta, and a path claimed only by a `Source:` the delta sets, are owned under `review --change`, and a plain `review` reports the test as owner-less — verified by `packages/doctrina-cli/test/o-review-do-close-olha-a-change.test.js`.
+95. [verified] `verify --init` in a project with `test`, `build` and `start` scripts writes `npm run test` and `npm run build` and never `start`, and with no candidate keeps the fail-closed example — verified by `packages/doctrina-cli/test/o-verify-init-parte-do-inventario.test.js`.
+96. [verified] `verify --init` on a polyglot repository writes each unit's test command with its `cwd`, and npm's placeholder never reaches the gate — verified by `packages/doctrina-cli/test/o-intake-le-o-projeto-inteiro.test.js`.
+97. [verified] `change check` warns of the weasel and vague words a delta writes, not of one the spec already had, and never as a failure — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
+98. [verified] a bare review counts an open change's delta as the spec update — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
+99. [verified] an error code or a constant cited by a change raises no environment signal, while a variable shown in each of those ways still does — verified by `packages/doctrina-cli/test/o-gate-de-docs-distingue-variavel-de-ambiente.test.js`.
 
 ## Out of scope for this spec
 

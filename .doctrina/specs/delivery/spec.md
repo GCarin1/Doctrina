@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.2.0
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -24,6 +24,9 @@ those changes can be handed to an executor as a self-contained card.
 - The system shall keep a delivery at `<workspace>/deliveries/<NNNN-slug>/delivery.md` with list headers `Status`, `Date`, `Ref` and `Projects`, and the sections Story, Sources, Plan, Release and Observability.
 - The system shall read a delivery's state from the changes its routed projects carry — a change carries it through the proposal header `- **Delivery:** <id>` — and shall never copy that state into the delivery file.
 - The system shall order a delivery's projects so that each comes after every routed project it depends on.
+- The system shall read a delivery's `## Release` boxes through one reader, the document model's checklist, so every box `delivery check` holds open — whatever its bullet marker — is one `delivery tick` lists and ticks, and a box inside a comment is neither.
+- The system shall slice a task card's spec by the task's words, the change's title and the text of the requirements its delta adds or replaces, and shall carry no HTML comment of the spec.
+- The system shall name on a task card every accepted decision scoped to a capability the change touches and every accepted global decision, each with the opening of its Decision, at most eight with the rest counted, and tell the executor to stop and report a contradiction.
 
 ### Event-driven
 
@@ -33,14 +36,23 @@ those changes can be handed to an executor as a self-contained card.
 - When `doctrina delivery status <id>` runs, the system shall print, per routed project, the changes carrying the delivery with their state and task progress.
 - When `doctrina delivery check <id>` runs, the system shall exit 1 while a routed project carries no change for the delivery or carries one not yet archived, naming each, and exit 0 otherwise.
 - When `doctrina delivery close <id>` runs and the check passes, the system shall set `Status: closed` and the `Closed` date, and print the `Tell the human:` line.
-- When `doctrina change card <id> [<n>]` runs, the system shall print task `<n>` — or the first open task — with the lines indented under it, the change's Why, the delta capabilities' specs cut to the task, the card's `Verify:` command or `doctrina verify`, the tick command, and the instruction to leave opening, closing and `.doctrina/` to the planner.
+- When `doctrina change card <id> [<n>]` runs, the system shall print task `<n>` — or the first open task — with the lines indented under it, the change's Why, the story of the delivery the change belongs to, what the change does to each spec (every requirement and criterion its delta adds, replaces or removes, verbatim), the delta capabilities' specs as they stand cut to the task — whole when nothing in one matches — the accepted decisions that bind those capabilities, the card's `Verify:` command or `doctrina verify`, the tick command, and the instruction to leave opening, closing and `.doctrina/` to the planner.
 - When `doctrina delivery check <id>` runs, the system shall also require the delivery's own record — a `## Story` with text, every `## Release` box ticked and a `## Observability` with at least one line beyond its comment — naming each gap, because the changes prove the code and only the record proves the delivery reached its users and was watched after it did.
 - When `doctrina delivery list` runs, the system shall print each delivery's age — open days, or lead time from `Date` to `Closed` once closed — and the median and longest lead time over the closed ones.
+- When `doctrina delivery tick <id>` runs, the system shall list the `## Release` boxes with their numbers, and with numbers or `--all` tick them, refusing a number that names no box with the usage class.
+- When `doctrina delivery status <id>` runs, the system shall print, for every open change with unticked tasks, the command that reads its next task card from inside its repository, and shall name every other open change in a routed repository as a second writer to sequence.
+- When `doctrina delivery tick <id> <n>...` ticks boxes, the system shall count only the boxes this call turned from open to ticked — a box already ticked or named twice is not counted again — and write nothing when there is none.
+- When a project's only change for a delivery was abandoned, the system shall show it abandoned in the delivery's `status`, `check` and `handoff`, and name the re-route without that project as the next action.
+- When `delivery route` would drop a project that carries an open change for the delivery, the system shall refuse with exit 3 unless `--force`, and `validate` at the root shall warn of a change naming a delivery that does not route its project.
+- When a routed project's repository is not at its registered path, the system shall report it as moved with `doctrina workspace attach <name> --path <dir>`, and print no command that changes into the missing path.
+- When `delivery status --json` runs, the system shall emit a payload with the delivery's rows, release boxes, other writers and blockers.
 
 ### Unwanted behavior
 
 - If `--delivery` names a delivery that does not exist, or one not routed to the current repository, then the system shall not open the change: it exits with the usage class for an unknown delivery and the precondition class for an unrouted one, naming `delivery route`.
 - If a delivery's check fails, then the system shall not close it.
+- If `doctrina delivery new --projects` or `doctrina delivery route` names a project that is still pending or whose repository is missing, then the system shall not route it: it exits with the precondition class, naming `doctrina intake --from-code` or `doctrina workspace attach`, unless `--force` is given.
+- The system shall not offer a task card, nor count tasks left, for a change whose `tasks.md` still holds the scaffold's placeholder boxes; it shall name `doctrina work --resume <id>` instead.
 
 ## Acceptance criteria
 
@@ -51,6 +63,15 @@ A delivery is spec-compliant when:
 3. [verified] `delivery check` exits 1 while a routed project has no change or an open one and 0 once every change is archived; `delivery close` refuses before that and closes after — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 4. [verified] `change card` prints the next open task with its indented lines, the Why, the spec slice and its Verify command, and says so when every task is ticked — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
 5. [verified] With every routed change archived, `delivery check` still exits 1 naming an empty Story, each unticked Release box and an empty Observability, and exits 0 once they are written; `delivery list` prints the lead time and the median — verified by `packages/doctrina-cli/test/a-entrega-atravessa-repositorios.test.js`.
+6. [verified] A pending project is refused by `delivery new --projects` and `delivery route` with exit 3 naming `intake --from-code` and routed with `--force`; `delivery tick` lists, ticks and refuses a bad number; `delivery status` prints the card command and the second writer; `prime` and the pulse name the delivery; `work --resume --delivery` joins a change and refuses one already in another delivery — verified by `packages/doctrina-cli/test/o-fluxo-da-entrega-nao-tem-furos.test.js`.
+7. [verified] `delivery tick` keeps a CRLF delivery CRLF and counts only fresh ticks; the header writer adds a line in the file's own ending; `delivery check` names a `+ [ ]` Release box that `tick` lists — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
+8. [verified] The card carries the requirement and the criterion the delta adds verbatim, the delivery's story, the decisions scoped to or citing the capability and not one scoped elsewhere, and a spec whole when nothing matched; a change with none of them gets the card it had — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
+9. [verified] a card keeps the requirement its delta names and the task does not, and no template comment — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+10. [verified] a change of placeholder tasks is sent back to be written, never handed out — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+11. [verified] an abandoned change stays on the delivery's record and blocks its close — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+12. [verified] routing out a project with an open change is refused, and an orphan warns — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+13. [verified] a moved repository is reported as moved — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+14. [verified] a global ADR binds the card with what it decides — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 
 ## Out of scope for this spec
 

@@ -21,27 +21,39 @@ Execute in order, in a single linear pass:
    under ## Maturity → Future, not in EARS; write concrete Acceptance
    criteria, each [unverified] until a cited test proves it.
 
-4. If the project spans services/front-ends, own the seams between
+4. No requirement the intake does not state:
+   - Every requirement comes from a sentence of the intake. What you
+     would add — a sensible default, a limit, a role, an error case the
+     intake never names — is a question for the user, not a requirement.
+   - Numbers, names, limits and messages exactly as the intake writes them.
+   - Two sentences that contradict each other are a question, never a choice.
+
+5. If the project spans services/front-ends, own the seams between
    them (port map, env, API/WS/event shapes) as a contract:
        [[c]]doctrina contract new <name>[[/c]] → fill it → [[c]]doctrina contract check[[/c]]
 
-5. Record any architectural decision the intake forces (cite Evidence):
+6. Record any architectural decision the intake forces (cite Evidence):
        [[c]]doctrina decision new "<title>"[[/c]] → edit → [[c]]doctrina decision accept <num>[[/c]]
 
-6. Quality gates — fix everything they report before moving on:
+7. Check nothing was dropped or added. Read the intake again, sentence
+   by sentence: each one lands in product.md, a spec, a Non-goal or an
+   open question; each requirement points back to a sentence. Ask the
+   user about whatever is left on either side.
+
+8. Quality gates — fix everything they report before moving on:
        [[c]]doctrina clarify --all[[/c]]
        [[c]]doctrina validate[[/c]]
        [[c]]doctrina coverage[[/c]]   (and [[c]]doctrina verify --init[[/c]] to declare the build gate)
    If something in the intake is genuinely ambiguous, ask the user
    before assuming.
 
-7. Mark the intake consumed — through the CLI, not by hand:
+9. Mark the intake consumed — through the CLI, not by hand:
        [[c]]doctrina intake --converted[[/c]]
 [[g]]   `next` branches on that header and `validate` refuses any other[[/g]]
 [[g]]   value, because every word but the two declared ones used to read[[/g]]
 [[g]]   as pending in silence. It refuses while `validate` reports an[[/g]]
-[[g]]   error — the step-6 gates are what "done" means.[[/g]]
+[[g]]   error — the step-8 gates are what "done" means.[[/g]]
 
-8. [[c]]doctrina next[[/c]] — follow the recommendation. Implementation then
+10. [[c]]doctrina next[[/c]] — follow the recommendation. Implementation then
    flows through [[c]]doctrina work "<brief prompt>"[[/c]], one change at a time.
 {{MISSING_SPECS_WARNING}}

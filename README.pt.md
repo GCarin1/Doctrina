@@ -64,7 +64,8 @@ O gargalo do desenvolvimento assistido por IA não é a geração de código —
 transferência confiável de intenção e a persistência de contexto entre sessões
 e agentes. Doctrina trata especificações como a única fonte da verdade, mantém
 decisões de arquitetura como ADRs imutáveis, e orquestra o trabalho por meio
-de um coordenador único e linear em vez de agentes paralelos concorrentes.
+de um planejador único — um escritor por repositório de cada vez — em vez de
+agentes paralelos concorrentes.
 
 O nome vem do latim *doctrina* (doutrina) — o texto fundacional que governa
 como um corpo de agentes age.
@@ -78,9 +79,11 @@ como um corpo de agentes age.
    têm limite de tamanho para combater o efeito "lost in the middle".
 3. **Status, não migração de pasta.** Itens são aposentados por status + link,
    não movendo arquivos (exceto changes transitórias que vão para o archive).
-4. **Orquestrador único e linear por padrão.** Paralelismo multi-agente é o
-   padrão errado para escrita de código — produz decisões implícitas
-   conflitantes. Subagentes só para investigação read-only isolada.
+4. **Um planejador, um escritor por repositório.** Escritores paralelos nos
+   mesmos artefatos produzem decisões implícitas conflitantes. Um planejador
+   roteia e fecha; executores pegam um cartão autocontido por vez;
+   repositórios diferentes podem andar em paralelo (ADR 0030, que substitui
+   o ADR 0004).
 5. **Pipeline com gate por valor.** A cerimônia completa só roda quando a
    ambiguidade custa tempo real. Fix de uma linha pula tudo.
 6. **Portabilidade sobre invenção.** Doctrina constrói sobre o padrão aberto
@@ -95,7 +98,7 @@ como um corpo de agentes age.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
 - O CLI `doctrina` (Node.js, zero deps de runtime) com 39 comandos
-  e 74 operações cobrindo init, intake, workspace, delivery, work, prime, spec, change, decision, contract,
+  e 75 operações cobrindo init, intake, workspace, delivery, work, prime, spec, change, decision, contract,
   skill, intent, clarify, context, show, search, validate, coverage,
   trace, review, verify, close, doctor, status, why, handoff,
   watch, templates, hooks, index, next, metrics, report, completion e
@@ -117,8 +120,8 @@ como um corpo de agentes age.
 
 - Uma pasta `memory/`. Adiada até que dor mensurável justifique a complexidade.
   Veja [`.doctrina/decisions/0003-defer-memory-folder.md`](./.doctrina/decisions/0003-defer-memory-folder.md).
-- Escritores multi-agente em paralelo. Veja
-  [`.doctrina/decisions/0004-single-linear-orchestrator.md`](./.doctrina/decisions/0004-single-linear-orchestrator.md).
+- Dois escritores no mesmo repositório ao mesmo tempo. Veja
+  [`.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md`](./.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md).
 - Banco de dados, vector store ou camada RAG.
 - Geradores de documentação que produzem conteúdo que humanos nunca leem.
 - Telemetria, analytics ou network calls. Veja `SECURITY.md`.
@@ -159,6 +162,7 @@ A documentação para usuários vive em [`docs/`](./docs/):
 - [Engenharia de contexto](./docs/pt/context-engineering.md) — por que a forma do contexto prevê performance mais do que contagem de agentes.
 - [Gating](./docs/pt/gating.md) — quando o pipeline completo compensa.
 - [Adoção brownfield](./docs/pt/brownfield.md) — guia operacional para instalar Doctrina num codebase existente.
+- [O fluxo de ponta a ponta](./docs/pt/end-to-end-flow.md) — um item de trabalho entre repositórios, passo a passo, sem amarrar ferramenta.
 - [Trabalho entre repositórios](./docs/pt/workspace.md) — o workspace, as entregas, o planejador e seus executores, e a guarda de MCP.
 - [Comparação](./docs/pt/comparison.md) — posicionamento honesto vs Spec Kit, Kiro, OpenSpec, BMAD, SpecWeave.
 - [Migração](./docs/pt/migration.md) — mapeamentos práticos vindos de Spec Kit, OpenSpec, BMAD, Kiro, SpecWeave.

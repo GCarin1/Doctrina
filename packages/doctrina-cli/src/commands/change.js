@@ -2,16 +2,16 @@
 import { parseChecklist, getSection, getHeader, parseChangeTitle } from "../lib/doc-model.js";
 import path from "node:path";
 import process from "node:process";
-import { exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, write } from "../lib/fs-ops.js";
+import { eolOf, exists, isDir, isFile, lineCount, mkdirp, move, read, relPath, remove, walk, withEol, write } from "../lib/fs-ops.js";
 import { diffLines, formatUnified } from "../lib/diff.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry } from "../lib/templates.js";
 import * as idx from "../lib/index-json.js";
-import { archivedChangeEntry, deriveIndex } from "../lib/scan.js";
+import { archivedChangeEntry, deriveIndex, listHeader } from "../lib/scan.js";
 import { extractOps, applyOps } from "../lib/spec-ops.js";
 import { printAdrCheckpoint } from "../lib/adr-guard.js";
 import { GATES, TRANSITIONS, checkTransition, recordForcedGap } from "../lib/gates.js";
 import { today } from "../lib/dates.js";
-import { flagBool, flagString } from "../lib/args.js";
+import { flagAll, flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { appendLedgerLine, archivedLine, abandonedLine } from "../lib/ledger.js";
 import { suggest } from "../lib/suggest.js";
@@ -21,6 +21,7 @@ import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
+import { scanText } from "../lib/clarify-scan.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta", "card"];
 
@@ -103,8 +104,26 @@ function changeCard(args) {
   if (card.why) {
     L.push("", "## Why the change exists", "", card.why);
   }
+  if (card.story) {
+    L.push("", `## The story (delivery ${card.delivery})`, "", card.story);
+  }
+  // What the change does to the spec — the requirement the card implements
+  // is here, not in the spec as it stands (change 0231).
+  if (card.changes.length > 0) {
+    L.push("", "## What this change does to the spec", "");
+    for (const ch of card.changes) L.push(`- ${ch.capability} ${ch.line}`);
+  }
   for (const s of card.slices) {
-    L.push("", `## Spec — ${s.capability} (cut to this task)`, "", s.text.trim());
+    L.push("", `## Spec — ${s.capability} as it stands (${s.whole ? "whole: nothing in it matched the task" : "cut to this task"})`, "", s.text.trim());
+  }
+  if (card.decisions.list.length > 0) {
+    L.push("", "## Decisions that bind it", "");
+    for (const d of card.decisions.list) {
+      L.push(`- ADR ${d.id} — ${d.title} (\`doctrina show ${d.id}\`)`);
+      if (d.decision) L.push(`  ${d.decision}`);
+    }
+    if (card.decisions.more > 0) L.push(`- … and ${card.decisions.more} more accepted global decisions — \`doctrina prime --rules\``);
+    L.push("", "Where the story or the task contradicts one of these, stop and report it: the decision stands until the planner supersedes it.");
   }
   L.push("", "## When done", "");
   L.push(card.fields.verify
@@ -417,6 +436,13 @@ async function changeCheck(id, { verbose = false } = {}) {
       opsFindings += 1;
     } else {
       console.log(c.green("✓ ") + `${rel}: ${result.applied.length} op${result.applied.length === 1 ? "" : "s"} would apply cleanly`);
+      // What clarify will say about the spec once this lands (change 0232):
+      // the smells the merged spec has and the current one does not.
+      // Advisory — clarify is not a close gate — but a project that runs
+      // `clarify --all` in its build learned about the word mid-close.
+      for (const smell of newSmells(read(targetPath), result.text, projectRoot)) {
+        console.log(c.yellow("! ") + `${rel}: writes ${smell.rule} "${smell.token}" into ${capability}'s spec — ${smell.hint} (\`clarify\` flags it after apply)`);
+      }
     }
   }
   if (deltaFiles.length === 0) console.log(c.gray("- no spec deltas"));
@@ -484,14 +510,17 @@ function changeDelta(args, flags) {
   }
   // In the order a reader expects them: requirement, criterion, any raw op,
   // and the bump last.
+  // `--requirement`, `--criterion` and `--op` repeat (change 0228): each
+  // occurrence is one op, in the order given. The parser keeps the last
+  // value of a repeated flag, so reading them with flagString wrote one op
+  // and reported success for a command line that asked for three.
   const lines = [];
-  const requirement = flagString(flags, "requirement");
-  const criterion = flagString(flags, "criterion");
-  const raw = flagString(flags, "op") ?? (rest.length > 0 ? rest.join(" ") : undefined);
+  const raw = flagAll(flags, "op");
+  if (raw.length === 0 && rest.length > 0) raw.push(rest.join(" "));
   const bump = flagString(flags, "bump");
-  if (requirement) lines.push(`append-requirement ${requirement}`);
-  if (criterion) lines.push(`append-criterion ${criterion}`);
-  if (raw) lines.push(raw);
+  for (const r of flagAll(flags, "requirement")) lines.push(`append-requirement ${r}`);
+  for (const r of flagAll(flags, "criterion")) lines.push(`append-criterion ${r}`);
+  lines.push(...raw);
   if (bump) lines.push(`bump-version ${bump}`);
 
   const r = addDeltaOps(projectRoot, id, capability, lines);
@@ -614,11 +643,12 @@ function changeTick(args, flags) {
     byPath.get(box.file.path).push(box);
   }
   for (const [filePath, hits] of byPath) {
-    const lines = read(filePath).split(/\r?\n/);
+    const before = read(filePath);
+    const lines = before.split(/\r?\n/);
     for (const box of hits) {
       lines[box.lineIndex] = lines[box.lineIndex].replace(/\[ \]/, "[x]");
     }
-    write(filePath, lines.join("\n"), { force: true });
+    write(filePath, withEol(lines.join("\n"), eolOf(before)), { force: true });
   }
   console.log(c.green("ticked ") + `${picked.length} box${picked.length === 1 ? "" : "es"} in ${byPath.size} file${byPath.size === 1 ? "" : "s"}`);
   return 0;
@@ -771,13 +801,22 @@ async function changeAbandon(args, flags) {
 
   const reason = flagString(flags, "reason") ?? "";
   const date = today();
+  // The delivery it belonged to stays on record (third audit, change 0234):
+  // the proposal that carried it is deleted, and the delivery's status went
+  // back to "no change yet", as if the planner had never decided anything.
+  const proposalFile = path.join(changeDir, "proposal.md");
+  const delivery = isFile(proposalFile) ? (listHeader(read(proposalFile), "Delivery") ?? "").trim() : "";
+  const recorded = delivery ? `${reason ? `${reason} ` : ""}(delivery ${delivery})` : reason;
 
   remove(changeDir);
   console.log(c.green("removed") + ` ${relPath(projectRoot, changeDir)}`);
 
   // Ledger line so the abandonment is part of the visible history.
-  const ledgerFile = appendLedgerLine(projectRoot, abandonedLine(id, reason, date));
+  const ledgerFile = appendLedgerLine(projectRoot, abandonedLine(id, recorded, date));
   console.log(c.green("ledger") + ` +1 line in ${relPath(projectRoot, ledgerFile)}`);
+  if (delivery) {
+    console.log(c.gray("hint: ") + `it was this repository's part of delivery ${delivery} — from the workspace, re-route the delivery without this repository (\`doctrina delivery route ${delivery} <the others>\`) or open a new change here with \`doctrina work "<title>" --delivery ${delivery}\``);
+  }
 
   // Drop the change entry; rebuild from the tree so nothing drifts.
   const current = idx.load(projectRoot);
@@ -830,6 +869,26 @@ export function printDeltaPreview(projectRoot, changeDir, deltaFiles) {
         continue;
       }
       console.log(c.yellow("MODIFIED") + ` ${targetRel}`);
+      // A delta with an ops block is previewed as the spec it produces (change
+      // 0228): the ops run in memory, as apply runs them, and the diff is the
+      // spec before against the spec after. Diffing the spec against the
+      // delta FILE printed every line of the spec as a '-' — three hundred
+      // lines of noise around the four that change.
+      const ops = extractOps(text);
+      if (ops.length > 0) {
+        const current = read(targetPath);
+        const after = applyOps(current, ops);
+        if (after.errors.length > 0) {
+          for (const e of after.errors) console.error(c.red("error:") + ` ${rel}: ${e}`);
+          errors += 1;
+          continue;
+        }
+        console.log(formatUnified(diffLines(current, after.text), {
+          aLabel: targetRel,
+          bLabel: `${targetRel} (after apply)`,
+        }));
+        continue;
+      }
       console.log(c.gray("note: the delta body is a fragment to merge — '-' lines are current"));
       console.log(c.gray("      spec content absent from the delta, not necessarily removals."));
       const out = formatUnified(diffLines(read(targetPath), body), {
@@ -849,6 +908,22 @@ function extractDeltaBody(text) {
   return text.slice(idxSep + 5).replace(/^\n+/, "");
 }
 
+
+// The smells `after` has that `before` does not, matched by rule, token and
+// the line's own text — line numbers shift when a delta inserts a line.
+function newSmells(before, after, projectRoot) {
+  const key = (/** @type {string} */ text, /** @type {{ line: number, rule: string, token: string }} */ sm) =>
+    `${sm.rule}|${sm.token.toLowerCase()}|${text.split("\n")[sm.line - 1] ?? ""}`;
+  const seen = new Map();
+  for (const sm of scanText(before, projectRoot)) seen.set(key(before, sm), (seen.get(key(before, sm)) ?? 0) + 1);
+  const out = [];
+  for (const sm of scanText(after, projectRoot)) {
+    const k = key(after, sm);
+    if ((seen.get(k) ?? 0) > 0) seen.set(k, seen.get(k) - 1);
+    else out.push(sm);
+  }
+  return out;
+}
 
 export const help = `
 Usage: doctrina change <subcommand> [args]
@@ -872,6 +947,7 @@ Subcommands:
                          its target + the archive gate preview + an advisory
                          list of accepted ADRs citing the touched capabilities.
                          Everything close would refuse, listed BEFORE it runs.
+                         --verbose also prints each delta as it would land.
   tick <id> [n... |--all]  List the unchecked boxes (tasks.md + proposal
                          ## Verification) with ordinals; tick the given ones,
                          or every one with --all. No args = list only.
@@ -883,7 +959,9 @@ Subcommands:
                          capability — created from the template when absent —
                          parsed by the grammar apply reads and dry-run against
                          the spec first: nothing is written unless the whole
-                         block applies. A second --bump replaces the first.
+                         block applies. --requirement, --criterion and --op
+                         repeat, one op each, in order; a second --bump
+                         replaces the first.
   card <id> [<n>]        Print task <n> (default: the next open one) as a
                          self-contained card for an executor: the task and the
                          lines indented under it (Files:, Requirement:, Verify:),

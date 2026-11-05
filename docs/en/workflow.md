@@ -6,7 +6,7 @@ This doc explains how work moves through a Doctrina project. Read
 ## The cycle
 
 Every non-trivial change passes through four phases coordinated by a
-single linear orchestrator (you, or an AI agent acting on your behalf):
+single writer (you, or an AI agent acting on your behalf):
 
 ```
 intent -> spec  ->  plan  ->  implement  ->  review  ->  curate
@@ -25,10 +25,9 @@ intent -> spec  ->  plan  ->  implement  ->  review  ->  curate
 5. **Review → curate.** The change is archived (which refuses to close
    while verification is unchecked). The index is updated. Next cycle.
 
-There are no parallel writing agents at any phase. Subagents may
-explore the codebase for context, but only one writer touches a given
-artifact at a time. See [multi-agent.md](multi-agent.md) for the
-operating model and ADR 0004 for the reasoning.
+One writer touches a repository at a time; subagents may explore for
+context. See [multi-agent.md](multi-agent.md) and ADR 0030 for why, and
+[end-to-end-flow.md](end-to-end-flow.md) for work across repositories.
 
 ## The guided fast path
 
@@ -55,7 +54,7 @@ that runs them, while keeping the CLI itself offline and deterministic
 The CLI does the deterministic half (scaffold, slug, index, term-match)
 and the agent does the semantic half (write product, specs, deltas,
 code). A playbook is consumed by one agent in one linear pass — the
-single-orchestrator discipline of ADR 0004 is unchanged. If a
+one-writer discipline of ADR 0030 is unchanged. If a
 description or prompt is genuinely ambiguous, the agent asks before
 assuming.
 

@@ -116,14 +116,16 @@ Always Apply, because the cycle must reach every request; the other three
 serve project rules layered on top — see
 [context-engineering.md](context-engineering.md).
 
-### Native slash commands
+### Skills for the core loop
 
-Like the `claude` adapter, the `cursor` adapter also installs
-`.cursor/commands/doctrina-*.md` — the same core-loop commands
-(`/doctrina-work`, `/doctrina-next`, `/doctrina-context`,
-`/doctrina-status`, `/doctrina-why`), each a thin prompt that invokes
-the CLI so the workflow is discoverable inside Cursor without the
-agent having to know to shell out.
+The `cursor` adapter also installs `.cursor/skills/doctrina-*/SKILL.md`: the
+core loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`) as skills
+that invoke the CLI, with `disable-model-invocation: true` (they run when
+invoked with `/`) — Cursor's documentation describes skills, not
+`.cursor/commands/`. `doctrina upgrade --write` (or `adapter add cursor`)
+writes the skills into an older project and removes each untouched
+`.cursor/commands/doctrina-*.md` (an edited one is kept and named); in a
+shadow, they go to the shadow and are linked into the repository.
 
 ## Nested AGENTS.md (one root, multiple subsystems)
 

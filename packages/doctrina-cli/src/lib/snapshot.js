@@ -155,7 +155,11 @@ export function openChanges(projectRoot) {
     // The capabilities its deltas target — what `prime` turns into the
     // exact read command for the change (change 0217).
     const capabilities = deltaCapabilities(path.join(changesDir, id));
-    out.push({ id, title, status, tasksDone, tasksTotal, unchecked, date, ageDays: ageInDays(date), capabilities });
+    // The delivery a change belongs to (change 0226): a session opened in the
+    // repository — an executor's, or a human's — sees it is one part of a
+    // larger item of work, not a change on its own.
+    const delivery = proposal ? (listHeader(proposal, "Delivery") ?? null) : null;
+    out.push({ id, title, status, tasksDone, tasksTotal, unchecked, date, ageDays: ageInDays(date), capabilities, delivery });
   }
   return out;
 }

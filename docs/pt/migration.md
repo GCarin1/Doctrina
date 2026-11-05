@@ -23,9 +23,10 @@ O que se mantém vindo de qualquer dos cinco fontes:
 
 O que **não** se mantém:
 
-- Topologias de agentes por papel (BMAD). Doctrina rejeita
-  escritores paralelos pelo ADR 0004; rótulos de papel viram
-  personas de fase que o orquestrador único adota em sequência.
+- Topologias de agentes por papel (BMAD) como escritores
+  paralelos. Doctrina mantém um escritor por repositório (ADR 0030):
+  um planejador roteia e fecha, executores pegam um cartão por vez —
+  o story file do BMAD sobrevive como o cartão de tarefa.
 - Arquivos de contexto gerados por LLM. O resultado ETH Zurich
   AGENTbench é a razão; qualquer framework que ship esses
   arquivos não deve portá-los sem revisão.
@@ -38,7 +39,7 @@ O que **não** se mantém:
 
 | Artefato Spec Kit | Equivalente Doctrina |
 |-------------------|----------------------|
-| `.specify/memory/constitution.md` | Os ADRs aceitos (`0001`, `0003`, `0004` neste repo) mais a seção de princípios de design do README |
+| `.specify/memory/constitution.md` | `doctrina prime --rules` — os ADRs aceitos mais os não-objetivos do produto, montados sob demanda |
 | `/speckit.specify` slash command | `doctrina spec new <capability>` |
 | `/speckit.plan` slash command | `proposal.md` + `design.md` dentro de uma pasta de change |
 | `/speckit.tasks` slash command | `tasks.md` dentro de uma pasta de change |
@@ -90,7 +91,7 @@ Esboço da migração:
 
 | Artefato BMAD | Equivalente Doctrina |
 |---------------|----------------------|
-| Arquivos de persona (Analyst, PM, Architect, Dev, QA, etc.) | Personas de fase que o orquestrador único adota em sequência (veja `multi-agent.md`) |
+| Arquivos de persona (Analyst, PM, Architect, Dev, QA, etc.) | O planejador, o executor, o revisor e os especialistas que um workspace gera (veja `multi-agent.md`) |
 | Story file (por task, contexto autocontido) | A pasta de change (`proposal.md` + `tasks.md` + `design.md` + delta) |
 | PRD / plano de arquitetura da fase de Planning | `.doctrina/product.md` mais ADRs aceitos |
 | Config `bmad-core` | Combinação de `AGENTS.md` (operacional) e `.doctrina/product.md` (visão/escopo) |
@@ -103,7 +104,8 @@ Esboço da migração:
    files existentes viram proposal/tasks/design dentro de uma
    change.
 3. Os prompts de agente por papel comprimem em personas que o
-   mesmo orquestrador troca. Veja `multi-agent.md` para as cinco
+   planejador troca, e o agente Dev vira um executor que trabalha
+   um cartão de tarefa por vez. Veja `multi-agent.md` para as cinco
    personas canônicas.
 4. Mova conteúdo do PRD para `.doctrina/product.md` e decisões
    de arquitetura para ADRs via

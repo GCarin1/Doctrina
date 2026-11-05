@@ -46,6 +46,11 @@ test("intake --from-code stores the inventory and prints the absorb playbook", (
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /Absorb playbook/);
     assert.match(r.stdout, /never guess intent/);
+    // Change 0229: how the absorb keeps a spec to the code it read.
+    assert.match(r.stdout, /No requirement without the code that does it/);
+    assert.match(r.stdout, /never from a\s+folder name, a comment, a TODO/);
+    assert.match(r.stdout, /Check the facts before the gates/);
+    assert.match(r.stdout, /a\s+reader that did not write it/);
     const intake = readFileSync(path.join(s.dir, ".doctrina", "intake.md"), "utf8");
     assert.match(intake, /- \*\*Status:\*\* pending/);
     assert.match(intake, /code inventory/);

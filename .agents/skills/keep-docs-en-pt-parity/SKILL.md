@@ -34,6 +34,26 @@ description: "Keep docs/en and docs/pt as true mirrors — same files, same stru
    missing EN↔PT counterpart, and `node scripts/check-docs.js`
    (also wired into `doctrina verify`) checks parity, H1 shape,
    line caps, and the PT source note.
+7. The gates check SHAPE, not content: a PT bullet can say the
+   opposite of its EN twin with the same line count. For an audit,
+   compare per file what does not translate — the inline code spans
+   (commands, flags, paths; placeholders such as `<name>`/`<nome>`
+   normalised), the numbers, the link targets — and read every pair
+   that differs. That is how "constitution deferred" (PT) against
+   "shipped in 0.10.0" (EN), a table row that said a vague word for
+   "8 personas", and an EN-only fact (`cwd` per verify check) were
+   found in change 0228.
+8. The PT source note costs three lines, so a PT file runs into the
+   250-line cap before its EN twin. Rewrap the PT paragraphs that
+   break short instead of cutting content, and diff the WORDS before
+   and after (`git show HEAD:<file>` split on whitespace) to prove the
+   rewrap changed none.
+9. A doc that walks a flow is checked by walking it: run its commands
+   in order in a temporary directory, and keep the walk as a test when
+   the flow matters (`test/o-guia-de-ponta-a-ponta-roda-como-escrito.test.js`).
+   A Mermaid block is checked by rendering it (`mermaid.render` in a
+   headless browser against the version `docs/index.html` loads) —
+   counting node ids proves nothing about whether it parses.
 
 ## Anti-patterns
 

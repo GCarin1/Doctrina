@@ -60,8 +60,11 @@ Every payload carries the same envelope:
 
 Two levels of support, stated rather than hidden:
 
-- **Structured** — `validate`, `status`, `next`, `coverage`, `trace` build a
-  payload describing their result, alongside the envelope fields.
+- **Structured** — `validate`, `status`, `next`, `coverage`, `trace` and
+  `delivery status` build a payload describing their result, alongside the
+  envelope fields. One that stops before building it — not a Doctrina
+  project, an unknown id — still answers with the envelope, `ok: false` and
+  an `error` field.
 - **Envelope** — every other command returns its human output as
   `stdout` / `stderr` string arrays inside the envelope, with ANSI stripped.
   Branch on `ok` and `exit_code`; the lines are there for completeness, not
@@ -75,7 +78,10 @@ change shape without a `$schema_version` bump.
 ## `doctrina init`
 
 Scaffold `AGENTS.md` and the `.doctrina/` skeleton in the current
-working directory.
+working directory. In a second clone of a repository a workspace shadows
+it refuses (exit `3`) and names `doctrina workspace attach <name> --path
+<here>`: that repository's context lives in the workspace. `next` and the
+"not a Doctrina project" error say the same; `--force` inits anyway.
 
 ```
 doctrina init [options]
@@ -124,12 +130,15 @@ and print the **bootstrap playbook** — the ordered instruction
 sequence the host AI agent executes to turn that intent into
 `product.md` content and capability specs. The CLI itself performs no
 natural-language interpretation; the intelligence lives in the
-executing agent (see ADR 0005).
+executing agent (see ADR 0005). The playbook holds the agent to the
+intake: every requirement comes from a sentence of it, values exactly as
+written, a contradiction or a missing value as a question, and before
+the gates a re-read that checks nothing was dropped or added.
 
 ```
 doctrina intake description.md
 doctrina intake --text "A shop with login, catalog, and checkout"
-doctrina intake                       # reprint the playbook for a pending intake
+doctrina intake                       # reprint the playbook for a pending intake (absorb or bootstrap)
 doctrina intake --converted           # close the bootstrap
 doctrina intake --from-code           # an existing codebase: its inventory is the intake
 ```
@@ -137,7 +146,7 @@ doctrina intake --from-code           # an existing codebase: its inventory is t
 | Flag | Purpose |
 |------|---------|
 | `--text "<description>"` | Inline description instead of a file. |
-| `--from-code` | For a repository that already has code: store its **code inventory** as the intake — stack and frameworks read from manifests, file and test counts, CI and runtime manifests, candidate areas under the conventional source roots, the build and test commands it can see, and the variable **names** of env example files (never their values) — and print the **absorb playbook**, which asks for what the code does today and sends what the code cannot tell to the human as open questions. Refuses a converted intake (exit `3`) and a pending one without `--force`. |
+| `--from-code` | For a repository that already has code: store its **code inventory** as the intake, read from the whole repository: every **unit** (a directory with its own manifest — each service of a polyglot repository, each package of a monorepo) with its build, name, package manager, frameworks and tests; the workspace tooling; languages by file extension; candidate areas inside each unit (a JVM tree's feature packages included); entry points; interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI, route folders); migrations and schemas; CI and runtime manifests; the variable **names** of env example files (never their values; a real `.env` is named as present and never read); the documentation, decisions and agent instructions that already exist; and **what it could not see**. Each fact names the file it came from. The build and test commands are split into those `verify --init` seeds and those it does not — long-running, interactive, npm's placeholder, or test files with no declared runner. It prints the **absorb playbook**: what the code does today and nothing else, no requirement without the code that does it, values as the code writes them, a fact check by a reader that did not write the spec, and every question the code cannot answer sent to the human. Refuses a converted intake (exit `3`) and a pending one without `--force`. |
 | `--converted` | Mark the stored intake converted, ending the bootstrap. Nothing else writes that header, and `validate` refuses any value but `pending` or `converted` — every other word used to read as pending in silence. Refuses with exit `1` while `validate` reports an error, listing them — converting claims the bootstrap is done; `--force` converts anyway. Exits `3` when there is no intake to mark. |
 | `--force` | With `--converted`, convert although `validate` fails. Otherwise, overwrite an existing `.doctrina/intake.md` that is still `pending`. A **converted** intake is never reopened — `--force` refuses with exit `3` and points at `doctrina intent add` (new intent) and `doctrina work` (a change of behaviour). |
 
@@ -529,13 +538,21 @@ Three passes plus an advisory:
    memory against its target spec: an op that would fail at apply time
    (missing header, no such criterion or requirement, unknown verb) is
    reported here, not at close time. A delta with no ops block is
-   flagged as a manual merge so the close is planned around it.
+   flagged as a manual merge so the close is planned around it. The spec
+   the ops produce is also scanned with the clarify lexicons: a weasel or
+   vague word the delta writes is a warning now, not a red `clarify`
+   after the merge.
 3. **archive gate** — the unchecked boxes `archive` will refuse, with
    the bulk fix (`change tick <id> --all`) named.
 
 Advisory (never gates): the accepted ADRs whose text cites the change's
 touched capabilities — if the change alters what an ADR decided, amend
 it (`decision supersede` / `decision new`) instead of drifting past it.
+
+With `--verbose` it also prints each delta as it would land: a MODIFIED
+delta with an ops block as the spec before against the spec after apply,
+unchanged lines as context; ADDED with its line count; REMOVED with its
+target; a MODIFIED delta without ops as a line diff against the spec.
 
 Exits 0 with `ready to close` when all three areas are clear. Accepts
 multiple ids.
@@ -587,7 +604,10 @@ doctrina change abandon 0042-add-saml --reason "superseded by 0043"
 Deletes the open change folder and its `index.json` entry, appends a
 one-line abandonment record to `.doctrina/changes/archive/LEDGER.md`
 (history keeps the trace even for work that went nowhere), and
-rebuilds the index from the tree.
+rebuilds the index from the tree. A change that belonged to a workspace
+delivery keeps it on the ledger line — `(delivery <id>)` — so the
+delivery's `status`, `check` and `next` show it as abandoned instead of
+"no change yet". A new change never reuses an abandoned change's number.
 
 | Flag | Purpose |
 |------|---------|
@@ -614,6 +634,8 @@ doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The 
 Each flag becomes one op line — `--requirement` an `append-requirement`,
 `--criterion` an `append-criterion`, `--bump` a `bump-version`, and
 `--op "<line>"` (or the words after the capability) any op verb as written.
+`--requirement`, `--criterion` and `--op` repeat: each occurrence is one
+op, written in the order given.
 The lines are parsed by the grammar `apply` reads, and the whole block —
 what was there plus what is added — is executed in memory against the spec
 before anything is written: an op that would not apply is refused now
@@ -641,9 +663,17 @@ doctrina change card 0042-payment-declined 3    # task 3
 ```
 
 The card holds the task and the lines indented under it in `tasks.md`
-— write them as `Files:`, `Requirement:` and `Verify:` — the change's
-`## Why`, each delta capability's spec cut to the task, and what to do
-when done: run the card's `Verify:` command (or `doctrina verify`), tick
+— write them as `Files:`, `Requirement:` (a `doctrina show` reference such
+as `auth-R7`, counted from the spec and never written into it) and
+`Verify:` — the change's `## Why`, the story of the delivery the change
+belongs to (read from the workspace), what the change does to each spec —
+every requirement and criterion its delta adds, replaces or removes,
+verbatim, since the spec as it stands does not hold them yet — each delta
+capability's spec cut to the task (whole when nothing in it matches), the
+accepted decisions that bind those capabilities — the ones scoped to them
+and every global (unscoped) one, each with the opening of what it decides,
+and the instruction to stop and report when the story or the task
+contradicts one — and what to do when done: run the card's `Verify:` command (or `doctrina verify`), tick
 the box with the `change tick` line it prints, and report back. It tells
 the executor to leave opening, closing and `.doctrina/` to the planner.
 Exit `0` with a note when every task is ticked; `3` for a task number
@@ -1179,6 +1209,11 @@ or run it; wire it into your dev setup by hand.
 
 Run schema and structural checks against `.doctrina/`.
 
+**At a workspace root** it checks the workspace itself — every registered
+project's path and dependencies, every shadow's links, every delivery's
+Status and routed projects — and exits `1` on an error. Each project still
+validates inside itself.
+
 ```
 doctrina validate
 ```
@@ -1485,7 +1520,9 @@ updated, because `apply` merges them one step later; without that, every
 close warned about the very spec it was updating. Code under capabilities the
 change carries no delta for is reported in ONE line naming them all: either
 the change forgot a delta, or other work is lying in the tree, and the review
-cannot tell which.
+cannot tell which. Without `--change`, a capability that an OPEN change
+carries a delta for is a note naming that change, not a break: its spec is
+updated when the change closes.
 
 **A `--diff` ref must resolve.** One that does not is a usage error (exit
 2), not an empty diff: it used to report "no changes" and exit 0 —
@@ -1546,7 +1583,11 @@ doctrina verify --list
 doctrina verify --signoff "chronicle=reads well, approved"
 ```
 
-Checks live in `.doctrina/verify.json`. A check with `"type": "manual"` is
+Checks live in `.doctrina/verify.json`. `--init` writes the build and
+test commands the code inventory finds in the project's manifests — the
+`typecheck`, `lint`, `test` and `build` scripts of a `package.json`,
+`pytest`, `go test ./...`, `cargo test` — for you to confirm, or a
+fail-closed example when it finds none. A check with `"type": "manual"` is
 the qualitative gate (ADR 0012): judged by a human/eval and recorded as a
 sign-off, not run as a command.
 
@@ -1564,7 +1605,10 @@ sign-off, not run as a command.
 
 Each `run` executes in order through the shell with output streamed;
 `verify` exits non-zero if any command check fails. With no config it exits
-1 and points at `--init`. Sign-offs live in
+1 and points at `--init`. An optional per-check `cwd` (relative to the
+project root) targets a sub-package in a monorepo. A manual check passes
+once signed off and is reported *pending* otherwise — non-blocking by
+default, failing only under `--strict`. Sign-offs live in
 `.doctrina/verify.signoffs.json`. Under `--json` every check is teed, so
 the envelope's `stdout`/`stderr` carry what the checks printed — carriage
 returns stripped — and standard output stays pure JSON.
@@ -1685,8 +1729,9 @@ doctrina contract check
 
 `contract new` scaffolds `.doctrina/contracts/<name>.md` (Ports,
 Environment, **Wiring**, **Selectors**, **Budgets**, Interfaces,
-References) and indexes it. `contract check` verifies the mechanically
-checkable parts.
+References) and indexes it; it refuses an existing contract unless
+`--force` is given. `contract check` verifies the mechanically checkable
+parts.
 
 **Structure:**
 
@@ -1768,6 +1813,15 @@ nothing relevant is staged, or outside a git repository.
 ## `doctrina next`
 
 Print the recommended next workflow actions, in priority order.
+
+**At a workspace root** it lists the workspace's next actions — re-link a
+missing repository, absorb a pending one, route a delivery, open its
+change in each repository, hand the next card, close a change whose tasks
+are ticked, clear the delivery's record with the command that clears it
+(`delivery tick` for the Release claims), close the delivery, or open one
+— and never names `init` there, which would create a project inside the
+workspace. It prints the first ten, in the order that unblocks most, and
+counts the rest; `--json` carries every one.
 
 ```
 doctrina next [--json] [--run]
@@ -1853,6 +1907,10 @@ a whole sequence run for you.
 ## `doctrina status`
 
 One-glance project health dashboard (ADR 0012).
+
+**At a workspace root** it prints the workspace at a glance — projects
+ready, pending and missing, open changes, deliveries open and closed,
+tools — and the first next action; `--json` carries the same fields.
 
 ```
 doctrina status
@@ -2030,7 +2088,12 @@ an environment variable or a config key *your* project publishes is
 surface, the same way ADR 0023 makes the runtime declared rather than
 inferred. Surface a change is *adding* is not in the contract yet, so that
 is matched by shape instead: a route, an HTTP method in front of one, an
-environment-variable identifier, a `--flag`, an exit code. A project with
+environment-variable identifier, a `--flag`, an exit code. An UPPER_SNAKE
+name counts as a variable only when something marks it as one — read the
+way code reads one (`process.env.X`, `$X`, `X=`, `getenv("X")`), on a line
+about the environment, with a configuration suffix (`_URL`, `_TOKEN`,
+`_PORT`…), or in the project's `.env.example` — so an error code or a
+constant the change cites is not surface. A project with
 no contract falls back to Doctrina's own command catalog and behaves
 exactly as it did. Outside a git repository
 the gate cannot see what moved and stays silent rather than accusing.
@@ -2088,7 +2151,9 @@ ignores the `index.json` the fix rewrites. Runs until interrupted (Ctrl-C);
 ## `doctrina metrics`
 
 Derive adoption metrics from **local git history**. No network
-calls; nothing leaves the repository.
+calls; nothing leaves the repository. At a workspace root it counts the
+deliveries, points at `delivery list` for their lead time, and prints the
+`metrics` line for each repository.
 
 **First-run states.** A repository with no commits, or a directory that is
 not a repository, is a valid state and not a failure: `metrics` reports
@@ -2130,6 +2195,10 @@ snapshot monthly after, compare.
 Print the exact context pack for a task, in the documented read
 order.
 
+**At a workspace root**, where no single spec tree exists, it ranks the
+registered projects against `--for` and prints, for each, the command that
+reads its pack inside the repository.
+
 ```
 doctrina context billing --for "expire the session token" --concat
 doctrina context billing --concat
@@ -2142,8 +2211,10 @@ the opening of its Decision, with `doctrina show NNNN` for the rest. With
 `--for "<task>"` the task's spec, and the specs it depends on, are
 **sliced**: the headers, the Purpose, and the requirements and criteria
 the task matches best, each gap named in place (`… 3 not matching the
-task`) and a footer saying how many were kept. `--full` restores every
-text whole. A field review found agents skipping `context` for `prime`;
+task`) and a footer saying how many were kept. The change in focus is
+read without its HTML comments — the authoring instructions every
+proposal, tasks and delta template carries. `--full` restores every text
+whole. A field review found agents skipping `context` for `prime`;
 measured here, `context gates --concat` was ~40k tokens and `--for` cut
 nothing below the budget. The same task's pack is now ~5k.
 
@@ -2237,6 +2308,16 @@ cheap enough to run every session. Read-only; always exits 0.
 | `--hook claude\|cursor` | The primer plus the pulse, in the format the agent's session-start hook reads: plain text for Claude Code, `{"additional_context": …}` for Cursor; cut at 9,000 characters (Claude keeps 10,000). Installed by `doctrina adapter add claude\|cursor`. |
 | `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The Spec Kit `constitution.md` analogue, derived rather than authored: to change a principle, supersede the ADR; to change a non-goal, edit `product.md`. (Until 0.17.0 this was also a command of its own, since removed.) |
 
+**Inside Cursor.** Cursor also runs the hooks `.claude/settings.json`
+declares (its third-party import, on by default) and sets `CURSOR_VERSION`
+and `CURSOR_PROJECT_DIR` for every hook. When both are set, the Claude
+adapter's hooks answer in Cursor's terms: `--hook claude` prints nothing
+where the folder's `.cursor/hooks.json` already primes the session, and the
+`additional_context` JSON where it does not; `--pulse` answers
+`beforeSubmitPrompt` with `{"continue": true}`; and the Claude-format
+`workspace guard`, with no opinion, answers the allow Cursor translates
+instead of nothing, since `preToolUse` blocks on an answer that is not JSON.
+
 The primer keeps a fixed size on purpose — it is read at the start of
 every session — so the full non-goal text lives behind `--rules`
 rather than in the primer itself. A non-goal may be a bullet or a
@@ -2273,6 +2354,11 @@ reference into the delta's pair of coordinates.
 Print a session handoff note in Markdown — what the next session (a
 fresh agent, a teammate, tomorrow's you) needs to resume.
 
+**At a workspace root** it is the planner's resume note: each project with
+its mode and state, each open delivery with every routed repository's
+change and tasks, how many Release claims are ticked, and the next
+actions.
+
 ```
 doctrina handoff
 doctrina handoff > handoff.md
@@ -2287,7 +2373,9 @@ truth and never goes stale; regenerate on demand. Read-only.
 ## `doctrina doctor`
 
 Aggregate diagnostic: the one command to run when something looks
-wrong and you do not know which gate to ask.
+wrong and you do not know which gate to ask. At a workspace root it reports
+the workspace's own findings — the ones `validate` checks there — exits `1`
+on an error, and prints `cd <path> && doctrina doctor` for each project.
 
 ```
 doctrina doctor
@@ -2435,11 +2523,19 @@ and `close` read and write the shadow through the link.
 
 `list` prints each project's mode and state — `ready`, `pending` (no spec
 yet: absorb it with `doctrina intake --from-code`) or `missing` (its path
-is gone) — and its open changes. The workspace is found from
+is gone) — and its open changes, and refreshes the orchestrator files when
+a project's state or `workspace.json` changed since they were written (an
+absorbed project, an executor model). The workspace is found from
 `$DOCTRINA_WORKSPACE`, the current directory or an ancestor holding
 `workspace.json`, a shadow's link, or the pointer `init` writes under
 `$DOCTRINA_HOME` (default `~/.doctrina`). Commit the workspace yourself:
 it is the version history of every shadowed project's context.
+
+`--depends-on` is the order `delivery route` follows; `attach <name>
+--depends-on <a,b>` replaces it on a project already registered.
+`doctrina validate` at the workspace root warns when a project's
+`package.json` depends on the package another project publishes and the
+registry does not say so.
 
 **Tools and the guard** (ADR 0031). `doctrina workspace tool <name>`
 declares a tool the work uses — presets `jira`, `confluence`, `figma`,
@@ -2454,9 +2550,36 @@ write through a read-only tool is denied, a write through a read/write
 tool asks the human, a read is allowed, and a server the workspace does
 not declare gets no opinion. A SQL statement in the call decides whether
 it writes; otherwise the verbs in the tool's name do. Bad input never
-blocks the agent.
+blocks the agent. The hook goes into each shadow's own hook files too —
+an executor works inside the repository, where Cursor and Claude Code read
+that folder's hooks; an in-repo project owns its files, so `validate` at
+the root warns when they run no guard.
 
-**Orchestrator files.** Every workspace write regenerates, at its root:
+The SQL is read wherever the input carries it — any key, a list, a nested
+object — and `CALL`, `EXEC`, `COPY` and `SELECT … INTO` count as writes; an
+`action`, `operation` or `method` argument (`delete`, `POST`) and a GraphQL
+`mutation` count too, and so does a write verb inside a name with no
+separator (`createissue`). The guard matches the MCP server by its exact
+key in the agent's configuration, so `workspace tool` and `validate` at the
+root warn when no `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` or
+`~/.claude.json` names the declared server (a key that differs only in
+case is named). With a tool declared, the Cursor guard hook carries
+`failClosed: true`: Cursor lets a call through when a hook crashes, times
+out or cannot start — `doctrina` missing from the PATH it runs hooks with is
+enough — so without it a read-only tool would write unguarded, silently;
+with nothing declared it stays fail-open, so a broken install never blocks
+the operator's other servers. The guard loads only the registry and its decision — it
+runs before every MCP call, so it loads six modules rather than the
+whole CLI. A shadow whose folder is gone is scaffolded again by
+`workspace attach <name>`, after a warning to restore it from the
+workspace's git first.
+
+Every command line the CLI prints — `next`, `delivery status`, `route`,
+the playbooks — quotes the paths and titles it carries: a title from the
+tracker with `$( )`, a backtick or a quote is single-quoted, and a path
+with a space is double-quoted, so the line runs as printed.
+
+**Orchestrator files.** Every workspace write, and every `list`, regenerates, at its root:
 `AGENTS.md` (the planner's hub), `.cursor/rules/00-doctrina-workspace.mdc`,
 `.cursor/hooks.json` and `.claude/settings.json` (merged with yours),
 `.claude/agents/doctrina-executor.md` and `doctrina-reviewer.md` — plus
@@ -2479,7 +2602,7 @@ prime` at the workspace root is the orchestrator's primer.
 | `--remove` | `tool`: take the tool out. |
 | `--hook cursor\|claude` | `guard`: the agent whose pre-call payload arrives on stdin. |
 
-## `doctrina delivery new` / `route` / `list` / `status` / `check` / `close`
+## `doctrina delivery new` / `route` / `list` / `status` / `tick` / `check` / `close`
 
 One item of work that crosses repositories — a story, a screen, a fix —
 planned, routed, delegated and closed from a workspace (ADR 0030). The
@@ -2516,11 +2639,36 @@ and the `Closed` date. `list` shows each delivery's age — lead time once
 closed — and the median over the closed ones. `<id>` is the folder name
 or its number.
 
+
+A project still **pending** (no spec yet) or whose repository is missing is
+refused by `new --projects` and `route` with exit `3`: a change there would
+have no spec to change. Absorb it first (`doctrina intake --from-code`; once
+the inventory is stored, a bare `doctrina intake` reprints its playbook), or
+pass `--force`. `route` also refuses (exit `3`) to drop a project that
+carries an open change for the delivery — the change would be orphaned —
+unless `--force`, and `validate` at the root warns of a change naming a
+delivery that does not route its project. A repository that moved is
+reported as moved, with `workspace attach --path`. A change whose tasks
+are still the scaffold's placeholders is sent back to
+`doctrina work --resume <id>`, never handed out as a card.
+`status` prints, for every open change with tasks left, the
+command that reads its next card from inside its repository, and names every
+other open change in a routed repository — a second writer to sequence, one
+writer per repository at a time. `tick` lists the `## Release` boxes and
+ticks them by number or with `--all`: they are claims `check` holds you to,
+so they go through the CLI. It counts only what it turned from open to
+ticked — a box already ticked, or named twice, is not ticked again — and
+keeps the file's line endings. A change opened without `--delivery` joins one
+with `doctrina work --resume <change> --delivery <id>`; `prime` in a
+repository names the delivery an open change belongs to.
+
 | Flag | Meaning |
 |------|---------|
 | `--ref <tracker-id>` | The tracker item the delivery comes from. |
 | `--projects <a,b>` | Route at creation instead of with `route`. |
 | `--date <YYYY-MM-DD>` | Date written by `new` / `close` (default today). |
+| `--force` | `new` / `route`: route a project that is still pending or missing. |
+| `--all` | `tick`: tick every Release box. |
 
 ## `doctrina ci --emit <target>`
 

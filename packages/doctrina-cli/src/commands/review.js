@@ -6,6 +6,7 @@ import { exists, isDir, isFile, read } from "../lib/fs-ops.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { rankCapabilitiesByDiff } from "../lib/work-model.js";
+import { applyOps, extractOps } from "../lib/spec-ops.js";
 import { readLedger, churnByCapability } from "../lib/ledger.js";
 import { changedFiles, windowCutoff, historyState, refExists } from "../lib/git.js";
 import { dependentsOf, deltaCapabilities } from "../lib/scan.js";
@@ -67,6 +68,8 @@ export async function run(_positional, flags) {
   const changeId = flagString(flags, "change");
   /** @type {Set<string> | null} */
   let changeCaps = null;
+  /** @type {Map<string, string>} the change's delta text per capability */
+  const pending = new Map();
   if (changeId !== undefined) {
     const refused = refuseChangeRef(changeId);
     if (refused !== null) return refused;
@@ -76,6 +79,19 @@ export async function run(_positional, flags) {
       return EXIT.USAGE;
     }
     changeCaps = new Set(deltaCapabilities(changeDir));
+    // The specs as this change leaves them: an ops delta applied in memory,
+    // as `change check` dry-runs it; a delta without ops (a manual merge)
+    // read beside the spec, since nothing can apply it.
+    for (const cap of changeCaps) {
+      const delta = path.join(changeDir, "specs", cap, "delta.md");
+      const spec = path.join(projectRoot, ".doctrina", "specs", cap, "spec.md");
+      if (!isFile(delta)) continue;
+      const deltaText = read(delta);
+      const current = isFile(spec) ? read(spec) : "";
+      const ops = extractOps(deltaText);
+      const after = ops.length > 0 ? applyOps(current, ops) : null;
+      pending.set(cap, after && after.errors.length === 0 ? after.text : `${current}\n${deltaText}`);
+    }
   }
 
   const { all, sourceFiles } = reviewScope(projectRoot, against);
@@ -102,11 +118,19 @@ export async function run(_positional, flags) {
     all.filter((f) => /(^|\/)\.doctrina\/specs\/[^/]+\/spec\.md$/.test(f.replace(/\\/g, "/")))
       .map((f) => f.replace(/\\/g, "/").match(/\.doctrina\/specs\/([^/]+)\/spec\.md$/)[1]),
   );
-  const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity });
+  const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity, pending });
   const touched = new Set([...specChanged, ...ranked.map((m) => m.id)]);
   const stale = ranked.map((m) => m.id).filter((id) => !specChanged.has(id) && !changeCaps?.has(id));
+  // Without --change, an OPEN change that carries a delta for the capability
+  // updates its spec at close (fifth audit, change 0236): the bare review
+  // reported "its spec was not updated" for exactly the work a planner had
+  // in flight — the real agent read it as a break and went to fix the spec.
+  const inFlight = changeCaps === null ? openDeltaOwners(projectRoot) : new Map();
   if (changeCaps === null) {
-    for (const id of stale) {
+    for (const id of stale.filter((x) => inFlight.has(x))) {
+      notes.push(`code under capability "${id}" changed; its spec is updated when ${inFlight.get(id)?.join(", ")} closes (\`doctrina review --change <id>\` reviews it as that close does)`);
+    }
+    for (const id of stale.filter((x) => !inFlight.has(x))) {
       breaks.push(`code under capability "${id}" changed, but its spec was not updated — confirm \`.doctrina/specs/${id}/spec.md\` still describes the code (update it, or note why not)`);
     }
   } else if (stale.length > 0) {
@@ -151,7 +175,7 @@ export async function run(_positional, flags) {
   //    file in the change. A review of an adapter change reported
   //    "Capabilities touched: docs" and said nothing about the adapter.
   const orphans = sourceFiles.filter(
-    (f) => rankCapabilitiesByDiff(projectRoot, [f], { limit: 1 }).length === 0,
+    (f) => rankCapabilitiesByDiff(projectRoot, [f], { limit: 1, pending }).length === 0,
   );
   if (orphans.length > 0) {
     const shown = orphans.slice(0, ORPHAN_LIST_LIMIT).map((f) => `\`${f}\``).join(", ");
@@ -274,3 +298,15 @@ from specs that declare no Source.
 Read-only. Exits 0 as a report; with --strict, exits 1 when any hard break
 exists (CI gate). Notes (advisory) never fail the gate.
 `;
+
+/** Capability → the open changes that carry a delta for it. */
+function openDeltaOwners(projectRoot) {
+  const out = new Map();
+  const changes = path.join(projectRoot, ".doctrina", "changes");
+  if (!isDir(changes)) return out;
+  for (const id of readdirSync(changes).sort()) {
+    if (id === "archive" || id.startsWith(".") || !isDir(path.join(changes, id))) continue;
+    for (const cap of deltaCapabilities(path.join(changes, id))) out.set(cap, [...(out.get(cap) ?? []), id]);
+  }
+  return out;
+}

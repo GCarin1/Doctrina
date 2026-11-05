@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import { readdirSync } from "node:fs";
-import { exists, isDir, isFile, read, relPath, walk } from "./fs-ops.js";
+import { exists, isDir, isFile, mkdirp, pruneEmptyDirs, read, relPath, remove, walk, write } from "./fs-ops.js";
 import { locateTemplatesDir, substitute } from "./templates.js";
 
 // Agent adapters: the thin per-agent files that point at AGENTS.md.
@@ -127,6 +127,68 @@ export function renderAdapterFile(file, tokens) {
 }
 
 export { exists };
+
+// Files an adapter USED to write, and the file that replaced each (change
+// 0238). Cursor's documentation no longer describes `.cursor/commands/`;
+// Cursor 2.4 converts slash commands to skills (`/migrate-to-skills`), with
+// `disable-model-invocation: true` to keep them explicit — which is what
+// the cursor adapter writes now, under `.cursor/skills/`.
+export const RETIRED_ADAPTER_FILES = Object.freeze({
+  cursor: ["context", "next", "status", "why", "work"].map((x) => ({
+    retired: `.cursor/commands/doctrina-${x}.md`,
+    replacedBy: `.cursor/skills/doctrina-${x}/SKILL.md`,
+  })),
+});
+
+/**
+ * Moving an installed adapter off its retired files: the replacement is
+ * written where it is missing; a retired file still exactly as the CLI
+ * wrote it is removed; one edited since is kept and named, never deleted.
+ * @param {string} projectRoot
+ * @param {Record<string, string>} tokens  as `adapter add` renders with
+ * @param {string} [root]  where the files live: the shadow folder of a shadowed repository
+ */
+export function planAdapterMigration(projectRoot, tokens, root = projectRoot) {
+  /** @type {{ writes: Array<{ relativePath: string, content: string }>, removes: string[], kept: string[] }} */
+  const plan = { writes: [], removes: [], kept: [] };
+  const norm = (/** @type {string} */ s) => s.replace(/\r\n/g, "\n").trim();
+  for (const [name, list] of Object.entries(RETIRED_ADAPTER_FILES)) {
+    const spec = adapterFiles(projectRoot, name);
+    if (!spec) continue;
+    for (const { retired, replacedBy } of list) {
+      if (!isFile(path.join(root, retired))) continue;
+      const file = spec.files.find((f) => f.relativePath === replacedBy);
+      if (!file) continue;
+      const rendered = renderAdapterFile(file, tokens);
+      if (!isFile(path.join(root, replacedBy))) plan.writes.push({ relativePath: replacedBy, content: rendered });
+      const body = rendered.replace(/^---\n[\s\S]*?\n---\n+/, "");
+      (norm(read(path.join(root, retired))) === norm(body) ? plan.removes : plan.kept).push(retired);
+    }
+  }
+  return plan;
+}
+
+/**
+ * Apply a migration plan under `root` — the project, or the shadow folder
+ * a shadowed repository's files live in. Returns the removed files with
+ * what they held, for the caller that re-links a shadow.
+ * @returns {Array<{ rel: string, content: string }>}
+ */
+export function applyAdapterMigration(root, plan) {
+  for (const w of plan.writes) {
+    mkdirp(path.dirname(path.join(root, w.relativePath)));
+    write(path.join(root, w.relativePath), w.content, { force: true });
+  }
+  const gone = [];
+  for (const rel of plan.removes) {
+    const at = path.join(root, rel);
+    if (!isFile(at)) continue;
+    gone.push({ rel, content: read(at) });
+    remove(at);
+    pruneEmptyDirs(path.dirname(at), root);
+  }
+  return gone;
+}
 
 // ---------------------------------------------------------------------------
 // Configuration files an adapter SHARES with the user (change 0211).

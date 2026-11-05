@@ -2,7 +2,8 @@
 import path from "node:path";
 import { isFile, read, relPath, toPosix, write } from "./fs-ops.js";
 import { mergeJson } from "./adapters.js";
-import { projectState } from "./workspace.js";
+import { absorbCommand, projectState, shadowDirOf } from "./workspace.js";
+import { isDir } from "./fs-ops.js";
 
 // The ORCHESTRATOR's files, generated at the workspace root from
 // workspace.json (change 0223, ADR 0031) — what Cursor or Claude Code read
@@ -116,7 +117,9 @@ export function workspaceHub(ws, wsDir, states) {
   L.push("the analyst: they bring the item of work and approve; you read it, plan it,");
   L.push("delegate it, review it and close it (ADR 0030).", "");
   L.push("## Session start", "");
-  L.push("`doctrina prime` here: the projects, their state and the open deliveries.", "");
+  L.push("`doctrina prime` here: the projects, their state and the open deliveries.");
+  L.push("Unsure what comes next: `doctrina next`. Before a compaction or a handover:");
+  L.push("`doctrina handoff`. Both answer for the whole workspace from here.", "");
   L.push("## Projects", "");
   L.push("| Project | Mode | State | Role | Depends on | Path | What it is |");
   L.push("|---|---|---|---|---|---|---|");
@@ -126,12 +129,12 @@ export function workspaceHub(ws, wsDir, states) {
   }
   if (ws.projects.length === 0) L.push("| — | | | | | | register one: `doctrina workspace add <path>` |");
   L.push("");
-  L.push("A `pending` project has no specs yet: `cd <path> && doctrina intake --from-code`");
+  L.push("A `pending` project has no specs yet: `cd <path> && doctrina intake --from-code` (once its inventory is stored, a bare `doctrina intake` reprints the playbook)");
   L.push("and run the absorb playbook before routing work to it.", "");
   L.push("## Tools", "");
   if (ws.tools.length === 0) {
-    L.push("None declared. Declare each MCP server the work uses, e.g.");
-    L.push("`doctrina workspace tool jira` · `doctrina workspace tool datadog`.");
+    L.push("None declared. Declare each MCP server the work uses:");
+    L.push("`doctrina workspace tool <name> --server <mcp-server> --for <roles>`.");
   } else {
     L.push("| Tool | MCP server | Access | Used by | For |");
     L.push("|---|---|---|---|---|");
@@ -151,8 +154,9 @@ export function workspaceHub(ws, wsDir, states) {
   L.push("   repository at a time.");
   L.push("4. Review with `doctrina-reviewer`, then close each change yourself:");
   L.push("   `doctrina close <id>`. Executors never close.");
-  L.push("5. Fill the delivery's Release and Observability, then");
-  L.push("   `doctrina delivery check <id>` → `doctrina delivery close <id>`.");
+  L.push("5. Record the release under the delivery's Release and tick each claim");
+  L.push("   (`doctrina delivery tick <id> <n>`), record what was watched under");
+  L.push("   Observability, then `doctrina delivery check <id>` → `doctrina delivery close <id>`.");
   L.push("6. Name the delivery id in your first sentence to the human, repeat the");
   L.push("   `Tell the human:` lines, and commit the workspace when a delivery closes.", "");
   L.push("## Rules", "");
@@ -195,8 +199,8 @@ export function workspacePrimer(ws, wsDir, open) {
   if (open.length === 0) L.push("  none");
   L.push("", `Tools  ${ws.tools.length ? ws.tools.map((t) => `${t.name} (${t.access})`).join(" · ") : "none declared — doctrina workspace tool <name>"}`);
   L.push("", "Next");
-  const pending = ws.projects.filter((p) => projectState(wsDir, p).state === "pending");
-  if (pending.length) L.push(`  absorb ${pending[0].name} before routing work to it: cd ${toPosix(pending[0].path)} && doctrina intake --from-code`);
+  const pending = ws.projects.map((p) => ({ p, s: projectState(wsDir, p) })).filter((x) => x.s.state === "pending");
+  if (pending.length) L.push(`  absorb ${pending[0].p.name} before routing work to it: ${absorbCommand({ path: toPosix(pending[0].p.path), name: pending[0].p.name }, pending[0].s.reason)}`);
   if (open.length) L.push(`  continue ${open[0].id}: doctrina delivery status ${open[0].id}`);
   L.push("  new work across repositories: doctrina delivery new \"<title>\" --ref <tracker-id>");
   return L;
@@ -225,15 +229,41 @@ const CLAUDE_SETTINGS = {
   },
 };
 
-function mergedJson(file, ours) {
-  if (!isFile(file)) return JSON.stringify(ours, null, 2) + "\n";
-  let theirs;
-  try {
-    theirs = JSON.parse(read(file));
-  } catch {
-    return null; // an unreadable file the operator owns is left alone
+function mergedJson(file, ours, failClosed = false) {
+  let theirs = null;
+  if (isFile(file)) {
+    try {
+      theirs = JSON.parse(read(file));
+    } catch {
+      return null; // an unreadable file the operator owns is left alone
+    }
   }
-  return JSON.stringify(mergeJson(theirs, ours), null, 2) + "\n";
+  const merged = theirs === null ? structuredClone(ours) : mergeJson(theirs, ours);
+  // The guard's Cursor entry is OURS to shape (change 0238): replaced, never
+  // appended beside an older copy — a second entry would run it twice.
+  const mcp = merged?.hooks?.beforeMCPExecution;
+  if (Array.isArray(mcp)) {
+    const others = mcp.filter((h) => !(h && typeof h === "object" && h.command === GUARD_COMMAND));
+    if (others.length !== mcp.length || ours?.hooks?.beforeMCPExecution) {
+      merged.hooks.beforeMCPExecution = [...others, guardEntry(failClosed)];
+    }
+  }
+  return JSON.stringify(merged, null, 2) + "\n";
+}
+
+const GUARD_COMMAND = "doctrina workspace guard --hook cursor";
+
+/**
+ * The Cursor guard hook. With tools declared it fails CLOSED (change 0238):
+ * Cursor lets a call through when a hook crashes, times out or cannot start
+ * — `doctrina` missing from the PATH Cursor runs hooks with is enough — so a
+ * read-only tool would write with no guard, in silence. Failing closed turns
+ * a broken install into a refused call the human sees. With nothing
+ * declared, the guard has no opinion to enforce, and a broken install must
+ * not block the operator's other MCP servers.
+ */
+function guardEntry(failClosed) {
+  return failClosed ? { command: GUARD_COMMAND, failClosed: true } : { command: GUARD_COMMAND };
 }
 
 /**
@@ -251,9 +281,26 @@ export function writeOrchestratorFiles(ws, wsDir, states) {
   };
   put("AGENTS.md", workspaceHub(ws, wsDir, states));
   put(".cursor/rules/00-doctrina-workspace.mdc", CURSOR_RULE(ws));
-  put(".cursor/hooks.json", mergedJson(path.join(wsDir, ".cursor", "hooks.json"), CURSOR_HOOKS));
+  const failClosed = ws.tools.some((x) => x.enabled !== false);
+  put(".cursor/hooks.json", mergedJson(path.join(wsDir, ".cursor", "hooks.json"), CURSOR_HOOKS, failClosed));
   put(".claude/settings.json", mergedJson(path.join(wsDir, ".claude", "settings.json"), CLAUDE_SETTINGS));
   for (const role of agentRoles(ws)) put(`.claude/agents/doctrina-${role}.md`, agentFile(ws, role));
   put(`${ws.name}.code-workspace`, codeWorkspace(ws, wsDir));
+  // The guard inside every shadow too (third audit, change 0234). It was
+  // installed at the root only, and an executor works INSIDE the repository
+  // (ADR 0030): Cursor and Claude Code read that folder's own hook files, so
+  // every MCP call an executor made there went through no guard at all.
+  for (const p of ws.projects.filter((x) => x.mode === "shadow")) {
+    const shadow = shadowDirOf(wsDir, p.name);
+    const rel = relPath(wsDir, shadow);
+    if (isDir(path.join(shadow, ".cursor"))) put(`${rel}/.cursor/hooks.json`, mergedJson(path.join(shadow, ".cursor", "hooks.json"), GUARD_HOOKS.cursor, failClosed));
+    if (isDir(path.join(shadow, ".claude"))) put(`${rel}/.claude/settings.json`, mergedJson(path.join(shadow, ".claude", "settings.json"), GUARD_HOOKS.claude));
+  }
   return out;
 }
+
+/** The guard's own hook entries — what a shadow's hook files need beside their session hook. */
+export const GUARD_HOOKS = {
+  cursor: { version: 1, hooks: { beforeMCPExecution: CURSOR_HOOKS.hooks.beforeMCPExecution } },
+  claude: { hooks: { PreToolUse: CLAUDE_SETTINGS.hooks.PreToolUse } },
+};

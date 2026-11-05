@@ -2,15 +2,17 @@
 import path from "node:path";
 import process from "node:process";
 import { readdirSync } from "node:fs";
-import { exists, isDir, isFile, mkdirp, read, relPath, write } from "../lib/fs-ops.js";
+import { eolOf, exists, isDir, isFile, mkdirp, read, relPath, withEol, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";
 import { c } from "../lib/colors.js";
 import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
-import { readDelivery, resolveDeliveryId } from "../lib/delivery.js";
+import { readDelivery, resolveDeliveryId, sectionText } from "../lib/delivery.js";
+import { parseLedger } from "../lib/ledger.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
+import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
 import { classify } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
@@ -67,6 +69,7 @@ export async function run(positional, flags) {
   // workspace delivery. Checked BEFORE anything is scaffolded, so a typo or a
   // repository the delivery was never routed to opens nothing.
   let delivery = null;
+  let deliveryStory = "";
   if (flags.has("delivery")) {
     const resolved = resolveDeliveryFor(projectRoot, flagString(flags, "delivery"));
     if (resolved.error) {
@@ -75,13 +78,14 @@ export async function run(positional, flags) {
       return resolved.code;
     }
     delivery = resolved.id;
+    deliveryStory = resolved.story ?? "";
   }
 
   // --resume <id>: reprint the playbook for an existing open change rather than
   // open a new one (review G1 — `work "continue"` used to slug the word and
   // fabricate a junk `NNNN-continue` change the operator had to delete).
   if (flags.has("resume")) {
-    return resumeChange(projectRoot, flagString(flags, "resume"));
+    return resumeChange(projectRoot, flagString(flags, "resume"), delivery);
   }
 
   // --from-diff backfills from code already written (review F8): the
@@ -237,14 +241,17 @@ export async function run(positional, flags) {
     if (delivery) {
       updated = updated.replace(/^(-[ \t]+\*\*Lane:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
     }
-    if (updated !== txt) write(proposalPath, updated, { force: true });
+    if (updated !== txt) write(proposalPath, withEol(updated, eolOf(txt)), { force: true });
   }
 
   // Capability hint: term overlap for a prompt, changed-file overlap for a diff
   // (review F10 — rank by what the working tree touched, not just prompt words).
   const allChanged = fromDiff ? files : changedFiles(projectRoot).files;
   const diffMatches = pinned ? [] : rankCapabilitiesByDiff(projectRoot, allChanged);
-  const promptMatches = pinned || fromDiff ? [] : rankCapabilities(projectRoot, effPrompt);
+  // A delivery's change is ranked by its story too (second audit, change
+  // 0233): the title of a tracker item rarely names the capability — "lock
+  // the account after 3 wrong passwords" — while its story says "login".
+  const promptMatches = pinned || fromDiff ? [] : rankCapabilities(projectRoot, deliveryStory ? `${effPrompt}\n${deliveryStory}` : effPrompt);
   const matches = pinned ? [] : (fromDiff ? diffMatches : promptMatches);
   const capability = pinned ?? matches[0]?.id ?? null;
   const clarity = assessBrief(effPrompt, { kind: "prompt" });
@@ -399,7 +406,7 @@ function resolveDeliveryFor(projectRoot, ref) {
       code: EXIT.PRECONDITION,
     };
   }
-  return { id };
+  return { id, story: sectionText(d.text, "Story") ?? "" };
 }
 
 function writeLane(projectRoot, id, verdict, opts) {
@@ -437,6 +444,11 @@ function nextChangeNumber(projectRoot) {
       harvest(entry.replace(/^\d{4}-\d{2}-\d{2}-/, ""));
     }
   }
+  // An abandoned change leaves no folder, only its ledger line (third audit,
+  // change 0234): its number was handed out again, and the ledger then named
+  // two different changes by one id — the abandoned part of a delivery among them.
+  const ledger = path.join(archiveDir, "LEDGER.md");
+  if (isFile(ledger)) for (const e of parseLedger(read(ledger)).entries) harvest(e.id);
   return String(max + 1).padStart(4, "0");
 }
 
@@ -481,7 +493,7 @@ function printResumeSuggestion(open) {
 
 // Reprint the work playbook for an already-open change, ranking capabilities
 // from its recorded title (the original prompt). Creates nothing.
-function resumeChange(projectRoot, resumeId) {
+function resumeChange(projectRoot, resumeId, delivery = null) {
   const open = openChanges(projectRoot);
   if (!resumeId || resumeId === true) {
     console.error(c.red("error:") + " --resume needs a change id");
@@ -495,6 +507,25 @@ function resumeChange(projectRoot, resumeId) {
     console.error(c.red("error:") + ` no open change "${resumeId}"`);
     if (open.length) console.error(c.gray("open: ") + open.map((ch) => ch.id).join(", "));
     return 1;
+  }
+  // --resume <id> --delivery <id> (change 0226): a change opened before its
+  // delivery existed — or without the flag — joins it, so the delivery's
+  // status and check see it. A change already in another delivery is not
+  // moved silently.
+  if (delivery) {
+    const proposalPath = path.join(projectRoot, ".doctrina", "changes", resumeId, "proposal.md");
+    const text = isFile(proposalPath) ? read(proposalPath) : "";
+    const current = (listHeader(text, "Delivery") ?? "").trim();
+    if (current && current !== delivery) {
+      console.error(c.red("error:") + ` ${resumeId} already belongs to delivery ${current}`);
+      return EXIT.PRECONDITION;
+    }
+    if (!current) {
+      const stamped = text.replace(/^(-[ \t]+\*\*Lane:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
+      const updated = stamped !== text ? stamped : text.replace(/^(-[ \t]+\*\*Status:\*\*[^\r\n]*)/m, `$1\n- **Delivery:** ${delivery}`);
+      write(proposalPath, withEol(updated, eolOf(text)), { force: true });
+      console.log(c.green("joined") + ` ${resumeId} to delivery ${delivery}`);
+    }
   }
   const prompt = entry?.title ?? resumeId;
   const matches = rankCapabilities(projectRoot, prompt);
@@ -610,7 +641,9 @@ function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, c
 // The prompt as a `context --for` argument: one line, no double quotes, short
 // enough to read — the slicer only needs its content words.
 export function forQuery(prompt) {
-  const flat = String(prompt ?? "").replace(/["`]/g, "").replace(/\s+/g, " ").trim();
+  // `$` and `\\` too (change 0235): between the double quotes the playbook
+  // prints, `$(…)` in a prompt still ran.
+  const flat = String(prompt ?? "").replace(/["`$\\]/g, "").replace(/\s+/g, " ").trim();
   return flat.length > 80 ? flat.slice(0, 80).replace(/\s+\S*$/, "") : flat;
 }
 
@@ -667,6 +700,8 @@ Options:
                        (backlog entry; reprint later with --resume <id>)
   --id <id>            Override the derived change id
   --resume <id>        Reprint the playbook for an open change; create nothing
+  --delivery <id>      Stamp the change with the workspace delivery it is part
+                       of (ADR 0030); with --resume, join an open change to it
   --from-diff          Backfill: scaffold from the working-tree changes (no
                        prompt needed) and print a code-first playbook (F8)
   --consolidate <cap>  Open a change that consolidates <cap>'s spec — merge

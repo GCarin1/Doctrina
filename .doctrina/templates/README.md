@@ -27,6 +27,7 @@ replace. No conditionals, loops, or includes.
 | `{{AGENTS_MD_PATH}}` | Path to root `AGENTS.md` from the adapter location | per adapter |
 | `{{DELIVERY_ID}}` | Delivery folder identifier (`NNNN-slug`) | required in `delivery` |
 | `{{DELIVERY_TITLE}}` | The delivery's title | required in `delivery` |
+| `{{DELIVERY_TITLE_ARG}}` | The delivery's title quoted as one shell argument, for a command line | optional in the `delivery` playbook |
 | `{{DELIVERY_REF}}` | The tracker item it comes from | `—` |
 | `{{DELIVERY_PROJECTS}}` | The routed projects, dependencies first | `—` |
 
@@ -107,7 +108,7 @@ adapters/
   claude/.claude/commands/doctrina-*.md.template   native slash commands (core loop)
   codex/README.md
   cursor/.cursor/rules/00-doctrina.mdc.template
-  cursor/.cursor/commands/doctrina-*.md.template   native slash commands (core loop)
+  cursor/.cursor/skills/doctrina-*/SKILL.md.template   the core loop as skills (explicit `/` invocation)
   copilot/.github/copilot-instructions.md.template
   gemini/GEMINI.md.template
   aider/CONVENTIONS.md.template

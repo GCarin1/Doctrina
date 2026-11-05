@@ -43,7 +43,7 @@ export async function run(positional, flags) {
   // a bootstrap that was already done.
   if (flagBool(flags, "converted", false)) {
     ensureDoctrinaProject(projectRoot);
-    // Converting is the claim that the bootstrap is done — step 6 of the
+    // Converting is the claim that the bootstrap is done — step 8 of the
     // playbook, "fix everything the gates report", made checkable (change
     // 0194). It used to convert over a tree `validate` failed, so the specs
     // became "the source of truth" while an error still said they were not
@@ -95,7 +95,12 @@ export async function run(positional, flags) {
       console.log(c.gray("hint: ") + "start implementation with `doctrina work \"<brief prompt>\"`");
       return 0;
     }
-    printBootstrapPlaybook(projectRoot);
+    // An intake written by `--from-code` is a code inventory, and the
+    // playbook that reads it is the absorb (second audit, change 0233). The
+    // bootstrap one — "fill every product.md section from the intake" —
+    // handed a resuming agent the inventory as if it were the product's intent.
+    if (/code inventory/i.test(listHeader(read(intakePath), "Source") ?? "")) printAbsorbPlaybook(projectRoot);
+    else printBootstrapPlaybook(projectRoot);
     return 0;
   }
 
@@ -180,15 +185,21 @@ function intakeFromCode(projectRoot, force) {
     source: "code inventory (`doctrina intake --from-code`)",
     projectName: name, date: today(), force: true,
   });
-  console.log(c.green("created") + ` ${relPath(projectRoot, intakePath)} — ${inv.files} files read: ${inv.stack.join(", ") || "no manifest"}; ${inv.tests.files} test files; ${inv.areas.length} candidate areas`);
+  const plural = (/** @type {number} */ n, /** @type {string} */ word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  console.log(c.green("created") + ` ${relPath(projectRoot, intakePath)} — ${plural(inv.files, "file")} read: ${inv.stack.join(", ") || "no manifest"}; ${plural(inv.tests.files, "test file")}; ${plural(inv.areas.length, "candidate area")}`);
   console.log("");
+  printAbsorbPlaybook(projectRoot);
+  return EXIT.OK;
+}
+
+/** The absorb playbook — printed by `--from-code`, and again by a bare `intake` while it is pending. */
+function printAbsorbPlaybook(projectRoot) {
   const ws = findWorkspace(projectRoot);
   printPlaybookTemplate(projectRoot, "absorb", {
     WORKSPACE_STEP: ws
-      ? `\n8. This project belongs to the workspace at ${ws.dir} — confirm it reads\n   ready: ${c.cyan("doctrina workspace list")}, and commit the workspace.`
+      ? `\n10. This project belongs to the workspace at ${ws.dir} — confirm it reads\n    ready: ${c.cyan("doctrina workspace list")}, and commit the workspace.`
       : "",
   });
-  return EXIT.OK;
 }
 
 export const help = `

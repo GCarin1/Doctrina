@@ -17,7 +17,7 @@ documentação pública dos projetos; nada é inventado.
 | AGENTS.md nativo | sim | via adapter | não (steering) | sim | não | sim |
 | Requisitos EARS | guiado por template | não | nativo | parcial | não | opcional |
 | ADRs imutáveis + supersede | sim (comando) | não foco | parcial | sim (schema) | não | parcial |
-| Postura multi-agente | orquestrador linear único (doc) | implícito | implícito | implícito | por papel (rejeitado) | flexível |
+| Postura multi-agente | um planejador, um escritor por repositório (doc) | implícito | implícito | implícito | por papel (rejeitado) | flexível |
 | Greenfield | forte | excelente | excelente | forte | forte | forte |
 | Brownfield | forte (guia dedicado) | fraco (pesquisa) | parcial | forte (first-class) | parcial | forte |
 | Quality gates shipped | analyze + clarify + validate | clarify + checklist + analyze | hooks on-save | validate | nenhum built-in | validate |
@@ -25,7 +25,7 @@ documentação pública dos projetos; nada é inventado.
 | Detecção de stale-reference | sim | não | parcial | não | não | não |
 | Protocolo A/B empírico shipped | sim (spec + doc) | não | não | não | não | não |
 | Docs bilíngues | EN + PT | EN | EN | EN | EN | EN |
-| Agentes nativos | 12 | 30+ | IDE próprio | 5+ | vários | muitos |
+| Agentes nativos | 12 | 30+ | IDE próprio | 5+ | 8 personas | 100+ skills |
 | Examples reais shipped | em repo | sim | sim | sim | sim | sim |
 | Tamanho da comunidade | muito pequena | apoiado pela Microsoft | apoiado pela AWS | crescendo | crescendo | crescendo |
 
@@ -47,7 +47,7 @@ documentação pública dos projetos; nada é inventado.
   por toda spec e ADR procurando links Markdown apontando para
   arquivos que não existem mais. Os outros validators desse
   espaço pegam erros de schema mas não rot silencioso.
-- **Orquestrador linear único é argumentado, não assumido.** O
+- **Um escritor por repositório é argumentado, não assumido.** O
   doc multi-agente nomeia a topologia por papel do BMAD, cita
   os achados de Cognition e Anthropic contra ela para trabalho
   de código, e documenta as cinco personas-fase de workflow que
@@ -75,6 +75,17 @@ documentação pública dos projetos; nada é inventado.
   decisões implícitas; isso casa com a postura do OpenSpec.
 - **EARS para requisitos.** Kiro é nativo; Doctrina é
   guiado-por-template. Ambos fazem EARS a gramática recomendada.
+- **Constitution / princípios permanentes.** Spec Kit traz um
+  `constitution.md` escrito à mão. Doctrina monta a mesma visão
+  sob demanda com `doctrina prime --rules` — os ADRs aceitos mais
+  os não-objetivos do produto — então os inegociáveis têm uma
+  leitura só, sem uma segunda casa para os fatos. Equivalente na
+  intenção; Doctrina deriva, Spec Kit escreve.
+- **Comandos de workflow dentro do agente.** Spec Kit expõe os
+  slash commands `/specify`, `/plan` e `/tasks`. Os adapters
+  `claude` e `cursor` do Doctrina instalam `/doctrina-work`,
+  `/doctrina-next`, `/doctrina-context`, `/doctrina-status` e
+  `/doctrina-why`, cada um um prompt fino sobre o CLI.
 
 ## Onde Doctrina está abaixo do campo
 
@@ -93,12 +104,6 @@ documentação pública dos projetos; nada é inventado.
   externos na 0.16. Spec Kit tem suporte Microsoft, Kiro tem
   AWS, outros têm seguidores crescendo. Isso é função de idade,
   não de design.
-- **Documento constitution centralizado.** Spec Kit ship um
-  `constitution.md` para princípios não-negociáveis. Doctrina
-  codifica o mesmo conteúdo nos ADRs aceitos (`0001`, `0003`,
-  `0004`) e na seção de princípios de design do README.
-  Adotantes vindos do Spec Kit precisarão aprender o mapping
-  Doctrina.
 
 ## O que Doctrina explicitamente não busca ser
 

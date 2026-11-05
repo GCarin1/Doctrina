@@ -53,35 +53,82 @@ const WRITE_VERBS = new Set([
   "transition", "assign", "comment", "publish", "upload", "deploy", "trigger", "set", "move",
   "merge", "close", "archive", "insert", "drop", "alter", "truncate", "mutate", "rollback", "restart",
   "approve", "reject", "resolve", "mute", "unmute", "schedule", "cancel", "import",
+  // The fourth audit (change 0235): verbs real MCP servers use that passed as reads.
+  "upsert", "link", "unlink", "reopen", "rename", "replace", "save", "submit", "sync", "release",
+  "rotate", "grant", "revoke", "reset", "clear", "purge", "destroy", "terminate", "kill", "pause",
+  "enable", "disable", "snooze", "escalate", "notify", "reply", "react", "vote", "fork", "push",
+  "commit", "lock", "unlock", "ack", "acknowledge", "install", "uninstall", "provision", "scale",
+  "rerun", "retry", "dispatch", "copy", "duplicate", "invite", "share", "subscribe", "unsubscribe",
+  "block", "unblock", "revert", "restore", "empty",
 ]);
-const MUTATING_SQL = /\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|replace)\b/i;
+// Statements that change the database, a procedure that may, and a SELECT
+// that writes a table (`SELECT … INTO`). A keyword in a comment counts: the
+// guard errs on the side of asking.
+const MUTATING_SQL = /\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|replace|call|exec|execute|copy|do|vacuum|reindex|cluster|refresh|upsert|load|unload|optimize|restore|rename|comment|lock|into)\b/i;
+const SQL_START = /^\s*(\(|\/\*|--)?\s*(select|with|insert|update|delete|merge|drop|alter|create|truncate|show|describe|explain|call|exec|execute|copy|grant|revoke|vacuum|refresh|optimize|do)\b/i;
+// An argument that names the operation a generic tool performs.
+const ACTION_KEYS = new Set(["action", "operation", "op", "method", "verb", "mutation"]);
 
 /**
  * Whether a tool call would change state. A SQL statement in the input
  * decides for itself; otherwise the tool's name does.
  */
 export function isWriteCall(toolName, toolInput) {
-  const sql = sqlIn(toolInput);
+  const input = parsed(toolInput);
+  // An argument that says what a generic tool does: `{ action: "delete" }`,
+  // `{ method: "POST" }`, a GraphQL `mutation` (change 0235).
+  if (actionWrites(input)) return true;
+  const sql = sqlIn(input);
   if (sql !== null) return MUTATING_SQL.test(sql.replace(/'[^']*'/g, "''"));
   // camelCase and snake_case alike: `transitionJiraIssue`, `transition_issue`.
-  const words = String(toolName).replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase().split(/[^a-z]+/).filter(Boolean);
-  return words.some((w) => WRITE_VERBS.has(w));
+  const words = nameWords(toolName);
+  if (words.some((w) => WRITE_VERBS.has(w))) return true;
+  // A name with no separator at all — `createissue`, `CREATEISSUE`,
+  // `getandremove` — hides its verbs inside one word (change 0235).
+  if (words.length === 1 && words[0].length > 6) {
+    return [...WRITE_VERBS].some((v) => v.length >= 5 && words[0].includes(v));
+  }
+  return false;
 }
 
+function nameWords(name) {
+  return String(name).replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase().split(/[^a-z]+/).filter(Boolean);
+}
+
+function parsed(input) {
+  if (typeof input !== "string") return input;
+  try {
+    return JSON.parse(input);
+  } catch {
+    return input;
+  }
+}
+
+/** Every string inside an input, to a bounded depth. */
+function stringsIn(value, depth = 0, out = /** @type {Array<{ key: string, value: string }>} */ ([]), key = "") {
+  if (depth > 5 || out.length > 200) return out;
+  if (typeof value === "string") out.push({ key, value });
+  else if (Array.isArray(value)) for (const v of value) stringsIn(v, depth + 1, out, key);
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) stringsIn(v, depth + 1, out, k);
+  return out;
+}
+
+function actionWrites(input) {
+  for (const { key, value } of stringsIn(input)) {
+    if (/^\s*mutation\b/i.test(value)) return true;
+    if (!ACTION_KEYS.has(key.toLowerCase())) continue;
+    const words = nameWords(value);
+    if (words.some((w) => WRITE_VERBS.has(w) || ["post", "put", "patch", "delete"].includes(w))) return true;
+  }
+  return false;
+}
+
+// SQL wherever the input carries it — `sql`, `query`, `q`, a `statements`
+// list, a nested `{ input: { sql } }` (change 0235): only four top-level
+// keys were read, and a DELETE under any other passed as no SQL at all.
 function sqlIn(input) {
-  let obj = input;
-  if (typeof obj === "string") {
-    try {
-      obj = JSON.parse(obj);
-    } catch {
-      return /^\s*(select|with|insert|update|delete|merge|drop|alter|create|truncate|show|describe)\b/i.test(obj) ? obj : null;
-    }
-  }
-  if (!obj || typeof obj !== "object") return null;
-  for (const key of ["sql", "query", "statement", "sql_query"]) {
-    if (typeof obj[key] === "string") return obj[key];
-  }
-  return null;
+  const found = stringsIn(input).map((s) => s.value).filter((s) => SQL_START.test(s));
+  return found.length ? found.join(";\n") : null;
 }
 
 /**

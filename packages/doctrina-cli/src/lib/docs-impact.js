@@ -257,10 +257,16 @@ export function documentedSurfaceSignals(changeDir, projectRoot = null) {
     signals.push(`endpoints: ${[...routes].sort().slice(0, 6).join(", ")}`);
   }
 
+  // An UPPER_SNAKE name is an environment variable when something says so
+  // (change 0239): the shape alone also matches an error code
+  // (`CONTA_BLOQUEADA`) or a constant (`MAX_FALHAS`), and every change that
+  // merely cited one was asked to document an "environment" it never touched.
+  const exampleNames = projectRoot === null ? new Set() : envExampleNames(projectRoot);
   const envVars = new Set();
   for (const m of code.matchAll(/\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)) {
     // Not twice: a declared variable is already reported by name above.
-    if (!touchedDeclared.includes(m[1])) envVars.add(m[1]);
+    if (touchedDeclared.includes(m[1])) continue;
+    if (looksLikeEnv(m[1], text) || exampleNames.has(m[1])) envVars.add(m[1]);
   }
   if (envVars.size > 0) {
     signals.push(`environment: ${[...envVars].sort().slice(0, 8).join(", ")}`);
@@ -407,4 +413,33 @@ export function checkDocsImpact(projectRoot, changeDir) {
     touched,
     reason: "alters a documented surface but no docs/ or README change accompanies it",
   };
+}
+
+// The suffixes configuration read from the environment carries.
+const ENV_SUFFIX = /_(URL|URI|DSN|HOST|PORT|ENDPOINT|KEY|TOKEN|SECRET|PASSWORD|PASS|USER|USERNAME|PATH|DIR|FILE|HOME|ENV|MODE|LEVEL|TIMEOUT|REGION|BUCKET|ENABLED|DISABLED|DEBUG|FLAG|PROFILE)$/;
+
+/**
+ * Whether the change text marks a name as an environment variable: read the
+ * way code reads one (`process.env.X`, `$X`, `${X}`, `getenv("X")`,
+ * `os.environ["X"]`, `X=`), named on a line that speaks of the environment,
+ * or carrying a configuration suffix (`_URL`, `_TOKEN`, `_PORT`…).
+ * @param {string} name
+ * @param {string} text  the change's authored text
+ */
+export function looksLikeEnv(name, text) {
+  if (ENV_SUFFIX.test(name)) return true;
+  const n = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (new RegExp(`(process\\.env\\.|process\\.env\\[["'\`]|\\benv\\.|\\$\\{?|getenv\\(["']|environ(?:\\.get\\(|\\[)["']|ENV\\[["'])${n}\\b|\\b${n}=`).test(text)) return true;
+  return text.split("\n").some((line) => line.includes(name) && /\b(env|environment|environment variable|variável de ambiente|ambiente|secret|segredo|\.env)\b/i.test(line));
+}
+
+/** The variable names a project's env example files declare. */
+function envExampleNames(projectRoot) {
+  const out = new Set();
+  for (const f of [".env.example", ".env.sample", ".env.template", ".env.dist", "example.env"]) {
+    const file = path.join(projectRoot, f);
+    if (!isFile(file)) continue;
+    for (const m of read(file).matchAll(/^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=/gm)) out.add(m[1]);
+  }
+  return out;
 }

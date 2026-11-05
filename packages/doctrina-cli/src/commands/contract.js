@@ -278,6 +278,7 @@ the port map, the environment contract, and API/WS/event interfaces.
 
 Subcommands:
   new <name>          Scaffold .doctrina/contracts/<name>.md and index it
+                      (--force overwrites an existing contract)
   list                One line per contract: id, status, last updated
   check [<name>]      Verify the mechanically checkable parts.
 

@@ -4,37 +4,60 @@ The intake holds the code INVENTORY, not a description. Describe what the
 system does TODAY, as the code shows it — never what someone may want it
 to do. Execute in order, in a single linear pass:
 
-1. Read [[c]].doctrina/intake.md[[/c]] (the inventory), then the code it points
-   at: the README, the entry points, one or two files per candidate area,
-   the test folders. Breadth first — do not read the whole repository.
+1. Read [[c]].doctrina/intake.md[[/c]] (the inventory), then what it points at:
+   the README, the documentation and decisions it lists, the agent
+   instructions already written, and per UNIT its manifest, its entry
+   points, one or two files per candidate area and its tests. Breadth
+   first — do not read the whole repository. Candidate areas are a hint
+   from the folder layout, not capabilities.
 
 2. Fill [[c]].doctrina/product.md[[/c]] with what is observable: what the system
    is, who uses it, what it does. Every business fact the code cannot tell
    you (why a rule exists, who the users are, what is out of scope) goes
-   under [[c]]## Open questions[[/c]] for the human — never guess intent.
+   under [[c]]## Open questions[[/c]] for the human — never guess intent. So does
+   every line of the inventory's "What this inventory could not see".
 
-3. One capability per candidate area that has behaviour. For each:
+3. One capability per area of behaviour you READ. In a repository of
+   several units, a capability stays inside one unit unless the code
+   itself shares it (a library both import). For each:
        [[c]]doctrina spec new <capability>[[/c]]
    then write EARS requirements for the behaviour the code shows, with
    [[c]]**Implementation:** implemented[[/c]] and [[c]]**Source:**[[/c]] naming the real
-   folders it owns (ADR 0027). Keep it a BASELINE: a few requirements per
-   area now; the specs grow with every change that touches them.
+   folders it owns (ADR 0027; `validate` refuses a Source that matches no
+   file). Keep it a BASELINE: a few requirements per area now; the specs
+   grow with every change that touches them.
 
-4. Acceptance criteria cite the tests that already exist. Mark one
+4. No requirement without the code that does it:
+   - Write behaviour only from code or a test you read — never from a
+     folder name, a comment, a TODO, commented-out code, a disabled flag
+     or a route that answers "not implemented".
+   - Numbers, limits, roles, statuses and messages exactly as the code
+     writes them. A value you did not see is a question, not a default.
+   - Where the docs and the code disagree, the code is what the system
+     does today; the disagreement is an open question.
+   - Existing decisions are recorded, not re-decided:
+     [[c]]doctrina decision new "<title>"[[/c]] citing the document they came from.
+
+5. Acceptance criteria cite the tests that already exist. Mark one
    [[c]][verified][[/c]] only when a cited test really proves it; everything else
    stays [[c]][unverified][[/c]] — an honest gap is the point of the absorb.
 
-5. Declare the build gate from the inventory's candidate commands:
-       [[c]]doctrina verify --init[[/c]]
-   and own the seams (ports, env names, public endpoints) as a contract
-   when the project exposes or consumes them:
+6. Declare the build gate — [[c]]doctrina verify --init[[/c]] writes the commands
+   the inventory found; confirm each runs what its name says — and own the
+   seams the inventory lists under Interfaces (ports, env names, OpenAPI,
+   protobuf, GraphQL, events) as a contract:
        [[c]]doctrina contract new <name>[[/c]]
 
-6. Gates — fix everything they report:
+7. Check the facts before the gates. Hand each spec, with its Source, to a
+   reader that did not write it (a reviewer subagent, or a fresh session):
+   for every requirement, find the code that does it; strike what cannot
+   be found, and list what the code does that no requirement says.
+
+8. Gates — fix everything they report:
        [[c]]doctrina clarify --all[[/c]]
-       [[c]]doctrina validate[[/c]]
+       [[c]]doctrina validate --fix[[/c]]   (a spec written by hand leaves index.json behind; --fix heals that and reports the rest)
        [[c]]doctrina coverage[[/c]]
 
-7. Show the human the Open questions, then close the absorb:
+9. Show the human the Open questions, then close the absorb:
        [[c]]doctrina intake --converted[[/c]]
 {{WORKSPACE_STEP}}

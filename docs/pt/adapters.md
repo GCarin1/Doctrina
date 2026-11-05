@@ -118,14 +118,15 @@ só o Always Apply, porque o ciclo precisa alcançar toda requisição; os
 outros três servem a regras do projeto por cima dele — veja
 [context-engineering.md](context-engineering.md).
 
-### Slash commands nativos
+### Skills do core loop
 
-Como o adapter `claude`, o adapter `cursor` também instala
-`.cursor/commands/doctrina-*.md` — os mesmos comandos do core loop
-(`/doctrina-work`, `/doctrina-next`, `/doctrina-context`,
-`/doctrina-status`, `/doctrina-why`), cada um um prompt fino que chama
-a CLI, para que o fluxo seja descoberto dentro do Cursor sem o agente
-precisar "saber" que deve chamar a CLI.
+O adapter `cursor` instala também `.cursor/skills/doctrina-*/SKILL.md`: o core
+loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`) como skills que
+chamam a CLI, com `disable-model-invocation: true` (rodam quando chamadas com
+`/`) — a doc do Cursor descreve skills, não `.cursor/commands/`. `doctrina
+upgrade --write` (ou `adapter add cursor`) grava as skills num projeto antigo e
+remove cada `.cursor/commands/doctrina-*.md` intacto (um editado é mantido e
+nomeado); numa sombra, elas vão para a sombra e são ligadas ao repositório.
 
 ## AGENTS.md aninhado (uma raiz, muitos subsistemas)
 

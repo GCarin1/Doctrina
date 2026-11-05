@@ -39,7 +39,8 @@ test("no installed adapter file hands the agent a manual analyze or apply", () =
       const text = readFileSync(f, "utf8");
       assert.doesNotMatch(text, /doctrina (analyze|change apply|change archive)\b/, path.relative(dir, f));
     }
-    const work = installed.filter((f) => path.basename(f).startsWith("doctrina-work"));
+    // A Cursor skill is a folder named after it (change 0238): `doctrina-work/SKILL.md`.
+    const work = installed.filter((f) => path.basename(f).startsWith("doctrina-work") || path.basename(path.dirname(f)) === "doctrina-work");
     assert.ok(work.length >= 2, "the Claude Code and Cursor work commands");
     for (const f of work) {
       const text = readFileSync(f, "utf8");

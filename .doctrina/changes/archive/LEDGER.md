@@ -236,3 +236,17 @@ One line per archived change, newest last. Appended by
 - 2026-11-03 — 0223-o-orquestrador-sabe-o-que-pode-usar — o orquestrador sabe o que pode usar (specs: workspace MODIFIED)
 - 2026-11-03 — 0224-a-entrega-registra-a-subida-e-o-que-foi — a entrega registra a subida e o que foi observado (specs: delivery MODIFIED)
 - 2026-11-03 — 0225-cortar-a-0-20-0 — cortar a 0.20.0
+- 2026-11-04 — 0226-o-fluxo-da-entrega-nao-tem-furos — o fluxo da entrega nao tem furos (specs: delivery MODIFIED)
+- 2026-11-04 — 0227-o-fluxo-de-ponta-a-ponta-na-documentacao — o fluxo de ponta a ponta na documentacao
+- 2026-11-04 — 0228-o-que-ficou-pela-metade-na-entrega-e-na — o que ficou pela metade na entrega e na documentacao (specs: authoring MODIFIED, cli MODIFIED, core MODIFIED, delivery MODIFIED, docs MODIFIED, gates MODIFIED, insight MODIFIED, scaffolding MODIFIED, skills MODIFIED, workspace MODIFIED)
+- 2026-11-04 — 0229-o-intake-absorve-projetos-complexos-sem — o intake absorve projetos complexos sem distorcer (specs: authoring MODIFIED, docs MODIFIED, gates MODIFIED, templates MODIFIED)
+- 2026-11-04 — 0230-a-orientacao-funciona-na-raiz-do-workspace — a orientacao funciona na raiz do workspace (specs: cli MODIFIED, docs MODIFIED, insight MODIFIED, structure MODIFIED, workspace MODIFIED)
+- 2026-11-04 — 0231-o-cartao-leva-o-que-a-change-faz — o cartao leva o que a change faz (specs: authoring MODIFIED, delivery MODIFIED, docs MODIFIED)
+- 2026-11-04 — 0232-o-change-check-ve-o-que-o-clarify-vera — o change check ve o que o clarify vera (specs: authoring MODIFIED, docs MODIFIED, gates MODIFIED)
+- 2026-11-04 — 0233-a-segunda-auditoria-fecha-os-furos-do-fluxo — a segunda auditoria fecha os furos do fluxo multi-repo (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, insight MODIFIED, workspace MODIFIED)
+- 2026-11-04 — 0234-a-terceira-auditoria-fecha-os-caminhos-de-falha — a terceira auditoria fecha os caminhos de falha (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, scaffolding MODIFIED, workspace MODIFIED)
+- 2026-11-04 — 0235-a-quarta-auditoria-fecha-as-entradas-hostis — a quarta auditoria fecha as entradas hostis (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, gates MODIFIED, insight MODIFIED, scaffolding MODIFIED, templates MODIFIED, workspace MODIFIED)
+- 2026-11-05 — 0236-a-quinta-auditoria-mede-a-escala-e-o-uso-real — a quinta auditoria mede a escala e o uso real (specs: cli MODIFIED, docs MODIFIED, gates MODIFIED, templates MODIFIED, workspace MODIFIED)
+- 2026-11-05 — 0237-a-sexta-auditoria-confere-o-cursor-e-o-contrato — a sexta auditoria confere o Cursor e o contrato (specs: authoring MODIFIED, delivery MODIFIED, docs MODIFIED, insight MODIFIED, workspace MODIFIED)
+- 2026-11-05 — 0238-o-cursor-recebe-skills-e-o-guard-falha-fechado — o Cursor recebe skills e o guard falha fechado (specs: docs MODIFIED, scaffolding MODIFIED, templates MODIFIED, workspace MODIFIED)
+- 2026-11-05 — 0239-o-gate-de-docs-distingue-variavel-de-ambiente-de — o gate de docs distingue variavel de ambiente de constante (specs: docs MODIFIED, gates MODIFIED)

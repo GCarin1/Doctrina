@@ -63,7 +63,8 @@ The bottleneck of AI-assisted development is not code generation — it is the
 reliable transfer of intent and the persistence of context across sessions
 and agents. Doctrina treats specifications as the single source of truth, keeps
 architectural decisions as immutable ADRs, and orchestrates work through a
-single linear coordinator instead of competing parallel agents.
+single planner — one writer per repository at a time — instead of competing
+parallel agents.
 
 The name comes from the Latin word for *doctrine* — the foundational text that
 governs how a body of agents acts.
@@ -83,9 +84,10 @@ governs how a body of agents acts.
    longer fits.
 3. **Status, not folder migration.** Items are retired by status + link, not by
    moving files (with the exception of transient changes that archive).
-4. **Single linear orchestrator by default.** Multi-agent parallelism is the
-   wrong default for code writing — it produces conflicting implicit decisions.
-   Subagents are used only for isolated read-only investigation.
+4. **One planner, one writer per repository.** Parallel writers on the same
+   artifacts produce conflicting implicit decisions. One planner routes and
+   closes; executors take one self-contained task card at a time; different
+   repositories may move in parallel (ADR 0030, which supersedes ADR 0004).
 5. **Value-gated pipeline.** The full ceremony runs only when ambiguity costs
    real time. One-line fixes skip it.
 6. **Portability over invention.** Doctrina builds on the open AGENTS.md
@@ -100,7 +102,7 @@ governs how a body of agents acts.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
 - The `doctrina` CLI (Node.js, zero runtime dependencies) with 39 commands
-  and 74 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
+  and 75 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
   change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,
@@ -125,8 +127,8 @@ governs how a body of agents acts.
 
 - A `memory/` folder. Deferred until measured pain justifies the complexity.
   See [`.doctrina/decisions/0003-defer-memory-folder.md`](./.doctrina/decisions/0003-defer-memory-folder.md).
-- Multi-agent parallel writers. See
-  [`.doctrina/decisions/0004-single-linear-orchestrator.md`](./.doctrina/decisions/0004-single-linear-orchestrator.md).
+- Two writers in the same repository at once. See
+  [`.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md`](./.doctrina/decisions/0030-um-planejador-orquestra-um-escritor-por-repositorio-executores-recebem-cartoes-autocontidos.md).
 - A database, vector store, or RAG layer.
 - Documentation generators that produce content the humans never read.
 - Telemetry, analytics, or network calls. See `SECURITY.md`.
@@ -168,6 +170,7 @@ User-facing documentation lives under [`docs/`](./docs/):
 - [Context engineering](./docs/en/context-engineering.md) — why context shape predicts agent performance more than agent count.
 - [Gating](./docs/en/gating.md) — when the full pipeline is worth it.
 - [Brownfield adoption](./docs/en/brownfield.md) — operational guide for installing Doctrina into an existing codebase.
+- [The end-to-end flow](./docs/en/end-to-end-flow.md) — one item of work across repositories, step by step, tool-agnostic.
 - [Work across repositories](./docs/en/workspace.md) — the workspace, deliveries, the planner and its executors, and the MCP guard.
 - [Comparison](./docs/en/comparison.md) — honest positioning vs Spec Kit, Kiro, OpenSpec, BMAD, SpecWeave.
 - [Migration](./docs/en/migration.md) — practical mappings from Spec Kit, OpenSpec, BMAD, Kiro, SpecWeave.

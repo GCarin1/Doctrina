@@ -17,6 +17,209 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The docs gate no longer takes every UPPER_SNAKE name for an environment
+  variable. Fixing a login in a project whose error codes are MAIUSCULAS_SNAKE,
+  the close stopped asking documentation for "environment:
+  CREDENCIAIS_INVALIDAS, NOME_INDISPONIVEL". A name now counts when it is read
+  as a variable, named on a line about the environment, carries a
+  configuration suffix (`_URL`, `_TOKEN`, `_PORT`…) or sits in the project's
+  `.env.example`.
+- The cursor adapter installs the core loop as Cursor skills,
+  `.cursor/skills/doctrina-*/SKILL.md` with `disable-model-invocation: true`:
+  Cursor's documentation describes skills and no longer `.cursor/commands/`,
+  and Cursor 2.4 converts commands to skills the same way. `doctrina upgrade
+  --write` and `adapter add cursor` move an older install — the skills are
+  written, every command still as the CLI wrote it is removed, an edited one
+  is kept and named — and in a shadowed repository they are written in the
+  shadow and linked in, never left as stray files in the repository.
+- With a tool declared, the Cursor guard hook carries `failClosed: true`.
+  Cursor lets an MCP call through when a hook crashes or cannot start, so a
+  guard that could not run — `doctrina` missing from the PATH Cursor runs
+  hooks with is enough — left a read-only tool writing, silently. With
+  nothing declared it stays fail-open.
+- The sixth audit checked the Cursor integration against Cursor's current
+  documentation and ran a real planner through SHOP-77, a contract change
+  whose third criterion contradicts an accepted ADR (US$ 2.25, 2.6 min):
+  - Cursor also runs the hooks `.claude/settings.json` declares, so a folder
+    with both adapters primed each session twice — the second time in plain
+    text where Cursor reads JSON — the per-prompt pulse answered
+    `beforeSubmitPrompt` in prose, and the Claude-format guard answered the
+    permission hook `preToolUse` with nothing. Under Cursor (`CURSOR_VERSION`
+    and `CURSOR_PROJECT_DIR`), the Claude adapter's hooks now answer in
+    Cursor's terms;
+  - a task card named only the decisions whose text cited the capability,
+    so a global ADR never reached the executor — the planner caught the
+    conflict by reading the decisions itself. The card now carries every
+    global decision and the scoped ones, with what each decides, and tells
+    the executor to stop and report a contradiction.
+- The fifth audit measured scale and ran a real planner agent through the
+  SHOP-42 delivery across two shadowed repositories (absorb, delivery,
+  cards to executor subagents, reviewers, both closes — US$ 2.64, 4.3 min):
+  - `doctrina workspace guard`, which runs before every MCP call, loaded
+    the whole CLI: ~220 ms a call. The entrypoint now loads only the command
+    it runs, and routes the guard to a six-module door (~90 ms here);
+  - `next` at a root with forty open deliveries printed 162 lines; it
+    prints the first ten and counts the rest (`--json` keeps every one);
+  - a bare `review` called the spec of a capability "not updated" while an
+    open change carried its delta — the agent read it as a break; it is now
+    a note naming the change;
+  - the absorb's gates run `validate --fix`, which heals the index that
+    specs written by hand leave behind.
+- The fourth audit fed the multi-repo flow hostile and odd input:
+  - **Security.** Every command line the CLI prints interpolated the
+    tracker's title between double quotes, so a story titled
+    `Fix $(curl … | sh)` became a command an agent pasting the line ran;
+    a repository path with a space split every `cd`. `lib/shell.js` quotes
+    both, and a printed line now runs as printed.
+  - **Security.** The MCP guard read SQL under four keys only, took `CALL`,
+    `EXEC`, `COPY` and `SELECT … INTO` for reads, ignored an `action` or
+    `method` argument and a GraphQL `mutation`, and missed the verb in a name
+    with no separator. It also fired for nothing when the declared server's
+    key matched no MCP configuration; `workspace tool` and `validate` now
+    say so.
+  - `doctor` and `metrics` at the workspace root said `doctrina init`; a
+    shadow whose folder was gone crashed `attach` and was sent to
+    `intake --from-code`, and a shadowed repository whose links were gone
+    was told to `init`.
+- The third audit broke the multi-repo flow on purpose and fixed how it
+  failed:
+  - the MCP guard ran at the workspace root only; an executor works inside
+    the repository, whose own hook files Cursor and Claude Code read, so its
+    calls through a read-only tool were never checked. Every shadow's hook
+    files now run it, and `validate` at the root names an in-repo project
+    whose hooks do not;
+  - a change whose tasks were still the scaffold's placeholders was counted
+    as "3 tasks left — hand the next card", and `change card` answered
+    "every task is ticked — ready to close"; both now send the planner to
+    write the tasks;
+  - a change abandoned inside a delivery vanished from it ("no change yet");
+    the ledger now keeps `(delivery <id>)`, the delivery shows it abandoned
+    and proposes the re-route, and a new change never reuses its number;
+  - `delivery route` dropped a project carrying an open change for the
+    delivery, orphaning it; it refuses without `--force`, and `validate`
+    warns of an orphan;
+  - a repository that moved got a `cd` into its old path;
+  - a second clone of a shadowed repository was told to `doctrina init`;
+    `next`, the error and `init` itself name `workspace attach --path`;
+  - `--json` on a command that failed before building its payload printed
+    English only; it now answers with the envelope and an `error`, and
+    `delivery status --json` builds a real payload.
+- The second audit walked a workspace of four repositories — a shared
+  front-end library, the web shop importing it, the API and the mobile app —
+  from the absorb to the delivery's close, and fixed what went wrong:
+  - the code inventory seeded `jest --watchAll` (and `ng test`,
+    `react-scripts test`, `karma start`), which never return, and refused
+    `--watch=false`; it claimed documentation "beyond the root README" of a
+    repository with no README, and counted "1 commits";
+  - a bare `doctrina intake` reprinted the BOOTSTRAP playbook for a stored
+    code inventory — what `next` sends a resuming agent to — and the
+    absorb's workspace step was numbered 8 after step 9;
+  - the workspace told a project whose absorb was under way to rerun
+    `--from-code`, which refuses it; it now names `doctrina intake`;
+  - a spec slice counted the five EARS forms in the template comment as
+    requirements ("… 5 not matching the task") and carried the forty-line
+    header comment, in the context pack and in every task card;
+  - a task card cut the requirement its own delta was about when the task's
+    words missed it: the slice now reads the delta's requirements too;
+  - `work --delivery` ranked capabilities by the title alone; it reads the
+    delivery's story too;
+  - `next` inside a repository never named the delivery routed to it, and
+    after its close sent the planner to the project's own chores;
+  - a front end whose `package.json` imports another project's package with
+    no `--depends-on` could be routed before it: `validate` at the root
+    warns, and `workspace attach <name> --depends-on <a,b>` sets the edge.
+- `change check` scans the spec each delta will write with the clarify
+  lexicons and warns of every weasel or vague word the delta adds. Such a word
+  used to surface only after the close had merged it — in this repository, as
+  a red living-documents test in the middle of a close. The scanner moved
+  from the `clarify` command to `lib/clarify-scan.js` so both read one
+  lexicon.
+- A task card carries what the change does. It cut the spec as it stands to
+  the task, so the requirement the executor was there to implement — which
+  lives in the delta until apply — reached the card only if the planner
+  copied it by hand; and a spec nothing in the task matched was dropped,
+  leaving a card with no spec at all. The card now lists every requirement
+  and criterion the delta adds, replaces or removes, verbatim, gives a spec
+  whole when nothing matched, carries the story of the delivery the change
+  belongs to and names the accepted decisions that bind the capability.
+- The orientation commands work at the workspace root, where the planner
+  works. `next` told the planner to run `doctrina init` there — which would
+  create a project inside the workspace — and `handoff`, `status`, `validate`
+  and `context` refused as "not a Doctrina project". Now `next` walks the
+  workspace's flow (absorb, route, open, card, close, the delivery's record,
+  close the delivery), `handoff` is the planner's resume note, `status` the
+  one-glance view, `validate` checks the registry, shadow links and
+  deliveries, and `context --for` ranks the projects for the task. Inside a
+  repository, `prime` names its workspace and the delivery open on it, and
+  the generated hub names `next` and `handoff`.
+- `intake --from-code` reads the whole repository, not its root. On public
+  projects the root-only reading distorted what an agent absorbs: an
+  eleven-service demo in Go, C#, Node, Python and Java read as ".NET"; a
+  FastAPI + React template read as "no framework" with one candidate area and
+  `npm` for a bun workspace; a Spring app was named after its parent pom, its
+  areas were `src/main/` and `src/test/`, and its entry point was dropped. The
+  inventory now lists every unit (a directory with its own manifest) with its
+  build, name, package manager, frameworks and tests, the workspace tooling,
+  languages by extension, areas inside each unit (JVM feature packages
+  included), entry points, interfaces (OpenAPI, protobuf, GraphQL, AsyncAPI,
+  route folders), migrations and schemas, CI and runtime manifests at any
+  depth, the documentation, decisions and agent instructions already written,
+  and what it could not see. A real `.env` is named as present and never read.
+- `verify --init` seeds only commands that return on their own, each unit's
+  with its `cwd`: `--watch`, `--ui`, npm's `no test specified` placeholder and
+  test files with no declared runner are listed with the reason instead.
+- The absorb and bootstrap playbooks hold the agent to its source: no
+  requirement without the code that does it (absorb) or the intake sentence
+  that states it (bootstrap), values verbatim, contradictions and missing
+  values as questions, and a fact check before the gates.
+- The delivery flow, audited step by step: `delivery tick` lists and ticks the
+  Release claims (they were hand-edited); `delivery new --projects` and `route`
+  refuse a project with no spec yet (exit 3, `--force` to override); `delivery
+  status` prints the command that reads each repository's next task card and
+  names a second writer in the same repository; `prime` and the pulse name the
+  delivery an open change belongs to; `work --resume <change> --delivery <id>`
+  joins a change opened without the flag.
+- A CRLF file stays CRLF: `delivery tick`, `change tick`, the `Delivery:` line
+  `work --delivery` stamps and the header `delivery close` adds wrote LF back,
+  so on a Windows checkout every line of the file showed as changed.
+- `delivery tick` counts only the boxes it turned from open to ticked, and
+  `delivery check` reads the Release boxes through the same reader — a `+ [ ]`
+  claim was tickable and invisible to the check.
+- `change delta` writes every repeated `--requirement`, `--criterion` and
+  `--op`, in order; it kept only the last one and still reported success.
+- `change check --verbose` previews an ops delta as the spec before against
+  the spec after apply, instead of printing every line of the spec as removed.
+- `review --change` reads each spec as the change will leave it — its ops
+  applied in memory — when it asks who owns a file, so the test a change adds,
+  or a path a `Source:` it sets claims, is no longer reported as belonging to
+  no capability before `apply` merges it.
+- `workspace list` refreshes the orchestrator files when a project's state or
+  `workspace.json` changed: an absorbed project stayed `pending` in the hub,
+  and an executor model edited into `workspace.json` never reached the
+  subagent. With no tool declared, the list and the hub suggest a generic
+  `workspace tool <name> --server <mcp-server>` instead of one product.
+- `verify --init` writes the build and test commands the code inventory finds
+  in the project's manifests, as the absorb playbook promised, and keeps the
+  fail-closed example for a project whose manifests declare none.
+- `context` reads the change in focus without the templates' HTML comments:
+  every delta repeated forty lines of authoring instructions, and a change
+  with eight deltas pushed the repository's own task pack over its 10k-token
+  budget. `--full` keeps them.
+- The delivery playbook, the workspace guide and the CLI reference say what a
+  card's `Requirement:` line is — a `doctrina show` reference, counted from
+  the spec and never written into it; an agent walking the flow wrote
+  `login-R1:` into its spec's bullets.
+- Every help names every subcommand in its Usage line and every flag its
+  command declares — `delivery tick`, `workspace tool|guard`, `work
+  --delivery`, `delivery close --date`, `change check --verbose`, `contract
+  new --force`, `skill new --force` and `init --overwrite-content` were missing.
+- The documentation follows ADR 0030 throughout (`multi-agent.md`, migration,
+  context engineering), the glossary is in alphabetical order, the Portuguese
+  pages caught up with the English ones where they had drifted, and the
+  end-to-end guide runs as written in a test.
+
 ## [0.20.0] — 2026-11-03
 
 ### Upgrading from 0.19

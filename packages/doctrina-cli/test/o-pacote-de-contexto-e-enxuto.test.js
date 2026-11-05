@@ -2,6 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { sliceSpec, adrDigest } from "../src/lib/context-slice.js";
@@ -61,4 +63,30 @@ test("an ADR digest is its title and the opening of its Decision", () => {
   assert.match(d, /^# ADR 0007 — Ops\n\nA delta carries an ops block\./);
   assert.doesNotMatch(d, /Long\.|More\./);
   assert.match(d, /doctrina show 0007/);
+});
+
+// Change 0228: the change in focus enters the pack whole — and its proposal,
+// tasks and every delta carried the templates' authoring comments. A change
+// with eight deltas spent ~2.6k tokens repeating "For ADDED… For MODIFIED…"
+// to an agent that was reading. They are left out; --full keeps them.
+test("the change in focus is read without the templates' authoring comments, unless --full", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "doctrina-pack-comments-"));
+  const run = (/** @type {string[]} */ args) => spawnSync(process.execPath, [cliEntry, ...args], {
+    cwd: dir, encoding: "utf8", env: { ...process.env, NO_COLOR: "1" },
+  });
+  try {
+    assert.equal(run(["init", "--non-interactive", "--project-name", "Acme"]).status, 0);
+    assert.equal(run(["spec", "new", "auth"]).status, 0);
+    assert.equal(run(["work", "Lock the account after three failures", "--title", "lock account", "--capability", "auth", "--quiet"]).status, 0);
+    assert.equal(run(["change", "delta", "0001-lock-account", "auth",
+      "--requirement", "event: When a third wrong password arrives, the system shall lock the account."]).status, 0);
+    const lean = run(["context", "auth", "--for", "lock the account", "--concat"]).stdout;
+    assert.match(lean, /delta\.md \(open change: 0001-[^)]* — comments left out\)/);
+    assert.match(lean, /append-requirement event: When a third wrong password arrives/, "the ops survive");
+    assert.doesNotMatch(lean, /For ADDED: include the full new spec body/, "the template's instructions do not");
+    const whole = run(["context", "auth", "--for", "lock the account", "--concat", "--full"]).stdout;
+    assert.match(whole, /For ADDED: include the full new spec body/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

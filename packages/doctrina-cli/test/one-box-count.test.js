@@ -81,7 +81,8 @@ test("prime, report, handoff and next report the same number of boxes", () => {
     assert.match(prime, new RegExp(`tasks 0/${real}\\b`), prime);
     assert.match(report, new RegExp(`tasks 0/${real}\\b`), report);
     assert.match(handoff, new RegExp(`tasks: 0/${real} checked`), handoff);
-    assert.match(next, new RegExp(`complete ${real} open tasks`), next);
+    // Scaffold boxes are named as such (change 0234), with the same count.
+    assert.match(next, new RegExp(`write the ${real} open tasks`), next);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

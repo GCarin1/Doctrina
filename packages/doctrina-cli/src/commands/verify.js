@@ -5,6 +5,7 @@ import { readdirSync } from "node:fs";
 import { wantsJson } from "../lib/json-out.js";
 import { spawn, spawnSync } from "node:child_process";
 import { exists, isDir, isFile, read, write, relPath } from "../lib/fs-ops.js";
+import { inventory } from "../lib/code-inventory.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { today } from "../lib/dates.js";
 import { c } from "../lib/colors.js";
@@ -38,6 +39,16 @@ const STARTER = {
   ],
 };
 
+const SEEDED_COMMENT =
+  "doctrina verify runs each check below, in order, through your shell. " +
+  "These were seeded from the project's own manifests by the code " +
+  "inventory — confirm each one runs what its name says, and remove or add " +
+  "checks until this file is the project's executable definition of 'the " +
+  "code actually works'. A non-zero exit fails the gate. A check may add an " +
+  "\"expect\" block — {\"fail_if_output_matches\": \"<regex>\"} and/or " +
+  "{\"require_output_matches\": \"<regex>\"} — so that a run which exits 0 " +
+  "having executed NOTHING fails the gate instead of passing it.";
+
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
@@ -69,9 +80,24 @@ export async function run(_positional, flags) {
       console.error(c.red("error:") + ` ${CONFIG_REL} already exists (pass --force to overwrite)`);
       return 1;
     }
-    write(configPath, JSON.stringify(STARTER, null, 2) + "\n", { force: true });
-    console.log(c.green("created") + ` ${CONFIG_REL}`);
-    console.log(c.gray("Edit the `checks` array with your real commands, then run `doctrina verify`."));
+    // Seeded from the code inventory when it found the project's own build
+    // and test commands (change 0228): the absorb playbook says "declare the
+    // build gate from the inventory's candidate commands", and the inventory
+    // lists them under that heading — while --init wrote `exit 1` anyway,
+    // leaving the agent to copy by hand what the CLI had just read. With no
+    // candidate the starter stays fail-closed: a gate nobody declared must
+    // not pass.
+    // A check that belongs to one unit of a monorepo runs there (`cwd`).
+    const seeded = inventory(projectRoot).checks.map((ch) => ({ name: ch.name, run: ch.command, ...(ch.cwd ? { cwd: ch.cwd } : {}) }));
+    const config = seeded.length > 0
+      ? { ...STARTER, $comment: SEEDED_COMMENT, checks: seeded }
+      : STARTER;
+    write(configPath, JSON.stringify(config, null, 2) + "\n", { force: true });
+    console.log(c.green("created") + ` ${CONFIG_REL}` +
+      (seeded.length > 0 ? c.gray(` — seeded from the code inventory: ${seeded.map((s) => s.cwd ? `${s.run} (in ${s.cwd}/)` : s.run).join(", ")}`) : ""));
+    console.log(c.gray(seeded.length > 0
+      ? "Confirm each check runs what its name says (add an \"expect\" block where a run could execute nothing), then run `doctrina verify`."
+      : "Edit the `checks` array with your real commands, then run `doctrina verify`."));
     return 0;
   }
 
@@ -488,7 +514,9 @@ copy accumulates for the match. An "expect" pattern that is not a valid
 regular expression fails at config time, not silently.
 
 Flags:
-  --init     Scaffold a starter ${CONFIG_REL} (refuses to overwrite without --force)
+  --init     Scaffold a starter ${CONFIG_REL} (refuses to overwrite without --force):
+             the build and test commands the code inventory finds in the
+             project's manifests, or a fail-closed example when it finds none
   --list     Print the configured checks without running them
   --clean    Don't run checks; lint the project's package.json files for
              reproducibility footguns (entry points in a build dir with no

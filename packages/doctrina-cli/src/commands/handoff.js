@@ -6,6 +6,8 @@ import { c } from "../lib/colors.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { collectSnapshot } from "../lib/snapshot.js";
 import { renderView } from "../lib/views.js";
+import { contextRouting, workspaceActions, workspaceFindings, workspaceHandoff, workspaceRootAt, workspaceSnapshot, workspaceStatus } from "../lib/workspace-view.js";
+import { today } from "../lib/dates.js";
 
 // Session handoff note: everything the NEXT session (a fresh agent, a
 // teammate, tomorrow's you) needs to resume without re-reading the tree —
@@ -27,10 +29,14 @@ export const flags = { boolean: ["json"], string: [] };
 
 export async function run(_positional, _flags) {
   const projectRoot = process.cwd();
-  if (!exists(path.join(projectRoot, ".doctrina"))) {
+  const wsRoot = workspaceRootAt(projectRoot);
+  if (!wsRoot && !exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }
-  for (const line of renderView("handoff", collectSnapshot(projectRoot))) console.log(line);
+  // At a workspace root: the planner's resume note — projects, open
+  // deliveries and their changes, the next actions (change 0230).
+  const lines = wsRoot ? workspaceHandoff(workspaceSnapshot(wsRoot), today()) : renderView("handoff", collectSnapshot(projectRoot));
+  for (const line of lines) console.log(line);
   if (process.stdout.isTTY) {
     console.log("");
     console.log(c.gray("tip: pipe it — `doctrina handoff > note.md` — or paste it as the first message of the next session"));
@@ -45,6 +51,9 @@ Print a session handoff note in Markdown: gate digest, each open change
 with its task-by-task progress and the exact resume command, and the
 prioritised next actions. Made to be pasted as the first message of the
 next agent session (or piped to a file).
+
+At a workspace root it is the planner's note instead: projects and
+their state, open deliveries with each repository's changes, next actions.
 
 The same view as \`doctrina status --view handoff\`; both render one
 collection of the tree.

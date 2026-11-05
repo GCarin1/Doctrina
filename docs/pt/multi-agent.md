@@ -24,11 +24,11 @@ Doctrina é multi-agente em três sentidos concretos:
    diferentes em sequência.** Você pode usar Claude para esboçar
    spec, Codex CLI para implementação e outra ferramenta para
    review. A fronteira da fase é o ponto de handoff.
-3. **Um orquestrador único pode fanout subagentes read-only.**
-   Dentro de uma fase, um orquestrador pode delegar tarefas
-   isoladas e read-only (busca no codebase, parsing de output de
-   lint, scan de segurança, retrieval) a subagentes que retornam
-   contexto resumido.
+3. **Um planejador delega.** Dentro de uma change, o planejador pode
+   espalhar tarefas isoladas e só de leitura (busca no codebase,
+   parsing de output de lint, scan de segurança, retrieval) para
+   subagentes que retornam contexto resumido, e pode entregar um
+   cartão de tarefa por vez a um executor que o escreve.
 
 Doctrina **não** é multi-agente neste sentido: não roda múltiplos
 agentes escritores em paralelo contra o mesmo artefato. Essa
@@ -42,18 +42,21 @@ fazer em vez disso.
                    |
                    v
             +-----------------+
-            |  orquestrador   |   único, linear, segura o trace inteiro
+            |   planejador    |   um por change, segura o trace inteiro
             +-----------------+
                    |
    spec  ->  plano  ->  implementar  ->  revisar  ->  curar
      |        |             |              |           |
-     |        |             |              |           |
      |        |             v              v           |
-     |        |        read-only       read-only       |
-     |        |        subagentes      subagentes      |
-     |        |        (busca,         (lint,          |
-     |        |        retrieval)      testes,         |
-     |        |                        segurança)      |
+     |        |         executor       read-only       |
+     |        |       (um cartão por   subagentes      |
+     |        |        vez, um         (lint,          |
+     |        |        escritor por    testes,         |
+     |        |        repositório)    segurança)      |
+     |        |             |                          |
+     |        |         read-only                      |
+     |        |         subagentes                     |
+     |        |       (busca, retrieval)               |
      |        |                                        |
      +--------+----- triggers de ADR --------+---------+
                    |
@@ -81,7 +84,7 @@ frameworks SDD de 2025–2026. Espelha como times humanos dividem
 trabalho e vende bem. O registro empírico é desfavorável para
 trabalho de código:
 
-- *Don't Build Multi-Agents* da Cognition argumenta que subagentes
+- [*Don't Build Multi-Agents*](https://cognition.ai) da Cognition argumenta que subagentes
   paralelos que não compartilham o trace inteiro tomam decisões
   implícitas conflitantes. O merge dessas decisões é código
   incoerente.
@@ -97,9 +100,10 @@ trabalho de código:
 
 Doctrina herda esses achados como restrições de design. Rótulos
 de papel ("Architect", "Tester", "Reviewer") são permitidos como
-**personas de prompt que o orquestrador único adota em
-sequência**, nunca como processos paralelos disputando os mesmos
-arquivos.
+**personas de prompt que o planejador adota em sequência**, ou como
+subagentes com um trabalho delimitado — um executor num cartão de
+tarefa, um revisor só de leitura — nunca como processos paralelos
+disputando os mesmos arquivos.
 
 ## Planejador e executores (ADR 0030)
 
@@ -110,7 +114,8 @@ porque os dois mantêm um escritor por artefato:
   tarefas de uma change como cartões autocontidos — a tarefa e as
   linhas `Files:`, `Requirement:` e `Verify:` — e entrega um de cada vez
   a um subagente executor com `doctrina change card <id>`. O cartão
-  carrega o Why da change e a spec recortada para a tarefa, então o
+  carrega o Why da change, a história da entrega, o que o delta faz na
+  spec, a spec recortada para a tarefa e as decisões que a vinculam, então o
   executor não precisa do trace do planejador; um cartão que precisa não
   está terminado. O executor edita, verifica, marca e reporta. Ele nunca
   abre, fecha nem arquiva — o planejador revisa e fecha. O executor pode
@@ -130,23 +135,23 @@ subagentes gerados `doctrina-executor`, `doctrina-reviewer`,
 ### Personas, não processos paralelos
 
 Se você quer um "modo Architect" para design e um "modo Tester"
-para review, troque a persona do orquestrador entre fases. Mesmo
+para review, troque a persona do planejador entre fases. Mesmo
 agente, mesmo contexto, prompt de enquadramento diferente. Sem
 problema de coordenação porque não há concorrência.
 
-As cinco personas canônicas que o orquestrador adota em sequência:
+As cinco personas canônicas que o planejador adota em sequência:
 
 | Fase | Persona | Trabalho | Output | Gate humano? |
 |------|---------|----------|--------|--------------|
 | Intent | **Spec / PO** | Refinar o pedido em requisitos EARS; matar ambiguidade. | Nova spec ou proposal de change com delta. | Aprovação da spec. |
 | Plan | **Plan / Architect** | Produzir `design.md` e `tasks.md`; trazer à tona decisões arquiteturais. | Arquivos de plano + drafts de ADR se necessário. | Decisões em escolhas irreversíveis. |
-| Execute | **Implement / Dev** | Implementar tarefas contra a spec aprovada. | Commits de código. | Nenhum (ou review de PR). |
+| Execute | **Implement / Dev** | Implementar tarefas contra a spec aprovada — ou entregar cada cartão de tarefa a um subagente executor. | Commits de código. | Nenhum (ou review de PR). |
 | Verify | **Review / Tester** | Rodar lint, testes, scan de segurança, `doctrina validate`; checar consistência cross-artefato. | Relatório pass/fail. | Nenhum — read-only, pode rodar como subagente. |
 | Curate | **Curator** | Fazer merge dos deltas aplicados, arquivar o change, atualizar o index. | Specs atualizadas + archive mais limpo. | Nenhum para trabalho mecânico; humano para qualquer promoção de memory (quando `memory/` existir). |
 
 Essas são **personas de prompt**, não agentes separados. Trocar
 persona significa trocar o prompt de enquadramento que o mesmo
-orquestrador usa; o trace e os artefatos em disco são o contexto
+planejador usa; o trace e os artefatos em disco são o contexto
 compartilhado através da troca.
 
 ### Subagentes read-only
@@ -159,8 +164,9 @@ Seguros para fanout:
 - Scan de segurança estático (Semgrep, Bandit, etc.).
 - Análise de log de build.
 
-Cada subagente retorna texto. O orquestrador decide o que fazer
-com o texto. Subagentes nunca escrevem em artefatos do repo.
+Cada subagente retorna texto. O planejador decide o que fazer
+com o texto. Esses subagentes nunca escrevem em artefatos do repo;
+o que escreve é um executor, com um cartão.
 
 ### Gates de aprovação humana
 
@@ -173,7 +179,7 @@ Doctrina tem dois checkpoints naturais human-in-the-loop:
   `accepted`.
 
 Um gate human-in-the-loop não é feature multi-agente; é a ausência
-de uma. O orquestrador pausa, o humano lê, o orquestrador retoma.
+de uma. O planejador pausa, o humano lê, o planejador retoma.
 
 ### Múltiplos humanos no mesmo change
 
@@ -194,7 +200,7 @@ Fluxo exemplo:
 - Humano aprova.
 - Claude Code conduz o review (resumo de lint, resultados de
   teste, checagem de consistência da spec).
-- O orquestrador (qualquer ferramenta) arquiva o change.
+- O planejador (qualquer ferramenta) fecha o change.
 
 Cada agente possui uma fase. Nenhum se sobrepõe a outro. Os
 artefatos em `.doctrina/` são o trace compartilhado.
@@ -207,13 +213,15 @@ artefatos em `.doctrina/` são o trace compartilhado.
 | Lint local + lint CI ao mesmo tempo | Seguro. Ambos são validadores que produzem relatórios, não artefatos em `.doctrina/`. |
 | Um agente e um humano editando o mesmo `proposal.md` | Hazard. Mesmo artefato, dois escritores. Serialize. |
 | Dois changes em andamento em capabilities disjuntas | Seguro. Artefatos diferentes, sem escritor compartilhado. |
-| Um subagente que "só faz um patch pequeno" | Hazard. O "arquivo pequeno" é um slot de escritor; no momento que um subagente escreve, a regra de não-paralelizar-escritores se aplica a ele. |
+| Um subagente que "só faz um patch pequeno" | Hazard. O "arquivo pequeno" é um slot de escritor; no momento que um subagente escreve, ele é um executor — dê um cartão a ele e mantenha-o como o único escritor naquele repositório. |
 | Um executor trabalhando um cartão enquanto o planejador espera | Seguro (ADR 0030). Um escritor no repositório; o planejador revisa e fecha. |
 | Executores no `back-end` e no `front-core` ao mesmo tempo | Seguro (ADR 0030). Repositórios diferentes, nenhum artefato compartilhado. |
 
 ## Material relacionado
 
-- [Workflow](workflow.md) — como o orquestrador se move pelas fases.
+- [Workflow](workflow.md) — como uma change se move pelas fases.
+- [O fluxo de ponta a ponta](end-to-end-flow.md) — os papéis acima, passo
+  a passo, para trabalho que atravessa repositórios.
 - [Antipatterns](antipatterns.md) — seção 3 nomeia o modo de falha
   que este doc te ajuda a evitar.
 - [Adapters](adapters.md) — como cada agente suportado acha o

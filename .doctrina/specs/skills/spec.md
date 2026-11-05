@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/skill.js`, `packages/doctrina-cli/src/lib/skill-candidates.js`, `packages/doctrina-cli/src/lib/skill-export.js`
+**Source:** `packages/doctrina-cli/src/commands/skill.js`, `packages/doctrina-cli/src/lib/skill-candidates.js`, `packages/doctrina-cli/src/lib/skill-export.js`, `.agents/skills/**`, `.claude/skills/**`
 **Last updated:** 2026-07-02
-**Version:** 0.8.0
+**Version:** 0.8.1
 
 ## Purpose
 
@@ -113,6 +113,7 @@ A `.doctrina/skills/` directory is spec-compliant when:
 9. [verified] A generated slug folds accents and capitals instead of deleting them, and matches the `[a-z][a-z0-9-]*` shape this spec requires of a skill filename — verified by `packages/doctrina-cli/test/o-acento-nao-e-ruido.test.js`.
 10. [verified] From the same tree, `skill sync` and `index rebuild` leave the same skill entries — an edited description mirrored, a written description kept over a reverted placeholder, a hand-written skill registered — and `skill sync` warns on stderr naming the rebuild — verified by `packages/doctrina-cli/test/o-rebuild-faz-o-que-o-sync-fazia.test.js`.
 11. [verified] A skill exports with its `when:` in the description and without carriage returns; `index rebuild --check` notes the stale export and writes nothing; the rebuild writes `.agents/skills/`, `adapter add claude` adds `.claude/skills/`, and removing the skill removes its export while a user's own folder stays — verified by `packages/doctrina-cli/test/as-skills-aparecem-para-o-agente.test.js`.
+12. [verified] `skill --help` describes `skill new --force` — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
 
 ## Out of scope for this spec
 

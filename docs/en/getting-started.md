@@ -228,3 +228,4 @@ old ADR is untouched.
 - Read [antipatterns.md](antipatterns.md) before you hit them in the
   wild.
 - Read [cli-reference.md](cli-reference.md) for every flag.
+- Work that crosses repositories? Read [end-to-end-flow.md](end-to-end-flow.md).
