@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.20.0",
+  "framework_version": "0.21.0",
   "last_updated": "2026-11-05",
   "artifacts": {
     "product": {
@@ -4184,6 +4184,15 @@
           }
         ],
         "lane": "runtime (confident; signals: vars, variavel de ambiente) — opened anyway (--force)"
+      },
+      {
+        "id": "0240-release-0-21-0",
+        "title": "release 0.21.0",
+        "path": ".doctrina/changes/archive/2026-11-05-0240-release-0-21-0",
+        "status": "applied",
+        "applied": "2026-11-05",
+        "specs_affected": [],
+        "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
       }
     ],
     "skills": [

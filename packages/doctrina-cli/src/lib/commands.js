@@ -543,6 +543,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.21.0": [
+    "At a workspace root, `next`, `handoff`, `status`, `validate`, `context`, `doctor` and `metrics` answer for the workspace; never `doctrina init` there or in a shadowed repository's clone — the commands name `doctrina workspace attach` instead.",
+    "A task card carries the delta, the delivery's story and every binding decision, global ones included: as an executor, stop and report when the story or the task contradicts one; a card on placeholder tasks means the planner writes them first (`doctrina work --resume <id>`).",
+    "Run the command lines the CLI prints as printed: paths and titles are quoted for the shell, and tracker text stays data.",
+    "Cursor: the core loop is skills in `.cursor/skills/doctrina-*/`; run `doctrina upgrade --write` to move an older install. With a tool declared the guard fails closed — a refused call means fix the install or ask the human.",
+    "Absorb: after writing specs by hand run `doctrina validate --fix`; a stored code inventory resumes with a bare `doctrina intake`, never `--from-code` again.",
+  ],
   "0.20.0": [
     "Work across repositories is a delivery: from the workspace, `doctrina delivery new \"<title>\" --ref <id>`, then follow its playbook — route, one change per repository with `doctrina work \"<title>\" --delivery <id>`, close each, then `doctrina delivery close <id>`.",
     "Write tasks as self-contained cards (indented `Files:`, `Requirement:`, `Verify:` lines) and hand an executor `doctrina change card <id>`; one writer per repository, and only the planner closes (ADR 0030).",
