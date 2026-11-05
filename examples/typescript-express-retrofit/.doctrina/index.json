@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina-example-express-retrofit",
-  "framework_version": "0.20.0",
-  "last_updated": "2026-11-03",
+  "framework_version": "0.21.0",
+  "last_updated": "2026-11-05",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",

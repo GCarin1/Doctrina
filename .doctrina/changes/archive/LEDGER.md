@@ -251,3 +251,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-05 — 0238-o-cursor-recebe-skills-e-o-guard-falha-fechado — o Cursor recebe skills e o guard falha fechado (specs: docs MODIFIED, scaffolding MODIFIED, templates MODIFIED, workspace MODIFIED)
 - 2026-11-05 — 0239-o-gate-de-docs-distingue-variavel-de-ambiente-de — o gate de docs distingue variavel de ambiente de constante (specs: docs MODIFIED, gates MODIFIED)
 - 2026-11-05 — 0240-release-0-21-0 — release 0.21.0
+- 2026-11-05 — 0241-o-release-recarimba-os-exemplos — o release recarimba os exemplos
