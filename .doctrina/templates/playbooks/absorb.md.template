@@ -55,7 +55,7 @@ to do. Execute in order, in a single linear pass:
 
 8. Gates — fix everything they report:
        [[c]]doctrina clarify --all[[/c]]
-       [[c]]doctrina validate[[/c]]
+       [[c]]doctrina validate --fix[[/c]]   (a spec written by hand leaves index.json behind; --fix heals that and reports the rest)
        [[c]]doctrina coverage[[/c]]
 
 9. Show the human the Open questions, then close the absorb:

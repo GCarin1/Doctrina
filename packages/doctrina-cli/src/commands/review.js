@@ -121,8 +121,16 @@ export async function run(_positional, flags) {
   const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity, pending });
   const touched = new Set([...specChanged, ...ranked.map((m) => m.id)]);
   const stale = ranked.map((m) => m.id).filter((id) => !specChanged.has(id) && !changeCaps?.has(id));
+  // Without --change, an OPEN change that carries a delta for the capability
+  // updates its spec at close (fifth audit, change 0236): the bare review
+  // reported "its spec was not updated" for exactly the work a planner had
+  // in flight — the real agent read it as a break and went to fix the spec.
+  const inFlight = changeCaps === null ? openDeltaOwners(projectRoot) : new Map();
   if (changeCaps === null) {
-    for (const id of stale) {
+    for (const id of stale.filter((x) => inFlight.has(x))) {
+      notes.push(`code under capability "${id}" changed; its spec is updated when ${inFlight.get(id)?.join(", ")} closes (\`doctrina review --change <id>\` reviews it as that close does)`);
+    }
+    for (const id of stale.filter((x) => !inFlight.has(x))) {
       breaks.push(`code under capability "${id}" changed, but its spec was not updated — confirm \`.doctrina/specs/${id}/spec.md\` still describes the code (update it, or note why not)`);
     }
   } else if (stale.length > 0) {
@@ -290,3 +298,15 @@ from specs that declare no Source.
 Read-only. Exits 0 as a report; with --strict, exits 1 when any hard break
 exists (CI gate). Notes (advisory) never fail the gate.
 `;
+
+/** Capability → the open changes that carry a delta for it. */
+function openDeltaOwners(projectRoot) {
+  const out = new Map();
+  const changes = path.join(projectRoot, ".doctrina", "changes");
+  if (!isDir(changes)) return out;
+  for (const id of readdirSync(changes).sort()) {
+    if (id === "archive" || id.startsWith(".") || !isDir(path.join(changes, id))) continue;
+    for (const cap of deltaCapabilities(path.join(changes, id))) out.set(cap, [...(out.get(cap) ?? []), id]);
+  }
+  return out;
+}

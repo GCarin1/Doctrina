@@ -1517,7 +1517,9 @@ updated, because `apply` merges them one step later; without that, every
 close warned about the very spec it was updating. Code under capabilities the
 change carries no delta for is reported in ONE line naming them all: either
 the change forgot a delta, or other work is lying in the tree, and the review
-cannot tell which.
+cannot tell which. Without `--change`, a capability that an OPEN change
+carries a delta for is a note naming that change, not a break: its spec is
+updated when the change closes.
 
 **A `--diff` ref must resolve.** One that does not is a usage error (exit
 2), not an empty diff: it used to report "no changes" and exit 0 —
@@ -1815,7 +1817,8 @@ change in each repository, hand the next card, close a change whose tasks
 are ticked, clear the delivery's record with the command that clears it
 (`delivery tick` for the Release claims), close the delivery, or open one
 — and never names `init` there, which would create a project inside the
-workspace.
+workspace. It prints the first ten, in the order that unblocks most, and
+counts the rest; `--json` carries every one.
 
 ```
 doctrina next [--json] [--run]
@@ -2542,7 +2545,9 @@ separator (`createissue`). The guard matches the MCP server by its exact
 key in the agent's configuration, so `workspace tool` and `validate` at the
 root warn when no `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` or
 `~/.claude.json` names the declared server (a key that differs only in
-case is named). A shadow whose folder is gone is scaffolded again by
+case is named). The guard loads only the registry and its decision — it
+runs before every MCP call, so it loads six modules rather than the
+whole CLI. A shadow whose folder is gone is scaffolded again by
 `workspace attach <name>`, after a warning to restore it from the
 workspace's git first.
 

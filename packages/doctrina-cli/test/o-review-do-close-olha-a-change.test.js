@@ -80,9 +80,14 @@ test("review --change counts the change's deltas as updates and folds the rest i
     assert.equal(lines.length, 1, scoped.stdout);
     assert.match(lines[0], /2 capabilities this change carries no delta for: "cloud", "squads"/);
 
-    // Without the change, the review keeps its per-capability form.
+    // Without the change, the review keeps its per-capability form — and the
+    // capability an OPEN change carries a delta for is a note naming it, not
+    // a break (change 0236): its spec is updated when that change closes.
     const plain = run(["review"]);
-    assert.equal(plain.stdout.split("\n").filter((l) => /spec was not updated/.test(l)).length, 3, plain.stdout);
+    const stale = plain.stdout.split("\n").filter((l) => /spec was not updated/.test(l));
+    assert.equal(stale.length, 2, plain.stdout);
+    assert.ok(stale.every((l) => /"(cloud|squads)"/.test(l)), plain.stdout);
+    assert.match(plain.stdout, /code under capability "health" changed; its spec is updated when 0001-health-version closes/);
 
     assert.equal(run(["review", "--change", "9999-nope"]).status, 2);
     assert.equal(run(["review", "--change", "../x"]).status, 2);

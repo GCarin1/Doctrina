@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions,shell}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.62.0
+**Version:** 0.63.0
 
 ## Purpose
 
@@ -74,6 +74,7 @@ command shares (git, the lexicon, the usage log).
 - The system shall keep every value of a string flag given more than once, in order, for a command that takes it repeatedly, while a single reading of the flag still returns the last value.
 - The system shall name, in a Usage line that enumerates a command's subcommands, every subcommand that command dispatches, and shall describe each one in the help body.
 - The system shall quote every path and title it interpolates into a printed command line, so that the shell reads each back verbatim: double quotes for plain text, single quotes when the text holds a quote, a backtick, `$`, `\` or `!`.
+- The system shall load only the command module it runs, and route `doctrina workspace guard` to a door that loads the registry reader and the guard decision alone.
 
 ### Event-driven
 
@@ -135,6 +136,7 @@ command shares (git, the lexicon, the usage log).
 - When `doctrina next` runs at a workspace root, the system shall answer with the workspace's next actions, as the workspace spec states, and shall not recommend `doctrina init` there.
 - When `doctrina next` runs inside a project that an open workspace delivery is routed to, the system shall name `doctrina work "<title>" --delivery <id>` while the project has no change for it, and the workspace's `doctrina next` once every change it has for it is archived.
 - When a command run with `--json` stops before it builds its payload, the system shall still print the JSON envelope with `ok: false`, the exit code and an `error` field.
+- When `doctrina next` runs at a workspace root with more than ten actions, the system shall print the first ten and count the rest, while `--json` carries every one.
 
 ### State-driven
 
@@ -269,6 +271,8 @@ The CLI is v0 spec-compliant when:
 55. [verified] `next` in a repository names the delivery routed to it, then sends the planner back to the workspace — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 56. [verified] a failing command answers in the JSON envelope — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 57. [verified] a printed line carrying a hostile tracker title and a path with a space runs as printed and executes nothing — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
+58. [verified] the guard's door reaches no snapshot, git, scan or command module, and answers as before — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
+59. [verified] next at a root prints ten actions and counts the rest — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 
 ## Out of scope for this spec
 

@@ -23,6 +23,9 @@ import { attachCommand, contextRouting, shadowedCloneAt, workspaceActions, works
 // wrap it in the generic envelope.
 export const jsonNative = true;
 
+// How many actions `next` prints at a workspace root.
+const ROOT_ACTIONS_SHOWN = 10;
+
 export const flags = { boolean: ["json", "run"], string: [] };
 
 export async function run(_positional, flags) {
@@ -37,7 +40,14 @@ export async function run(_positional, flags) {
     else {
       console.log(c.bold("Next actions in the workspace") + c.gray(" (in priority order):"));
       console.log("");
-      actions.forEach((a, i) => console.log(`${i + 1}. ${a.text}\n     ${c.cyan(a.command)}`));
+      // The first actions, not all of them (fifth audit, change 0236): forty
+      // open deliveries printed 162 lines into the planner's context. The
+      // order already puts what unblocks most first; --json keeps every one.
+      actions.slice(0, ROOT_ACTIONS_SHOWN).forEach((a, i) => console.log(`${i + 1}. ${a.text}\n     ${c.cyan(a.command)}`));
+      if (actions.length > ROOT_ACTIONS_SHOWN) {
+        console.log("");
+        console.log(c.gray(`… and ${actions.length - ROOT_ACTIONS_SHOWN} more — every delivery's state: \`doctrina delivery list\`; every action: \`doctrina next --json\``));
+      }
     }
     return 0;
   }

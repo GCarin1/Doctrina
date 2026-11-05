@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.52.1
+**Version:** 1.53.0
 
 ## Purpose
 
@@ -208,6 +208,7 @@ codes, zero-deps, no-network).
 - When `doctrina review --change <id>` decides which capability owns a changed file, the system shall read each spec the change targets as the change will leave it — its ops applied in memory, as `change check` dry-runs them — so a file cited by a criterion the change appends, or claimed by a `Source:` it sets, is not reported as belonging to no capability before `apply` merges the delta.
 - When `doctrina verify --init` runs in a project whose manifests declare build or test commands the code inventory recognises, the system shall write those that return on their own as the starter checks — each unit's with its `cwd` — and print them for the human to confirm; with none it shall write the fail-closed example.
 - When `doctrina change check <id>` dry-runs a MODIFIED delta's ops, the system shall scan the spec the ops produce with the clarify lexicons and warn, naming the delta and the word, of every smell the merged spec would have that the current one does not — advisory, never a failure.
+- When `doctrina review` runs without `--change` and code changed under a capability that an open change carries a delta for, the system shall report a note naming that change instead of a break.
 
 ### State-driven
 
@@ -364,6 +365,7 @@ The gate surface is spec-compliant when:
 95. [verified] `verify --init` in a project with `test`, `build` and `start` scripts writes `npm run test` and `npm run build` and never `start`, and with no candidate keeps the fail-closed example — verified by `packages/doctrina-cli/test/o-verify-init-parte-do-inventario.test.js`.
 96. [verified] `verify --init` on a polyglot repository writes each unit's test command with its `cwd`, and npm's placeholder never reaches the gate — verified by `packages/doctrina-cli/test/o-intake-le-o-projeto-inteiro.test.js`.
 97. [verified] `change check` warns of the weasel and vague words a delta writes, not of one the spec already had, and never as a failure — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
+98. [verified] a bare review counts an open change's delta as the spec update — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 
 ## Out of scope for this spec
 

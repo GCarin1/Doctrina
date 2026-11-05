@@ -19,6 +19,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The fifth audit measured scale and ran a real planner agent through the
+  SHOP-42 delivery across two shadowed repositories (absorb, delivery,
+  cards to executor subagents, reviewers, both closes — US$ 2.64, 4.3 min):
+  - `doctrina workspace guard`, which runs before every MCP call, loaded
+    the whole CLI: ~220 ms a call. The entrypoint now loads only the command
+    it runs, and routes the guard to a six-module door (~90 ms here);
+  - `next` at a root with forty open deliveries printed 162 lines; it
+    prints the first ten and counts the rest (`--json` keeps every one);
+  - a bare `review` called the spec of a capability "not updated" while an
+    open change carried its delta — the agent read it as a break; it is now
+    a note naming the change;
+  - the absorb's gates run `validate --fix`, which heals the index that
+    specs written by hand leave behind.
 - The fourth audit fed the multi-repo flow hostile and odd input:
   - **Security.** Every command line the CLI prints interpolated the
     tracker's title between double quotes, so a story titled

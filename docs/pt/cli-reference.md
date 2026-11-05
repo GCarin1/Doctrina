@@ -1558,7 +1558,9 @@ atualizadas, porque o `apply` as mescla um passo depois; sem isso, todo close
 avisava sobre a própria spec que estava atualizando. Código sob capabilities
 para as quais a change não traz delta é reportado em UMA linha que nomeia
 todas: ou a change esqueceu um delta, ou há outro trabalho na árvore, e o
-review não sabe dizer qual.
+review não sabe dizer qual. Sem `--change`, uma capability para a qual uma
+change ABERTA traz delta é uma nota que nomeia essa change, não uma quebra:
+a spec dela é atualizada quando a change fecha.
 
 **Um ref de `--diff` precisa resolver.** Um que não resolve é erro de uso
 (exit 2), não um diff vazio: ele reportava «no changes» e saía 0 —
@@ -1861,7 +1863,8 @@ abrir a change dela em cada repositório, entregar o próximo cartão, fechar
 uma change com as tarefas marcadas, completar o registro da entrega com o
 comando que o completa (`delivery tick` para as afirmações da Release),
 fechar a entrega ou abrir uma — e nunca indica `init` ali, que criaria um
-projeto dentro do workspace.
+projeto dentro do workspace. Ele imprime as dez primeiras, na ordem que mais
+desbloqueia, e conta o resto; o `--json` traz todas.
 
 ```
 doctrina next [--json] [--run]
@@ -2604,7 +2607,9 @@ dentro de um nome sem separador (`createissue`). A guarda casa o servidor
 MCP pela chave exata na configuração do agente, então o `workspace tool` e o
 `validate` na raiz avisam quando nenhum `.cursor/mcp.json`, `.mcp.json`,
 `~/.cursor/mcp.json` ou `~/.claude.json` nomeia o servidor declarado (uma
-chave que só difere na caixa é nomeada). Uma sombra cuja pasta sumiu é
+chave que só difere na caixa é nomeada). A guarda carrega só o registro e a
+decisão — ela roda antes de cada chamada MCP, então carrega seis módulos em
+vez do CLI inteiro. Uma sombra cuja pasta sumiu é
 esqueletizada de novo pelo `workspace attach <nome>`, depois de um aviso
 para restaurá-la antes pelo git do workspace.
 
