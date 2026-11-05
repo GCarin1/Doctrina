@@ -670,7 +670,10 @@ belongs to (read from the workspace), what the change does to each spec —
 every requirement and criterion its delta adds, replaces or removes,
 verbatim, since the spec as it stands does not hold them yet — each delta
 capability's spec cut to the task (whole when nothing in it matches), the
-accepted decisions that bind those capabilities, and what to do when done: run the card's `Verify:` command (or `doctrina verify`), tick
+accepted decisions that bind those capabilities — the ones scoped to them
+and every global (unscoped) one, each with the opening of what it decides,
+and the instruction to stop and report when the story or the task
+contradicts one — and what to do when done: run the card's `Verify:` command (or `doctrina verify`), tick
 the box with the `change tick` line it prints, and report back. It tells
 the executor to leave opening, closing and `.doctrina/` to the planner.
 Exit `0` with a note when every task is ticked; `3` for a task number
@@ -2299,6 +2302,16 @@ cheap enough to run every session. Read-only; always exits 0.
 | `--pulse` | One factual line for a per-prompt agent hook: the open change(s) with their ids, or that a request changing behaviour is opened as a change with `doctrina work`. Reads only the open changes, so it is cheap enough to run before every prompt. |
 | `--hook claude\|cursor` | The primer plus the pulse, in the format the agent's session-start hook reads: plain text for Claude Code, `{"additional_context": …}` for Cursor; cut at 9,000 characters (Claude keeps 10,000). Installed by `doctrina adapter add claude\|cursor`. |
 | `--rules` | Print the standing rules in FULL instead of the primer: every accepted ADR and every declared non-goal. The Spec Kit `constitution.md` analogue, derived rather than authored: to change a principle, supersede the ADR; to change a non-goal, edit `product.md`. (Until 0.17.0 this was also a command of its own, since removed.) |
+
+**Inside Cursor.** Cursor also runs the hooks `.claude/settings.json`
+declares (its third-party import, on by default) and sets `CURSOR_VERSION`
+and `CURSOR_PROJECT_DIR` for every hook. When both are set, the Claude
+adapter's hooks answer in Cursor's terms: `--hook claude` prints nothing
+where the folder's `.cursor/hooks.json` already primes the session, and the
+`additional_context` JSON where it does not; `--pulse` answers
+`beforeSubmitPrompt` with `{"continue": true}`; and the Claude-format
+`workspace guard`, with no opinion, answers the allow Cursor translates
+instead of nothing, since `preToolUse` blocks on an answer that is not JSON.
 
 The primer keeps a fixed size on purpose — it is read at the start of
 every session — so the full non-goal text lives behind `--rules`

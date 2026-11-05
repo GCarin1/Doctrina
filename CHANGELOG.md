@@ -19,6 +19,21 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The sixth audit checked the Cursor integration against Cursor's current
+  documentation and ran a real planner through SHOP-77, a contract change
+  whose third criterion contradicts an accepted ADR (US$ 2.25, 2.6 min):
+  - Cursor also runs the hooks `.claude/settings.json` declares, so a folder
+    with both adapters primed each session twice — the second time in plain
+    text where Cursor reads JSON — the per-prompt pulse answered
+    `beforeSubmitPrompt` in prose, and the Claude-format guard answered the
+    permission hook `preToolUse` with nothing. Under Cursor (`CURSOR_VERSION`
+    and `CURSOR_PROJECT_DIR`), the Claude adapter's hooks now answer in
+    Cursor's terms;
+  - a task card named only the decisions whose text cited the capability,
+    so a global ADR never reached the executor — the planner caught the
+    conflict by reading the decisions itself. The card now carries every
+    global decision and the scoped ones, with what each decides, and tells
+    the executor to stop and report a contradiction.
 - The fifth audit measured scale and ran a real planner agent through the
   SHOP-42 delivery across two shadowed repositories (absorb, delivery,
   cards to executor subagents, reviewers, both closes — US$ 2.64, 4.3 min):

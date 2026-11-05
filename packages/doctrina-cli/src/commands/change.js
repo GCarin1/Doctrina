@@ -116,9 +116,14 @@ function changeCard(args) {
   for (const s of card.slices) {
     L.push("", `## Spec — ${s.capability} as it stands (${s.whole ? "whole: nothing in it matched the task" : "cut to this task"})`, "", s.text.trim());
   }
-  if (card.decisions.length > 0) {
+  if (card.decisions.list.length > 0) {
     L.push("", "## Decisions that bind it", "");
-    for (const d of card.decisions) L.push(`- ADR ${d.id} — ${d.title} (\`doctrina show ${d.id}\`)`);
+    for (const d of card.decisions.list) {
+      L.push(`- ADR ${d.id} — ${d.title} (\`doctrina show ${d.id}\`)`);
+      if (d.decision) L.push(`  ${d.decision}`);
+    }
+    if (card.decisions.more > 0) L.push(`- … and ${card.decisions.more} more accepted global decisions — \`doctrina prime --rules\``);
+    L.push("", "Where the story or the task contradicts one of these, stop and report it: the decision stands until the planner supersedes it.");
   }
   L.push("", "## When done", "");
   L.push(card.fields.verify

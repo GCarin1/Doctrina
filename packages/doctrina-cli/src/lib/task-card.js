@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import { isDir, isFile, read, walk } from "./fs-ops.js";
-import { parseChangeTitle, parseChecklist } from "./doc-model.js";
+import { getSection, parseChangeTitle, parseChecklist } from "./doc-model.js";
 import { listHeader, deltaCapabilities, parseAdrScope } from "./scan.js";
 import { extractOps } from "./spec-ops.js";
 import { findWorkspace } from "./workspace.js";
@@ -159,8 +159,9 @@ function deliveryStory(projectRoot, deliveryId) {
 // what an ADR settled.
 function bindingDecisions(projectRoot, capabilities) {
   const dir = path.join(projectRoot, ".doctrina", "decisions");
-  if (!isDir(dir) || capabilities.length === 0) return [];
-  const out = [];
+  if (!isDir(dir) || capabilities.length === 0) return { list: [], more: 0 };
+  /** @type {Array<{ id: string, title: string, decision: string, rank: number }>} */
+  const found = [];
   for (const f of walk(dir).sort()) {
     const m = path.basename(f).match(/^(\d{4})-.*\.md$/);
     if (!m) continue;
@@ -168,10 +169,27 @@ function bindingDecisions(projectRoot, capabilities) {
     if ((listHeader(text, "Status") ?? "").trim().toLowerCase() !== "accepted") continue;
     const scope = parseAdrScope(text);
     const cites = (/** @type {string} */ cap) => new RegExp(`(^|[^a-z0-9-])${cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9-]|$)`, "im").test(text);
-    const binds = scope.length > 0 ? capabilities.some((cap) => scope.includes(cap)) : capabilities.some(cites);
-    if (!binds) continue;
-    out.push({ id: m[1], title: text.match(/^#\s+ADR\s+\d{4}\s*[—-]\s*(.+)$/m)?.[1]?.trim() ?? path.basename(f) });
+    // An unscoped ADR is GLOBAL — it binds every capability, as `decision
+    // scope` documents and the context pack loads it (sixth audit, change
+    // 0237). The card bound one only when its text named the capability, so
+    // a repository-wide rule ("error codes are MAIUSCULAS_SNAKE") never
+    // reached the executor, who reads nothing else. Scoped first, then the
+    // global ones that name the capability, then the rest.
+    const rank = scope.length > 0 ? (capabilities.some((cap) => scope.includes(cap)) ? 0 : -1) : (capabilities.some(cites) ? 1 : 2);
+    if (rank < 0) continue;
+    const decision = (getSection(text, "Decision") ?? "").replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, " ").trim();
+    found.push({
+      id: m[1],
+      title: text.match(/^#\s+ADR\s+\d{4}\s*[—-]\s*(.+)$/m)?.[1]?.trim() ?? path.basename(f),
+      decision: decision.length > DECISION_EXCERPT ? `${decision.slice(0, DECISION_EXCERPT).replace(/\s+\S*$/, "")} …` : decision,
+      rank,
+    });
   }
-  return out.slice(0, 8);
+  const sorted = found.sort((a, b) => a.rank - b.rank || a.id.localeCompare(b.id));
+  return { list: sorted.slice(0, DECISIONS_ON_CARD), more: Math.max(0, sorted.length - DECISIONS_ON_CARD) };
 }
+
+// How many binding decisions a card names, and how much of each it quotes.
+const DECISIONS_ON_CARD = 8;
+const DECISION_EXCERPT = 240;
 

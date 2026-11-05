@@ -29,6 +29,8 @@ export function workspaceGuard(wsDir, hook) {
   } catch {
     call = {};
   }
+  // Cursor sets these for every hook it runs, its imported Claude ones included.
+  const cursorRuns = Boolean(process.env.CURSOR_VERSION && process.env.CURSOR_PROJECT_DIR);
   let server = null;
   let tool = null;
   if (hook === "cursor") {
@@ -37,6 +39,9 @@ export function workspaceGuard(wsDir, hook) {
   } else {
     const split = splitClaudeToolName(call.tool_name ?? "");
     if (split) ({ server, tool } = split);
+    // Cursor runs this Claude-format hook too, as its preToolUse (sixth
+    // audit, change 0237), with its own payload: read the server from it.
+    else if (cursorRuns && call.mcp_server_name) ({ mcp_server_name: server, tool_name: tool } = call);
   }
   const tools = wsDir ? readWorkspace(wsDir).tools : [];
   const verdict = server && tool ? guardDecision(tools, server, tool, call.tool_input) : { decision: "none", reason: "" };
@@ -49,6 +54,12 @@ export function workspaceGuard(wsDir, hook) {
     console.log(JSON.stringify({ hookSpecificOutput: {
       hookEventName: "PreToolUse", permissionDecision: verdict.decision, permissionDecisionReason: verdict.reason,
     } }));
+  } else if (cursorRuns) {
+    // preToolUse is a permission hook in Cursor: an answer that is not JSON
+    // blocks the call. With no opinion, the Claude-format allow — which
+    // Cursor translates — and never silence. (In Claude Code itself "allow"
+    // would skip the human's prompt, so it is printed only under Cursor.)
+    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: "no Doctrina opinion" } }));
   }
   return EXIT.OK;
 }

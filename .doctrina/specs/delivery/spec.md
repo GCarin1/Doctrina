@@ -7,7 +7,7 @@
 **Source:** `packages/doctrina-cli/src/lib/delivery.js`, `packages/doctrina-cli/src/commands/delivery.js`, `packages/doctrina-cli/src/lib/task-card.js`
 **Depends on:** workspace
 **Last updated:** 2026-11-03
-**Version:** 0.7.1
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -26,6 +26,7 @@ those changes can be handed to an executor as a self-contained card.
 - The system shall order a delivery's projects so that each comes after every routed project it depends on.
 - The system shall read a delivery's `## Release` boxes through one reader, the document model's checklist, so every box `delivery check` holds open — whatever its bullet marker — is one `delivery tick` lists and ticks, and a box inside a comment is neither.
 - The system shall slice a task card's spec by the task's words, the change's title and the text of the requirements its delta adds or replaces, and shall carry no HTML comment of the spec.
+- The system shall name on a task card every accepted decision scoped to a capability the change touches and every accepted global decision, each with the opening of its Decision, at most eight with the rest counted, and tell the executor to stop and report a contradiction.
 
 ### Event-driven
 
@@ -70,6 +71,7 @@ A delivery is spec-compliant when:
 11. [verified] an abandoned change stays on the delivery's record and blocks its close — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 12. [verified] routing out a project with an open change is refused, and an orphan warns — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 13. [verified] a moved repository is reported as moved — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
+14. [verified] a global ADR binds the card with what it decides — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 
 ## Out of scope for this spec
 

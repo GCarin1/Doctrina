@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.35.1",
+        "version": "0.35.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -59,7 +59,7 @@
         "id": "delivery",
         "path": ".doctrina/specs/delivery/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.8.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "depends_on": [
@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.8",
+        "version": "0.10.9",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -112,7 +112,7 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.21.1",
+        "version": "0.22.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
@@ -195,7 +195,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.8.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -4102,6 +4102,36 @@
           },
           {
             "capability": "templates",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0237-a-sexta-auditoria-confere-o-cursor-e-o-contrato",
+        "title": "a sexta auditoria confere o Cursor e o contrato",
+        "path": ".doctrina/changes/archive/2026-11-05-0237-a-sexta-auditoria-confere-o-cursor-e-o-contrato",
+        "status": "applied",
+        "applied": "2026-11-05",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "delivery",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
             "operation": "MODIFIED"
           },
           {

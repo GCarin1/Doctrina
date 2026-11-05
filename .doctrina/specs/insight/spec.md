@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js`, `packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js`
 **Last updated:** 2026-09-07
-**Version:** 0.21.1
+**Version:** 0.22.0
 
 ## Purpose
 
@@ -99,6 +99,7 @@ surface-wide constraints (exit codes, zero-deps, no-network).
 - When `doctrina prime` or `doctrina prime --pulse` lists an open change that carries a delivery, the system shall name that delivery beside it.
 - When `doctrina context` assembles the change in focus without `--full`, the system shall leave out the HTML comments of its proposal, tasks and deltas — the templates' authoring instructions — and say so in each item's note.
 - When `doctrina handoff`, `doctrina status` or `doctrina context` runs at a workspace root, the system shall answer for the workspace, as the workspace spec states, instead of refusing as outside a project; and `doctrina prime` in a registered repository shall name its workspace and open deliveries.
+- When `doctrina prime --hook claude` or `doctrina prime --pulse` runs under Cursor — `CURSOR_VERSION` and `CURSOR_PROJECT_DIR` set — the system shall answer in Cursor's hook schema: nothing where the folder's `.cursor/hooks.json` already primes the session, `{"additional_context": …}` where it does not, and `{"continue": true}` for the pulse.
 
 ### State-driven
 
@@ -150,6 +151,7 @@ The read path is spec-compliant when:
 31. [verified] The change in focus is read without the delta template's comment, its ops kept, and `--full` restores the comment — verified by `packages/doctrina-cli/test/o-pacote-de-contexto-e-enxuto.test.js`.
 32. [verified] `handoff`, `status` and `context` answer at a workspace root and `prime` names the workspace and the open delivery in a repository — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 33. [verified] a scaffolded spec's slice counts no EARS form from the template comment — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+34. [verified] under Cursor the Claude-format session hook yields or speaks Cursor's format, and the pulse answers beforeSubmitPrompt — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 
 ## Out of scope for this spec
 

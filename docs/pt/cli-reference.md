@@ -687,7 +687,10 @@ pertence (lida do workspace), o que a change faz em cada spec — todo
 requisito e critério que o delta acrescenta, substitui ou remove,
 literalmente, já que a spec atual ainda não os tem —, a spec de cada
 capability do delta recortada para a tarefa (inteira quando nada nela
-casa), as decisões aceitas que vinculam essas capabilities e o que fazer ao
+casa), as decisões aceitas que vinculam essas capabilities — as com escopo nelas e
+toda global (sem escopo), cada uma com o começo do que decide, e a instrução
+de parar e reportar quando a história ou a tarefa contradiz uma delas — e o
+que fazer ao
 terminar: rodar o comando `Verify:` do cartão (ou `doctrina
 verify`), marcar a caixa com a linha de `change tick` que ele imprime e
 reportar. Ele diz ao executor que abrir, fechar e mexer em `.doctrina/` é
@@ -2356,6 +2359,17 @@ para rodar toda sessão. Read-only; sempre sai 0.
 | `--pulse` | Uma linha factual para um hook de agente por prompt: a(s) change(s) aberta(s) com seus ids, ou que um pedido que muda comportamento é aberto como change com `doctrina work`. Lê só as changes abertas, então é barato o bastante para rodar antes de cada prompt. |
 | `--hook claude\|cursor` | O primer mais o pulse, no formato que o hook de início de sessão do agente lê: texto puro para o Claude Code, `{"additional_context": …}` para o Cursor; cortado em 9.000 caracteres (o Claude guarda 10.000). Instalado por `doctrina adapter add claude\|cursor`. |
 | `--rules` | Imprime as regras vigentes por INTEIRO em vez do primer: cada ADR aceito e cada non-goal declarado. O análogo do `constitution.md` do Spec Kit, derivado em vez de escrito: para mudar um princípio, substitua a ADR; para mudar um non-goal, edite o `product.md`. (Até a 0.17.0 isto também era um comando próprio, já removido.) |
+
+**Dentro do Cursor.** O Cursor também roda os hooks que o
+`.claude/settings.json` declara (a importação de terceiros, ligada por
+padrão) e define `CURSOR_VERSION` e `CURSOR_PROJECT_DIR` para todo hook.
+Com os dois definidos, os hooks do adaptador Claude respondem nos termos do
+Cursor: `--hook claude` não imprime nada onde o `.cursor/hooks.json` da pasta
+já faz o primer da sessão, e o JSON `additional_context` onde não faz; o
+`--pulse` responde ao `beforeSubmitPrompt` com `{"continue": true}`; e o
+`workspace guard` no formato Claude, sem opinião, responde o allow que o
+Cursor traduz em vez de nada, já que o `preToolUse` bloqueia uma resposta
+que não é JSON.
 
 O primer tem tamanho fixo de propósito — ele é lido no início de toda
 sessão — então o texto completo dos non-goals mora atrás de `--rules`,

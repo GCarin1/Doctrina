@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-locate.js`, `packages/doctrina-cli/src/lib/workspace-guard.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/lib/workspace-view.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.7.1
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -59,6 +59,7 @@ single-repository cycle it always ran.
 - When a tool is declared or `validate` runs at the workspace root, and an MCP configuration is readable, the system shall warn of each declared server that no configuration names, naming a key that differs only in case.
 - When a shadowed project's folder in the workspace is gone, the system shall name `doctrina workspace attach <name>`, and `attach` shall scaffold the shadow again after warning to restore it from the workspace's git.
 - When `doctrina doctor` or `doctrina metrics` runs at a workspace root, the system shall answer for the workspace and print the command that runs it in each project.
+- When the Claude-format `workspace guard` runs under Cursor with no opinion on the call, the system shall answer the Claude-format allow instead of nothing, and read the server from Cursor's own payload.
 
 ### Unwanted behavior
 
@@ -87,6 +88,8 @@ A workspace is spec-compliant when:
 16. [verified] the guard reads writes in every place an input carries them, and reads stay reads — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
 17. [verified] a declared server no configuration names is reported — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
 18. [verified] doctor and metrics answer at the root, and a lost shadow is scaffolded again — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
+19. [verified] under Cursor the Claude-format guard never answers a permission hook with nothing — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
+20. [verified] the Cursor files the CLI writes use only the hook events and rule fields Cursor documents — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 
 ## Out of scope for this spec
 
