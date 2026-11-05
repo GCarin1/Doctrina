@@ -229,15 +229,41 @@ const CLAUDE_SETTINGS = {
   },
 };
 
-function mergedJson(file, ours) {
-  if (!isFile(file)) return JSON.stringify(ours, null, 2) + "\n";
-  let theirs;
-  try {
-    theirs = JSON.parse(read(file));
-  } catch {
-    return null; // an unreadable file the operator owns is left alone
+function mergedJson(file, ours, failClosed = false) {
+  let theirs = null;
+  if (isFile(file)) {
+    try {
+      theirs = JSON.parse(read(file));
+    } catch {
+      return null; // an unreadable file the operator owns is left alone
+    }
   }
-  return JSON.stringify(mergeJson(theirs, ours), null, 2) + "\n";
+  const merged = theirs === null ? structuredClone(ours) : mergeJson(theirs, ours);
+  // The guard's Cursor entry is OURS to shape (change 0238): replaced, never
+  // appended beside an older copy — a second entry would run it twice.
+  const mcp = merged?.hooks?.beforeMCPExecution;
+  if (Array.isArray(mcp)) {
+    const others = mcp.filter((h) => !(h && typeof h === "object" && h.command === GUARD_COMMAND));
+    if (others.length !== mcp.length || ours?.hooks?.beforeMCPExecution) {
+      merged.hooks.beforeMCPExecution = [...others, guardEntry(failClosed)];
+    }
+  }
+  return JSON.stringify(merged, null, 2) + "\n";
+}
+
+const GUARD_COMMAND = "doctrina workspace guard --hook cursor";
+
+/**
+ * The Cursor guard hook. With tools declared it fails CLOSED (change 0238):
+ * Cursor lets a call through when a hook crashes, times out or cannot start
+ * — `doctrina` missing from the PATH Cursor runs hooks with is enough — so a
+ * read-only tool would write with no guard, in silence. Failing closed turns
+ * a broken install into a refused call the human sees. With nothing
+ * declared, the guard has no opinion to enforce, and a broken install must
+ * not block the operator's other MCP servers.
+ */
+function guardEntry(failClosed) {
+  return failClosed ? { command: GUARD_COMMAND, failClosed: true } : { command: GUARD_COMMAND };
 }
 
 /**
@@ -255,7 +281,8 @@ export function writeOrchestratorFiles(ws, wsDir, states) {
   };
   put("AGENTS.md", workspaceHub(ws, wsDir, states));
   put(".cursor/rules/00-doctrina-workspace.mdc", CURSOR_RULE(ws));
-  put(".cursor/hooks.json", mergedJson(path.join(wsDir, ".cursor", "hooks.json"), CURSOR_HOOKS));
+  const failClosed = ws.tools.some((x) => x.enabled !== false);
+  put(".cursor/hooks.json", mergedJson(path.join(wsDir, ".cursor", "hooks.json"), CURSOR_HOOKS, failClosed));
   put(".claude/settings.json", mergedJson(path.join(wsDir, ".claude", "settings.json"), CLAUDE_SETTINGS));
   for (const role of agentRoles(ws)) put(`.claude/agents/doctrina-${role}.md`, agentFile(ws, role));
   put(`${ws.name}.code-workspace`, codeWorkspace(ws, wsDir));
@@ -266,7 +293,7 @@ export function writeOrchestratorFiles(ws, wsDir, states) {
   for (const p of ws.projects.filter((x) => x.mode === "shadow")) {
     const shadow = shadowDirOf(wsDir, p.name);
     const rel = relPath(wsDir, shadow);
-    if (isDir(path.join(shadow, ".cursor"))) put(`${rel}/.cursor/hooks.json`, mergedJson(path.join(shadow, ".cursor", "hooks.json"), GUARD_HOOKS.cursor));
+    if (isDir(path.join(shadow, ".cursor"))) put(`${rel}/.cursor/hooks.json`, mergedJson(path.join(shadow, ".cursor", "hooks.json"), GUARD_HOOKS.cursor, failClosed));
     if (isDir(path.join(shadow, ".claude"))) put(`${rel}/.claude/settings.json`, mergedJson(path.join(shadow, ".claude", "settings.json"), GUARD_HOOKS.claude));
   }
   return out;

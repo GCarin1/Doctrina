@@ -2558,7 +2558,12 @@ separator (`createissue`). The guard matches the MCP server by its exact
 key in the agent's configuration, so `workspace tool` and `validate` at the
 root warn when no `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` or
 `~/.claude.json` names the declared server (a key that differs only in
-case is named). The guard loads only the registry and its decision — it
+case is named). With a tool declared, the Cursor guard hook carries
+`failClosed: true`: Cursor lets a call through when a hook crashes, times
+out or cannot start — `doctrina` missing from the PATH it runs hooks with is
+enough — so without it a read-only tool would write unguarded, silently;
+with nothing declared it stays fail-open, so a broken install never blocks
+the operator's other servers. The guard loads only the registry and its decision — it
 runs before every MCP call, so it loads six modules rather than the
 whole CLI. A shadow whose folder is gone is scaffolded again by
 `workspace attach <name>`, after a warning to restore it from the

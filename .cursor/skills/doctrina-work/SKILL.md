@@ -1,4 +1,10 @@
-# /doctrina-work — drive a change for {{PROJECT_NAME}}
+---
+name: doctrina-work
+description: Turn a request into a Doctrina change and drive it through the gates
+disable-model-invocation: true
+---
+
+# /doctrina-work — drive a change for Doctrina
 
 Turn the request into a Doctrina change and drive it through the gates.
 

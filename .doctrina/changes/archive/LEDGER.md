@@ -248,3 +248,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-04 — 0235-a-quarta-auditoria-fecha-as-entradas-hostis — a quarta auditoria fecha as entradas hostis (specs: authoring MODIFIED, cli MODIFIED, delivery MODIFIED, docs MODIFIED, gates MODIFIED, insight MODIFIED, scaffolding MODIFIED, templates MODIFIED, workspace MODIFIED)
 - 2026-11-05 — 0236-a-quinta-auditoria-mede-a-escala-e-o-uso-real — a quinta auditoria mede a escala e o uso real (specs: cli MODIFIED, docs MODIFIED, gates MODIFIED, templates MODIFIED, workspace MODIFIED)
 - 2026-11-05 — 0237-a-sexta-auditoria-confere-o-cursor-e-o-contrato — a sexta auditoria confere o Cursor e o contrato (specs: authoring MODIFIED, delivery MODIFIED, docs MODIFIED, insight MODIFIED, workspace MODIFIED)
+- 2026-11-05 — 0238-o-cursor-recebe-skills-e-o-guard-falha-fechado — o Cursor recebe skills e o guard falha fechado (specs: docs MODIFIED, scaffolding MODIFIED, templates MODIFIED, workspace MODIFIED)

@@ -55,7 +55,8 @@ test("the guard runs inside every shadow, and an in-repo project without it is n
   try {
     s.run(s.ws, ["workspace", "tool", "jira"]);
     const hooks = JSON.parse(readFileSync(path.join(s.api, ".cursor", "hooks.json"), "utf8"));
-    assert.deepEqual(hooks.hooks.beforeMCPExecution, [{ command: "doctrina workspace guard --hook cursor" }],
+    // With a tool declared the guard fails closed (change 0238).
+    assert.deepEqual(hooks.hooks.beforeMCPExecution, [{ command: "doctrina workspace guard --hook cursor", failClosed: true }],
       "an executor opened in the repository reads this file, not the root's");
     assert.ok(hooks.hooks.sessionStart, "the session hook stays");
     const call = JSON.stringify({ tool_name: "createJiraIssue", mcp_server_name: "atlassian", tool_input: "{}" });

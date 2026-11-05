@@ -1,7 +1,7 @@
 // @ts-check
 import {
   existsSync, lstatSync, linkSync, mkdirSync, readFileSync, readdirSync,
-  rmdirSync, statSync, symlinkSync, unlinkSync, copyFileSync,
+  realpathSync, rmdirSync, statSync, symlinkSync, unlinkSync, copyFileSync,
 } from "node:fs";
 import path from "node:path";
 import { isDir, isFile, read, toPosix, write } from "./fs-ops.js";
@@ -173,6 +173,57 @@ export function applyLinks(plan, shadowDir, repoDir) {
     }
   }
   return done;
+}
+
+/**
+ * The shadow folder a repository's `.doctrina/` links to, or null when the
+ * repository owns its `.doctrina/` (change 0238).
+ * @param {string} projectRoot
+ */
+export function shadowRootOf(projectRoot) {
+  const link = path.join(projectRoot, ".doctrina");
+  try {
+    if (!lstatSync(link).isSymbolicLink()) return null;
+    return path.dirname(realpathSync(link));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Re-link a shadowed repository after its shadow gained or lost files
+ * (change 0238): a link for each new file, the links to removed files taken
+ * out, and the exclude block rewritten. A command that writes an adapter
+ * file for a shadowed repository writes it in the shadow and calls this —
+ * written in the repository it was a stray, untracked file.
+ * @param {string} projectRoot
+ * @param {Array<{ rel: string, content: string }>} gone  the files the shadow lost, with what they held
+ * @returns {{ linked: string[], unlinked: string[] } | null}  null for a repository that is not a shadow
+ */
+export function relinkShadow(projectRoot, gone = []) {
+  const shadow = shadowRootOf(projectRoot);
+  if (!shadow) return null;
+  const unlinked = [];
+  for (const { rel, content } of gone) {
+    const at = path.join(projectRoot, rel);
+    let st;
+    try {
+      st = lstatSync(at);
+    } catch {
+      continue;
+    }
+    // A symlink to the removed file, or the hard link or copy a platform
+    // without symlinks got instead — still holding what the shadow held.
+    if (st.isSymbolicLink() || (st.isFile() && readFileSync(at, "utf8").replace(/\r\n/g, "\n").trim() === content.replace(/\r\n/g, "\n").trim())) {
+      unlinkSync(at);
+      unlinked.push(toPosix(rel));
+      pruneEmpty(path.dirname(at), projectRoot);
+    }
+  }
+  const plan = linkPlan(shadow, projectRoot);
+  const linked = applyLinks(plan, shadow, projectRoot).map((d) => d.rel);
+  writeExclude(projectRoot, excludeEntries(plan, projectRoot));
+  return { linked, unlinked };
 }
 
 /**

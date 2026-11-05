@@ -1,4 +1,10 @@
-# /doctrina-status — health of Doctrina
+---
+name: doctrina-status
+description: One-glance Doctrina project health and gate status
+disable-model-invocation: true
+---
+
+# /doctrina-status — health of {{PROJECT_NAME}}
 
 Report the project's health and gate status.
 

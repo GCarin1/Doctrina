@@ -108,7 +108,7 @@ adapters/
   claude/.claude/commands/doctrina-*.md.template   native slash commands (core loop)
   codex/README.md
   cursor/.cursor/rules/00-doctrina.mdc.template
-  cursor/.cursor/commands/doctrina-*.md.template   native slash commands (core loop)
+  cursor/.cursor/skills/doctrina-*/SKILL.md.template   the core loop as skills (explicit `/` invocation)
   copilot/.github/copilot-instructions.md.template
   gemini/GEMINI.md.template
   aider/CONVENTIONS.md.template

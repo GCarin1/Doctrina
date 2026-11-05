@@ -69,7 +69,7 @@ function pages() {
     ...filesUnder(".github", md),
     ...filesUnder(".doctrina/skills", md),
     ...filesUnder(".doctrina/templates", (n) => n.endsWith(".template")),
-    ...filesUnder(".claude/commands", md), ...filesUnder(".cursor/commands", md),
+    ...filesUnder(".claude/commands", md), ...filesUnder(".cursor/commands", md), ...filesUnder(".cursor/skills", md),
     ...readdirSync(path.join(repo, "examples"))
       .flatMap((ex) => ["AGENTS.md", "README.md", "CLAUDE.md"].map((f) => `examples/${ex}/${f}`))
       .filter((f) => existsSync(path.join(repo, f))),

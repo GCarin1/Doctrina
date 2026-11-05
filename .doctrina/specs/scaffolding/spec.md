@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.13.3
+**Version:** 0.14.0
 
 ## Purpose
 
@@ -193,6 +193,7 @@ authoring commands, and the conventions every command shares.
 - When `doctrina init` runs on an interactive terminal with neither a description nor an intake supplied, the system shall ask one question — describe the project — store the answer as the intake with the description derived from it, and close by telling the person to have their agent read AGENTS.md and run `doctrina next`, rather than printing the agent's playbook or asking for the same description again later.
 - When `doctrina init` finishes with a description but no intake, the system shall name the step `doctrina next` names — `doctrina intake --text` with the whole description, or `doctrina work --from-diff` for an existing codebase — and never tell the person to edit AGENTS.md or product.md by hand.
 - When `adapter add claude` or `adapter add cursor` runs, the system shall install the agent's own hooks — the primer at session start and, where the agent can take context per prompt, the pulse beside every prompt — merging them into a settings file the project already has: objects recurse, arrays gain only missing entries, a value the user set stays theirs, and `adapter remove` takes back only its own entries, deleting the file only when nothing of the user's is left.
+- When `doctrina upgrade --write` or `doctrina adapter add <name>` runs where the adapter's retired files are installed, the system shall write each replacement where it is missing, remove each retired file still as the CLI wrote it, and keep and name each one edited since; in a shadowed repository it shall write in the shadow and re-link the repository.
 
 ### State-driven
 
@@ -232,6 +233,8 @@ Project scaffolding is spec-compliant when:
 17. [verified] `adapter add claude` merges the SessionStart and UserPromptSubmit hooks into an existing `.claude/settings.json` keeping its permissions and its own hook, adds nothing on a second run, and `adapter remove claude` restores the file exactly; the cursor hook file is created and removed whole — verified by `packages/doctrina-cli/test/o-agente-recebe-o-estado-a-cada-prompt.test.js`.
 18. [verified] Of three code commits two carried a change (0.667), docs-only and Doctrina-only commits are not counted, a window with no code reports no rate, the trend follows the rate, and `metrics --commands` prints 0.5 context and 1.0 close per work for its sample — verified by `packages/doctrina-cli/test/a-aderencia-ao-ciclo-e-medida.test.js`.
 19. [verified] `init --help` describes `--overwrite-content` beside `--force`, which re-scaffolds only untouched files — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
+20. [verified] upgrade moves an older Cursor install to skills and keeps an edited command — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
+21. [verified] in a shadowed repository the skills go to the shadow and are linked in, with nothing showing in the repository's git — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 
 ## Out of scope for this spec
 

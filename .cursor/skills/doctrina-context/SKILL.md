@@ -1,4 +1,10 @@
-# /doctrina-context — read pack for {{PROJECT_NAME}}
+---
+name: doctrina-context
+description: Load the Doctrina read pack for a task, in read order
+disable-model-invocation: true
+---
+
+# /doctrina-context — read pack for Doctrina
 
 Assemble the context before doing any work.
 

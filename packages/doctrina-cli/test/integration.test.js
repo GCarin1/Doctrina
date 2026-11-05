@@ -179,16 +179,17 @@ test("init --agent claude installs native slash commands for the core loop", () 
   }
 });
 
-test("init --agent cursor installs the rule and native slash commands", () => {
+test("init --agent cursor installs the rule and the core loop as skills", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme", "--agent", "cursor"], { cwd: tmp });
     assert.ok(existsSync(path.join(tmp, ".cursor", "rules", "00-doctrina.mdc")), "the rule file");
+    // Skills since change 0238: Cursor documents skills, not .cursor/commands/.
     for (const cmd of ["work", "next", "context", "status", "why"]) {
-      const p = path.join(tmp, ".cursor", "commands", `doctrina-${cmd}.md`);
-      assert.ok(existsSync(p), `expected slash command doctrina-${cmd}.md`);
+      const p = path.join(tmp, ".cursor", "skills", `doctrina-${cmd}`, "SKILL.md");
+      assert.ok(existsSync(p), `expected skill doctrina-${cmd}`);
     }
-    const work = readFileSync(path.join(tmp, ".cursor", "commands", "doctrina-work.md"), "utf8");
+    const work = readFileSync(path.join(tmp, ".cursor", "skills", "doctrina-work", "SKILL.md"), "utf8");
     assert.match(work, /Acme/);
     assert.doesNotMatch(work, /\{\{/);
   } finally {
@@ -3297,7 +3298,8 @@ const SLASH_COMMANDS = ["work", "next", "context", "status", "why"];
 const ADAPTER_FILES = {
   claude: ["CLAUDE.md", ...SLASH_COMMANDS.map((cmd) => `.claude/commands/doctrina-${cmd}.md`)],
   codex: [],
-  cursor: [".cursor/rules/00-doctrina.mdc", ...SLASH_COMMANDS.map((cmd) => `.cursor/commands/doctrina-${cmd}.md`)],
+  // Cursor's slash commands became skills (change 0238).
+  cursor: [".cursor/rules/00-doctrina.mdc", ...SLASH_COMMANDS.map((cmd) => `.cursor/skills/doctrina-${cmd}/SKILL.md`)],
   copilot: [".github/copilot-instructions.md"],
   gemini: ["GEMINI.md"],
   aider: ["CONVENTIONS.md"],

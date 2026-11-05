@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-locate.js`, `packages/doctrina-cli/src/lib/workspace-guard.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/lib/workspace-view.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.8.0
+**Version:** 0.9.0
 
 ## Purpose
 
@@ -32,6 +32,7 @@ single-repository cycle it always ran.
 - The system shall name no tool product as the default in its own output: a workspace with no tool declared is pointed at `doctrina workspace tool <name> --server <mcp-server> --for <roles>`, with the presets listed as presets.
 - The system shall write the `doctrina workspace guard` hook into the Cursor and Claude Code hook files of every shadowed project, beside the workspace root's.
 - The system shall treat as a write any MCP call whose input carries, under any key or nesting, SQL that changes state — `CALL`, `EXEC`, `COPY` and `SELECT … INTO` included — or whose `action`, `operation` or `method` argument names a write, or that sends a GraphQL `mutation`.
+- The system shall mark the Cursor guard hook `failClosed: true` while the workspace declares an enabled tool, and leave it fail-open while it declares none, keeping a single guard entry either way.
 
 ### Event-driven
 
@@ -90,6 +91,7 @@ A workspace is spec-compliant when:
 18. [verified] doctor and metrics answer at the root, and a lost shadow is scaffolded again — verified by `packages/doctrina-cli/test/a-quarta-auditoria-fecha-as-entradas-hostis.test.js`.
 19. [verified] under Cursor the Claude-format guard never answers a permission hook with nothing — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 20. [verified] the Cursor files the CLI writes use only the hook events and rule fields Cursor documents — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
+21. [verified] with a tool declared the Cursor guard fails closed, and only then — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 
 ## Out of scope for this spec
 

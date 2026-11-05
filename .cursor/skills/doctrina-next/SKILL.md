@@ -1,3 +1,9 @@
+---
+name: doctrina-next
+description: Show and act on the next recommended Doctrina workflow step
+disable-model-invocation: true
+---
+
 # /doctrina-next — next step for Doctrina
 
 Decide the next step from the framework's own signals.

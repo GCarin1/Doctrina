@@ -19,6 +19,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The cursor adapter installs the core loop as Cursor skills,
+  `.cursor/skills/doctrina-*/SKILL.md` with `disable-model-invocation: true`:
+  Cursor's documentation describes skills and no longer `.cursor/commands/`,
+  and Cursor 2.4 converts commands to skills the same way. `doctrina upgrade
+  --write` and `adapter add cursor` move an older install — the skills are
+  written, every command still as the CLI wrote it is removed, an edited one
+  is kept and named — and in a shadowed repository they are written in the
+  shadow and linked in, never left as stray files in the repository.
+- With a tool declared, the Cursor guard hook carries `failClosed: true`.
+  Cursor lets an MCP call through when a hook crashes or cannot start, so a
+  guard that could not run — `doctrina` missing from the PATH Cursor runs
+  hooks with is enough — left a read-only tool writing, silently. With
+  nothing declared it stays fail-open.
 - The sixth audit checked the Cursor integration against Cursor's current
   documentation and ran a real planner through SHOP-77, a contract change
   whose third criterion contradicts an accepted ADR (US$ 2.25, 2.6 min):

@@ -1,3 +1,9 @@
+---
+name: doctrina-why
+description: Explain a capability's provenance (intent → proof → ADRs → history)
+disable-model-invocation: true
+---
+
 # /doctrina-why — provenance for {{PROJECT_NAME}}
 
 Explain why a capability exists and is shaped as it is.

@@ -75,7 +75,7 @@
         "id": "docs",
         "path": ".doctrina/specs/docs/spec.md",
         "status": "active",
-        "version": "0.10.9",
+        "version": "0.10.10",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "realizes": [
@@ -124,7 +124,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.13.3",
+        "version": "0.14.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -166,7 +166,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.31.0",
+        "version": "0.32.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -195,7 +195,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.8.0",
+        "version": "0.9.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -4132,6 +4132,32 @@
           },
           {
             "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0238-o-cursor-recebe-skills-e-o-guard-falha-fechado",
+        "title": "o Cursor recebe skills e o guard falha fechado",
+        "path": ".doctrina/changes/archive/2026-11-05-0238-o-cursor-recebe-skills-e-o-guard-falha-fechado",
+        "status": "applied",
+        "applied": "2026-11-05",
+        "specs_affected": [
+          {
+            "capability": "docs",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
             "operation": "MODIFIED"
           },
           {

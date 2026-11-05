@@ -2621,7 +2621,13 @@ dentro de um nome sem separador (`createissue`). A guarda casa o servidor
 MCP pela chave exata na configuração do agente, então o `workspace tool` e o
 `validate` na raiz avisam quando nenhum `.cursor/mcp.json`, `.mcp.json`,
 `~/.cursor/mcp.json` ou `~/.claude.json` nomeia o servidor declarado (uma
-chave que só difere na caixa é nomeada). A guarda carrega só o registro e a
+chave que só difere na caixa é nomeada). Com uma ferramenta declarada, o
+hook da guarda no Cursor leva `failClosed: true`: o Cursor deixa a chamada
+passar quando um hook quebra, estoura o tempo ou não consegue iniciar — o
+`doctrina` fora do PATH com que ele roda os hooks basta —, então sem isso
+uma ferramenta só de leitura escreveria sem guarda, em silêncio; sem nada
+declarado ela continua fail-open, para uma instalação quebrada nunca
+bloquear os outros servidores do operador. A guarda carrega só o registro e a
 decisão — ela roda antes de cada chamada MCP, então carrega seis módulos em
 vez do CLI inteiro. Uma sombra cuja pasta sumiu é
 esqueletizada de novo pelo `workspace attach <nome>`, depois de um aviso

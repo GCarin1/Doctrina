@@ -6,7 +6,7 @@
 **Realizes:** SC3, SC5
 **Source:** `docs/**`, `scripts/check-docs.js`, `CHANGELOG.md`, `README*.md`, `packages/doctrina-cli/README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CONVENTIONS.md`
 **Last updated:** 2026-09-11
-**Version:** 0.10.9
+**Version:** 0.10.10
 
 ## Purpose
 
