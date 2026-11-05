@@ -30,6 +30,10 @@ everything below, merged after it, ships as this version.
 
 ### Fixed
 
+- The release re-stamps the shipped examples. 0.21.0 bumped the root index
+  and left `examples/*/.doctrina/index.json` at 0.20.0, and the release
+  workflow — which validates the examples with `--strict` — stopped one step
+  before the publish. A test now fails the suite on a stamp behind the CLI.
 - The docs gate no longer takes every UPPER_SNAKE name for an environment
   variable. Fixing a login in a project whose error codes are MAIUSCULAS_SNAKE,
   the close stopped asking documentation for "environment:

@@ -36,6 +36,11 @@ The canonical version lives in ONE place:
    - `packages/doctrina-cli/README.md`
 4. Re-stamp the index: `doctrina index rebuild` (migrates
    `framework_version` to the new CLI version).
+   Every shipped example carries its own index: run `doctrina index rebuild`
+   in each `examples/*/` too. The release workflow validates them with
+   `--strict`, where a stamp behind the CLI fails one step before the
+   publish (0.21.0 did); `test/os-exemplos-acompanham-a-versao.test.js`
+   catches it in the suite.
 5. Run the full gate set from the repo root and require all green:
    `doctrina verify` (tests + self-validate + index drift),
    `doctrina coverage --strict`, `doctrina trace --strict`.

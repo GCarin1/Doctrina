@@ -4193,6 +4193,15 @@
         "applied": "2026-11-05",
         "specs_affected": [],
         "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
+      },
+      {
+        "id": "0241-o-release-recarimba-os-exemplos",
+        "title": "o release recarimba os exemplos",
+        "path": ".doctrina/changes/archive/2026-11-05-0241-o-release-recarimba-os-exemplos",
+        "status": "applied",
+        "applied": "2026-11-05",
+        "specs_affected": [],
+        "lane": "runtime (confident; signals: workflow) — opened as chore"
       }
     ],
     "skills": [
