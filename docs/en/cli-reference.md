@@ -2630,6 +2630,15 @@ an executor works inside the repository, where Cursor and Claude Code read
 that folder's hooks; an in-repo project owns its files, so `validate` at
 the root warns when they run no guard.
 
+**A list of the calls a tool may make.** Whether a call writes is read from
+its name and input, which is a guess: a verb the guard has never seen reads
+as a read. `doctrina workspace tool jira --only "getJiraIssue,search*"`
+turns the question around — the calls named (by MCP tool name, `*` for any
+run of characters, case ignored) go on to that judgment, and every other
+call through the tool's server is **denied**, with the command that would
+add it. Lists of several tools on one server add up; a tool without a list
+adds nothing to a server that has one. `--only none` takes the list away.
+
 The SQL is read wherever the input carries it — any key, a list, a nested
 object — and `CALL`, `EXEC`, `COPY` and `SELECT … INTO` count as writes; an
 `action`, `operation` or `method` argument (`delete`, `POST`) and a GraphQL

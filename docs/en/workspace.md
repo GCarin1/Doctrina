@@ -65,6 +65,10 @@ tool. It installs a pre-call hook (Cursor `beforeMCPExecution`, Claude Code
 through a read-only tool is refused, a write through a read/write tool
 waits for you, and a server the workspace does not declare is left alone.
 
+For a stricter tool, list the calls it may make: `doctrina workspace tool
+jira --only "getJiraIssue,search*"`. Every other call through that server
+is denied, instead of being judged by the verb in its name.
+
 ## 4. Open the workspace in your agent
 
 Every workspace write, and every `doctrina workspace list`, regenerates the

@@ -71,6 +71,10 @@ chamada MCP a partir dessa declaração: uma escrita por uma ferramenta só
 de leitura é recusada, uma escrita por uma ferramenta de leitura e escrita
 espera você, e um servidor que o workspace não declara fica de fora.
 
+Para uma ferramenta mais estrita, liste as chamadas que ela pode fazer:
+`doctrina workspace tool jira --only "getJiraIssue,search*"`. Toda outra
+chamada por aquele servidor é negada, em vez de julgada pelo verbo no nome.
+
 ## 4. Abra o workspace no seu agente
 
 Toda escrita no workspace, e todo `doctrina workspace list`, regenera os

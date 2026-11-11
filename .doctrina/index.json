@@ -195,7 +195,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.9.0",
+        "version": "0.10.0",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -4238,6 +4238,20 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0244-o-guard-aceita-uma-lista-de-chamadas-permitidas",
+        "title": "o guard aceita uma lista de chamadas permitidas por ferramenta",
+        "path": ".doctrina/changes/archive/2026-11-11-0244-o-guard-aceita-uma-lista-de-chamadas-permitidas",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: declarar)"
       }
     ],
     "skills": [

@@ -29,7 +29,7 @@ const CLI_ENTRY = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 
 export const flags = {
   boolean: ["json", "no-git", "remove"],
-  string: ["name", "mode", "role", "about", "depends-on", "agent", "path", "server", "access", "for", "purpose", "hook"],
+  string: ["name", "mode", "role", "about", "depends-on", "agent", "path", "server", "access", "for", "purpose", "only", "hook"],
 };
 
 export async function run(positional, flags) {
@@ -295,6 +295,7 @@ function workspaceTool(wsDir, name, flags) {
     entry = toolEntry(name, {
       server: flagString(flags, "server"), access: flagString(flags, "access"),
       for: flagString(flags, "for"), purpose: flagString(flags, "purpose"),
+      only: flags.has("only") ? flagString(flags, "only") ?? "" : undefined,
     }, at >= 0 ? ws.tools[at] : null);
   } catch (err) {
     console.error(c.red("error:") + ` ${err.message}`);
@@ -304,6 +305,7 @@ function workspaceTool(wsDir, name, flags) {
   else ws.tools.push(entry);
   writeWorkspace(wsDir, ws);
   console.log(c.green(at >= 0 ? "updated" : "declared") + ` ${entry.name} → MCP server "${entry.server}", ${entry.access === "write" ? "read/write (each write asks the human)" : "read-only"}, for ${(entry.for ?? []).join(", ") || "the planner"}`);
+  if (entry.only) console.log(c.gray(`only these calls pass through "${entry.server}": ${entry.only.join(", ")} — every other call is denied`));
   console.log(c.gray(`the server itself is configured in your agent (Cursor: .cursor/mcp.json; Claude Code: .mcp.json) under the name "${entry.server}"`));
   // Said now, not only at the next validate (change 0235): a key that matches
   // no configuration is a guard that never fires.
@@ -350,6 +352,7 @@ function workspaceList(wsDir) {
     console.log(c.bold("Tools"));
     for (const t of ws.tools) {
       console.log(`  ${c.cyan(t.name.padEnd(12))} ${t.server.padEnd(12)} ${t.access.padEnd(6)} ${(t.for ?? []).join(", ").padEnd(16)} ${c.gray(t.purpose ?? "")}`);
+      if (t.only?.length) console.log(c.gray(`  ${"".padEnd(12)} only: ${t.only.join(", ")}`));
     }
   }
   // The orchestrator files carry what changes without a workspace write — a
@@ -394,12 +397,16 @@ artifacts of repositories that cannot carry .doctrina/ themselves.
       files when a project's state or workspace.json changed since.
 
   tool <name> [--server <mcp-name>] [--access read|write] [--for <roles>]
-              [--purpose "<what for>"] [--remove]
+              [--purpose "<what for>"] [--only "<calls>"] [--remove]
       Declare (or update, or --remove) a tool the work uses. Presets:
       jira, confluence, figma, playwright, datadog, databricks, sql.
       Roles: planner, executor, qa, observer, reviewer. Access defaults
       to read: the guard refuses a write through a read-only tool and
       makes a declared write wait for the human.
+      --only "getJiraIssue,search*" lists the calls the tool may make,
+      by MCP tool name (\`*\` for any run of characters): every other
+      call through its server is denied, instead of being judged by the
+      verb in its name. --only none takes the list away.
 
   guard --hook cursor|claude
       The pre-call hook the workspace installs (Cursor beforeMCPExecution,

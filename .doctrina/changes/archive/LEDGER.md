@@ -254,3 +254,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-05 — 0241-o-release-recarimba-os-exemplos — o release recarimba os exemplos
 - 2026-11-11 — 0242-branches-paralelas-se-juntam-sem-conflito-manual — branches paralelas se juntam sem conflito manual (specs: authoring MODIFIED, scaffolding MODIFIED, structure MODIFIED)
 - 2026-11-11 — 0243-o-doctor-nomeia-o-binario-que-roda-e-as-copias — o doctor nomeia o binario que roda e as copias no PATH (specs: gates MODIFIED)
+- 2026-11-11 — 0244-o-guard-aceita-uma-lista-de-chamadas-permitidas — o guard aceita uma lista de chamadas permitidas por ferramenta (specs: workspace MODIFIED)

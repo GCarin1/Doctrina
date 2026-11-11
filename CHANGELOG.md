@@ -38,6 +38,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   number: a second install, ahead on the PATH. A `merges` row says whether
   the clone is set up to merge the index and the ledger by itself.
 
+- A workspace tool can list the calls it may make: `doctrina workspace tool
+  jira --only "getJiraIssue,search*"`. Every other call through its server
+  is denied by the guard, instead of being judged by the verb in its name —
+  a verb the guard has never seen used to pass as a read.
+
 ### Fixed
 
 - An `index.json` carrying git's conflict markers is reported as that, with

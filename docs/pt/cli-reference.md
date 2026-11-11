@@ -2694,6 +2694,16 @@ dentro do repositório, onde o Cursor e o Claude Code leem os hooks daquela
 pasta; um projeto in-repo é dono dos seus arquivos, então o `validate` na
 raiz avisa quando eles não rodam a guarda.
 
+**Uma lista das chamadas que a ferramenta pode fazer.** Se uma chamada
+escreve é lido do nome e da entrada dela, o que é um palpite: um verbo que a
+guarda nunca viu passa por leitura. O `doctrina workspace tool jira --only
+"getJiraIssue,search*"` inverte a pergunta — as chamadas nomeadas (pelo nome
+da tool MCP, `*` para qualquer trecho, sem diferenciar caixa) seguem para
+esse julgamento, e toda outra chamada pelo servidor da ferramenta é
+**negada**, com o comando que a acrescentaria. As listas de várias
+ferramentas no mesmo servidor se somam; uma ferramenta sem lista não
+acrescenta nada a um servidor que tem uma. `--only none` tira a lista.
+
 O SQL é lido onde quer que a entrada o carregue — qualquer chave, uma
 lista, um objeto aninhado — e `CALL`, `EXEC`, `COPY` e `SELECT … INTO`
 contam como escrita; um argumento `action`, `operation` ou `method`

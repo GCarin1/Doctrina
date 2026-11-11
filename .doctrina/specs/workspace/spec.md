@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/workspace.js`, `packages/doctrina-cli/src/lib/workspace-locate.js`, `packages/doctrina-cli/src/lib/workspace-guard.js`, `packages/doctrina-cli/src/lib/workspace-tools.js`, `packages/doctrina-cli/src/lib/workspace-agents.js`, `packages/doctrina-cli/src/lib/workspace-view.js`, `packages/doctrina-cli/src/commands/workspace.js`
 **Last updated:** 2026-11-03
-**Version:** 0.9.0
+**Version:** 0.10.0
 
 ## Purpose
 
@@ -67,6 +67,10 @@ single-repository cycle it always ran.
 - If no workspace can be found, then the system shall not guess one: it shall exit 3 naming `doctrina workspace init` as the remedy.
 - If the guard cannot read the call, then the system shall not block it: it answers allow and exits 0.
 
+### Optional
+
+- Where a tool of the workspace declares the list of calls it may make (`doctrina workspace tool <name> --only "<names>"`, `*` for any run of characters, `none` to clear it), the guard shall deny every call through that tool's server that no list on that server names, naming the lists and the command that adds the call, and shall judge a named call by access as before.
+
 ## Acceptance criteria
 
 A workspace is spec-compliant when:
@@ -92,6 +96,7 @@ A workspace is spec-compliant when:
 19. [verified] under Cursor the Claude-format guard never answers a permission hook with nothing — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 20. [verified] the Cursor files the CLI writes use only the hook events and rule fields Cursor documents — verified by `packages/doctrina-cli/test/a-sexta-auditoria-confere-o-cursor.test.js`.
 21. [verified] with a tool declared the Cursor guard fails closed, and only then — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
+22. [verified] With `--only "getJiraIssue,search*"` a call the guard knows no verb for is denied and a named one allowed, in the Cursor and the Claude Code format; a named write through a read-only tool is still denied; the lists of two tools on one server add up; `--only none` restores the judgment by name; a pattern with a space exits 2; and the list is printed by `workspace list` and written into the planner hub — verified by `packages/doctrina-cli/test/o-guard-aceita-uma-lista-de-chamadas.test.js`.
 
 ## Out of scope for this spec
 
