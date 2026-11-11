@@ -32,6 +32,7 @@ import { declaredBudget, collectRuntimeFindings, filesMatching } from "./runtime
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
 import { headerValueError, criterionMarkError } from "./spec-ops.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
+import { sharedNumbers } from "./change-numbers.js";
 import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
@@ -807,6 +808,15 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         }
       }
     }
+  }
+
+  // 8l. An open change that shares its number (change 0242). Two branches
+  //     that each opened a change read the same disk and took the same
+  //     number; merged, one number answers for two changes — in a commit
+  //     message, on a task card, in `doctrina close 0042`. Open, it can
+  //     still be given its own.
+  for (const { id, shares } of sharedNumbers(projectRoot)) {
+    warnings.push(`.doctrina/changes/${id} shares its number with ${shares} — two branches opened them apart; \`doctrina change renumber ${id}\` gives it the next free number`);
   }
 
   // 8m. A spec that is not where the tree reads specs from (change 0113).

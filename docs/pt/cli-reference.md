@@ -636,6 +636,27 @@ Sem `--force`, o `abandon` lista os arquivos que deletaria, diz que a
 deleção não pode ser desfeita, e pergunta. Num stdin não interativo não há
 a quem perguntar, então ele recusa (saída `2`) em vez de prosseguir.
 
+## `doctrina change renumber <id>`
+
+Dá a uma change aberta o próximo número livre.
+
+```
+doctrina change renumber 0042-add-saml
+#   renumbered 0042-add-saml → 0044-add-saml
+```
+
+O próximo número é lido de todo lugar em que este clone enxerga um número
+tomado: as pastas de change, o ledger e as changes que outras branches
+adicionaram nos últimos 180 dias — então uma branch que o git já conhece não
+entrega o mesmo número duas vezes. Uma branch que ninguém buscou continua
+invisível, e o merge que junta duas changes assim guarda as duas sob um
+número só. O `doctrina validate` nomeia a que está aberta (`… shares its
+number with …`), e este comando move a pasta e reescreve o id nos arquivos
+da própria change, depois deriva o índice de novo. Uma change arquivada
+mantém o número: a história não é renumerada. O número antigo pode ainda
+estar escrito fora da change — numa mensagem de commit, no nome de uma
+branch, num cartão de tarefa já entregue.
+
 ## `doctrina change delta <id> <capability>`
 
 Acrescenta um requisito, um critério ou um bump de versão ao delta MODIFIED
@@ -1191,12 +1212,35 @@ na recusa de outro gate, em silêncio.
 
 ## `doctrina hooks install`
 
-Instala o pre-commit hook do Doctrina em
-`.git/hooks/pre-commit`.
+Prepara um repositório para commits e merges: o pre-commit hook e a
+forma como os artefatos se fundem.
 
 ```
 doctrina hooks install [--force]
 ```
+
+**Merges.** Toda change reescreve o `index.json` e o ledger, então duas
+branches que fecharam uma change cada sempre se encontravam nas mesmas
+linhas. O comando escreve duas linhas no `.gitattributes` — faça commit
+delas — e uma entrada na configuração git deste clone:
+
+```
+**/.doctrina/index.json merge=doctrina-index
+**/.doctrina/changes/archive/LEDGER.md merge=union
+```
+
+O ledger se funde pelo `union` do próprio git (as linhas das duas branches
+ficam), que só precisa do arquivo commitado. O índice se funde pelo
+`doctrina index merge`, um driver que o git guarda na configuração de cada
+clone — então cada clone roda `doctrina hooks install` uma vez. Sem ele o
+git funde o índice como texto e pode parar em marcadores de conflito; o
+`doctrina index rebuild` o escreve de novo a partir da árvore. O botão de
+merge de um serviço de hospedagem não roda drivers de merge: quando um pull
+request mostrar conflito num dos dois arquivos, faça o merge da branch base
+na sua localmente e envie. Um repositório-sombra mantém o `.doctrina/` fora
+do próprio git e recebe só o hook.
+
+**O hook.**
 
 O hook fixa a CLI que o instalou — `.git/hooks/` é local ao clone, então
 ele nomeia o entrypoint dessa CLI por caminho absoluto e lê `DOCTRINA=` do
@@ -1854,6 +1898,27 @@ commit não carrega, enquanto todo outro gate lê a árvore de trabalho,
 onde essas pastas continuam lá. O hook de pre-commit instalado roda
 isso. Não escreve nada (sem `--check` é erro de invocação) e sai 0
 quando nada relevante está staged, ou fora de um repositório git.
+
+## `doctrina index merge <base> <ours> <theirs>`
+
+O driver de merge que o git roda para o `.doctrina/index.json`, depois que o
+`doctrina hooks install` o configurou. Não é um comando para digitar.
+
+```
+# .git/config, escrito pelo `doctrina hooks install`
+[merge "doctrina-index"]
+    driver = node "/caminho/para/doctrina-cli/src/index.js" index merge %O %A %B
+```
+
+O índice é fundido como o que ele é — listas de artefatos. Uma entrada que
+uma branch adicionou é adicionada, uma que uma branch removeu é removida, e
+onde as duas mudaram o mesmo campo vence o valor mais novo: a versão maior,
+a data mais recente, o `framework_version` mais novo. O resultado é escrito
+sobre `<ours>` com saída `0`, que é como um driver diz ao git que não há o
+que resolver. Um lado que não é JSON sai com `1` e fica para o git relatar.
+O que o driver não tem como saber — um header editado nas duas branches — a
+árvore ainda decide: o `doctrina index rebuild` deriva o índice dos
+arquivos, e o hook de commit o roda.
 
 ## `doctrina next`
 

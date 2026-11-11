@@ -19,11 +19,12 @@ import { confirm, isInteractive } from "../lib/prompt.js";
 import { taskCard } from "../lib/task-card.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
+import { renumberChange } from "../lib/change-numbers.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
 import { scanText } from "../lib/clarify-scan.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta", "card"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "renumber", "delta", "card"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -46,6 +47,8 @@ export async function run(positional, flags) {
       return changeTick(positional.slice(1), flags);
     case "abandon":
       return await changeAbandon(positional.slice(1), flags);
+    case "renumber":
+      return changeRenumber(positional.slice(1));
     case "delta":
       return changeDelta(positional.slice(1), flags);
     case "card":
@@ -827,6 +830,34 @@ async function changeAbandon(args, flags) {
   return 0;
 }
 
+// Give an open change the next free number (change 0242): two branches that
+// each opened a change took the same one, and the merge holds both.
+function changeRenumber(args) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change renumber requires <id>");
+    return 2;
+  }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" is not an open change (${relPath(projectRoot, changeDir)} not found) — an archived change keeps its number`);
+    return EXIT.USAGE;
+  }
+  const { to, rewritten } = renumberChange(projectRoot, id);
+  console.log(c.green("renumbered") + ` ${id} → ${to}`);
+  if (rewritten.length > 0) console.log(c.gray(`  the id was rewritten in ${rewritten.join(", ")}`));
+  const derived = deriveIndex(projectRoot, idx.load(projectRoot));
+  derived.last_updated = today();
+  idx.save(projectRoot, derived);
+  console.log(c.green("indexed") + ` change "${to}" in index.json`);
+  console.log(c.gray("next: ") + `name ${to} wherever the old number was written outside the change — a commit message, a branch, a task card already handed out`);
+  return 0;
+}
+
 // The per-delta preview: what applying this delta would do to its target.
 // ADDED reports the body it would write, REMOVED the spec it would delete,
 // MODIFIED a line diff against the current spec.
@@ -953,6 +984,10 @@ Subcommands:
                          or every one with --all. No args = list only.
   abandon <id>           Delete an open change folder and its index entry, and
                          record the abandonment in the ledger ([--reason "..."]).
+  renumber <id>          Give an open change the next free number: the folder
+                         moves and the id is rewritten in its own files. For
+                         the merge that brought together two changes opened
+                         on two branches under one number — \`validate\` names it.
   delta <id> <capability> [--requirement "<section>: <text>"] [--criterion "<text>"]
         [--bump major|minor|patch] [--op "<op line>" | <op line>]
                          Write ops into the change's MODIFIED delta for the

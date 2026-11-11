@@ -252,3 +252,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-05 — 0239-o-gate-de-docs-distingue-variavel-de-ambiente-de — o gate de docs distingue variavel de ambiente de constante (specs: docs MODIFIED, gates MODIFIED)
 - 2026-11-05 — 0240-release-0-21-0 — release 0.21.0
 - 2026-11-05 — 0241-o-release-recarimba-os-exemplos — o release recarimba os exemplos
+- 2026-11-11 — 0242-branches-paralelas-se-juntam-sem-conflito-manual — branches paralelas se juntam sem conflito manual (specs: authoring MODIFIED, scaffolding MODIFIED, structure MODIFIED)

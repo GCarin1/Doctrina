@@ -618,6 +618,26 @@ Without `--force`, `abandon` lists the files it would delete, states that
 the deletion cannot be undone, and asks. On a non-interactive stdin there
 is nobody to ask, so it refuses (exit `2`) rather than proceeding.
 
+## `doctrina change renumber <id>`
+
+Give an open change the next free number.
+
+```
+doctrina change renumber 0042-add-saml
+#   renumbered 0042-add-saml → 0044-add-saml
+```
+
+The next number is read from everywhere this clone can see one taken: the
+change folders, the ledger, and the changes other branches added in the last
+180 days — so a branch git already knows does not hand out its number twice.
+A branch nobody fetched is still invisible, and the merge that brings two
+such changes together holds both under one number. `doctrina validate` names
+the open one (`… shares its number with …`), and this command moves its
+folder and rewrites the id in its own files, then re-derives the index. An
+archived change keeps its number: history is not renumbered. The old number
+may still be written outside the change — in a commit message, a branch
+name, a task card already handed out.
+
 ## `doctrina change delta <id> <capability>`
 
 Add a requirement, a criterion or a version bump to a change's MODIFIED
@@ -1167,11 +1187,34 @@ walking into another gate's refusal, silently.
 
 ## `doctrina hooks install`
 
-Install the Doctrina pre-commit hook into `.git/hooks/pre-commit`.
+Set a repository up for commits and merges: the pre-commit hook, and the
+way its artifacts merge.
 
 ```
 doctrina hooks install [--force]
 ```
+
+**Merges.** Every change rewrites `index.json` and the ledger, so two
+branches that each closed a change always met on the same lines. The command
+writes two lines into `.gitattributes` — commit them — and one entry into
+this clone's git config:
+
+```
+**/.doctrina/index.json merge=doctrina-index
+**/.doctrina/changes/archive/LEDGER.md merge=union
+```
+
+The ledger merges through git's own `union` (both branches' lines are kept),
+which needs nothing but the committed file. The index merges through
+`doctrina index merge`, a driver git keeps in each clone's config — so every
+clone runs `doctrina hooks install` once. Without it git merges the index as
+text and may stop on conflict markers; `doctrina index rebuild` then writes
+it again from the tree. A hosting service's merge button does not run merge
+drivers: when a pull request shows a conflict in either file, merge the base
+branch into yours locally and push. A shadowed repository keeps its
+`.doctrina/` out of its own git and gets the hook only.
+
+**The hook.**
 
 The hook pins the CLI that installed it — `.git/hooks/` is local to the
 clone, so it names that CLI's entrypoint by absolute path and reads
@@ -1809,6 +1852,27 @@ not carry, while every other gate reads the working tree, where those
 folders are still present. The installed pre-commit hook runs it. It
 writes nothing (without `--check` it is a usage error) and exits 0 when
 nothing relevant is staged, or outside a git repository.
+
+## `doctrina index merge <base> <ours> <theirs>`
+
+The merge driver git runs for `.doctrina/index.json`, once `doctrina hooks
+install` has set it up. It is not a command to type.
+
+```
+# .git/config, written by `doctrina hooks install`
+[merge "doctrina-index"]
+    driver = node "/path/to/doctrina-cli/src/index.js" index merge %O %A %B
+```
+
+The index is merged as what it is — lists of artifacts. An entry one branch
+added is added, one a branch removed is removed, and where both branches
+changed the same field the newer value wins: the later version, the later
+date, the newer `framework_version`. The result is written over `<ours>`
+with exit `0`, which is how a driver tells git there is nothing to resolve.
+A side that is not JSON exits `1` and is left for git to report. What the
+driver cannot know — a header edited on both branches — the tree still
+decides: `doctrina index rebuild` derives the index from the files, and the
+commit hook runs it.
 
 ## `doctrina next`
 

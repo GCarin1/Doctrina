@@ -25,12 +25,12 @@ surface, by the moment you reach for it:
 ```
 Bootstrap   init · intake · adapter list|add|remove
 Orient      prime · next · status · context · show · search · why · handoff
-Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|delta|card
+Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|renumber|delta|card
             contract new|list|check · decision new|accept|land|supersede|list|scope
             skill new|list|suggest · intent add|list
 Gate        clarify · validate · coverage · trace · review · verify · close · doctor
 Orchestrate workspace init|add|attach|detach|list|tool|guard · delivery new|route|list|status|tick|check|close
-Maintain    upgrade · index rebuild · hooks install · watch · metrics · completion · ci · templates list
+Maintain    upgrade · index rebuild|merge · hooks install · watch · metrics · completion · ci · templates list
 ```
 
 `doctrina --help` prints the same grouping with one line per command, and

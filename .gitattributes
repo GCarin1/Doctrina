@@ -1,0 +1,3 @@
+# Doctrina: the derived index merges as data, the ledger as a list (`doctrina hooks install`)
+**/.doctrina/index.json merge=doctrina-index
+**/.doctrina/changes/archive/LEDGER.md merge=union

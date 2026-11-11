@@ -17,6 +17,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Two branches that each closed a change merge without a manual step.
+  `doctrina hooks install` now also writes two lines into `.gitattributes`
+  (commit them) and a merge driver into the clone's git config: `index.json`
+  merges through the new `doctrina index merge`, as lists of artifacts, and
+  the ledger through git's `union`. Measured here over ninety days, the index
+  changed in 172 of 186 commits and the ledger in 158 — two branches always
+  met on them. Every clone runs `doctrina hooks install` once.
+- `doctrina change renumber <id>` gives an open change the next free number,
+  and `validate` names the open change that shares its number with another.
+  A new change is also numbered past the changes other branches added in the
+  last 180 days, as far as the clone's git history shows them.
+
+### Fixed
+
+- An `index.json` carrying git's conflict markers is reported as that, with
+  `doctrina index rebuild` as the way out, instead of a JSON parse position.
+
 ## [0.21.0] — 2026-11-05
 
 ### Upgrading from 0.20

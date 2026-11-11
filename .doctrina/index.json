@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.21.0",
-  "last_updated": "2026-11-05",
+  "last_updated": "2026-11-11",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.35.2",
+        "version": "0.36.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -23,7 +23,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
+          "packages/doctrina-cli/src/lib/{change-ops,change-numbers,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
@@ -124,7 +124,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.14.0",
+        "version": "0.15.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -132,7 +132,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js",
-          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js"
+          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config}.js"
         ]
       },
       {
@@ -154,7 +154,7 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -4202,6 +4202,28 @@
         "applied": "2026-11-05",
         "specs_affected": [],
         "lane": "runtime (confident; signals: workflow) — opened as chore"
+      },
+      {
+        "id": "0242-branches-paralelas-se-juntam-sem-conflito-manual",
+        "title": "branches paralelas se juntam sem conflito manual",
+        "path": ".doctrina/changes/archive/2026-11-11-0242-branches-paralelas-se-juntam-sem-conflito-manual",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
       }
     ],
     "skills": [

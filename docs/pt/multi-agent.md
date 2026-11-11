@@ -205,6 +205,19 @@ Fluxo exemplo:
 Cada agente possui uma fase. Nenhum se sobrepõe a outro. Os
 artefatos em `.doctrina/` são o trace compartilhado.
 
+## Várias pessoas, várias branches
+
+Um escritor por repositório fala de uma sessão, não de um time: duas pessoas
+em duas branches rodam cada uma o seu planejador. O que elas dividem são os
+dois arquivos que toda change reescreve — o `index.json` e o ledger — e o
+contador por trás do número de uma change. Rode `doctrina hooks install` uma
+vez por clone e faça commit do `.gitattributes` que ele escreve: o índice
+passa a se fundir como lista de artefatos e o ledger guarda as linhas das
+duas branches, sem marcador de conflito em nenhum dos dois. Um número que
+outra branch já tomou não é entregue de novo, e o merge que ainda assim
+juntou duas changes abertas sob um número é nomeado pelo `validate` e
+separado pelo `doctrina change renumber <id>`.
+
 ## Quando a linha fica borrada
 
 | Situação | Veredito |

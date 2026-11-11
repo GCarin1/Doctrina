@@ -1,7 +1,6 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { readdirSync } from "node:fs";
 import { eolOf, exists, isDir, isFile, mkdirp, read, relPath, withEol, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";
@@ -10,7 +9,6 @@ import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
 import { readDelivery, resolveDeliveryId, sectionText } from "../lib/delivery.js";
-import { parseLedger } from "../lib/ledger.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
@@ -21,6 +19,7 @@ import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff, similarChanges, SIMILAR_CHANGE_DAYS } from "../lib/work-model.js";
 import { isChangeId, refuseChangeRef } from "../lib/project.js";
+import { nextChangeNumber } from "../lib/change-numbers.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -424,34 +423,6 @@ function writeLane(projectRoot, id, verdict, opts) {
 
 // Next sequential NNNN across open changes and the archive, so work-driven
 // ids stay ordered no matter how earlier changes were named.
-function nextChangeNumber(projectRoot) {
-  const changesDir = path.join(projectRoot, ".doctrina", "changes");
-  let max = 0;
-  const harvest = (name) => {
-    const m = name.match(/^(\d{1,4})-/) ?? name.match(/^(\d{1,4})$/);
-    if (m) max = Math.max(max, Number(m[1]));
-  };
-  if (isDir(changesDir)) {
-    for (const entry of readdirSync(changesDir)) {
-      if (entry === "archive" || entry.startsWith(".")) continue;
-      if (isDir(path.join(changesDir, entry))) harvest(entry);
-    }
-  }
-  const archiveDir = path.join(changesDir, "archive");
-  if (isDir(archiveDir)) {
-    for (const entry of readdirSync(archiveDir)) {
-      if (!isDir(path.join(archiveDir, entry))) continue;
-      harvest(entry.replace(/^\d{4}-\d{2}-\d{2}-/, ""));
-    }
-  }
-  // An abandoned change leaves no folder, only its ledger line (third audit,
-  // change 0234): its number was handed out again, and the ledger then named
-  // two different changes by one id — the abandoned part of a delivery among them.
-  const ledger = path.join(archiveDir, "LEDGER.md");
-  if (isFile(ledger)) for (const e of parseLedger(read(ledger)).entries) harvest(e.id);
-  return String(max + 1).padStart(4, "0");
-}
-
 // Open (non-archived) changes from the index — the set `work --resume` and
 // the thin-prompt guard offer to continue.
 function openChanges(projectRoot) {

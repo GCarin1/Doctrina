@@ -5,9 +5,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
-**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
+**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.14.0
+**Version:** 0.15.0
 
 ## Purpose
 
@@ -194,6 +194,7 @@ authoring commands, and the conventions every command shares.
 - When `doctrina init` finishes with a description but no intake, the system shall name the step `doctrina next` names — `doctrina intake --text` with the whole description, or `doctrina work --from-diff` for an existing codebase — and never tell the person to edit AGENTS.md or product.md by hand.
 - When `adapter add claude` or `adapter add cursor` runs, the system shall install the agent's own hooks — the primer at session start and, where the agent can take context per prompt, the pulse beside every prompt — merging them into a settings file the project already has: objects recurse, arrays gain only missing entries, a value the user set stays theirs, and `adapter remove` takes back only its own entries, deleting the file only when nothing of the user's is left.
 - When `doctrina upgrade --write` or `doctrina adapter add <name>` runs where the adapter's retired files are installed, the system shall write each replacement where it is missing, remove each retired file still as the CLI wrote it, and keep and name each one edited since; in a shadowed repository it shall write in the shadow and re-link the repository.
+- When `doctrina hooks install` runs inside a git repository that owns its `.doctrina/`, the system shall add to `.gitattributes` — only where missing — the lines that merge `index.json` through the `doctrina-index` driver and the ledger through `union`, and set that driver in the git config of the clone to the installing CLI by path, before the hook is written and also when an existing hook refuses it.
 
 ### State-driven
 
@@ -235,6 +236,7 @@ Project scaffolding is spec-compliant when:
 19. [verified] `init --help` describes `--overwrite-content` beside `--force`, which re-scaffolds only untouched files — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
 20. [verified] upgrade moves an older Cursor install to skills and keeps an edited command — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 21. [verified] in a shadowed repository the skills go to the shadow and are linked in, with nothing showing in the repository's git — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
+22. [verified] `hooks install` writes the two `.gitattributes` lines once and the driver into the git config, and two branches that each closed a change then merge with no conflict in the index or the ledger, the merged index being the one a rebuild derives — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
 
 ## Out of scope for this spec
 

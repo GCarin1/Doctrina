@@ -102,7 +102,7 @@ governs how a body of agents acts.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
 - The `doctrina` CLI (Node.js, zero runtime dependencies) with 39 commands
-  and 75 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
+  and 77 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
   change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,
