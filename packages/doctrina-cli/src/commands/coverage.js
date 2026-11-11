@@ -153,8 +153,8 @@ export async function run(_positional, flags) {
         if (r.unverified) {
           console.log(`    ${c.gray("○")} #${r.n}  proof resolves but the criterion is still marked [unverified] — flip the mark when the test proves it (spec set <cap> --criterion ${r.n}:verified)`);
         }
-        if (r.missing?.length > 0) {
-          console.log(`    ${c.yellow("!")} #${r.n}  also cites evidence that does not resolve: ${r.missing.map((m) => `\`${m}\``).join(", ")}`);
+        if ((r.missing ?? []).length > 0) {
+          console.log(`    ${c.yellow("!")} #${r.n}  also cites evidence that does not resolve: ${(r.missing ?? []).map((m) => `\`${m}\``).join(", ")}`);
         }
         continue;
       }
@@ -167,7 +167,7 @@ export async function run(_positional, flags) {
       } else if (r.kind === "unguarded") {
         console.log(`    ${c.red("✗")} #${r.n}  orchestration claim is not fail-closed: ${r.reason}`);
       } else {
-        console.log(`    ${c.yellow("!")} #${r.n}  evidence not found on disk: ${r.missing.map((m) => `\`${m}\``).join(", ")}`);
+        console.log(`    ${c.yellow("!")} #${r.n}  evidence not found on disk: ${(r.missing ?? []).map((m) => `\`${m}\``).join(", ")}`);
       }
     }
   }

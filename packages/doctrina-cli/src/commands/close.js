@@ -463,7 +463,7 @@ async function closeOne(projectRoot, id, flags) {
     if (isFile(ledgerPath)) {
       // Written in the ledger's own entry grammar (change 0046): a waived
       // gate no reader can find is the same as an unrecorded one.
-      appendLedgerLine(projectRoot, docsGapLine(id, docsGap.signals));
+      appendLedgerLine(projectRoot, docsGapLine(id, /** @type {{ signals: string[] }} */ (/** @type {unknown} */ (docsGap)).signals));
       console.log(c.yellow("ledger") + " recorded the docs gap");
     }
   }

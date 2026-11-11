@@ -79,6 +79,7 @@ export function loadConfig(projectRoot) {
   // "default" would tell a reader the file does not say what it plainly
   // says. Only a key that is absent, or one whose value is rejected, falls
   // back to the default.
+  /** @type {string | null} */
   let language = DEFAULTS.language;
   if (cfg && "language" in cfg) {
     const rawLang = cfg.language;

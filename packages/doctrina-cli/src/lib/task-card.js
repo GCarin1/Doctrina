@@ -58,7 +58,7 @@ function firstParagraph(text, heading) {
  * open one. Null `card` with a reason when there is none to give.
  * @returns {{ card: null, reason: string } | { card: object, reason: null }}
  */
-export function taskCard(projectRoot, changeId, ordinal = null) {
+export function taskCard(projectRoot, changeId, ordinal = /** @type {number | null} */ (null)) {
   const changeDir = path.join(projectRoot, ".doctrina", "changes", changeId);
   const tasksPath = path.join(changeDir, "tasks.md");
   if (!isFile(tasksPath)) return { card: null, reason: "the change has no tasks.md" };

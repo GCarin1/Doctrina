@@ -136,7 +136,7 @@ if (pack.status !== 0) {
   console.error("npm pack failed:\n" + pack.out);
   process.exit(1);
 }
-const tarball = pack.stdout.trim().split(/\r?\n/).filter(Boolean).pop();
+const tarball = pack.stdout.trim().split(/\r?\n/).filter(Boolean).pop() ?? "";
 const tarballPath = path.join(scratch, path.basename(tarball));
 assert(existsSync(tarballPath), `packed ${path.basename(tarballPath)}`);
 

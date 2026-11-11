@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache,install}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `action.yml`
+**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache,install}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `scripts/release.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.55.0
+**Version:** 1.55.1
 
 ## Purpose
 

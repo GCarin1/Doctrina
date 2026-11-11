@@ -25,10 +25,11 @@ export const TOOL_PRESETS = {
 };
 
 /** A tool entry from flags and an optional preset. Throws a message on bad input. */
-export function toolEntry(name, opts, existing = null) {
+export function toolEntry(name, opts, existing = /** @type {any} */ (null)) {
   if (!TOOL_NAME.test(name)) throw new Error(`tool name "${name}" must match ${TOOL_NAME}`);
   const preset = TOOL_PRESETS[name] ?? {};
   const base = existing ?? { name, server: preset.server ?? null, access: "read", for: preset.for ?? [], purpose: preset.purpose ?? "" };
+  /** @type {any} */
   const entry = { ...base };
   if (opts.server) entry.server = opts.server;
   if (opts.access) {

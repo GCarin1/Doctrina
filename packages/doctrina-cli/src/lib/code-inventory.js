@@ -144,7 +144,7 @@ function walk(root) {
   let truncated = false;
   const stack = [""];
   while (stack.length && !truncated) {
-    const rel = stack.pop();
+    const rel = stack.pop() ?? "";
     let entries;
     try {
       entries = readdirSync(path.join(root, rel), { withFileTypes: true });
@@ -300,14 +300,14 @@ function readUnits(root, files) {
     const kind = MANIFESTS.find(([re]) => re.test(baseOf(f)))?.[1];
     if (!kind) continue;
     if (!byDir.has(dir)) byDir.set(dir, new Set());
-    byDir.get(dir).add(kind);
+    byDir.get(dir)?.add(kind);
     manifestsOf.set(dir, [...(manifestsOf.get(dir) ?? []), baseOf(f)]);
   }
   const rootPkg = isFile(path.join(root, "package.json")) ? readJson(path.join(root, "package.json")) : null;
   const units = [];
   for (const dir of [...byDir.keys()].sort((a, b) => depth(a) - depth(b) || a.localeCompare(b))) {
-    const kinds = [...byDir.get(dir)].sort();
-    const manifests = manifestsOf.get(dir).sort();
+    const kinds = [...(byDir.get(dir) ?? [])].sort();
+    const manifests = (manifestsOf.get(dir) ?? []).sort();
     const signals = new Set();
     let runner = null;
     let scripts = {};
@@ -479,7 +479,7 @@ export function inventory(root) {
   // Languages, counted by file extension — what is actually written here.
   const languages = new Map();
   for (const f of files) {
-    const ext = baseOf(f).includes(".") ? baseOf(f).split(".").pop().toLowerCase() : "";
+    const ext = baseOf(f).includes(".") ? (baseOf(f).split(".").pop() ?? "").toLowerCase() : "";
     const lang = LANG_BY_EXT[ext];
     if (lang) languages.set(lang, (languages.get(lang) ?? 0) + 1);
   }

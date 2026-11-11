@@ -25,7 +25,7 @@ export async function ask(question, { defaultValue = "" } = {}) {
 // Ask for consent. Off a terminal there is nobody to ask, so the answer is
 // `whenNonInteractive` — which callers set to false for destructive
 // operations: silence is not consent.
-export async function confirm(question, { defaultYes = false, whenNonInteractive = null } = {}) {
+export async function confirm(question, { defaultYes = false, whenNonInteractive = /** @type {boolean | null} */ (null) } = {}) {
   if (!isInteractive()) {
     return whenNonInteractive === null ? defaultYes : whenNonInteractive;
   }

@@ -96,7 +96,7 @@ function detectLang(text) {
   return detectLanguage(text);
 }
 
-export function rulesFor(projectRoot, text, forcedLang = null) {
+export function rulesFor(projectRoot, text, forcedLang = /** @type {string | null} */ (null)) {
   const lang = forcedLang ?? projectLanguage(projectRoot);
   if (lang) return lang === "pt" ? RULES_PT : RULES_EN;
   // Detected per file, the document is scanned with BOTH lexicons (change
@@ -113,7 +113,7 @@ export function rulesFor(projectRoot, text, forcedLang = null) {
 }
 
 /** The smells of a file on disk. */
-export function scanFile(fullPath, projectRoot = process.cwd(), lang = null) {
+export function scanFile(fullPath, projectRoot = process.cwd(), lang = /** @type {string | null} */ (null)) {
   return scanText(read(fullPath), projectRoot, lang);
 }
 
@@ -121,7 +121,7 @@ export function scanFile(fullPath, projectRoot = process.cwd(), lang = null) {
  * The smells `clarify` reports for a text, line by line.
  * @returns {Array<{ line: number, rule: string, token: string, hint: string }>}
  */
-export function scanText(text, projectRoot = process.cwd(), lang = null) {
+export function scanText(text, projectRoot = process.cwd(), lang = /** @type {string | null} */ (null)) {
   const skippedRanges = collectSkippedRanges(text);
   const rules = rulesFor(projectRoot, text, lang);
   const smells = [];

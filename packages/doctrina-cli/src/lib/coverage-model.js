@@ -27,7 +27,7 @@ import { parseAcceptanceCriteria } from "./criteria.js";
 // never a --strict failure. Declared debt and hidden debt stop being punished
 // identically (0.11.0 field review item 4: one deferred capability poisoned
 // the close of every unrelated change).
-export function collect(projectRoot, { only = null } = {}) {
+export function collect(projectRoot, { only = /** @type {Set<string> | null} */ (null) } = {}) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   const reports = [];
   if (isDir(specsDir)) {
@@ -145,7 +145,7 @@ export function deriveImplementation(row) {
  *
  * @returns {Map<string, {derived: string, covered: number, total: number, deferred: boolean, unverified: number}>}
  */
-export function derivedImplementations(projectRoot, { only = null } = {}) {
+export function derivedImplementations(projectRoot, { only = /** @type {Set<string> | null} */ (null) } = {}) {
   const out = new Map();
   for (const rep of collect(projectRoot, { only })) {
     const row = {

@@ -97,7 +97,7 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.55.0",
+        "version": "1.55.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -105,6 +105,7 @@
           "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache,install}.js",
           "scripts/bench.js",
           "scripts/e2e-packed.mjs",
+          "scripts/release.mjs",
           "action.yml"
         ]
       },
@@ -4261,6 +4262,20 @@
         "applied": "2026-11-11",
         "specs_affected": [],
         "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
+      },
+      {
+        "id": "0246-a-checagem-de-tipos-enxerga-o-nulo",
+        "title": "a checagem de tipos enxerga o nulo",
+        "path": ".doctrina/changes/archive/2026-11-11-0246-a-checagem-de-tipos-enxerga-o-nulo",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [

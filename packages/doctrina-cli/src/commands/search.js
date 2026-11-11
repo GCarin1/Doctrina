@@ -59,8 +59,8 @@ export async function run(positional, flags) {
   for (const cat of categories) {
     const files = cat.file
       ? [path.join(projectRoot, cat.file)].filter(exists)
-      : isDir(path.join(projectRoot, cat.dir))
-        ? walk(path.join(projectRoot, cat.dir)).filter((f) => f.endsWith(".md"))
+      : isDir(path.join(projectRoot, cat.dir ?? ""))
+        ? walk(path.join(projectRoot, cat.dir ?? "")).filter((f) => f.endsWith(".md"))
         : [];
 
     const findings = [];

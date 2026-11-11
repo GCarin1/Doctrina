@@ -90,7 +90,7 @@ export function parseLog(stdout) {
   for (const line of stdout.split("\n")) {
     if (line.startsWith("@@")) {
       const [hash, ts, ...rest] = line.slice(2).split("|");
-      current = { hash, ts: Number(ts), subject: rest.join("|"), files: [] };
+      current = { hash, ts: Number(ts), subject: rest.join("|"), files: /** @type {string[]} */ ([]) };
       commits.push(current);
     } else if (line.trim() !== "" && current) {
       current.files.push(line.trim());
@@ -181,7 +181,7 @@ export function readSeries(projectRoot) {
 }
 
 /** The most recent saved snapshot, excluding one basename. */
-export function latestSnapshot(projectRoot, excludeBase = null) {
+export function latestSnapshot(projectRoot, excludeBase = /** @type {string | null} */ (null)) {
   const series = readSeries(projectRoot).filter((s) => `${s.generated}.json` !== excludeBase);
   return series.length > 0 ? series[series.length - 1] : null;
 }

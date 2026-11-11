@@ -82,7 +82,7 @@ function shadowFiles(shadowDir) {
   const out = [];
   const stack = [""];
   while (stack.length) {
-    const rel = stack.pop();
+    const rel = stack.pop() ?? "";
     for (const entry of readdirSync(path.join(shadowDir, rel))) {
       const r = rel ? path.join(rel, entry) : entry;
       if (r === ".git" || r === ".doctrina") continue;

@@ -92,7 +92,7 @@ function changeCard(args) {
   const { card, reason } = taskCard(projectRoot, id, ordinal);
   if (!card) {
     console.log(c.gray(reason));
-    return reason.startsWith("every task") ? EXIT.OK : EXIT.PRECONDITION;
+    return (reason ?? "").startsWith("every task") ? EXIT.OK : EXIT.PRECONDITION;
   }
   const L = [];
   L.push(`# Task card — ${card.change}, task ${card.ordinal} of ${card.total}` + (card.checked ? " (already ticked)" : ""));
@@ -534,7 +534,7 @@ function changeDelta(args, flags) {
     return r.code;
   }
   console.log(c.green(r.created ? "created" : "updated") + ` ${r.deltaRel}` +
-    c.gray(` — ${lines.length} op${lines.length === 1 ? "" : "s"} added; the block now holds ${r.block.length} (${r.block.join(", ")}), and applies cleanly`));
+    c.gray(` — ${lines.length} op${lines.length === 1 ? "" : "s"} added; the block now holds ${(r.block ?? []).length} (${(r.block ?? []).join(", ")}), and applies cleanly`));
   console.log(c.gray("Preview the merge: ") + c.cyan(`doctrina change check ${id} --verbose`));
   return EXIT.OK;
 }

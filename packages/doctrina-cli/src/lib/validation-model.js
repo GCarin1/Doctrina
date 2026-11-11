@@ -527,7 +527,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         //     the order and the artifact each step hands on; the invariant is
         //     that a step may only require what an EARLIER step produced.
         //     Opt-in: a spec without the block is never checked.
-        for (const f of checkPipeline(parsePipeline(text))) {
+        for (const f of checkPipeline(parsePipeline(text) ?? [])) {
           errors.push(`${relPath(projectRoot, specPath)}:${f.line} ${f.message} [${f.code}] — ${f.remedy}`);
         }
 
@@ -609,9 +609,9 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           //     gate proposes, a human or `spec set --implementation auto`
           //     applies. A note after the state word silences it, as it does
           //     the coverage gate itself.
-          const mismatch = implementationMismatch(implRaw, derived.get(cap)?.derived ?? null);
-          if (mismatch) {
-            const row = derived.get(cap);
+          const row = derived.get(cap);
+          const mismatch = implementationMismatch(implRaw, row?.derived ?? null);
+          if (mismatch && row) {
             const stillMarked = (row.unverified ?? 0) > 0
               ? ` and ${row.unverified} of them ${row.unverified === 1 ? "is" : "are"} still marked [unverified]`
               : "";
@@ -1292,6 +1292,7 @@ function findNestedAgentsMd(projectRoot) {
     .filter(isDir);
   while (stack.length) {
     const dir = stack.pop();
+    if (dir === undefined) break;
     for (const entry of readdirSync(dir)) {
       const full = path.join(dir, entry);
       if (isDir(full)) {

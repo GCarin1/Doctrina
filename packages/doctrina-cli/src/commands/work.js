@@ -329,7 +329,7 @@ export async function run(positional, flags) {
 // see beats a missing file nothing reports.
 //
 // Returns what was written, or null when the file already exists.
-function scaffoldDelta(projectRoot, { id, capability, guess = null, runnerUp = null }) {
+function scaffoldDelta(projectRoot, { id, capability, guess = /** @type {any} */ (null), runnerUp = /** @type {any} */ (null) }) {
   const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", capability, "delta.md");
   if (exists(deltaPath)) return null;
   const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
@@ -562,7 +562,7 @@ function printChorePlaybook(projectRoot, { id, prompt }) {
   printPlaybookTemplate(projectRoot, "chore", { CHANGE_ID: id, PROMPT: prompt });
 }
 
-function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, scaffolded = null, fromDiff = false, diffMatches = [] }) {
+function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, scaffolded = /** @type {any} */ (null), fromDiff = false, diffMatches = /** @type {any[]} */ ([]) }) {
   printPlaybookTemplate(projectRoot, "work", {
     TITLE: fromDiff ? "Backfill playbook" : "Work playbook",
     CHANGE_ID: id,

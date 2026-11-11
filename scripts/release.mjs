@@ -37,7 +37,7 @@ export function stamps(version) {
     write: () => writeFileSync(at(file), read(file).replace(re, (_m, before, _old, after) => before + value(version) + after)),
     wants: value(version),
   });
-  const json = (/** @type {string} */ file, /** @type {(d: any) => any} */ get, /** @type {(d: any) => void} */ set, /** @type {string} */ what) => ({
+  const json = (/** @type {string} */ file, /** @type {(d: any) => any} */ get, /** @type {((d: any) => void) | null} */ set, /** @type {string} */ what) => ({
     file, what, wants: version,
     holds: () => get(JSON.parse(read(file))) ?? null,
     write: set ? () => {

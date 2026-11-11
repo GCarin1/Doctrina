@@ -60,6 +60,11 @@ test("the typecheck emits nothing and declares no runtime dependency", () => {
   assert.equal(tsconfig.compilerOptions.noEmit, true, "noEmit is what keeps this a checker");
   assert.equal(tsconfig.compilerOptions.checkJs, true);
   assert.equal(tsconfig.compilerOptions.allowJs, true);
+  // The class of error the config's own comment promises to catch — a
+  // function whose callers disagree about whether it returns null — is only
+  // visible with this on (change 0246). It was off, and 82 places compiled
+  // that no longer do.
+  assert.equal(tsconfig.compilerOptions.strictNullChecks, true, "null and undefined are their own types");
 
   const pkg = JSON.parse(readFileSync(path.join(pkgRoot, "package.json"), "utf8"));
   const deps = pkg.dependencies ?? {};

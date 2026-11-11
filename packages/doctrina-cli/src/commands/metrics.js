@@ -54,7 +54,7 @@ export async function run(_positional, flags) {
   if (flagBool(flags, "trend", false)) return printTrend(projectRoot);
   // The window is the invocation's: refused the same with or without history.
   const sinceRaw = flagString(flags, "since", "90");
-  const since = sinceWindow(sinceRaw);
+  const since = sinceWindow(sinceRaw ?? "90");
   if (since === null) {
     console.error(c.red("error:") + ` --since expects a day count, a date (YYYY-MM-DD) or "<n> <unit>s ago", got "${sinceRaw}"`);
     console.error(c.gray("hint: ") + "examples: --since 30 · --since 2026-01-01 · --since \"3 months ago\"");

@@ -162,7 +162,7 @@ export function addDeltaOps(projectRoot, id, capability, lines) {
   }
   const bad = lines.map((l) => ({ l, op: parseOp(l) })).filter((x) => x.op.error);
   if (bad.length > 0) {
-    return { code: EXIT.USAGE, error: "not an operation `apply` can read", details: bad.map((x) => x.op.error) };
+    return { code: EXIT.USAGE, error: "not an operation `apply` can read", details: bad.map((x) => String(x.op.error)) };
   }
   const specPath = path.join(projectRoot, ".doctrina", "specs", capability, "spec.md");
   if (!isFile(specPath)) {

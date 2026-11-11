@@ -55,6 +55,10 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and each example's) and `--check` names the one that disagrees — the suite
   and the workflow both run it. The publish moves from Node 20.12, end of
   life, to Node 24.
+- The typecheck runs with `strictNullChecks`. The config's own comment
+  promised to catch "a function whose callers disagree about whether it
+  returns null", which the checker cannot see with the option off; turning
+  it on named 82 places, now annotated or guarded.
 - Line endings are LF in every checkout (`.gitattributes`), and the
   changelog merges through git's `union`. The skill that said `.doctrina/`
   is CRLF is now `check-the-line-ending-before-patching`: it was true of one

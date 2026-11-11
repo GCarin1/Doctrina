@@ -281,9 +281,9 @@ export async function run(_positional, _flags) {
           " (run `doctrina verify` to execute)";
         if (stale > 0) {
           const parts = [];
-          if (so.expired) parts.push(`${so.expired} expired`);
-          if (so.unverifiable) parts.push(`${so.unverifiable} unverifiable`);
-          if (so.pending) parts.push(`${so.pending} unsigned`);
+          if (so?.expired) parts.push(`${so.expired} expired`);
+          if (so?.unverifiable) parts.push(`${so.unverifiable} unverifiable`);
+          if (so?.pending) parts.push(`${so.pending} unsigned`);
           row("warn", "verify config", `${detail} — ${parts.join(", ")}`,
             "doctrina verify   (each names the re-sign command)");
           warningsTotal += 1;

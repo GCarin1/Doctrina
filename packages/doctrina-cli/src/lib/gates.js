@@ -67,7 +67,7 @@ export const GATES = {
     blockers(projectRoot, changeDir) {
       const out = [];
       // Same counter as every other surface (change 0067).
-      const countUnchecked = (text, section = null) =>
+      const countUnchecked = (text, section = /** @type {string | null} */ (null)) =>
         checklistProgress(text, { section }).total - checklistProgress(text, { section }).done;
 
       const tasksPath = path.join(changeDir, "tasks.md");

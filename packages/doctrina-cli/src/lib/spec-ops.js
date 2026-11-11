@@ -440,7 +440,7 @@ function locateRequirements(text) {
     if (h) {
       if (current) current.endIndex = i;
       const token = SECTIONS[h[1].toLowerCase().replace(/[^a-z-]/g, "")] ?? null;
-      current = { headingIndex: i, endIndex: lines.length, bullets: [] };
+      current = { headingIndex: i, endIndex: lines.length, bullets: /** @type {number[]} */ ([]) };
       if (token) sections[token] = current;
       continue;
     }

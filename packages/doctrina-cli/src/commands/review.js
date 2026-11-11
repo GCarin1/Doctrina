@@ -116,7 +116,7 @@ export async function run(_positional, flags) {
   //    capability whose spec.md itself changed.
   const specChanged = new Set(
     all.filter((f) => /(^|\/)\.doctrina\/specs\/[^/]+\/spec\.md$/.test(f.replace(/\\/g, "/")))
-      .map((f) => f.replace(/\\/g, "/").match(/\.doctrina\/specs\/([^/]+)\/spec\.md$/)[1]),
+      .map((f) => f.replace(/\\/g, "/").match(/\.doctrina\/specs\/([^/]+)\/spec\.md$/)?.[1] ?? ""),
   );
   const ranked = rankCapabilitiesByDiff(projectRoot, sourceFiles, { limit: Infinity, pending });
   const touched = new Set([...specChanged, ...ranked.map((m) => m.id)]);

@@ -203,7 +203,7 @@ export function readWorkflowEnv(text) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim() || /^\s*#/.test(line)) continue;
-    const indent = line.match(/^\s*/)[0].length;
+    const indent = (line.match(/^\s*/) ?? [""])[0].length;
 
     if (/^jobs:\s*$/.test(line)) {
       sawJobs = true;
