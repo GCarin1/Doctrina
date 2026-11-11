@@ -86,6 +86,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   it never touched. The proposal now records each op the stamp covers;
   what is not in the record is applied, once, and an applied op that was
   edited stops the apply instead of landing twice.
+- `validate` no longer walks the whole repository for a `**Source:**`
+  pattern that names a file at the root. Each such pattern (`tsconfig.json`,
+  `CHANGELOG.md`) searched every directory, `node_modules` and `.git`
+  included; a pattern with no `**` now reads only the levels it names, the
+  tree walk asks the directory listing what each entry is instead of two
+  `stat` calls, and coverage reads each evidence file once instead of once
+  per criterion citing it. On this repository: `validate` ~700 → ~300 ms,
+  `prime` ~320 → ~250 ms.
+- A `Source` pattern with a literal segment after a wildcard
+  (`pkg/*/src/main.js`) matched nothing when a directory `pkg/src` existed:
+  the search started from it.
 - An `index.json` carrying git's conflict markers is reported as that, with
   `doctrina index rebuild` as the way out, instead of a JSON parse position.
 

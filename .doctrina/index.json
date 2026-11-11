@@ -155,7 +155,7 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -4299,6 +4299,20 @@
         "applied": "2026-11-11",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0249-o-validate-nao-varre-o-repositorio-inteiro-por",
+        "title": "o validate nao varre o repositorio inteiro por padrao",
+        "path": ".doctrina/changes/archive/2026-11-11-0249-o-validate-nao-varre-o-repositorio-inteiro-por",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

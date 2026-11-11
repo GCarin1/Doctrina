@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.7.0
+**Version:** 0.7.1
 
 ## Purpose
 
@@ -33,6 +33,7 @@ those stays there, with the cross-cutting claim it belongs to.
 
 - The system shall read an unwanted-behavior requirement's negation from the modal it governs — "shall not", "shall never", or the object the verb negates directly — and shall not accept a negation word found elsewhere in the sentence as one, because an ordinary determiner then stands in for a prohibition.
 - The system shall judge a skill's trigger by the same standard in every language it supports — mirrored phrase lists matched against folded text, and content words counted by the shared lexicon — and shall not decide vagueness from a list that carries one language only.
+- The system shall resolve a `**Source:**` pattern from its leading literal directories only, reading no deeper than the pattern names unless it holds `**` or ends in `/`, so that a pattern with a literal segment after a wildcard matches under every directory the wildcard stands for.
 
 ### Event-driven
 
@@ -145,6 +146,7 @@ those stays there, with the cross-cutting claim it belongs to.
 13. [verified] A chore opened by `work --chore` validates without a ghost warning for "none" or "chore", and an aside such as "(via ops only)" beside a real name is ignored while a real ghost in the same header still warns — verified by `packages/doctrina-cli/test/a-ghost-reference-is-named.test.js`.
 14. [verified] `validate` at a workspace root exits 1 for a missing shadow link and a delivery routed to an unregistered project, and 0 once both are fixed — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 15. [verified] The merge of two indexes keeps what each side added, drops what each side removed, takes 0.10.0 over 0.2.0 and the later date, never lowers the stamp, and is ordered as a rebuild orders it; an index with conflict markers is named as one and a rebuild heals it; `index merge` with fewer than three files exits 2 and with a side that is not JSON exits 1 — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
+16. [verified] `tsconfig.json` matches the file at the root and not one a dependency ships, `src/*.js` stays in one directory, `src/**/*.js` and `src/lib/` span directories, `pkg/*/src/main.js` matches under each package although `pkg/src` exists, and a bounded walk returns the levels asked for while following a linked directory — verified by `packages/doctrina-cli/test/o-validate-nao-varre-o-repositorio-inteiro.test.js`.
 
 ## Out of scope for this spec
 

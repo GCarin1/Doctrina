@@ -133,17 +133,34 @@ export function pruneEmptyDirs(dir, stopAt) {
   return removed;
 }
 
-// Recursive file walk. Returns absolute paths of every regular file.
-export function walk(root) {
+// Recursive file walk. Returns absolute paths of every regular file, sorted.
+//
+// The directory listing already says what each entry is, so it is asked
+// once (change 0249): the walk used to `stat` every entry twice — is it a
+// directory? is it a file? — which was a third of `validate`'s time on this
+// repository. A symbolic link is still followed with a `stat`, as before.
+// `depth` bounds how far down it goes: 1 is the files directly in `root`.
+/**
+ * @param {string} root
+ * @param {{ depth?: number }} [opts]
+ * @returns {string[]}
+ */
+export function walk(root, { depth = Infinity } = {}) {
+  /** @type {string[]} */
   const out = [];
   if (!exists(root)) return out;
-  const stack = [root];
+  /** @type {[string, number][]} */
+  const stack = [[root, 1]];
   while (stack.length) {
-    const dir = stack.pop();
-    for (const entry of readdirSync(dir)) {
-      const full = path.join(dir, entry);
-      if (isDir(full)) stack.push(full);
-      else if (isFile(full)) out.push(full);
+    const [dir, level] = /** @type {[string, number]} */ (stack.pop());
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      const link = entry.isSymbolicLink();
+      if (link ? isDir(full) : entry.isDirectory()) {
+        if (level < depth) stack.push([full, level + 1]);
+      } else if (link ? isFile(full) : entry.isFile()) {
+        out.push(full);
+      }
     }
   }
   return out.sort();

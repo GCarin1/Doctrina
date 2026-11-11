@@ -681,17 +681,29 @@ function compileGlob(glob) {
  */
 export function filesMatching(projectRoot, glob) {
   const re = globToRegExp(glob);
+  const text = String(glob);
+  const segments = text.split("/");
   // Walk from the deepest literal directory prefix so a narrow glob never
-  // costs a full-tree walk.
-  const prefix = String(glob).split("/").filter((s) => !/[*?]/.test(s));
+  // costs a full-tree walk. The prefix ends at the first segment that is a
+  // pattern: taking every literal segment, wherever it stood, let
+  // `a/*/b/c.js` start from `a/b` when that directory existed.
   let base = projectRoot;
-  for (const seg of prefix) {
+  let consumed = 0;
+  for (const seg of segments) {
+    if (/[*?{]/.test(seg)) break;
     const next = path.join(base, seg);
-    if (isDir(next)) base = next;
-    else break;
+    if (!isDir(next)) break;
+    base = next;
+    consumed += 1;
   }
   if (!isDir(base)) return [];
-  return walk(base).filter((f) => re.test(relPath(projectRoot, f).replaceAll("\\", "/")));
+  // ...and no deeper than the pattern can reach (change 0249). A pattern
+  // with no `**` names a fixed number of levels; `tsconfig.json` names one.
+  // Without the bound, each root-level file a spec declared walked the whole
+  // repository — `node_modules` and `.git` included — to find it.
+  const spans = text.endsWith("/") || segments.includes("**") || /\{[^}]*\/[^}]*\}/.test(text);
+  const depth = spans ? Infinity : Math.max(1, segments.length - consumed);
+  return walk(base, { depth }).filter((f) => re.test(relPath(projectRoot, f).replaceAll("\\", "/")));
 }
 
 // ---------------------------------------------------------------------------

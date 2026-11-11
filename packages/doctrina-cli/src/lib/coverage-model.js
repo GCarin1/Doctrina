@@ -30,6 +30,8 @@ import { parseAcceptanceCriteria } from "./criteria.js";
 export function collect(projectRoot, { only = /** @type {Set<string> | null} */ (null) } = {}) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   const reports = [];
+  /** @type {Map<string, boolean>} evidence file → is its suite skipped */
+  const skippedOf = new Map();
   if (isDir(specsDir)) {
     for (const cap of readdirSync(specsDir).sort()) {
       if (only && !only.has(cap)) continue;
@@ -40,7 +42,7 @@ export function collect(projectRoot, { only = /** @type {Set<string> | null} */ 
       if (criteria.length === 0) continue;
       const deferred = isDeclaredDeferral(text);
       const rows = criteria.map((crit, i) => {
-        const row = classify(crit, i + 1, projectRoot, path.dirname(specPath));
+        const row = classify(crit, i + 1, projectRoot, path.dirname(specPath), skippedOf);
         if (deferred && row.kind !== "covered") {
           return { ...row, kind: "deferred", was: row.kind };
         }
@@ -301,7 +303,7 @@ function evidenceClause(criterion) {
   return m ? criterion.slice(m.index) : null;
 }
 
-function classify(criterion, n, projectRoot, specDir) {
+function classify(criterion, n, projectRoot, specDir, skippedOf = /** @type {Map<string, boolean>} */ (new Map())) {
   // An orchestration criterion is judged on its GUARD, not on whether a
   // cited file exists — the whole point is that existence proves nothing here.
   const marker = criterion.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase() ?? "";
@@ -349,7 +351,14 @@ function classify(criterion, n, projectRoot, specDir) {
       continue;
     }
     const isTest = looksLikeTestFile(token);
-    const skipped = isTest && isFile(hit) ? testSuiteIsSkipped(read(hit)) : false;
+    // One read per evidence file, not one per criterion that cites it
+    // (change 0249): a suite that proves forty criteria was read and
+    // scanned forty times, on every `prime`, `status` and `validate`.
+    let skipped = false;
+    if (isTest && isFile(hit)) {
+      if (!skippedOf.has(hit)) skippedOf.set(hit, testSuiteIsSkipped(read(hit)));
+      skipped = skippedOf.get(hit) === true;
+    }
     resolved.push({ token, isTest, skipped });
   }
   if (resolved.length === 0) return { kind: "dangling", n, missing };
