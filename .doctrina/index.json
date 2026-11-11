@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.36.0",
+        "version": "0.37.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -23,7 +23,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,change-numbers,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
+          "packages/doctrina-cli/src/lib/{change-ops,change-numbers,applied-deltas,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
@@ -4276,6 +4276,20 @@
           }
         ],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0247-o-delta-que-chega-depois-do-apply-e-aplicado",
+        "title": "o delta que chega depois do apply e aplicado",
+        "path": ".doctrina/changes/archive/2026-11-11-0247-o-delta-que-chega-depois-do-apply-e-aplicado",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "runtime (uncertain; signals: em silencio) — opened anyway (--force)"
       }
     ],
     "skills": [

@@ -20,6 +20,7 @@ import { taskCard } from "../lib/task-card.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
 import { renumberChange } from "../lib/change-numbers.js";
+import { appliedDeltas, deltaFingerprint, deltaKey, pendingOps, recordAppliedDeltas } from "../lib/applied-deltas.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
 import { scanText } from "../lib/clarify-scan.js";
@@ -245,21 +246,53 @@ function changeApply(args, flags) {
   const proposalPath = path.join(changeDir, "proposal.md");
   const alreadyApplied = isFile(proposalPath)
     && (getHeader(read(proposalPath), "Status") ?? "").trim().toLowerCase() === "applied";
+  const allDeltas = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  // WHICH deltas the stamp covers (change 0247). The stamp is the change's,
+  // and a change is not finished when it is stamped: a close that applied
+  // and then stopped at a later gate leaves it `applied`, and the fix for
+  // that gate is often one more delta. The stamp said "nothing to do", the
+  // close went on, and the change was archived naming a spec it had never
+  // touched. The record names each delta that was applied, with what it held.
+  /** @type {Map<string, Set<number> | null> | null} delta → the ops still to apply (null: the whole delta) */
+  let lateOnly = null;
   if (alreadyApplied && !flagBool(flags, "force", false)) {
-    console.log(c.gray("skip ") + `change "${id}" is already applied — nothing to do`);
-    console.log(c.gray("The ops verbs are additive: applying twice duplicates every"));
-    console.log(c.gray("requirement this delta carries. Re-apply anyway with --force"));
-    console.log(c.gray("only after reverting the specs to their pre-apply state."));
-    return 0;
+    const record = appliedDeltas(read(proposalPath));
+    const late = new Map();
+    const edited = [];
+    for (const p of record ? allDeltas : []) {
+      const recorded = record?.get(deltaKey(changeDir, p));
+      if (!recorded) {
+        late.set(p, null);
+        continue;
+      }
+      const { fresh, gone } = pendingOps(recorded, deltaFingerprint(read(p)));
+      if (gone) edited.push(p);
+      else if (fresh.length > 0) late.set(p, new Set(fresh));
+    }
+    if (edited.length > 0) {
+      console.error(c.red("error:") + ` ${edited.map((p) => relPath(changeDir, p)).join(", ")}: an op that was already applied changed or was removed — the spec holds what it wrote, and applying the delta again would add to that, not replace it`);
+      console.error(c.gray("hint: ") + "restore the op as it was applied and add the correction as a new op (`replace-requirement`, `replace-criterion`, `doctrina change delta`), or revert the spec to its pre-apply state and run `doctrina change apply " + id + " --force`");
+      return 1;
+    }
+    if (late.size === 0) {
+      console.log(c.gray("skip ") + `change "${id}" is already applied — nothing to do`);
+      console.log(c.gray("The ops verbs are additive: applying twice duplicates every"));
+      console.log(c.gray("requirement this delta carries. Re-apply anyway with --force"));
+      console.log(c.gray("only after reverting the specs to their pre-apply state."));
+      return 0;
+    }
+    const what = [...late].map(([p, ops]) => `${relPath(changeDir, p)}${ops ? ` (${ops.size} new op${ops.size === 1 ? "" : "s"})` : ""}`).join(", ");
+    console.log(c.gray("note: ") + `change "${id}" was applied before this was added — applying only ${what}`);
+    lateOnly = late;
   }
 
   // The skip above comes FIRST (change 0221): the apply gate is a pre-apply
   // question, and on an applied change its ADDED check reads the content the
   // apply wrote as a conflict — which refused the resume of a killed close.
-  const applyGate = enforceTransition(projectRoot, id, changeDir, "apply", flags);
+  const applyGate = lateOnly ? { ok: true, forced: null } : enforceTransition(projectRoot, id, changeDir, "apply", flags);
   if (!applyGate.ok) return 1;
 
-  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  const deltaFiles = lateOnly ? [...lateOnly.keys()] : allDeltas;
   const date = today();
   let errors = 0;
   let writes = 0;
@@ -313,7 +346,8 @@ function changeApply(args, flags) {
       // `ops` block (set-header / bump-version / set-criterion / ...; F3);
       // otherwise it falls back to the historical manual-merge pointer, so
       // prose deltas keep working unchanged.
-      const ops = extractOps(text);
+      const only = lateOnly?.get(deltaPath) ?? null;
+      const ops = extractOps(text).filter((_op, i) => only === null || only.has(i));
       if (ops.length === 0) {
         console.log(c.yellow("manual[MODIFIED]") + ` merge ${relPath(projectRoot, deltaPath)} into ${relPath(projectRoot, targetPath)} by hand (no ops block)`);
         manual += 1;
@@ -356,6 +390,10 @@ function changeApply(args, flags) {
         console.log(c.green("status") + " proposal.md → applied");
         flippedToApplied = true;
       }
+      // Every delta the proposal's stamp now covers, with what it held.
+      const stamped = read(proposalPath);
+      const withRecord = recordAppliedDeltas(stamped, allDeltas.map((p) => [deltaKey(changeDir, p), deltaFingerprint(read(p))]));
+      if (withRecord !== stamped) write(proposalPath, withRecord, { force: true });
     }
   }
 

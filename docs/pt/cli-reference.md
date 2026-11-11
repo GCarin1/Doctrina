@@ -497,6 +497,19 @@ flipa de `proposed` para `applied` e uma linha `Applied:` é adicionada.
 Uma change cujos merges ficaram manuais ganha o carimbo na hora do
 `change archive`, então o arquivo nunca contradiz o ledger.
 
+**Aplicar de novo.** As ops são aditivas, então uma change aplicada não é
+aplicada duas vezes: o `apply` responde "already applied — nothing to do".
+O que ele aplicou fica registrado — a última linha do `proposal.md`, um
+comentário que nomeia cada delta e cada uma das ops dele — porque uma change
+não está terminada quando é carimbada: um `close` que aplicou e depois parou
+num gate seguinte costuma ser consertado com mais uma op (`doctrina change
+delta`) ou mais um delta. Esses são aplicados na próxima execução, e só
+esses; o `close` diz quais. Uma op que já foi aplicada e depois foi editada
+ou removida para o apply (saída `1`): a spec guarda o que ela escreveu,
+então a correção entra como uma op nova. Uma change aplicada por uma CLI
+mais velha não tem registro e fica como está, como antes; `--force` aplica
+tudo de novo.
+
 ## `doctrina change archive <id...>`
 
 Move um change aplicado para

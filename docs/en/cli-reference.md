@@ -484,6 +484,18 @@ from `proposed` to `applied` and an `Applied:` line is added. A change
 whose merges stayed manual gets the stamp at `change archive` time
 instead, so the file never contradicts the ledger.
 
+**Applying again.** The ops are additive, so an applied change is not
+applied twice: `apply` answers "already applied — nothing to do". What it
+applied is on record — the last line of `proposal.md`, a comment naming
+each delta and each of its ops — because a change is not finished when it
+is stamped: a `close` that applied and then stopped at a later gate is
+often repaired with one more op (`doctrina change delta`) or one more
+delta. Those are applied on the next run, and only those; `close` says
+which. An op that was already applied and then edited or removed stops the
+apply (exit `1`): the spec holds what it wrote, so the correction goes in
+as a new op. A change applied by an older CLI carries no record and is left
+alone, as before; `--force` applies everything again.
+
 ## `doctrina change archive <id...>`
 
 Move an applied change to

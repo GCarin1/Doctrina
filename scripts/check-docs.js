@@ -145,6 +145,13 @@ const known = new Set(COMMAND_NAMES);
 // A block of CLI output rather than a bare invocation: any line that opens
 // with a status marker the CLI prints. Invocation-only blocks (the common
 // case) are not output and need no marker.
+// A fence opens and closes at the START of a line. Pairing any two runs of
+// three backticks read the inline ` ```ops ` of a sentence as an opening
+// fence, and everything down to the next real one — forty lines of prose —
+// as a code block: a paragraph line that began with "applied" was then
+// "CLI output with no marker" (change 0247).
+const FENCE = /^[ \t]*```[\s\S]*?^[ \t]*```/gm;
+
 const OUTPUT_SIGNATURE =
   /^\s*(✓|✗|⚠|·|ok\s|fail\s|gap\s|error:|warn:|note:|hint:|created\s|applied|archived|indexed|ticked|fixed\s|rebuilt\s|removed\s|synced|would\s+|skip\s|update\s)/m;
 
@@ -157,7 +164,7 @@ for (const rel of factual) {
   //    inline backtick span) so prose like "the doctrina framework" is not
   //    mistaken for a command reference.
   const chunks = [];
-  const outsideFences = text.replace(/```[\s\S]*?```/g, (block) => {
+  const outsideFences = text.replace(FENCE, (block) => {
     chunks.push(block);
     return "\n";
   });
@@ -173,7 +180,7 @@ for (const rel of factual) {
 
   // 8. Output blocks carry an explicit marker. The marker may sit on the
   //    line before the fence or anywhere in the paragraph introducing it.
-  const fenceRe = /```[\s\S]*?```/g;
+  const fenceRe = new RegExp(FENCE.source, FENCE.flags);
   let fm;
   while ((fm = fenceRe.exec(text))) {
     if (!OUTPUT_SIGNATURE.test(fm[0])) continue;

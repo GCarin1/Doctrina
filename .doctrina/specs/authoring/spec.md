@@ -5,9 +5,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
-**Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,change-numbers,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
+**Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,change-numbers,applied-deltas,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.36.0
+**Version:** 0.37.0
 
 ## Purpose
 
@@ -278,6 +278,7 @@ keep the checks and the read path.
 - When `change abandon` deletes a change whose proposal names a delivery, the system shall record `(delivery <id>)` on its ledger line.
 - When `doctrina change renumber <id>` runs on an open change, the system shall move its folder to the next free number, rewrite the id in the Markdown files of that change and derive the index again; an id that is not an open change shall exit 2.
 - When `doctrina validate` runs and an open change shares its number with another change, the system shall warn, naming `doctrina change renumber <id>` for one of the two — the same one from either side.
+- When `doctrina change apply` runs on a change already stamped `applied`, the system shall apply the deltas and the ops its record in `proposal.md` does not name, each once, and shall refuse with exit 1 when an op the record names changed or is gone; a change with no record shall be left as it is.
 
 ### Unwanted-behavior (must-not)
 
@@ -380,6 +381,7 @@ The authoring commands are v0 spec-compliant when:
 60. [verified] a delivery's story ranks the capability its title does not name — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 61. [verified] the ledger keeps the abandoned change's delivery and its number is not reused — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.
 62. [verified] A change opened on `main` takes 0002 when a branch the clone knows already added 0001; two open changes under one number are named by `validate` for the one that sorts last, and `change renumber` moves it to the next free number with its title lines rewritten and the index in step — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
+63. [verified] After a close that applied and stopped at a later gate, an op added to the same delta and a delta added for another capability are applied by the next close exactly once, with one version bump; an applied op that was edited stops the apply with nothing written; an applied change with no record answers "already applied" — verified by `packages/doctrina-cli/test/o-delta-que-chega-depois-do-apply.test.js`.
 
 ## Out of scope for this spec
 

@@ -68,6 +68,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A delta — or an op — added to a change after a `close` that stopped is
+  applied by the next one. The `applied` stamp is the change's, so a close
+  that applied and then failed a later gate answered "already applied —
+  nothing to do" to the repair, and the change was archived naming a spec
+  it never touched. The proposal now records each op the stamp covers;
+  what is not in the record is applied, once, and an applied op that was
+  edited stops the apply instead of landing twice.
 - An `index.json` carrying git's conflict markers is reported as that, with
   `doctrina index rebuild` as the way out, instead of a JSON parse position.
 
