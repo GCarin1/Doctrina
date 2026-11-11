@@ -1,10 +1,10 @@
 ---
-name: patch-doctrina-files-as-crlf
-description: "Edit files under .doctrina/ knowing they are CRLF, so a regex or script patch cannot silently match nothing and report success. Use when: The task edits, patches, or generates any file under .doctrina/ with a script, sed, or a regex replacement rather than by hand."
+name: check-the-line-ending-before-patching
+description: "Patch a file under .doctrina/ with a script without assuming its line ending, so a regex cannot silently match nothing and report success. Use when: The task edits, patches, or generates any file under .doctrina/ with a script, sed, or a regex replacement rather than by hand."
 ---
-<!-- doctrina:skill-export — generated from .doctrina/skills/patch-doctrina-files-as-crlf.md by `doctrina index rebuild`; edit that file, not this one. -->
+<!-- doctrina:skill-export — generated from .doctrina/skills/check-the-line-ending-before-patching.md by `doctrina index rebuild`; edit that file, not this one. -->
 
-# Skill — patch-doctrina-files-as-crlf
+# Skill — check-the-line-ending-before-patching
 
 ## When to use this skill
 
@@ -16,17 +16,20 @@ description: "Edit files under .doctrina/ knowing they are CRLF, so a regex or s
 
 ## The failure this prevents
 
-Files under `.doctrina/` are written with **CRLF** line terminators —
-the shipped templates are CRLF, and so is everything scaffolded from
-them. Check any time you are unsure:
+A file under `.doctrina/` may end its lines with LF or with **CRLF**, and
+which one is not a property of Doctrina: it is the checkout's. This
+repository is LF everywhere — `.gitattributes` says `* text=auto eol=lf` —
+but it was not always (a Windows checkout with `core.autocrlf` turned the
+templates and everything scaffolded from them into CRLF), and a project
+that uses Doctrina has whatever its own git settings give it. Look:
 
 ```sh
-file .doctrina/templates/change/proposal.md.template
-#   ... with CRLF line terminators
+file .doctrina/changes/<id>/proposal.md
+#   "... with CRLF line terminators", or no mention of terminators (LF)
 ```
 
-A pattern anchored on `\n\n`, `^## What$`, or `$` therefore matches
-**nothing**, and a replacement that matches nothing is not an error —
+A pattern anchored on `\n\n`, `^## What$`, or `$` matches **nothing** in a
+CRLF file, and a replacement that matches nothing is not an error —
 `sed` exits 0, `String.replace` returns the original string, and the
 script reports success. The file is unchanged and every downstream gate
 sees a file that is structurally valid, because the scaffold it still
@@ -53,9 +56,9 @@ in one session.
    text.replace(/(## Why\r?\n\r?\n)<!--[\s\S]*?-->[ \t]*\r?\n?/, `$1${why}\n`);
    ```
 
-   Splitting on `/\r?\n/` and rejoining with `"\r\n"` is the simplest
-   correct shape, and is what `packages/doctrina-cli/src/commands/work.js`
-   does when it injects the prompt under `## Why`.
+   Inside the CLI, `eolOf(text)` reads the ending a file already has and
+   `withEol(text, eol)` writes it back (`packages/doctrina-cli/src/lib/fs-ops.js`);
+   `commands/work.js` does that when it injects the prompt under `## Why`.
 
 3. **Assert the replacement happened.** The whole defect is a silent
    no-op, so make it loud:
@@ -65,9 +68,9 @@ in one session.
    if (next === text) throw new Error(`${file}: pattern matched nothing`);
    ```
 
-4. **Write CRLF back out.** Mixing terminators inside one file is
-   tolerated by the parsers but makes the next diff unreadable. Join
-   with `"\r\n"`.
+4. **Write back the ending the file had.** Mixing terminators inside one
+   file is tolerated by the parsers but makes the next diff unreadable:
+   split on `/\r?\n/`, and rejoin with whichever the file used.
 
 5. **Verify by reading the content, not the exit code.** After a bulk
    edit, look at one file, and run the gate that inspects bodies:
@@ -80,18 +83,17 @@ in one session.
 ## Anti-patterns
 
 - Trusting a zero exit code from `sed -i` as proof the edit landed.
-- Writing LF into a file that other tooling will later patch with a
-  CRLF-aware pattern — the pattern then fails in the other direction.
-- Assuming the platform decides this. The terminators come from the
-  templates and the repository has no `.gitattributes`, so a checkout
-  on Linux carries CRLF too.
+- Writing one ending into a file that holds the other — the next
+  pattern then fails in the other direction.
+- Assuming either ending. "It is Linux, so it is LF" was false in this
+  repository for months, and "`.doctrina/` is CRLF" is false in it now.
 - "It worked when I tested it by hand" — a hand edit in an editor
   normalises terminators; the script does not.
 
 ## Related material
 
-- `packages/doctrina-cli/src/commands/work.js` — the CRLF-tolerant
-  injection under `## Why`.
+- `packages/doctrina-cli/src/commands/work.js` — the injection under `## Why`
+  that keeps the file's own ending.
 - `packages/doctrina-cli/src/commands/analyze.js` — the hollow-section
   check that exists because this defect shipped.
 - [[stage-a-change-backlog]] — the bulk-authoring case where this bites

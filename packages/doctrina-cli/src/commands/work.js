@@ -414,8 +414,8 @@ function writeLane(projectRoot, id, verdict, opts) {
   const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
   if (!isFile(proposalPath)) return;
   const text = read(proposalPath);
-  // CRLF-safe: the scaffolded proposals are CRLF, and a `.*$` pattern
-  // silently matches nothing against them — the `patch-doctrina-files-as-crlf`
+  // CRLF-safe: a scaffolded proposal may be CRLF, and a `.*$` pattern
+  // silently matches nothing against one — the `check-the-line-ending-before-patching`
   // skill exists for exactly this mistake.
   const updated = text.replace(/^(-[ \t]+\*\*Lane:\*\*)[^\r\n]*/m, `$1 ${line}`);
   if (updated !== text) write(proposalPath, updated, { force: true });

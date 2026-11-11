@@ -4252,6 +4252,15 @@
           }
         ],
         "lane": "product (confident; signals: declarar)"
+      },
+      {
+        "id": "0245-o-release-publica-sozinho-quando-a-versao-chega",
+        "title": "o release publica sozinho quando a versao chega a main",
+        "path": ".doctrina/changes/archive/2026-11-11-0245-o-release-publica-sozinho-quando-a-versao-chega",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [],
+        "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
       }
     ],
     "skills": [
@@ -4260,6 +4269,12 @@
         "path": ".doctrina/skills/add-cli-command.md",
         "description": "Add or change a doctrina CLI command or subcommand without leaving any surface (help, hub, docs, tests) behind.",
         "last_updated": "2026-07-19"
+      },
+      {
+        "id": "check-the-line-ending-before-patching",
+        "path": ".doctrina/skills/check-the-line-ending-before-patching.md",
+        "description": "Patch a file under .doctrina/ with a script without assuming its line ending, so a regex cannot silently match nothing and report success.",
+        "last_updated": "2026-11-11"
       },
       {
         "id": "cut-a-release",
@@ -4278,12 +4293,6 @@
         "path": ".doctrina/skills/ledger-abandoned-entries-are-ledger-only.md",
         "description": "Two-source cross-checks must exempt entries that one source records by design and the other deletes — an abandoned change is ledger-only, never archived",
         "last_updated": "2026-07-19"
-      },
-      {
-        "id": "patch-doctrina-files-as-crlf",
-        "path": ".doctrina/skills/patch-doctrina-files-as-crlf.md",
-        "description": "Edit files under .doctrina/ knowing they are CRLF, so a regex or script patch cannot silently match nothing and report success.",
-        "last_updated": "2026-09-07"
       },
       {
         "id": "read-the-grammar-through-the-document-model",

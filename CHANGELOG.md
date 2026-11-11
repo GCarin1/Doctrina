@@ -43,6 +43,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is denied by the guard, instead of being judged by the verb in its name —
   a verb the guard has never seen used to pass as a read.
 
+### Changed
+
+- A release is a version that reached `main`, not a tag pushed by hand. The
+  Release workflow runs when a push to `main` changes the package's
+  `package.json`: a version npm does not have yet is gated, published and
+  tagged by the job itself; any other version ends the run at the first
+  step. Both failed releases of this month were a hand-made tag on the wrong
+  commit. `node scripts/release.mjs <X.Y.Z>` writes every stamp that quotes
+  the version (lockfile, READMEs, `SECURITY.md`, AGENTS.md, the root index
+  and each example's) and `--check` names the one that disagrees — the suite
+  and the workflow both run it. The publish moves from Node 20.12, end of
+  life, to Node 24.
+- Line endings are LF in every checkout (`.gitattributes`), and the
+  changelog merges through git's `union`. The skill that said `.doctrina/`
+  is CRLF is now `check-the-line-ending-before-patching`: it was true of one
+  Windows checkout, and false in the repository.
+- Dependabot opens one grouped pull request a month for the workflows'
+  actions and one for the two devDependencies.
+
 ### Fixed
 
 - An `index.json` carrying git's conflict markers is reported as that, with

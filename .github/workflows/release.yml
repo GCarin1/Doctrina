@@ -1,13 +1,34 @@
 name: Release
 
+# A RELEASE IS A VERSION THAT REACHED main, NOT A TAG SOMEBODY PUSHED.
+#
+# The tag used to be the trigger, and the tag was made by hand. v0.20.0 went
+# on a later merge while 0.20.0 was already on npm (every gate passed and the
+# publish was refused with a 403), and v0.21.0 went on a commit whose
+# examples were still stamped 0.20.0. Both were the same mistake: a person
+# deciding, after the merge, which commit a version is.
+#
+# The version is `packages/doctrina-cli/package.json`'s. When a push to main
+# carries one npm does not have yet, this job runs the gates, publishes it,
+# and tags that commit `vX.Y.Z` itself. Any other push to main ends at the
+# first step. A tag pushed by hand still runs the job — and finds the version
+# already published, which is a notice, not a failure.
 on:
   push:
+    branches: [main]
+    paths:
+      - packages/doctrina-cli/package.json
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write   # the job pushes the tag
+  id-token: write   # npm provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -17,39 +38,50 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node 20.12
+      # The ACTIVE LTS the CI matrix already tests on three operating
+      # systems. This job published from 20.12 — end of life since April
+      # 2026 — which is the floor `engines` declares, not a release toolchain.
+      - name: Set up Node 24
         uses: actions/setup-node@v4
         with:
-          node-version: "20.12"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
-      # A TAG THAT CANNOT BE PUBLISHED STOPS HERE, NOT AFTER THE GATES.
-      #
-      # v0.20.0 was tagged on a later merge while 0.20.0 was already on npm:
-      # every gate passed, two minutes in, and the publish was refused with a
-      # 403 — the registry never lets a published version be replaced. The
-      # tag must name the version package.json declares, and that version
-      # must not be on npm yet; both are checked first and said plainly.
-      - name: The tag names an unpublished version
+      # Is there anything to publish? A tag must name the version
+      # package.json declares; a version npm already has is never replaced.
+      - name: Is this version on npm yet?
+        id: plan
         shell: bash
         run: |
           version=$(node -p "require('./packages/doctrina-cli/package.json').version")
-          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
-            echo "::error::tag ${GITHUB_REF_NAME} does not name packages/doctrina-cli/package.json's version (${version}) — tag the commit that bumps it, as v${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not name packages/doctrina-cli/package.json's version (${version}) — the release publishes and tags a version by itself when it reaches main; delete this tag"
             exit 1
           fi
           published=$(npm view "doctrina-cli@${version}" version 2>/dev/null || true)
           if [ -n "${published}" ]; then
-            echo "::error::doctrina-cli@${version} is already on npm, and npm never replaces a published version — bump the version, then tag that commit"
-            exit 1
+            echo "::notice::doctrina-cli@${version} is already on npm — nothing to publish. A release is a version bump merged into main (node scripts/release.mjs <X.Y.Z>)."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::doctrina-cli@${version} is not on npm yet — publishing it"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "v${version} is not on npm yet — publishing it"
 
       # The CLI ships zero RUNTIME dependencies, so this job never installed
       # anything. The typecheck gate needs TypeScript (a devDependency), and
       # a release is the last place to be running a weakened gate.
       - name: Install devDependencies
+        if: steps.plan.outputs.publish == 'true'
         run: npm ci
+
+      # Every place that quotes the version agrees with it: the lockfile, the
+      # READMEs, SECURITY.md, AGENTS.md, the changelog heading, the root index
+      # and each example's. Asked FIRST, in seconds — the examples' stamp was
+      # found by the strict validate four gates and two minutes later.
+      - name: Every stamp quotes the version
+        if: steps.plan.outputs.publish == 'true'
+        run: node scripts/release.mjs --check
 
       # THE RELEASE GATE IS NOT WEAKER THAN THE PR GATE.
       #
@@ -62,6 +94,7 @@ jobs:
       # which is the same list the gates action runs, so this stays one
       # declaration rather than a second copy that drifts.
       - name: Doctrina verify (the declared build gate)
+        if: steps.plan.outputs.publish == 'true'
         run: node packages/doctrina-cli/src/index.js verify
 
       # The one gate that exercises what npm actually ships. Three defects
@@ -69,12 +102,14 @@ jobs:
       # packed install, and a publish is precisely where that class lands on
       # users instead of on us.
       - name: Packed-install harness (what the tarball really does)
+        if: steps.plan.outputs.publish == 'true'
         run: node scripts/e2e-packed.mjs
 
       # The examples ship in the repository, not in the tarball, but a release
       # is what people go read them at. Strict: a warning in an example is a
       # defect (change 0126).
       - name: Examples validate (strict)
+        if: steps.plan.outputs.publish == 'true'
         shell: bash
         run: |
           for dir in examples/*/; do
@@ -89,7 +124,24 @@ jobs:
       # and this commit, which is the supply-chain claim a zero-dependency
       # tool should be able to make.
       - name: Publish doctrina-cli
+        if: steps.plan.outputs.publish == 'true'
         working-directory: packages/doctrina-cli
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # The tag names the commit that was published, because the job that
+      # published it is the one that writes it. A tag that is already there
+      # (pushed by hand, which is what triggered this run) is left alone.
+      - name: Tag the published commit
+        if: steps.plan.outputs.publish == 'true'
+        shell: bash
+        run: |
+          tag="v${{ steps.plan.outputs.version }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "${tag} already exists — left as it is"
+          else
+            git tag "${tag}" "${GITHUB_SHA}"
+            git push origin "${tag}"
+            echo "::notice::tagged ${GITHUB_SHA} as ${tag}"
+          fi
