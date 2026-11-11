@@ -4290,6 +4290,15 @@
           }
         ],
         "lane": "runtime (uncertain; signals: em silencio) — opened anyway (--force)"
+      },
+      {
+        "id": "0248-a-politica-de-seguranca-descreve-o-cli-que",
+        "title": "a politica de seguranca descreve o cli que existe",
+        "path": ".doctrina/changes/archive/2026-11-11-0248-a-politica-de-seguranca-descreve-o-cli-que",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [

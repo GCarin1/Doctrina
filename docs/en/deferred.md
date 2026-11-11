@@ -39,8 +39,8 @@ schema, and a documented retention policy.
 
 **Status:** deferred indefinitely.
 
-**Why:** Each additional language adds 13 docs (the current EN
-inventory) that must be kept in sync. PT was added because the
+**Why:** Each additional language adds a full copy of the EN docs
+that must be kept in sync. PT was added because the
 maintainer's primary working language is Portuguese; further
 languages need a contributor willing to own the ongoing parity
 work.

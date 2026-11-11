@@ -59,6 +59,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   promised to catch "a function whose callers disagree about whether it
   returns null", which the checker cannot see with the option off; turning
   it on named 82 places, now annotated or guarded.
+- `SECURITY.md` describes the CLI that exists. It listed six read-only git
+  queries and a filesystem boundary of the working directory plus
+  `.git/hooks/`, while the workspace writes a registry under the home
+  directory, links into other repositories and their `.git/info/exclude`,
+  and runs `git init` — things the same document classed as security
+  issues. Every git subcommand, every write and read outside the project,
+  and what the MCP guard is and is not are now stated, and a test compares
+  the document with the code.
+- The docs gate counts the capability specs the root READMEs claim (they
+  said "Eleven" with thirteen in the tree) and refuses that count written
+  as a word.
 - Line endings are LF in every checkout (`.gitattributes`), and the
   changelog merges through git's `union`. The skill that said `.doctrina/`
   is CRLF is now `check-the-line-ending-before-patching`: it was true of one

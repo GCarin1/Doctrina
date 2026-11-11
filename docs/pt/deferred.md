@@ -44,8 +44,8 @@ documentado de dados e policy documentada de retenção.
 
 **Status:** adiado indefinidamente.
 
-**Por quê:** Cada idioma adicional adiciona 13 docs (o inventário
-EN atual) que devem ser mantidos em sync. PT foi adicionado
+**Por quê:** Cada idioma adicional adiciona uma cópia inteira dos docs
+EN que deve ser mantida em sync. PT foi adicionado
 porque a língua de trabalho primária do mantenedor é português;
 mais idiomas precisam de um contribuidor disposto a possuir o
 trabalho contínuo de paridade.

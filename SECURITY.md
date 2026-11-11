@@ -29,20 +29,45 @@ reporting.
   does not collect usage, errors, install counts, machine
   identifiers, or any other signal. No metric leaves your
   machine.
-- **Filesystem boundary.** The CLI writes only inside the current
-  working directory and (for `hooks install`) inside
-  `.git/hooks/`. It does not modify files outside the project
-  tree.
+- **Filesystem boundary.** A command writes inside the project it
+  runs in — `.doctrina/`, `AGENTS.md`, the adapter files, and
+  `.gitattributes` — with these exceptions, each the purpose of
+  the command that makes it:
+  - `doctrina hooks install` writes `.git/hooks/pre-commit` and
+    the merge driver in the clone's `.git/config`.
+  - `doctrina workspace init|add|attach|detach|tool` write the
+    workspace folder you name; a registry of your workspaces at
+    `$DOCTRINA_HOME` (default `~/.doctrina`); and, in each
+    repository you register as a shadow, links to the shadow's
+    files (a symlink or junction, else a hard link, else a copy
+    the command reports) plus the lines in that repository's
+    `.git/info/exclude` that hide them from its git.
+  - `doctrina verify` writes one scratch file in the system's
+    temporary directory (a copy of git's index, to fingerprint
+    the tree) and removes it.
+  - `DOCTRINA_USAGE_LOG`, when you set it, names a local file the
+    CLI appends command names to. It is off by default and
+    nothing reads it but you.
+- **What it reads outside the project.** The templates of its own
+  installed package; at a workspace, the server **names** in
+  `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` and
+  `~/.claude.json`, to warn when a declared tool matches none;
+  and, for `doctrina doctor`, the directories of the `PATH` and
+  the `package.json` of another `doctrina-cli` found there.
 - **Subprocesses are `git`, or commands the project declared.**
-  The CLI spawns exactly three kinds of process, and no others:
-  read-only `git` queries (`cat-file`, `diff`, `log`,
-  `ls-files`, `merge-base`, `rev-parse`) for the commands that
-  read history, passed as an argument array and never through a
-  shell; the `checks[].run` commands of `.doctrina/verify.json`,
-  run by `doctrina verify`; and that file's `evidence_runner`,
-  run by `doctrina coverage --run`. `doctrina hooks install`
-  writes `.git/hooks/pre-commit`, which git later runs.
-  
+  The CLI spawns exactly three kinds of process, and no others.
+  `git`, always as an argument array and never through a shell —
+  to read: `cat-file`, `diff`, `for-each-ref`, `log`, `ls-files`,
+  `ls-tree`, `merge-base`, `remote`, `rev-parse`, `show`; to
+  write: `config` (the merge driver, by `hooks install`), `init`
+  (a new workspace folder, by `workspace init`), and `add` with
+  `write-tree` against the scratch index named above — the
+  repository's own index and working tree are never staged. The
+  `checks[].run` commands of `.doctrina/verify.json`, run by
+  `doctrina verify`. And that file's `evidence_runner`, run by
+  `doctrina coverage --run`. `doctrina hooks install` writes a
+  hook and a merge driver that git later runs; both run this CLI.
+
 ## The trust boundary: a project's own files
 
 `.doctrina/verify.json` is executable configuration, in the same
@@ -58,15 +83,29 @@ repository chose.** Read `.doctrina/verify.json` before running
 either command on code you did not write, exactly as you would
 read a `package.json` before `npm test`.
 
-Every other command — `validate`, `status`, `context`, `close`,
-the whole read and scaffold surface — reads and writes files and
-queries `git`. None of them executes a project-declared command.
+Every other command — `validate`, `status`, `context`, the whole
+read and scaffold surface — reads and writes files and queries
+`git`. None of them executes a project-declared command, with one
+exception by composition: `doctrina close` runs `verify` as one of
+its steps.
+
+A workspace's guard (`doctrina workspace guard`) decides MCP calls
+from the tools the workspace declares. It is a guardrail for an
+agent that follows its hooks, not a sandbox: it sees calls made
+through an MCP server and nothing an agent does through a shell.
+Whether a call writes is read from its name and input unless the
+tool lists the calls it may make (`--only`), which is the setting
+for anything that must not be written to.
 
 ## What counts as a security issue
 
-- A path the CLI writes outside the project working directory.
-- A path the CLI reads outside the project working directory or
-  the package's installed templates.
+- A path the CLI writes outside the project working directory,
+  other than those listed under *Filesystem boundary* above.
+- A path the CLI reads outside the project working directory,
+  other than those listed under *What it reads outside the
+  project*.
+- A `git` subcommand the CLI runs that the list above does not
+  name.
 - An accidental network call.
 - Information leakage in error messages (paths, file contents,
   user identifiers).

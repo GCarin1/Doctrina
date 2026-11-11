@@ -290,12 +290,26 @@ for (const lang of ["en", "pt"]) {
 //     directory are the owners; every count in the prose is a copy, so
 //     every copy is checked, wherever it lives.
 const counts = { commands: COMMAND_NAMES.length, operations: OPERATION_NAMES.length };
+// The capability specs on disk own their count the same way (change 0248):
+// README.md said "Eleven capability specs" with thirteen in the tree, under
+// a paragraph promising that every count in the documentation is checked.
+const specsDir = path.join(root, ".doctrina", "specs");
+const specCount = existsSync(specsDir)
+  ? readdirSync(specsDir).filter((d) => existsSync(path.join(specsDir, d, "spec.md"))).length
+  : 0;
+/** @type {[string, number][]} */
 const NOUNS = [
   ["commands", counts.commands],
   ["comandos", counts.commands],
   ["operations", counts.operations],
   ["opera\u00e7\u00f5es", counts.operations],
+  ["capability specs", specCount],
+  ["specs de capability", specCount],
 ];
+// A count written as a word is a count nothing can check — which is how
+// "Eleven" outlived two capabilities.
+const NUMBER_WORDS = "two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty"
+  + "|dois|duas|tr\u00eas|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte";
 // Every ADR on disk, so a documented range can be held to the real one.
 const decisionsDir = path.join(root, ".doctrina", "decisions");
 const adrNumbers = existsSync(decisionsDir)
@@ -306,13 +320,25 @@ const adrNumbers = existsSync(decisionsDir)
   : [];
 const highestAdr = adrNumbers[adrNumbers.length - 1];
 
-const countedDocs = ["README.md", "README.pt.md",
+const countedDocs = ["README.md", "README.pt.md", "packages/doctrina-cli/README.md",
   ...markdownUnder(path.join(root, "docs")).map((f) => path.relative(root, f))];
 for (const rel of countedDocs) {
   const p = path.join(root, rel);
   if (!existsSync(p)) continue;
   const text = readFileSync(p, "utf8");
+  // Only where a number before the noun is always the TOTAL: "two commands"
+  // is ordinary prose about a pair of them, "eleven capability specs" is a
+  // count of the tree.
+  for (const noun of /^README(\.pt)?\.md$/.test(rel) ? ["capability specs", "specs de capability"] : []) {
+    for (const m of text.matchAll(new RegExp(`\\b(${NUMBER_WORDS})\\s+${noun}\\b`, "gi"))) {
+      problems.push(`count: ${rel} writes "${m[0]}" in words — write the number in digits, so it is checked against the tree`);
+    }
+  }
   for (const [noun, actual] of NOUNS) {
+    // The specs are counted where the claim is about THIS repository: the
+    // guides also describe other trees ("50 capability specs" is the
+    // benchmark's synthetic project).
+    if (/specs/.test(noun) && !/^README(\.pt)?\.md$/.test(rel)) continue;
     // A bare "<n> commands" is the claim form: a number immediately followed
     // by the noun. Prose that merely mentions a number near the word is not.
     for (const m of text.matchAll(new RegExp(`(\\d+)\\s+${noun}\\b`, "gi"))) {

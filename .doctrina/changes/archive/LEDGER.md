@@ -258,3 +258,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-11 — 0245-o-release-publica-sozinho-quando-a-versao-chega — o release publica sozinho quando a versao chega a main
 - 2026-11-11 — 0246-a-checagem-de-tipos-enxerga-o-nulo — a checagem de tipos enxerga o nulo (specs: gates MODIFIED)
 - 2026-11-11 — 0247-o-delta-que-chega-depois-do-apply-e-aplicado — o delta que chega depois do apply e aplicado (specs: authoring MODIFIED)
+- 2026-11-11 — 0248-a-politica-de-seguranca-descreve-o-cli-que — a politica de seguranca descreve o cli que existe
