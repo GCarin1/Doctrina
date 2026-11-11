@@ -19,6 +19,11 @@ import { OPERATIONS } from "../lib/commands.js";
 import { coverageLabel } from "../lib/views.js";
 import { workspaceFindings, workspaceRootAt, workspaceSnapshot } from "../lib/workspace-view.js";
 import { cdThen } from "../lib/shell.js";
+import { cliVersion } from "../lib/version.js";
+import { installsOnPath, runningPackageDir } from "../lib/install.js";
+import { missingAttributes, configuredDriver } from "../lib/merge-setup.js";
+import { isRepo } from "../lib/git.js";
+import { shadowRootOf } from "../lib/workspace.js";
 
 // How many never-invoked operations the usage row names before pointing at
 // `metrics --commands` for the rest. The spec states this number, so it is
@@ -316,6 +321,45 @@ export async function run(_positional, _flags) {
       }
     },
 
+    // 9b. The CLI that is running, and the one a bare `doctrina` finds.
+    cli: () => {
+      const version = cliVersion();
+      const installs = installsOnPath();
+      const first = installs[0];
+      const here = runningPackageDir();
+      const others = installs.filter((i) => !i.running);
+      const label = (/** @type {{ bin: string, version: string | null }} */ i) => `${i.bin} (${i.version ?? "version unknown"})`;
+      if (first && !first.running) {
+        row("warn", "cli", `${version} is running from ${here}, but \`doctrina\` on the PATH is ${label(first)} — the hooks and every bare \`doctrina\` run that one`,
+          `remove or update the other install (npm uninstall -g doctrina-cli under the Node that owns it), or put this one first on the PATH`);
+        warningsTotal += 1;
+      } else if (others.length > 0) {
+        row("warn", "cli", `${version} at ${first.bin}; ${others.length} more on the PATH: ${others.map(label).join(", ")}`,
+          "remove the copies you do not use — a shell whose PATH orders them differently runs another version");
+        warningsTotal += 1;
+      } else if (!first && callsDoctrinaByName(projectRoot)) {
+        row("warn", "cli", `${version} is running from ${here}, and no \`doctrina\` is on the PATH — this project's agent hooks call it by name`,
+          "npm install -g doctrina-cli   (or add its bin directory to the PATH)");
+        warningsTotal += 1;
+      } else {
+        row("ok", "cli", first ? `${version} at ${first.bin} — the only one on the PATH` : `${version}, run from ${here} (no \`doctrina\` on the PATH)`);
+      }
+    },
+
+    // 9c. Whether two branches that each close a change merge by themselves.
+    merges: () => {
+      if (!isRepo(projectRoot) || shadowRootOf(projectRoot) !== null) return;
+      const attributes = missingAttributes(projectRoot).length === 0;
+      const driver = configuredDriver(projectRoot) !== null;
+      if (attributes && driver) {
+        row("ok", "merges", "index.json and the ledger merge by themselves (driver and .gitattributes in place)");
+        return;
+      }
+      const missing = !attributes && !driver ? "nothing is set up" : !attributes ? ".gitattributes lacks the two lines" : "this clone has no merge driver";
+      row("warn", "merges", `${missing} — two branches that each close a change stop on index.json and the ledger`, "doctrina hooks install   (once per clone; commit .gitattributes)");
+      warningsTotal += 1;
+    },
+
     // 10. Which of the catalog's operations have never been reached for —
     //     but ONLY when the operator turned the log on. `lib/usage.js` was
     //     built to instrument the surface before shrinking it, and the only
@@ -377,6 +421,14 @@ export async function run(_positional, _flags) {
   return 0;
 }
 
+/** Does an agent hook in this project call `doctrina` by its bare name? */
+function callsDoctrinaByName(projectRoot) {
+  return [".cursor/hooks.json", ".claude/settings.json"].some((rel) => {
+    const file = path.join(projectRoot, rel);
+    return isFile(file) && /"(command)":\s*"doctrina /.test(read(file));
+  });
+}
+
 export const help = `
 Usage: doctrina doctor
 
@@ -390,6 +442,12 @@ exact remediation command.
   --env    also check the local .env against the declared names and
            enums. Reports membership only; a rejected value is never
            printed, so this is safe to run and to paste.
+
+Two rows read the machine and the clone, not the artifacts: \`cli\` names
+the install that is running and any other \`doctrina\` the PATH holds — the
+agent hooks call it by name, so the first one found is the one they run —
+and \`merges\` says whether \`doctrina hooks install\` has set this clone up
+to merge index.json and the ledger without a manual step.
 
 A driver over the same collections the gates themselves render; it adds
 no checks of its own, so it can never disagree with the gates it fronts,

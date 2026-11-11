@@ -31,6 +31,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A new change is also numbered past the changes other branches added in the
   last 180 days, as far as the clone's git history shows them.
 
+- `doctrina doctor` names the install that is running and every other
+  `doctrina` on the PATH, with versions, and warns when the first one found
+  is not the one running — the agent hooks call it by name. A maintainer
+  updated through npm and `doctrina --version` still answered the old
+  number: a second install, ahead on the PATH. A `merges` row says whether
+  the clone is set up to merge the index and the ledger by itself.
+
 ### Fixed
 
 - An `index.json` carrying git's conflict markers is reported as that, with

@@ -2465,6 +2465,17 @@ Read-only, which here also means it never repairs: `validate --fix`
 heals a drifted index, `doctor` only reports one. Exits 1 when any area
 fails.
 
+Two rows read the machine and the clone, not the artifacts. `cli` names the
+install that is running and every other `doctrina` the PATH holds, each with
+its version: the hooks the adapters write call `doctrina` by name, so a
+second install ahead on the PATH — another Node version, an npm prefix that
+moved — is the one they run, and the one `doctrina --version` answers for.
+It warns when the first `doctrina` on the PATH is not the one running, when
+there is more than one, and when there is none while a hook calls it by
+name. `merges` says whether `doctrina hooks install` has set this clone up
+to merge `index.json` and the ledger without a manual step; outside a git
+repository, and in a shadowed one, the row is absent.
+
 The runtime row reports a project with contracts but no Wiring or
 Selectors rows as **unchecked**, never as ok: an undeclared surface is
 not a verified one.

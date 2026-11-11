@@ -2525,6 +2525,17 @@ Read-only, o que aqui também
 quer dizer que ele nunca repara: `validate --fix` cura um índice em
 drift, o `doctor` apenas reporta. Sai 1 quando alguma área falha.
 
+Duas linhas leem a máquina e o clone, não os artefatos. A `cli` nomeia a
+instalação que está rodando e todo outro `doctrina` que o PATH guarda, cada
+um com a versão: os hooks que os adapters escrevem chamam `doctrina` pelo
+nome, então uma segunda instalação à frente no PATH — outra versão de Node,
+um prefixo do npm que mudou — é a que eles rodam, e a que o `doctrina
+--version` responde. Ela avisa quando o primeiro `doctrina` do PATH não é o
+que está rodando, quando há mais de um, e quando não há nenhum enquanto um
+hook o chama pelo nome. A `merges` diz se o `doctrina hooks install` já
+preparou este clone para fundir o `index.json` e o ledger sem passo manual;
+fora de um repositório git, e num repositório-sombra, a linha não aparece.
+
 A linha de runtime reporta um projeto com contratos mas sem linhas de
 Wiring ou Selectors como **não checado**, nunca como ok: uma superfície
 não declarada não é uma superfície verificada.
