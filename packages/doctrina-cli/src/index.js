@@ -34,6 +34,7 @@ const COMMANDS = {
   context: () => import("./commands/context.js"),
   search: () => import("./commands/search.js"),
   intake: () => import("./commands/intake.js"),
+  onboard: () => import("./commands/onboard.js"),
   work: () => import("./commands/work.js"),
   coverage: () => import("./commands/coverage.js"),
   verify: () => import("./commands/verify.js"),

@@ -19,6 +19,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `doctrina onboard` walks the whole cycle once, on the real repository:
+  the six steps, each ticked when the tree shows it done, and for the
+  current one what to tell the human, where to stop and ask, and the
+  commands to run. At "pick a first task" it suggests candidates read from
+  the repository — a criterion with no proof, a TODO in the code. It works
+  before `init`, stores nothing, and the `claude` and `cursor` adapters
+  install it as `/doctrina-onboard`. `doctrina init` points at it.
+- `doctrina upgrade --write` gives an installed adapter the core-loop file
+  a newer CLI ships; a new slash command used to reach only the projects
+  that ran `adapter add` again.
 - The tracks, by what a request changes. An edit that changes nothing a
   spec says — a typo, a comment, formatting, a fix that makes the code do
   what the spec already says — opens no change: edit, `doctrina verify`,

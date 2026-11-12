@@ -102,6 +102,14 @@ whole closing sequence — that the agent executes in one linear pass. The two c
 are the no-ceremony path; the manual commands below are exactly what they
 orchestrate, and stay available when you want fine-grained control.
 
+## Guided, the first time
+
+Prefer to be walked through it? `doctrina onboard` (or `/doctrina-onboard`
+in Claude Code and Cursor) runs the whole cycle once on your repository:
+it shows which step the project is at, suggests a small real first task,
+and tells the agent what to explain and where to ask you. The sections
+below are the same steps, by hand.
+
 ## Your first capability spec
 
 Doctrina treats capabilities as the unit of truth. Create one:

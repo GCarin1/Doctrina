@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.34.0
+**Version:** 0.34.1
 
 ## Purpose
 
@@ -129,7 +129,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 
 | Agent | Files installed | Notes |
 |-------|-----------------|-------|
-| `claude` | `CLAUDE.md` + `.claude/commands/doctrina-{work,next,context,status,why}.md` | `@AGENTS.md` pointer plus native slash commands for the core loop. |
+| `claude` | `CLAUDE.md` + `.claude/commands/doctrina-{work,next,context,status,why,onboard}.md` | `@AGENTS.md` pointer plus native slash commands for the core loop. |
 | `codex` | none | OpenAI Codex CLI reads `AGENTS.md` natively. |
 | `cursor` | `.cursor/rules/00-doctrina.mdc` + `.cursor/skills/doctrina-*/SKILL.md` | `alwaysApply: true` rule plus the core loop as skills, invoked with `/`. |
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot repository-level instructions; points at AGENTS.md. |

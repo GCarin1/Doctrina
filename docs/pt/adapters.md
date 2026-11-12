@@ -54,14 +54,14 @@ para que o agente não precise "saber" que deve chamar a CLI:
 
 | Comando | Roda |
 |---------|------|
+| `/doctrina-onboard` | `doctrina onboard`: o ciclo inteiro uma vez, guiado, parando em cada ASK |
 | `/doctrina-work <prompt>` | `doctrina work` + conduz a mudança pelos gates |
 | `/doctrina-next` | `doctrina next` / `doctrina status` e age no item prioritário |
 | `/doctrina-context [cap]` | `doctrina context --concat` (o pacote de leitura) |
 | `/doctrina-status` | painel de saúde `doctrina status` |
 | `/doctrina-why <cap>` | cadeia de proveniência `doctrina why` |
 
-Cada um é um prompt fino que chama a CLI e repassa a saída — a CLI
-continua sendo a única fonte de verdade.
+Cada um é um prompt fino que chama a CLI e repassa a saída: a CLI é a fonte de verdade.
 
 ## OpenAI Codex CLI
 
@@ -121,7 +121,7 @@ a regras do projeto por cima dele — veja [context-engineering.md](context-engi
 ### Skills do core loop
 
 O adapter `cursor` instala também `.cursor/skills/doctrina-*/SKILL.md`: o core
-loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`) como skills que
+loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`, `-onboard`) como skills que
 chamam a CLI, com `disable-model-invocation: true` (rodam quando chamadas com
 `/`) — a doc do Cursor descreve skills, não `.cursor/commands/`. `doctrina
 upgrade --write` (ou `adapter add cursor`) grava as skills num projeto antigo e

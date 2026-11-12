@@ -12,7 +12,7 @@
 // Keep this sorted by the workflow order used in `--help`, not alphabetically.
 export const COMMAND_NAMES = [
   // bootstrap / day-to-day
-  "init", "intake", "triage", "work",
+  "init", "onboard", "intake", "triage", "work",
   // authoring
   "spec", "change", "contract", "decision", "skill", "intent", "adapter",
   // read / orient
@@ -37,6 +37,7 @@ export const COMMAND_NAMES = [
 // every op.
 export const OPERATIONS = [
   ["init", "Scaffold AGENTS.md and .doctrina/ in the current directory"],
+  ["onboard", "Walk the whole cycle once on this repository, step by step"],
   ["intake", "Store the full project description; print the bootstrap playbook"],
   ["triage", "Classify a request into a lane, and check the runtime surface"],
   ["work", "Brief prompt -> scaffolded change + guided work playbook"],
@@ -134,6 +135,7 @@ export const OPERATIONS = [
 // `templates check` fails when either is missing.
 export const COMMAND_META = {
   init:         { moment: "Bootstrap",  when: "starting a project that has no AGENTS.md yet", purpose: "scaffold AGENTS.md and .doctrina/" },
+  onboard:      { moment: "Bootstrap",  when: "the first session in a project, or showing it to someone new", purpose: "walk the whole cycle once, step by step, on this repository" },
   intake:       { moment: "Bootstrap",  when: "you have a full project description and no specs yet", purpose: "store the intent and print the bootstrap playbook" },
   adapter:      { moment: "Bootstrap",  when: "adding or removing an agent's pointer files", purpose: "install/remove agent adapters (additive)" },
 

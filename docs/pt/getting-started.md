@@ -106,6 +106,14 @@ passada linear. Os dois comandos são o caminho sem cerimônia; os comandos manu
 abaixo são exatamente o que eles orquestram, e seguem disponíveis quando
 você quer controle fino.
 
+## Guiado, na primeira vez
+
+Prefere ser conduzido? O `doctrina onboard` (ou `/doctrina-onboard` no
+Claude Code e no Cursor) roda o ciclo inteiro uma vez no seu repositório:
+mostra em que passo o projeto está, sugere uma primeira tarefa pequena e
+real, e diz ao agente o que explicar e onde perguntar a você. As seções
+abaixo são os mesmos passos, à mão.
+
 ## Sua primeira spec de capability
 
 Doctrina trata capabilities como unidade de verdade. Crie uma:

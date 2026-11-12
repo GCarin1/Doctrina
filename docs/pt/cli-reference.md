@@ -132,6 +132,58 @@ add <nome>`** — não `init --force`. O `adapter add` é aditivo e nunca
 toca em `AGENTS.md` ou `product.md`; o `init --force` re-esqueletiza e
 agora recusa quando qualquer um dos dois carrega conteúdo autorado.
 
+## `doctrina onboard`
+
+Percorre o ciclo inteiro uma vez, neste repositório. O `next` nomeia uma
+ação e supõe que o leitor sabe por quê; o `onboard` é para a primeira
+sessão num projeto, ou para mostrá-lo a alguém novo: imprime os seis
+passos, marca os que a árvore já mostra feitos e, para o primeiro que não
+está, diz o que contar ao humano, onde parar e **perguntar** (ASK), e os
+comandos a rodar.
+
+```
+doctrina onboard
+doctrina onboard --json
+```
+
+<!-- illustrative -->
+```
+  ✓ 1. Install                        .doctrina/ and AGENTS.md are here
+  ✓ 2. Describe the project           1 capability spec (codes)
+  → 3. Pick a first task and open it
+    4. Write the delta and the tasks
+    5. Implement and prove
+    6. Close
+
+Step 3 — Pick a first task and open it
+  Tell the human: A request that changes behaviour becomes a change before code is edited; …
+
+  Candidates read from this repository:
+    - codes #1                 no proof cited: Two URLs get two codes.
+    - app.py:2                 TODO handle expired links before returning the code
+  ASK the human to choose one of the candidates, or to name a small task of their own …
+  Then run:
+    doctrina work "<the task>"
+```
+
+Rode de novo depois de cada passo: ele não guarda nada e lê a árvore toda
+vez, então um passo é marcado quando a árvore o mostra — existe uma spec,
+há uma change aberta, as tarefas dela estão escritas, estão marcadas, há
+uma change arquivada. As candidatas a primeira tarefa são um critério de
+aceite que não cita prova (ou cuja prova sumiu) e, depois, um
+`TODO`/`FIXME` deixado num arquivo de código rastreado; são sugestões, e
+quem escolhe é o humano. Num projeto que já fechou uma change, todos os
+passos estão marcados e ele imprime o tour para quem chega: os comandos
+para ler o projeto e a última change fechada como exemplo completo.
+
+Funciona antes do `doctrina init` — o primeiro passo é a instalação — e
+não escreve nada. Os adapters `claude` e `cursor` o instalam como
+`/doctrina-onboard`.
+
+| Flag | Função |
+|------|--------|
+| `--json` | Os passos com seu estado, o passo atual (`null` quando todos estão feitos) e as candidatas a primeira tarefa. |
+
 ## `doctrina intake [<file>]`
 
 Armazena a descrição completa do projeto literalmente em

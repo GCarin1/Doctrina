@@ -37,6 +37,7 @@ Every command, with the moment you reach for it. The CLI scaffolds from
 canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
 **Bootstrap**
 - `doctrina init` — scaffold AGENTS.md and .doctrina/. *When:* starting a project that has no AGENTS.md yet.
+- `doctrina onboard` — walk the whole cycle once, step by step, on this repository. *When:* the first session in a project, or showing it to someone new.
 - `doctrina intake` — store the intent and print the bootstrap playbook. *When:* you have a full project description and no specs yet.
 - `doctrina adapter list|add|remove` — install/remove agent adapters (additive). *When:* adding or removing an agent's pointer files.
 **Orient**

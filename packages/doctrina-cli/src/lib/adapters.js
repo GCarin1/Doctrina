@@ -148,9 +148,12 @@ export const RETIRED_ADAPTER_FILES = Object.freeze({
  * @param {Record<string, string>} tokens  as `adapter add` renders with
  * @param {string} [root]  where the files live: the shadow folder of a shadowed repository
  */
+// The core loop an adapter installs as slash commands or skills.
+const CORE_LOOP_FILE = /(^|\/)doctrina-[a-z-]+(\.md|\/SKILL\.md)$/;
+
 export function planAdapterMigration(projectRoot, tokens, root = projectRoot) {
-  /** @type {{ writes: Array<{ relativePath: string, content: string }>, removes: string[], kept: string[] }} */
-  const plan = { writes: [], removes: [], kept: [] };
+  /** @type {{ writes: Array<{ relativePath: string, content: string }>, removes: string[], kept: string[], added: Array<{ relativePath: string, content: string }> }} */
+  const plan = { writes: [], removes: [], kept: [], added: [] };
   const norm = (/** @type {string} */ s) => s.replace(/\r\n/g, "\n").trim();
   for (const [name, list] of Object.entries(RETIRED_ADAPTER_FILES)) {
     const spec = adapterFiles(projectRoot, name);
@@ -165,6 +168,23 @@ export function planAdapterMigration(projectRoot, tokens, root = projectRoot) {
       (norm(read(path.join(root, retired))) === norm(body) ? plan.removes : plan.kept).push(retired);
     }
   }
+  // A family the adapter installed gains the member a newer CLI ships
+  // (change 0256). `/doctrina-onboard` reached only the projects that ran
+  // `adapter add` again: the upgrade compared nothing but retired files. An
+  // adapter is read as installed by its own core-loop files, so one the
+  // project never added is never written. Not in a shadow, where every
+  // file is also a link the workspace owns.
+  if (root === projectRoot) {
+    for (const name of listAdapterNames(projectRoot)) {
+      const family = (adapterFiles(projectRoot, name)?.files ?? [])
+        .filter((f) => CORE_LOOP_FILE.test(f.relativePath));
+      if (!family.some((f) => isFile(path.join(root, f.relativePath)))) continue;
+      for (const f of family) {
+        if (isFile(path.join(root, f.relativePath)) || plan.writes.some((w) => w.relativePath === f.relativePath)) continue;
+        plan.added.push({ relativePath: f.relativePath, content: renderAdapterFile(f, tokens) });
+      }
+    }
+  }
   return plan;
 }
 
@@ -175,7 +195,7 @@ export function planAdapterMigration(projectRoot, tokens, root = projectRoot) {
  * @returns {Array<{ rel: string, content: string }>}
  */
 export function applyAdapterMigration(root, plan) {
-  for (const w of plan.writes) {
+  for (const w of [...plan.writes, ...(plan.added ?? [])]) {
     mkdirp(path.dirname(path.join(root, w.relativePath)));
     write(path.join(root, w.relativePath), w.content, { force: true });
   }

@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.63.0",
+        "version": "0.63.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -113,19 +113,19 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.22.0",
+        "version": "0.23.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js",
-          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js"
+          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,onboard}.js",
+          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice,onboard}.js"
         ]
       },
       {
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.17.0",
+        "version": "0.18.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -167,7 +167,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.34.0",
+        "version": "0.34.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -4438,6 +4438,32 @@
           }
         ],
         "lane": "chore (uncertain; signals: typo, formatacao, comentario)"
+      },
+      {
+        "id": "0256-onboarding-guiado",
+        "title": "onboarding guiado",
+        "path": ".doctrina/changes/archive/2026-11-12-0256-onboarding-guiado",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: change, implementar)"
       }
     ],
     "skills": [

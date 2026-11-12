@@ -124,8 +124,18 @@ export async function run(_positional, flags) {
       }
     }
     const moves = movePlan.writes.length + movePlan.removes.length;
-    if (moves > 0) {
-      if (writeMode) {
+    // What the installed adapters gained since this project added them.
+    if (movePlan.added.length > 0) {
+      const names = movePlan.added.map((a) => a.relativePath).join(", ");
+      if (writeMode) console.log(c.green("added  ") + ` ${movePlan.added.length} adapter file${movePlan.added.length === 1 ? "" : "s"} this CLI ships now: ${names}`);
+      else {
+        console.log(c.yellow("would  ") + `add ${movePlan.added.length} adapter file${movePlan.added.length === 1 ? "" : "s"} this CLI ships now: ${names}`);
+        pending += 1;
+      }
+    }
+    if (moves > 0 || (writeMode && movePlan.added.length > 0)) {
+      if (writeMode && moves === 0) applyAdapterMigration(shadowRootOf(projectRoot) ?? projectRoot, movePlan);
+      else if (writeMode) {
         const gone = applyAdapterMigration(shadowRootOf(projectRoot) ?? projectRoot, movePlan);
         relinkShadow(projectRoot, gone);
         console.log(c.green("moved  ") + ` ${movePlan.writes.length} adapter file${movePlan.writes.length === 1 ? "" : "s"} to the skills the agent reads now` +

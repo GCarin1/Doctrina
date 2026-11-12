@@ -23,7 +23,7 @@ read `AGENTS.md` and run `doctrina next` — it drives the rest. The
 surface, by the moment you reach for it:
 
 ```
-Bootstrap   init · intake · adapter list|add|remove
+Bootstrap   init · onboard · intake · adapter list|add|remove
 Orient      prime · next · status · context · show · search · why · handoff
 Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|renumber|delta|card
             contract new|list|check · decision new|accept|land|supersede|list|scope

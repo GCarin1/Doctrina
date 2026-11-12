@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config,preset}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.17.0
+**Version:** 0.18.0
 
 ## Purpose
 
@@ -188,6 +188,7 @@ authoring commands, and the conventions every command shares.
 - When `doctrina upgrade --write` or `doctrina adapter add <name>` runs where the adapter's retired files are installed, the system shall write each replacement where it is missing, remove each retired file still as the CLI wrote it, and keep and name each one edited since; in a shadowed repository it shall write in the shadow and re-link the repository.
 - When `doctrina hooks install` runs inside a git repository that owns its `.doctrina/`, the system shall add to `.gitattributes` — only where missing — the lines that merge `index.json` through the `doctrina-index` driver and the ledger through `union`, and set that driver in the git config of the clone to the installing CLI by path, before the hook is written and also when an existing hook refuses it.
 - When `doctrina hooks install` runs, the system shall ask git where the hooks of the repository are, so that it works in a worktree and a submodule, and for a project below the root of its repository it shall write the hook to enter the folder of the project first; a folder git does not answer for shall exit 3 with nothing written.
+- When `doctrina upgrade` finds an adapter with a core-loop file on disk and another the CLI ships missing, the system shall report the missing file, and with `--write` write it; an adapter with no core-loop file on disk gains nothing.
 
 ### State-driven
 
@@ -233,6 +234,7 @@ Project scaffolding is spec-compliant when:
 22. [verified] `hooks install` writes the two `.gitattributes` lines once and the driver into the git config, and two branches that each closed a change then merge with no conflict in the index or the ledger, the merged index being the one a rebuild derives — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
 23. [verified] `hooks install` succeeds in a worktree and for a project in a subfolder, whose hook enters that folder and whose commit passes the staged index check; a folder that only holds a directory named `.git` is refused before `.gitattributes` is written — verified by `packages/doctrina-cli/test/a-setima-auditoria-fecha-fim-de-linha-conflito-e-concorrencia.test.js`.
 24. [verified] `init --preset` scaffolds a project carrying the decision, skill, template, checks and config of the preset, with the hub generated from its surface and the index in step; `upgrade --preset` previews with exit 1, keeps the file, config key and ADR number the project has, writes the rest with `--write` and adds nothing the second time; a folder with no `preset.json`, a bad name or an unknown config key is refused — verified by `packages/doctrina-cli/test/um-preset-leva-a-casa-da-organizacao.test.js`.
+25. [verified] `upgrade` previews and `upgrade --write` writes the `doctrina-onboard` skill a cursor install lacks, writes nothing for an adapter the project never added, and `init` points at `doctrina onboard` — verified by `packages/doctrina-cli/test/o-onboarding-conduz-o-ciclo-uma-vez.test.js`.
 
 ## Out of scope for this spec
 

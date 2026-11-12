@@ -125,6 +125,57 @@ On an interactive terminal, `init` also offers the adapter install as
 a wizard step when `--agent` was not given (answer `none` to skip);
 in pipes, CI, or under `--non-interactive` the prompt never fires.
 
+## `doctrina onboard`
+
+Walk the whole cycle once, on this repository. `next` names one action and
+assumes the reader knows why; `onboard` is for the first session in a
+project, or for showing it to someone new: it prints the six steps, marks
+the ones the tree already shows done, and for the first that is not, says
+what to tell the human, where to stop and **ASK**, and the commands to run.
+
+```
+doctrina onboard
+doctrina onboard --json
+```
+
+<!-- illustrative -->
+```
+  ✓ 1. Install                        .doctrina/ and AGENTS.md are here
+  ✓ 2. Describe the project           1 capability spec (codes)
+  → 3. Pick a first task and open it
+    4. Write the delta and the tasks
+    5. Implement and prove
+    6. Close
+
+Step 3 — Pick a first task and open it
+  Tell the human: A request that changes behaviour becomes a change before code is edited; …
+
+  Candidates read from this repository:
+    - codes #1                 no proof cited: Two URLs get two codes.
+    - app.py:2                 TODO handle expired links before returning the code
+  ASK the human to choose one of the candidates, or to name a small task of their own …
+  Then run:
+    doctrina work "<the task>"
+```
+
+Run it again after each step: it stores nothing and reads the tree every
+time, so a step is ticked when the tree shows it — a spec exists, a change
+is open, its tasks are written, they are ticked, a change is archived. The
+candidates for a first task are an acceptance criterion that cites no
+proof (or one whose proof is missing), then a `TODO`/`FIXME` left in a
+tracked code file; they are suggestions, and the human chooses. In a
+project that already closed a change every step is ticked and it prints
+the tour for a newcomer instead: the commands to read the project with,
+and the last closed change as a worked example.
+
+It works before `doctrina init` — the first step is the install — and
+writes nothing. The `claude` and `cursor` adapters install it as
+`/doctrina-onboard`.
+
+| Flag | Purpose |
+|------|---------|
+| `--json` | The steps with their state, the current step (`null` when all are done) and the first-task candidates. |
+
 ## `doctrina intake [<file>]`
 
 Store the full project description verbatim at `.doctrina/intake.md`

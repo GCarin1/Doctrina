@@ -34,6 +34,7 @@ function project() {
 const INVOCATION = {
   init: ["init", "--help"],
   intake: ["intake", "--help"],
+  onboard: ["onboard"],
   triage: ["triage"],
   work: ["work", "--help"],
   spec: ["spec", "list"],

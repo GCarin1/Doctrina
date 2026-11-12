@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/index.js`, `packages/doctrina-cli/src/commands/next.js`, `packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions,shell}.js`, `tsconfig.json`
 **Last updated:** 2026-09-11
-**Version:** 0.63.0
+**Version:** 0.63.1
 
 ## Purpose
 
@@ -143,7 +143,7 @@ command shares (git, the lexicon, the usage log).
 - While a destination file already exists, the system shall refuse to
   overwrite it unless `--force` is supplied.
 
-- While the current working directory does not contain `.doctrina/`, every command shall exit with the precondition class and the same message, except those that answer from the CLI itself rather than from a tree — `init`, which creates one, `next`, which names the door, `completion` and `ci --emit`, which render from their own declarations, and `templates list`, which shows what would be resolved — along with `--help` and `--version`, which are not commands.
+- While the current working directory does not contain `.doctrina/`, every command shall exit with the precondition class and the same message, except those that answer from the CLI itself rather than from a tree — `init`, which creates one, `onboard`, whose first step is that install, `next`, which names the door, `completion` and `ci --emit`, which render from their own declarations, and `templates list`, which shows what would be resolved — along with `--help` and `--version`, which are not commands.
 
 ### Unwanted-behavior (must-not)
 
@@ -298,8 +298,8 @@ The CLI is v0 spec-compliant when:
 
 - The commands that author and advance artifacts inside a project
   (`intake`, `work`, `spec`, `change`, `decision`, `contract`, `skill`,
-  `intent`, `triage`) — covered by the `authoring` capability spec, split
-  out of this one when it crossed the 400-line cap a third time.
+  `intent`) — covered by the `authoring` capability spec, split out of this
+  one when it crossed the 400-line cap a third time; `triage` by `triage`.
 
 - The multi-repository workspace (`workspace`) — covered by the
   `workspace` capability spec.
