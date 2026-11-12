@@ -131,14 +131,14 @@ Migration sketch:
 ## From SpecWeave
 
 SpecWeave's primary differentiator is the breadth of per-agent
-skills. Doctrina's thin-pointer adapter set (twelve supported
+skills. Doctrina's thin-pointer adapter set (13 supported
 agents, each adapter under 30 lines) is a deliberate trade-off;
 if your team relies on SpecWeave-specific skills for other
 agents, the migration is mostly an AGENTS.md adoption decision.
 
 | SpecWeave artifact | Doctrina equivalent |
 |--------------------|--------------------|
-| Per-agent skill packs | Adapter files under `.doctrina/templates/adapters/<agent>/`; twelve agents are supported out of the box, more can be added by contribution |
+| Per-agent skill packs | Adapter files under `.doctrina/templates/adapters/<agent>/`; 13 agents are supported out of the box, more can be added by contribution |
 | SpecWeave spec files | `.doctrina/specs/<cap>/spec.md` |
 | SpecWeave validate command | `doctrina validate` |
 

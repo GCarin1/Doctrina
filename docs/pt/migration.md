@@ -138,7 +138,7 @@ Esboço da migração:
 
 O diferenciador primário do SpecWeave é a largura de skills
 por-agente. O conjunto de adapters thin-pointer do Doctrina
-(doze agentes suportados, cada adapter com menos de 30 linhas)
+(13 agentes suportados, cada adapter com menos de 30 linhas)
 é trade-off deliberado; se seu time depende de skills
 específicas SpecWeave para outros
 agentes, a migração é principalmente uma decisão de adoção do
@@ -146,7 +146,7 @@ AGENTS.md.
 
 | Artefato SpecWeave | Equivalente Doctrina |
 |--------------------|----------------------|
-| Skill packs por-agente | Arquivos de adapter sob `.doctrina/templates/adapters/<agent>/`; doze agentes são suportados out of the box, mais podem ser adicionados por contribuição |
+| Skill packs por-agente | Arquivos de adapter sob `.doctrina/templates/adapters/<agent>/`; 13 agentes são suportados out of the box, mais podem ser adicionados por contribuição |
 | Arquivos de spec SpecWeave | `.doctrina/specs/<cap>/spec.md` |
 | Comando validate SpecWeave | `doctrina validate` |
 

@@ -118,6 +118,7 @@ adapters/
   devin/README.md
   factory/README.md
   jules/README.md
+  kiro/README.md
 ```
 
 ## Adapter strategy
@@ -132,7 +133,7 @@ adapters/
 | `aider` | `CONVENTIONS.md` at project root | Read-only context once wired in (`aider --read CONVENTIONS.md`, or `read:` in `.aider.conf.yml`). |
 | `windsurf` | `.windsurfrules` at project root | Windsurf's rules file convention. |
 | `continue` | `.continue/rules/00-doctrina.md` | Continue.dev's rules directory. |
-| `amp` / `devin` / `factory` / `jules` | nothing | AGENTS.md-native (same posture as `codex`); the directory marks the support contract and gives future per-agent affordances a home. |
+| `amp` / `devin` / `factory` / `jules` / `kiro` | nothing | AGENTS.md-native (same posture as `codex`); the directory marks the support contract and gives future per-agent affordances a home. |
 
 Adapter files stay under 30 lines so they cannot meaningfully drift from
 `AGENTS.md` and so they do not pay a noticeable per-turn token tax.

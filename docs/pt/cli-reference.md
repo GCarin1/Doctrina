@@ -98,7 +98,7 @@ doctrina init [opções]
 | `--project-name <nome>` | basename do cwd | Sobrescreve o nome do projeto nos artefatos. |
 | `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase para o `product.md`, sem intake. Sem ela (e sem `--intake`) num terminal, o `init` faz uma pergunta e guarda a resposta como intake. |
 | `--surface core\|full` | `core` | Quais comandos o `AGENTS.md` lista. `core` é o ciclo que uma sessão roda — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — com todo outro comando remetido ao `doctrina --help`; `full` lista todos, por momento. A escolha fica em `"surface"` no `.doctrina/config.json`; mude lá e rode `doctrina upgrade --write`. Um projeto cuja config não tem a chave `surface` mantém a lista inteira. |
-| `--agent <nome>` | nenhum | Instala o adapter para um dos doze agentes suportados (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) ou `all`. Agentes AGENTS.md-native (`codex`, `amp`, `devin`, `factory`, `jules`) não instalam arquivo. |
+| `--agent <nome>` | nenhum | Instala o adapter para um dos 13 agentes suportados (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) ou `all`. Agentes AGENTS.md-native (`codex`, `amp`, `devin`, `factory`, `jules`) não instalam arquivo. |
 | `--from <path>` | nenhum | Diretório local de conventions; faz fold do `AGENTS.md` e do `.doctrina/product.md` (quando presentes) no novo projeto antes do scaffold. Só caminhos de filesystem — sem URLs. |
 | `--intake <file>` | nenhum | Descrição completa do projeto; armazenada literalmente em `.doctrina/intake.md`, usada para derivar a descrição de uma linha quando `--project-description` está ausente, e o playbook de bootstrap é impresso na hora — sem segundo comando. O `AGENTS.md` gerado também instrui qualquer agente a executar esse playbook sozinho ao ver um intake pendente. |
 | `--intake-text "<texto>"` | nenhum | O mesmo, inline, sem precisar escrever um arquivo antes. Mutuamente exclusivo com `--intake`; qualquer um dos dois escrito sem valor é erro de uso, nunca um projeto esqueletado sem o intake que você pediu. |
@@ -978,7 +978,7 @@ O `adapter list` reporta três estados, porque "nenhum adapter instalado" e
 |--------|-------------|
 | `installed` | Os arquivos do adapter estão presentes neste projeto. |
 | `available` | Ele entrega arquivos e nenhum está instalado. |
-| `native` | O agente lê o `AGENTS.md` direto e não precisa de arquivo nenhum (`amp`, `codex`, `devin`, `factory`, `jules`). |
+| `native` | O agente lê o `AGENTS.md` direto e não precisa de arquivo nenhum (`amp`, `codex`, `devin`, `factory`, `jules`, `kiro`). |
 
 O `adapter remove` deleta apenas os arquivos que aquele adapter criou. Um
 arquivo que você editou depois da instalação é seu — ele é mantido, e

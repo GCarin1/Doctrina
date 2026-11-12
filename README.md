@@ -110,9 +110,9 @@ governs how a body of agents acts.
   against the catalog by `scripts/check-docs.js` — as is every count
   stated anywhere in this repository's documentation — so no line here
   can drift.
-- Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
+- Adapters for 13 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
-  Factory, Jules).
+  Factory, Jules, Kiro).
 - 13 capability specs and the ADRs 0001–0031 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
@@ -163,7 +163,7 @@ User-facing documentation lives under [`docs/`](./docs/):
 - [Getting started](./docs/en/getting-started.md) — install, init, first feature.
 - [Workflow](./docs/en/workflow.md) — propose → apply → archive.
 - [CLI reference](./docs/en/cli-reference.md) — every command and flag.
-- [Adapters](./docs/en/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules.
+- [Adapters](./docs/en/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules, Kiro.
 - [Local LLMs](./docs/en/local-llms.md) — wire Doctrina to LLaMA, Mistral, Qwen, DeepSeek, or any OpenAI-compatible endpoint.
 - [Multi-agent model](./docs/en/multi-agent.md) — how Doctrina coordinates tools, phases, and humans without parallel writers.
 - [Skills](./docs/en/skills.md) — on-demand procedural memory: specialised "how to do X" knowledge loaded only when relevant.

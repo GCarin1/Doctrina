@@ -60,7 +60,7 @@ test("the shipped template tree matches the spec inventory", () => {
     assert.ok(existsSync(path.join(templatesRoot, rel)), `missing template: ${rel}`);
   }
   const agents = ["claude", "codex", "cursor", "copilot", "gemini", "aider",
-    "windsurf", "continue", "amp", "devin", "factory", "jules"];
+    "windsurf", "continue", "amp", "devin", "factory", "jules", "kiro"];
   for (const a of agents) {
     assert.ok(existsSync(path.join(templatesRoot, "adapters", a)), `missing adapter dir: ${a}`);
   }

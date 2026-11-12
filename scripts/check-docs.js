@@ -297,6 +297,10 @@ const specsDir = path.join(root, ".doctrina", "specs");
 const specCount = existsSync(specsDir)
   ? readdirSync(specsDir).filter((d) => existsSync(path.join(specsDir, d, "spec.md"))).length
   : 0;
+const adaptersDir = path.join(root, ".doctrina", "templates", "adapters");
+const agentCount = existsSync(adaptersDir)
+  ? readdirSync(adaptersDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length
+  : 0;
 /** @type {[string, number][]} */
 const NOUNS = [
   ["commands", counts.commands],
@@ -305,6 +309,13 @@ const NOUNS = [
   ["opera\u00e7\u00f5es", counts.operations],
   ["capability specs", specCount],
   ["specs de capability", specCount],
+  // ...and the agents their count (change 0252): "twelve supported agents"
+  // was written as a word in twenty places, which is twenty counts nothing
+  // could check when the thirteenth arrived.
+  ["supported agents", agentCount],
+  ["agentes suportados", agentCount],
+  ["adapters into", agentCount],
+  ["adapters em", agentCount],
 ];
 // A count written as a word is a count nothing can check — which is how
 // "Eleven" outlived two capabilities.

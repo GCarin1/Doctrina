@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.33.0
+**Version:** 0.34.0
 
 ## Purpose
 
@@ -141,6 +141,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 | `devin` | none | Cognition Devin reads `AGENTS.md` natively. |
 | `factory` | none | Factory AI reads `AGENTS.md` natively. |
 | `jules` | none | Google Jules reads `AGENTS.md` natively. |
+| `kiro` | none | Kiro (IDE and CLI) reads a root `AGENTS.md` natively, always included. |
 
 ## Acceptance criteria
 
@@ -191,6 +192,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 37. [verified] the absorb's gate step heals the index — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 38. [verified] the cursor adapter installs the core loop as skills with the frontmatter Cursor requires — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 39. [verified] The core block names eight real commands with their triggers in at most 14 lines; a new project stores `"surface": "core"`, validates with no omitted-command warning and needs no upgrade; switching the key and running `upgrade --write` regenerates the block either way; a project with no key keeps the full block; an unknown value is reported by `validate` and refused by `init` with exit 2 — verified by `packages/doctrina-cli/test/o-hub-lista-so-o-ciclo-basico.test.js`.
+40. [verified] `init --agent kiro` installs no file, `kiro` is listed with the agents that read `AGENTS.md` natively, and the packed install drives it like the other twelve — verified by `packages/doctrina-cli/test/templates.test.js` and `scripts/e2e-packed.mjs`.
 
 ## Out of scope for this spec
 

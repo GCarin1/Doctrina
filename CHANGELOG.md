@@ -53,6 +53,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   keeps the full list, and `doctrina upgrade --write` regenerates the block
   after a change. This repository's own hub went from 149 lines to 125.
 
+- `--agent kiro`. Kiro (the IDE and the CLI) reads a root `AGENTS.md`
+  natively and always includes it, so the adapter installs no file, like
+  `codex`, `amp`, `devin`, `factory` and `jules`; its README says to keep
+  requirements in `.doctrina/specs/` and not in `.kiro/specs/`. That makes
+  13 supported agents — a count the docs gate now checks against the
+  adapter folders, where it had been written as "twelve" in twenty places.
+
 ### Changed
 
 - A release is a version that reached `main`, not a tag pushed by hand. The

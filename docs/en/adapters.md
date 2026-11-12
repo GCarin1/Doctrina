@@ -165,10 +165,10 @@ thin-pointer pattern:
 | `continue` | `.continue/rules/00-doctrina.md` | Continue.dev rules directory |
 
 Each is under 30 lines and only routes the agent at `AGENTS.md`.
-`doctrina init --agent <name>` accepts any of the twelve agent
+`doctrina init --agent <name>` accepts any of the 13 agent
 slugs (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`,
-`windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or
-`all` to install every adapter. The last four, like `codex`, are
+`windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) or
+`all` to install every adapter. The last five, like `codex`, are
 AGENTS.md-native and install no file (see the next section).
 
 For local LLMs (LLaMA, Mistral, Qwen, DeepSeek) and
@@ -192,6 +192,7 @@ have an obvious home.
 | `devin` | Cognition Devin |
 | `factory` | Factory AI |
 | `jules` | Google Jules |
+| `kiro` | Kiro (IDE and CLI) |
 
 For these five, AGENTS.md alone is sufficient. The Doctrina
 adapter directory only exists to mark the support contract

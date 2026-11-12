@@ -3317,6 +3317,7 @@ const ADAPTER_FILES = {
   devin: [],
   factory: [],
   jules: [],
+  kiro: [],
 };
 const POINTER_FILES = new Set([
   "CLAUDE.md", ".cursor/rules/00-doctrina.mdc", ".github/copilot-instructions.md",

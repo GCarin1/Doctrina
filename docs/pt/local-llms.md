@@ -40,8 +40,8 @@ Duas camadas, duas escolhas:
 - **Qual LLM?** Determina o cérebro. A maioria dos runtimes
   suporta vários LLMs via configuração.
 
-Doctrina suporta doze runtimes (`init --agent <name>`): sete
-instalam adapters thin-pointer e cinco leem `AGENTS.md`
+Doctrina suporta 13 runtimes (`init --agent <name>`): 7
+instalam adapters thin-pointer e 6 leem `AGENTS.md`
 nativamente. O LLM por trás de cada runtime é configurado
 separadamente.
 
@@ -196,7 +196,7 @@ Uma heurística curta, não um ranking:
 
 ## Material relacionado
 
-- [Adapters](adapters.md) — os doze agentes suportados e como
+- [Adapters](adapters.md) — os 13 agentes suportados e como
   cada um roteia para AGENTS.md.
 - [Engenharia de contexto](context-engineering.md) — por que os
   size caps que ajudam modelos pequenos importam para todos os

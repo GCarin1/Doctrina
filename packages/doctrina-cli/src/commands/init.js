@@ -31,6 +31,7 @@ const SUPPORTED_AGENTS = [
   "devin",
   "factory",
   "jules",
+  "kiro",
 ];
 
 export const flags = {
@@ -466,7 +467,7 @@ Options:
                                  loop, with the rest deferred to \`doctrina --help\`; full lists
                                  every command. Stored in .doctrina/config.json.
   --agent <name>                 Install adapter for one agent
-                                 (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|all)
+                                 (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|kiro|all)
   --intake <file>                Full project description; stored verbatim at .doctrina/intake.md,
                                  used to derive the one-line description when absent, and the
                                  bootstrap playbook is printed inline — no second command

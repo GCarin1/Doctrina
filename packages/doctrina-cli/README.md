@@ -44,7 +44,7 @@ code is in the
 |------|---------|
 | `--project-name <name>` | Override the project name (defaults to cwd basename) |
 | `--project-description <text>` | One-sentence description, with no intake. Without it on a terminal, `init` asks you to describe the project once and keeps the answer as the intake |
-| `--agent <name>` | Install the adapter for one of the twelve supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or `all` |
+| `--agent <name>` | Install the adapter for one of the 13 supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) or `all` |
 | `--date <YYYY-MM-DD>` | Override the system date in artifacts |
 | `--force` | Overwrite existing files |
 | `--non-interactive` | Fail instead of prompting for missing required values |
@@ -57,7 +57,7 @@ code is in the
   `alwaysApply: true` pointing at `AGENTS.md`. `copilot`, `gemini`,
   `aider`, `windsurf`, and `continue` follow the same thin-pointer
   pattern at each agent's native path.
-- `--agent codex` (and `amp`, `devin`, `factory`, `jules`) installs
+- `--agent codex` (and `amp`, `devin`, `factory`, `jules`, `kiro`) installs
   nothing: these agents read `AGENTS.md` natively.
 - `--agent all` installs every adapter.
 

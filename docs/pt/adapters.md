@@ -166,13 +166,12 @@ pattern de pointer fino:
 | `windsurf` | `.windsurfrules` na raiz do projeto | Convenção do arquivo de regras do Windsurf |
 | `continue` | `.continue/rules/00-doctrina.md` | Diretório de regras do Continue.dev |
 
-Cada um tem menos de 30 linhas e só roteia o agente para o
-`AGENTS.md`. `doctrina init --agent <nome>` aceita qualquer dos
-doze slugs (`claude`, `codex`, `cursor`, `copilot`, `gemini`,
-`aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`,
-`jules`) ou `all` para instalar todos os adapters. Os últimos
-quatro, como o `codex`, são AGENTS.md-native e não instalam
-arquivo nenhum (veja a próxima seção).
+Cada um tem menos de 30 linhas e só roteia o agente para o `AGENTS.md`.
+`doctrina init --agent <nome>` aceita qualquer dos 13 slugs (`claude`,
+`codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`,
+`amp`, `devin`, `factory`, `jules`, `kiro`) ou `all` para instalar todos os
+adapters. Os últimos cinco, como o `codex`, são AGENTS.md-native e não
+instalam arquivo nenhum (veja a próxima seção).
 
 Para LLMs locais (LLaMA, Mistral, Qwen, DeepSeek) e endpoints
 cloud não-Anthropic, veja [local-llms.md](local-llms.md) com
@@ -195,6 +194,7 @@ simétrico e affordances futuras por-agente tenham casa óbvia.
 | `devin` | Cognition Devin |
 | `factory` | Factory AI |
 | `jules` | Google Jules |
+| `kiro` | Kiro (IDE e CLI) |
 
 Para esses cinco, AGENTS.md sozinho é suficiente. O diretório
 de adapter Doctrina existe só para marcar o contrato de

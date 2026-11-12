@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.16.0
+**Version:** 0.16.1
 
 ## Purpose
 
@@ -42,15 +42,7 @@ authoring commands, and the conventions every command shares.
   template at the project root and the .doctrina/ skeleton from the
   templates directory.
 
-- When `doctrina init --agent <name>` runs, the system shall additionally
-  install the matching adapter from the templates inventory. The
-  recognised values are `claude`, `codex`, `cursor`, `copilot`,
-  `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`,
-  `factory`, `jules`, or `all` (install every adapter present
-  under `templates/adapters/`). The last four (amp / devin /
-  factory / jules) are AGENTS.md-native and install no files;
-  the directory exists so the templates inventory is symmetric
-  across supported agents.
+- When `doctrina init --agent <name>` runs, the system shall additionally install the matching adapter from the templates inventory. The recognised values are `claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`, or `all` (install every adapter present under `templates/adapters/`). The last five (amp / devin / factory / jules / kiro) are AGENTS.md-native and install no files; the directory exists so the templates inventory is symmetric across supported agents.
 
 - When `doctrina init --intake <file>` runs and `<file>` resolves to
   a non-empty file, the system shall store the file content verbatim

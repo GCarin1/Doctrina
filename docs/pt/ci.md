@@ -119,7 +119,7 @@ Ele empacota o tarball, instala num diretório temporário **fora** do repo e
 conduz um projeto real por todo o ciclo — `init` → `spec new` → `work` →
 delta → `change check` → `close` → archive — com o binário instalado,
 verificando que `validate`, `upgrade` e `doctor` estão verdes em
-cada passo. Depois instala cada um dos doze adapters em seu próprio projeto
+cada passo. Depois instala cada um dos 13 adapters em seu próprio projeto
 e checa todos.
 
 O `--repo <caminho>` o aponta para outro checkout, que foi como ele se

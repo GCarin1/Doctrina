@@ -42,7 +42,7 @@ const quick = process.argv.includes("--quick");
 
 const ADAPTERS = [
   "claude", "codex", "cursor", "copilot", "gemini", "aider",
-  "windsurf", "continue", "amp", "devin", "factory", "jules",
+  "windsurf", "continue", "amp", "devin", "factory", "jules", "kiro",
 ];
 
 let failures = 0;

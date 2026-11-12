@@ -59,10 +59,10 @@ numa região-idioma que justifica uma nova tradução.
 
 **Status:** fora de escopo.
 
-**Por quê:** O ecosystem AGENTS.md e os doze agentes suportados
-(sete com adapters thin-pointer — Claude Code, Cursor, Copilot,
-Gemini CLI, Aider, Windsurf, Continue — e cinco AGENTS.md-native:
-Codex CLI, Amp, Devin, Factory, Jules) cobrem os caminhos
+**Por quê:** O ecosystem AGENTS.md e os 13 agentes suportados
+(7 com adapters thin-pointer — Claude Code, Cursor, Copilot,
+Gemini CLI, Aider, Windsurf, Continue — e 6 AGENTS.md-native:
+Codex CLI, Amp, Devin, Factory, Jules, Kiro) cobrem os caminhos
 majoritários de integração. Uma extensão de IDE específica do Doctrina seria um
 produto separado com seu próprio marketplace, pipeline de build
 e ciclo de manutenção — além do que um framework de CLI deveria
