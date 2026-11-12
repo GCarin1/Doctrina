@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The tracks, by what a request changes. An edit that changes nothing a
+  spec says — a typo, a comment, formatting, a fix that makes the code do
+  what the spec already says — opens no change: edit, `doctrina verify`,
+  commit. `doctrina work` answers a prompt whose words can only mean such
+  an edit with the three tracks (direct, chore, change) and exits 0 instead
+  of scaffolding a proposal; `--force` and `--chore` still open one.
+  `doctrina triage` prints the track and `--json` carries it, and
+  `AGENTS.md`, the Cursor rule and the prompt hook state the rule.
 - A requirement that is an invariant asks for a property. `doctrina coverage
   --properties` lists the EARS requirements that claim something of every
   input (round-trip, idempotence, bound, uniqueness, order, `always`/`never`)

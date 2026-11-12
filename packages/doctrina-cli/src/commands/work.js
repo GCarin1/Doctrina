@@ -12,7 +12,7 @@ import { readDelivery, resolveDeliveryId, sectionText } from "../lib/delivery.js
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
-import { classify } from "../lib/triage-model.js";
+import { classify, directSignals, trackLines } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
 import { specShape } from "../lib/spec-ops.js";
 import { changedFiles } from "../lib/git.js";
@@ -173,6 +173,26 @@ export async function run(positional, flags) {
       // simply not been diagnosed yet. A gate code (1) would read as
       // "the prompt is bad" and invite rewording it forever.
       return EXIT.PRECONDITION;
+    }
+  }
+
+  // THE DIRECT TRACK (change 0255). An edit that changes nothing a spec says
+  // opens nothing: the answer is the three tracks and the two commands that
+  // remain. Only the words that cannot mean behaviour decide it, and naming
+  // a capability, a delivery or an id says the author already chose.
+  if (prompt && verdict && !fromDiff && !chore && !forced &&
+      !flags.has("capability") && !flags.has("delivery") && !flags.has("id")) {
+    const hits = directSignals(prompt, verdict);
+    if (hits.length > 0) {
+      console.log(c.green("direct:") + ` no change to open — this reads as an edit that changes nothing a spec says ${c.gray(`(signals: ${[...new Set(hits)].slice(0, 6).join(", ")})`)}`);
+      console.log(`  Edit it, run ${c.cyan("doctrina verify")}, and commit. No proposal, no delta, no close.`);
+      console.log("");
+      console.log("The tracks, by what the request changes:");
+      for (const line of trackLines()) console.log(line);
+      console.log("");
+      console.log(c.gray("If it does change behaviour, or deserves a record: ") +
+        c.cyan(`doctrina work --force "<request>"`) + c.gray("  ·  ") + c.cyan(`doctrina work --chore "<request>"`));
+      return EXIT.OK;
     }
   }
 
@@ -696,6 +716,22 @@ Options:
 A request that mostly repeats a change already open, or archived in the
 last 14 days, is HELD the same way (exit 3), naming it: the same work is
 resumed, or reported as done where it is archived; --force opens it anyway.
+
+TRACKS. How much ceremony a request earns is decided by what it changes,
+not by the size of the diff:
+
+  direct   nothing a spec says — a typo, a comment, formatting, a fix that
+           makes the code do what the spec already says
+           edit · doctrina verify · commit (no change is opened)
+  chore    the build, the tooling or the docs, worth a record — no spec
+           changes: doctrina work --chore "<request>"
+  change   behaviour — a sentence in a spec becomes false, or one is
+           missing: doctrina work "<request>"
+
+A prompt whose words can only mean a direct edit (a typo, whitespace, a
+stale comment, dead code) opens nothing: work prints the tracks and exits
+0. --force opens the change anyway, --chore records it, and naming
+--capability, --delivery or --id skips the reading.
 
 A prompt that reads as a RUNTIME problem — a workflow, an env value, a run
 that executed nothing — is HELD before anything is scaffolded, and pointed

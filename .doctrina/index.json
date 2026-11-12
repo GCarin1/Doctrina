@@ -15,15 +15,15 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.37.1",
+        "version": "0.38.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
           "cli"
         ],
         "source": [
-          "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,change-numbers,applied-deltas,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
+          "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent}.js",
+          "packages/doctrina-cli/src/lib/{change-ops,change-numbers,applied-deltas,spec-ops,work-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
@@ -177,6 +177,22 @@
         ]
       },
       {
+        "id": "triage",
+        "path": ".doctrina/specs/triage/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-11-12",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli",
+          "authoring"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/triage.js",
+          "packages/doctrina-cli/src/lib/triage-model.js"
+        ]
+      },
+      {
         "id": "validation",
         "path": ".doctrina/specs/validation/spec.md",
         "status": "active",
@@ -261,7 +277,8 @@
           "docs",
           "gates",
           "authoring",
-          "insight"
+          "insight",
+          "triage"
         ],
         "summary": "The CLI does the deterministic half and prints a playbook for the"
       },
@@ -4403,6 +4420,24 @@
           }
         ],
         "lane": "product (confident; signals: change, criterio)"
+      },
+      {
+        "id": "0255-tres-trilhas-por-tamanho",
+        "title": "tres trilhas por tamanho",
+        "path": ".doctrina/changes/archive/2026-11-12-0255-tres-trilhas-por-tamanho",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "triage",
+            "operation": "ADDED"
+          }
+        ],
+        "lane": "chore (uncertain; signals: typo, formatacao, comentario)"
       }
     ],
     "skills": [

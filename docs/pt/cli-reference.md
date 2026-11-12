@@ -204,6 +204,29 @@ Nunca recusa. O `work` o consulta e **segura** um prompt confiantemente
 de runtime com saída 3 (uma precondição, não um prompt ruim); `--force`
 abre o change mesmo assim.
 
+### Trilhas: quanta cerimônia um pedido merece
+
+A raia diz que tipo de pedido é; a **trilha** diz quanta cerimônia ele
+merece. A medida não é o tamanho do diff — é se uma frase de uma spec fica
+falsa, ou se falta uma. Mudar em uma linha um timeout que a spec declara é
+uma change; reformatar duzentas linhas não é.
+
+| Trilha | O que muda | O caminho |
+|--------|------------|-----------|
+| `direct` | nada que uma spec diz — um typo, um comentário, formatação, uma correção que faz o código cumprir o que a spec já diz | editar · `doctrina verify` · commit |
+| `chore` | o build, o ferramental ou a doc, com registro — nenhuma spec muda | `doctrina work --chore "<pedido>"` |
+| `change` | comportamento — uma frase de uma spec fica falsa, ou falta uma | `doctrina work "<pedido>"` |
+
+O `triage` imprime `DIRECT` no lugar da raia para um prompt cujas palavras
+só podem significar uma edição direta — um typo, um erro de ortografia,
+espaço em branco, um comentário obsoleto, código morto, um import não
+usado, em inglês ou português — e o `--json` traz `track` (`direct`,
+`chore`, `change`, ou `diagnosis` para um problema de runtime). Um prompt
+que também carrega um sinal de produto ou de runtime nunca é direto. Uma
+correção que restaura o que a spec já diz também é direta, e nenhuma lista
+de palavras sabe disso: é decisão do agente, pela regra que o `AGENTS.md`,
+a regra do Cursor e o hook de prompt enunciam.
+
 Com ou sem prompt, o `triage` também roda os checks de runtime sobre todo
 contrato — os mesmos checks e o mesmo veredito do `contract check`: a
 fiação declarada contra o workflow, defaults de consumidor com semântica
@@ -306,6 +329,13 @@ apontado para o `triage`, para que nenhuma cerimônia seja gasta com um bug
 que o YAML já explica. O classificador é casamento determinístico de
 termos e pode errar: `--force` abre o change mesmo assim, e `--chore` é a
 raia para fiação que a spec já cobre.
+
+Um prompt que lê como edição **direta** — que não muda nada que uma spec
+diz (veja [Trilhas](#trilhas-quanta-cerimônia-um-pedido-merece)) — não
+abre nada: o `work` imprime as três trilhas e sai 0, porque não há change
+de que fazer registro. `--force` abre a change mesmo assim, `--chore` a
+registra, e nomear `--capability`, `--delivery` ou `--id` pula a leitura:
+o autor já escolheu.
 
 ## `doctrina spec new <capability>`
 

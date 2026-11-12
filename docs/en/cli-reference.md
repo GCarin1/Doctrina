@@ -198,6 +198,29 @@ never refuses. `work` consults it and **holds** a confidently
 runtime-shaped prompt with exit 3 (a precondition, not a bad prompt);
 `--force` opens the change anyway.
 
+### Tracks: how much ceremony a request earns
+
+The lane says what kind of request it is; the **track** says how much
+ceremony it earns. The measure is not the size of the diff — it is whether
+a sentence in a spec becomes false, or one is missing. A one-line change
+of a timeout the spec states is a change; a two-hundred-line reformat is
+not.
+
+| Track | What changes | The path |
+|-------|--------------|----------|
+| `direct` | nothing a spec says — a typo, a comment, formatting, a fix that makes the code do what the spec already says | edit · `doctrina verify` · commit |
+| `chore` | the build, the tooling or the docs, worth a record — no spec changes | `doctrina work --chore "<request>"` |
+| `change` | behaviour — a sentence in a spec becomes false, or one is missing | `doctrina work "<request>"` |
+
+`triage` prints `DIRECT` in place of the lane for a prompt whose words can
+only mean a direct edit — a typo, a misspelling, whitespace, a stale
+comment, dead code, an unused import, in English or Portuguese — and
+`--json` carries `track` (`direct`, `chore`, `change`, or `diagnosis` for
+a runtime problem). A prompt that also carries a product or a runtime
+signal is never direct. A fix that restores what the spec already says is
+direct too, and no word list can know that: it is the agent's call, by the
+rule `AGENTS.md`, the Cursor rule and the prompt hook all state.
+
 With or without a prompt, `triage` also runs the runtime checks over
 every contract — the same checks and the same verdict as `contract
 check`: declared wiring against the workflow, empty-vs-unset consumer
@@ -296,6 +319,13 @@ be fine, it simply has not been diagnosed) and pointed at `triage`, so no
 ceremony is spent on a bug the YAML already explains. The classifier is
 deterministic term matching and can be wrong: `--force` opens the change
 anyway, and `--chore` is the lane for wiring the spec already covers.
+
+A prompt that reads as a **direct** edit — one that changes nothing a spec
+says (see [Tracks](#tracks-how-much-ceremony-a-request-earns)) — opens
+nothing: `work` prints the three tracks and exits 0, because there is no
+change to make a record of. `--force` opens the change anyway, `--chore`
+records it, and naming `--capability`, `--delivery` or `--id` skips the
+reading: the author already chose.
 
 ## `doctrina spec new <capability>`
 

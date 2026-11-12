@@ -19,8 +19,10 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
 - **Day-to-day.** `doctrina prime` opens the session (gates, rules, open
   work). A request that changes behaviour is a change opened BEFORE code is
   edited: `doctrina work "<request>"` — it classifies the lane itself; one
-  change per activity the human asked for. Name the change id in your first
-  sentence to the human. Read with `doctrina context <cap> --for "<task>"
+  change per activity the human asked for. An edit that changes nothing a
+  spec says (a typo, a comment, formatting, a fix restoring what the spec
+  states) needs none: edit, `doctrina verify`, commit. Name the change id in
+  your first sentence to the human. Read with `doctrina context <cap> --for "<task>"
   --concat` — `prime` is state, not the spec. Project skills are listed
   where your agent finds skills (`.agents/skills/`, `.claude/skills/`).
   Close with `doctrina close <id>` and repeat the archive path it prints.
