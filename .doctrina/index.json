@@ -125,7 +125,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.16.1",
+        "version": "0.17.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -133,7 +133,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js",
-          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config}.js"
+          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config,preset}.js"
         ]
       },
       {
@@ -4375,6 +4375,20 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0253-um-preset-leva-a-casa-da-organizacao-para-o",
+        "title": "um preset leva a casa da organizacao para o projeto",
+        "path": ".doctrina/changes/archive/2026-11-12-0253-um-preset-leva-a-casa-da-organizacao-para-o",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "chore (confident; signals: upgrade)"
       }
     ],
     "skills": [

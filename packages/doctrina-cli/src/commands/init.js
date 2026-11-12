@@ -9,6 +9,8 @@ import {
 } from "../lib/commands.js";
 import * as idx from "../lib/index-json.js";
 import { scaffoldConfig } from "../lib/config.js";
+import { applyPreset, describePreset, planPreset, readPreset } from "../lib/preset.js";
+import { deriveIndex } from "../lib/scan.js";
 import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
@@ -36,7 +38,7 @@ const SUPPORTED_AGENTS = [
 
 export const flags = {
   boolean: ["json", "force", "non-interactive", "overwrite-content"],
-  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date", "surface"],
+  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date", "surface", "preset"],
 };
 
 export async function run(_positional, flags) {
@@ -146,7 +148,22 @@ export async function run(_positional, flags) {
   // Which commands AGENTS.md lists (change 0251). A new project is born with
   // the session loop only — `core` — and the rest one `--help` away; the
   // choice is written into config.json, where `upgrade` reads it.
-  const surface = flagString(flags, "surface") ?? "core";
+  // The organisation's preset (change 0253), read BEFORE anything is
+  // written: a folder that is not one stops the init with nothing scaffolded.
+  let preset = null;
+  if (flags.has("preset")) {
+    try {
+      const dir = flagString(flags, "preset");
+      if (!dir) throw new Error("--preset needs the preset's folder");
+      preset = readPreset(dir);
+    } catch (err) {
+      console.error(c.red("error:") + ` ${/** @type {Error} */ (err).message}`);
+      return 2;
+    }
+  }
+  // The preset's surface is the default when the flag names none: the block
+  // is generated once, from the profile the project will keep.
+  const surface = flagString(flags, "surface") ?? preset?.config.surface ?? "core";
   if (!SURFACE_PROFILES.includes(surface) || flagGivenWithoutValue(flags, "surface")) {
     console.error(c.red("error:") + ` --surface takes ${SURFACE_PROFILES.join(" or ")}${flagGivenWithoutValue(flags, "surface") ? "" : ` (got "${surface}")`}`);
     return 2;
@@ -298,6 +315,16 @@ export async function run(_positional, flags) {
       write(dest, scaffoldConfig({ surface }), { force });
       console.log(c.green("created") + ` ${relPath(projectRoot, dest)}`);
     }
+  }
+
+  // The preset, over the scaffold: what it adds is indexed with the rest.
+  if (preset) {
+    const plan = planPreset(projectRoot, preset);
+    applyPreset(projectRoot, preset, plan);
+    for (const line of describePreset(preset, plan, true)) console.log(line);
+    const derived = deriveIndex(projectRoot, idx.load(projectRoot));
+    derived.last_updated = date;
+    idx.save(projectRoot, derived);
   }
 
   // Adapters
@@ -466,6 +493,10 @@ Options:
   --surface core|full            Which commands AGENTS.md lists: core (default) is the session
                                  loop, with the rest deferred to \`doctrina --help\`; full lists
                                  every command. Stored in .doctrina/config.json.
+  --preset <dir>                 Lay an organisation's preset over the scaffold: a folder with
+                                 preset.json (name, config) and optional templates/, decisions/,
+                                 skills/ and verify.json. Additive — see \`doctrina upgrade --preset\`
+                                 for a project that already exists.
   --agent <name>                 Install adapter for one agent
                                  (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|kiro|all)
   --intake <file>                Full project description; stored verbatim at .doctrina/intake.md,

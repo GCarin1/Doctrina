@@ -68,7 +68,7 @@ export function loadConfig(projectRoot) {
   // Keys the CLI does not know (change 0115). `{"context_budjet": 10}` was
   // silence at every door, and the author believed the budget was set.
   // Reported, never rejected: the effective values are unchanged.
-  const KNOWN_KEYS = new Set(["language", "context_budget", "rules", "surface", "$comment", "$schema"]);
+  const KNOWN_KEYS = new Set(["language", "context_budget", "rules", "surface", "preset", "$comment", "$schema"]);
   const unknown = cfg && typeof cfg === "object" && !Array.isArray(cfg)
     ? Object.keys(cfg).filter((k) => !KNOWN_KEYS.has(k))
     : [];

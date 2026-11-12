@@ -5,9 +5,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
-**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config}.js`
+**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config,preset}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.16.1
+**Version:** 0.17.0
 
 ## Purpose
 
@@ -204,6 +204,7 @@ authoring commands, and the conventions every command shares.
 
 ### Optional
 
+- Where `--preset <dir>` names a folder holding `preset.json`, `doctrina init` and `doctrina upgrade` shall lay it over the project additively — copying its `templates/`, `decisions/`, `skills/` and `verify.json` where the project has no such file, setting the config keys the project does not declare, never copying a decision whose number the project uses — naming each file and key copied, set or kept, printing the commands of a copied `verify.json`, and exiting 2 with nothing written when the folder is not a preset.
 ## Acceptance criteria
 
 Project scaffolding is spec-compliant when:
@@ -231,6 +232,7 @@ Project scaffolding is spec-compliant when:
 21. [verified] in a shadowed repository the skills go to the shadow and are linked in, with nothing showing in the repository's git — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 22. [verified] `hooks install` writes the two `.gitattributes` lines once and the driver into the git config, and two branches that each closed a change then merge with no conflict in the index or the ledger, the merged index being the one a rebuild derives — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
 23. [verified] `hooks install` succeeds in a worktree and for a project in a subfolder, whose hook enters that folder and whose commit passes the staged index check; a folder that only holds a directory named `.git` is refused before `.gitattributes` is written — verified by `packages/doctrina-cli/test/a-setima-auditoria-fecha-fim-de-linha-conflito-e-concorrencia.test.js`.
+24. [verified] `init --preset` scaffolds a project carrying the decision, skill, template, checks and config of the preset, with the hub generated from its surface and the index in step; `upgrade --preset` previews with exit 1, keeps the file, config key and ADR number the project has, writes the rest with `--write` and adds nothing the second time; a folder with no `preset.json`, a bad name or an unknown config key is refused — verified by `packages/doctrina-cli/test/um-preset-leva-a-casa-da-organizacao.test.js`.
 
 ## Out of scope for this spec
 

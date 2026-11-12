@@ -98,6 +98,7 @@ doctrina init [opções]
 | `--project-name <nome>` | basename do cwd | Sobrescreve o nome do projeto nos artefatos. |
 | `--project-description <texto>` | vazio (pergunta) | Descrição de uma frase para o `product.md`, sem intake. Sem ela (e sem `--intake`) num terminal, o `init` faz uma pergunta e guarda a resposta como intake. |
 | `--surface core\|full` | `core` | Quais comandos o `AGENTS.md` lista. `core` é o ciclo que uma sessão roda — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — com todo outro comando remetido ao `doctrina --help`; `full` lista todos, por momento. A escolha fica em `"surface"` no `.doctrina/config.json`; mude lá e rode `doctrina upgrade --write`. Um projeto cuja config não tem a chave `surface` mantém a lista inteira. |
+| `--preset <dir>` | nenhum | Aplica o preset de uma organização sobre o scaffold: uma pasta com `preset.json` e, opcionalmente, `templates/`, `decisions/`, `skills/` e `verify.json`. O `surface` dele é o padrão quando `--surface` não nomeia nenhum. Para um projeto que já existe: `doctrina upgrade --preset <dir>`. Uma pasta que não é um preset sai com `2` sem criar nada. |
 | `--agent <nome>` | nenhum | Instala o adapter para um dos 13 agentes suportados (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) ou `all`. Agentes AGENTS.md-native (`codex`, `amp`, `devin`, `factory`, `jules`) não instalam arquivo. |
 | `--from <path>` | nenhum | Diretório local de conventions; faz fold do `AGENTS.md` e do `.doctrina/product.md` (quando presentes) no novo projeto antes do scaffold. Só caminhos de filesystem — sem URLs. |
 | `--intake <file>` | nenhum | Descrição completa do projeto; armazenada literalmente em `.doctrina/intake.md`, usada para derivar a descrição de uma linha quando `--project-description` está ausente, e o playbook de bootstrap é impresso na hora — sem segundo comando. O `AGENTS.md` gerado também instrui qualquer agente a executar esse playbook sozinho ao ver um intake pendente. |
@@ -2897,6 +2898,13 @@ recomendadas faltando — e nenhum outro comando fechava esse gap.
 doctrina upgrade            # preview (sai 1 quando há passos pendentes)
 doctrina upgrade --write    # aplica
 ```
+
+**`--preset <dir>`** primeiro aplica o preset de uma organização sobre o
+projeto — veja [Templates](templates.md#o-preset-de-uma-organização). O
+plano nomeia cada arquivo que copiaria, cada um que mantém porque o projeto
+tem o seu, e cada chave de config que define ou deixa; `--write` aplica. Um
+preset é uma pasta em disco (um repositório que o time clona, um
+submódulo): a CLI não faz chamada de rede para buscar um.
 
 Um orquestrador sobre as peças que já existem, em ordem:
 

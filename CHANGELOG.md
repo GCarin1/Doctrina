@@ -60,6 +60,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   13 supported agents — a count the docs gate now checks against the
   adapter folders, where it had been written as "twelve" in twenty places.
 
+- An organisation's preset. `doctrina init --preset <dir>` and `doctrina
+  upgrade --preset <dir> [--write]` lay a folder over a project: its
+  `preset.json` (`name`, `config` — language, context budget, rules,
+  surface), and optional `templates/`, `decisions/`, `skills/` and
+  `verify.json`. Additive: a file the project has, a config key it declares
+  and an ADR number it uses are kept, and the plan names each. A preset is
+  a folder on disk — the CLI fetches nothing — and the commands a preset's
+  `verify.json` would run are printed when it is copied.
+
 ### Changed
 
 - A release is a version that reached `main`, not a tag pushed by hand. The

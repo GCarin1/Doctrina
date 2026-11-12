@@ -263,3 +263,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-12 — 0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e — a setima auditoria fecha fim de linha conflito e concorrencia (specs: authoring MODIFIED, core MODIFIED, scaffolding MODIFIED, structure MODIFIED, workspace MODIFIED)
 - 2026-11-12 — 0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core — o hub lista so o ciclo basico no perfil core (specs: templates MODIFIED)
 - 2026-11-12 — 0252-o-kiro-entra-na-lista-de-agentes — o kiro entra na lista de agentes (specs: scaffolding MODIFIED, templates MODIFIED)
+- 2026-11-12 — 0253-um-preset-leva-a-casa-da-organizacao-para-o — um preset leva a casa da organizacao para o projeto (specs: scaffolding MODIFIED)

@@ -92,6 +92,7 @@ doctrina init [options]
 | `--project-name <name>` | basename of cwd | Override the project name written into artifacts. |
 | `--project-description <text>` | empty (prompts) | One-sentence description for `product.md`, with no intake. Without it (and without `--intake`) on a terminal, `init` asks one question and stores the answer as the intake. |
 | `--surface core\|full` | `core` | Which commands `AGENTS.md` lists. `core` is the loop a session runs — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — with every other command deferred to `doctrina --help`; `full` lists them all, by moment. The choice is stored as `"surface"` in `.doctrina/config.json`; change it there and run `doctrina upgrade --write`. A project whose config has no `surface` key keeps the full list. |
+| `--preset <dir>` | none | Lay an organisation's preset over the scaffold: a folder with `preset.json` and optional `templates/`, `decisions/`, `skills/` and `verify.json`. Its `surface` is the default when `--surface` names none. For a project that already exists: `doctrina upgrade --preset <dir>`. A folder that is not a preset exits `2` with nothing scaffolded. |
 | `--agent <name>` | none | Install the adapter for one of the 13 supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) or `all`. AGENTS.md-native agents (`codex`, `amp`, `devin`, `factory`, `jules`) install no file. |
 | `--from <path>` | none | Local conventions directory; folds its `AGENTS.md` and `.doctrina/product.md` (when present) into the new project before scaffolding. Filesystem paths only — no URLs. |
 | `--intake <file>` | none | Full project description; stored verbatim at `.doctrina/intake.md`, used to derive the one-line description when `--project-description` is absent, and the bootstrap playbook is printed inline — no second command needed. The scaffolded `AGENTS.md` also tells any agent to run that playbook on its own when it sees a pending intake. |
@@ -2827,6 +2828,13 @@ recommended sections — and no other command closed that gap.
 doctrina upgrade            # preview (exits 1 when steps are pending)
 doctrina upgrade --write    # apply
 ```
+
+**`--preset <dir>`** first lays an organisation's preset over the project —
+see [Templates](templates.md#an-organisations-preset). The plan names every
+file it would copy, every one it keeps because the project has its own, and
+every config key it sets or leaves; `--write` applies it. A preset is a
+folder on disk (a repository your team clones, a submodule): the CLI makes
+no network call to fetch one.
 
 An orchestrator over the pieces that already exist, in order:
 

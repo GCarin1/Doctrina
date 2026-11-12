@@ -49,7 +49,8 @@ reporting.
     CLI appends command names to. It is off by default and
     nothing reads it but you.
 - **What it reads outside the project.** The templates of its own
-  installed package; at a workspace, the server **names** in
+  installed package; the folder of a preset you name with
+  `--preset`, whose files it copies into the project; at a workspace, the server **names** in
   `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` and
   `~/.claude.json`, to warn when a declared tool matches none;
   and, for `doctrina doctor`, the directories of the `PATH` and
