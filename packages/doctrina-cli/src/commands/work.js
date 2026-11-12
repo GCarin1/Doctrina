@@ -20,6 +20,7 @@ import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff, similarChanges, SIMILAR_CHANGE_DAYS } from "../lib/work-model.js";
 import { isChangeId, refuseChangeRef } from "../lib/project.js";
 import { nextChangeNumber } from "../lib/change-numbers.js";
+import { withProjectLock } from "../lib/lock.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -195,14 +196,19 @@ export async function run(positional, flags) {
   const slug = flags.has("title")
     ? slugify(title)
     : (prompt ? slugFromPrompt(prompt) : "backfill");
-  const id = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
-  if (!isChangeId(id)) {
+  // The number is read and the folder created under one lock (change 0250):
+  // read apart, eight parallel `work` opened three changes numbered 0003.
+  const opened = withProjectLock(projectRoot, () => {
+    const candidate = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
+    if (!isChangeId(candidate)) return { id: candidate, code: null };
+    return { id: candidate, code: changeNew([candidate, title], flags) };
+  });
+  const id = opened.id;
+  if (opened.code === null) {
     console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
     return 2;
   }
-
-  const code = changeNew([id, title], flags);
-  if (code !== 0) return code;
+  if (opened.code !== 0) return opened.code;
 
   // The CLI reduces a prompt to an id deterministically; it cannot write a
   // good short name, and ADR 0005 says it must not try. So it says how to get

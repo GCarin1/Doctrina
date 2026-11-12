@@ -1255,6 +1255,13 @@ do próprio git e recebe só o hook.
 
 **O hook.**
 
+A pasta de hooks é perguntada ao git, então o comando funciona num worktree
+e num submódulo (onde `.git` é um arquivo) e segue o `core.hooksPath`. Um
+projeto que mora **abaixo** da raiz do repositório — `services/api/` de um
+monorepo — é instalado a partir da própria pasta: o `.gitattributes` fica ao
+lado do `.doctrina/` dele, e o hook entra nessa pasta primeiro, porque o git
+roda hooks a partir da raiz.
+
 O hook fixa a CLI que o instalou — `.git/hooks/` é local ao clone, então
 ele nomeia o entrypoint dessa CLI por caminho absoluto e lê `DOCTRINA=` do
 ambiente como override. Um `doctrina` solto no PATH pode ser uma release
@@ -1289,6 +1296,19 @@ instala nem roda; conecte à sua configuração de dev à mão.
 ## `doctrina validate`
 
 Roda checagens de schema e estrutura contra `.doctrina/`.
+
+**Um merge que parou dentro de um artefato** é erro. Quando o `AGENTS.md`,
+o `product.md`, uma spec, uma decisão, uma skill, um contrato ou uma change
+aberta guarda os marcadores de conflito do git (`<<<<<<<` … `>>>>>>>` no
+início de uma linha, fora de uma cerca de código), o `validate` nomeia o
+arquivo e a linha e sai com `1`, e o `doctrina next` o lista primeiro: toda
+outra checagem, e o agente, leriam o arquivo com as duas metades dentro.
+
+**Fim de linha.** Um checkout que guarda CRLF (Windows com
+`core.autocrlf`) valida exatamente como o gêmeo em LF. A CLI lê todo
+artefato com LF e grava o arquivo de volta com o fim de linha que ele já
+tem, então uma reescrita nunca mistura os dois e nunca transforma cada
+linha num diff.
 
 **Na raiz de um workspace** ele confere o próprio workspace — o caminho e
 as dependências de cada projeto registrado, os links de cada sombra, o

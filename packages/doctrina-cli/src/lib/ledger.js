@@ -14,8 +14,7 @@
 // match the grammar is not a corrupt ledger — it is a person writing a note.
 // Such lines are counted, never thrown, and never rewritten.
 import path from "node:path";
-import { appendFileSync } from "node:fs";
-import { exists, isFile, mkdirp, read, write } from "./fs-ops.js";
+import { appendLine, exists, isFile, mkdirp, read, write } from "./fs-ops.js";
 import { today } from "./dates.js";
 
 export const LEDGER_REL = ".doctrina/changes/archive/LEDGER.md";
@@ -157,7 +156,7 @@ export function appendLedgerLine(projectRoot, line) {
     mkdirp(path.dirname(p));
     write(p, HEADER);
   }
-  appendFileSync(p, `${line}\n`);
+  appendLine(p, line);
   return p;
 }
 

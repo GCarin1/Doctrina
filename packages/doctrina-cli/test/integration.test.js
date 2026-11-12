@@ -356,7 +356,9 @@ test("hooks install writes an executable pre-commit hook", () => {
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
     // bootstrap a fake git dir
-    mkdirSync(path.join(tmp, ".git", "hooks"), { recursive: true });
+    // A real repository: the hooks directory is asked of git (change 0250) —
+    // a folder named `.git` is not one, and in a worktree `.git` is a file.
+    spawnSync("git", ["init", "-q"], { cwd: tmp });
     const r = runCli(["hooks", "install"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const hookPath = path.join(tmp, ".git", "hooks", "pre-commit");
@@ -391,7 +393,9 @@ test("hooks install refuses to overwrite without --force", () => {
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
-    mkdirSync(path.join(tmp, ".git", "hooks"), { recursive: true });
+    // A real repository: the hooks directory is asked of git (change 0250) —
+    // a folder named `.git` is not one, and in a worktree `.git` is a file.
+    spawnSync("git", ["init", "-q"], { cwd: tmp });
     runCli(["hooks", "install"], { cwd: tmp });
     const r = runCli(["hooks", "install"], { cwd: tmp });
     assert.equal(r.status, 1);
@@ -2829,7 +2833,9 @@ test("hooks install writes a self-healing hook that runs validate --fix", () => 
   const tmp = makeTempProject();
   try {
     runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
-    mkdirSync(path.join(tmp, ".git", "hooks"), { recursive: true });
+    // A real repository: the hooks directory is asked of git (change 0250) —
+    // a folder named `.git` is not one, and in a worktree `.git` is a file.
+    spawnSync("git", ["init", "-q"], { cwd: tmp });
     const r = runCli(["hooks", "install"], { cwd: tmp });
     assert.equal(r.status, 0, r.stderr || r.stdout);
     const body = readFileSync(path.join(tmp, ".git", "hooks", "pre-commit"), "utf8");

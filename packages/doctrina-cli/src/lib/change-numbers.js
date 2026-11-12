@@ -102,8 +102,13 @@ export function renumberChange(projectRoot, id) {
   for (const file of walk(dir)) {
     if (!file.endsWith(".md")) continue;
     const text = read(file);
-    if (!text.includes(id)) continue;
-    write(file, text.replaceAll(id, to), { force: true });
+    // The id as a whole, never as the start of a longer one: renumbering
+    // `0001-fix` turned a mention of `0001-fix-login` into `0002-fix-login`,
+    // a change that does not exist (change 0250).
+    const whole = new RegExp(`(?<![A-Za-z0-9-])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![A-Za-z0-9-])`, "g");
+    const next = text.replace(whole, to);
+    if (next === text) continue;
+    write(file, next, { force: true });
     rewritten.push(path.relative(dir, file).split(path.sep).join("/"));
   }
   return { to, rewritten };

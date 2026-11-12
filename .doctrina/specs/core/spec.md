@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** SC3, SC4
-**Source:** `packages/doctrina-cli/src/lib/{dates,fs-ops}.js`
+**Source:** `packages/doctrina-cli/src/lib/{dates,fs-ops,lock}.js`
 **Last updated:** 2026-07-02
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -35,6 +35,8 @@ scaffolds and the validator checks.
   "how to do X" knowledge loaded only when relevant. Empty
   directories may use `.gitkeep`.
 - The system shall offer one reading of a file's line ending — CRLF when the file carries one, LF otherwise — and one way to write text back in it, so a command that rewrites a file a person owns keeps the ending the file already uses.
+- The system shall read every text file with LF line endings whatever the file stores, and shall write an existing file back with the line ending it already has, so that a checkout storing CRLF answers every command as its LF twin and a rewrite never mixes endings.
+- The system shall write `index.json` whole — to a temporary file moved over it — and shall read the next change number and create the change folder under one project lock, so that commands run at the same moment neither read half an index nor open two changes under one number.
 
 ### Event-driven
 
@@ -88,6 +90,7 @@ A repository is Doctrina-compliant when:
    replacement — enforced as an error by the Status-header check in
    `packages/doctrina-cli/src/commands/validate.js`.
 6. [verified] The line ending helpers read CRLF, LF and an empty file, and turn a mixed text into one ending either way — verified by `packages/doctrina-cli/test/um-arquivo-crlf-continua-crlf.test.js`.
+7. [verified] A CRLF file is read as LF and rewritten as CRLF; a CRLF project validates with the output of its LF twin and a change cycle leaves the spec, the proposal and the tasks CRLF throughout; eight `doctrina work` at once exit 0 with eight numbers, eight index entries and no lock left — verified by `packages/doctrina-cli/test/a-setima-auditoria-fecha-fim-de-linha-conflito-e-concorrencia.test.js`.
 
 ## Out of scope for this spec
 

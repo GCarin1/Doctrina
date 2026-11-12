@@ -33,6 +33,7 @@ import { derivedImplementations, implementationMismatch } from "./coverage-model
 import { headerValueError, criterionMarkError } from "./spec-ops.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
 import { sharedNumbers } from "./change-numbers.js";
+import { conflictedArtifacts } from "./conflict-markers.js";
 import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
@@ -78,6 +79,12 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   const fixes = [];
   const errors = [];
   const warnings = [];
+
+  // 0. A merge that stopped inside an artifact (change 0250). First, because
+  //    every check below would read the file with both halves in it.
+  for (const { file, line } of conflictedArtifacts(projectRoot)) {
+    errors.push(`${relPath(projectRoot, file)}:${line} carries git's merge conflict markers — a merge stopped here and the file was saved as it stood; keep what both branches meant, delete the three marker lines, then \`doctrina validate\``);
+  }
 
   // 1. AGENTS.md
   const agentsMd = path.join(projectRoot, "AGENTS.md");

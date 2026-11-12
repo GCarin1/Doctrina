@@ -45,4 +45,10 @@ test("the workflow publishes a version that reached main, and tags it itself", (
   const gated = release.split("\n      - name: ").slice(4);
   for (const step of gated) assert.match(step, /if: steps\.plan\.outputs\.publish == 'true'/, step.split("\n")[0]);
   assert.doesNotMatch(release, /node-version: "20/, "not from a Node that reached end of life");
+  // Seventh audit (change 0250): `workflow_dispatch` runs on any branch and a
+  // tag can sit on any commit; either would have published unmerged code.
+  assert.match(release, /"\$\{GITHUB_REF_NAME\}" != "main"/, "a manual run from another branch is refused");
+  assert.match(release, /git merge-base --is-ancestor "\$\{GITHUB_SHA\}" origin\/main/, "the commit must be on main");
+  assert.match(release, /fetch-depth: 0/, "which needs the history");
+  assert.ok(release.indexOf("is-ancestor") < release.indexOf("npm view"), "asked before anything else is decided");
 });

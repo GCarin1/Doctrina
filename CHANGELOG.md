@@ -77,6 +77,12 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Dependabot opens one grouped pull request a month for the workflows'
   actions and one for the two devDependencies.
 
+- `intake --from-code` seeds a Python project's linter and type checker
+  when it declares them (Ruff, mypy — as a dependency or by their own
+  configuration), run through the project's lock (`uv`, `poetry`,
+  `pipenv`). A Python project used to be seeded with its tests and nothing
+  else.
+
 ### Fixed
 
 - A delta — or an op — added to a change after a `close` that stopped is
@@ -97,6 +103,33 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A `Source` pattern with a literal segment after a wildcard
   (`pkg/*/src/main.js`) matched nothing when a directory `pkg/src` existed:
   the search started from it.
+- A checkout that stores CRLF (Windows with `core.autocrlf`) now answers
+  exactly as its LF twin. A fresh spec carried five EARS warnings there, a
+  `change check --verbose` preview showed the whole file as changed, and
+  every rewrite (`change delta`, the `applied` stamp) left LF lines inside a
+  CRLF file. The CLI now reads every artifact with LF and writes a file
+  back with the ending it has — one rule at the door instead of one fix per
+  caller. Found by running the same project in both endings and comparing
+  every command's output.
+- `validate` reports a merge that stopped inside an artifact: a spec holding
+  git's conflict markers passed with "0 errors". It is an error naming the
+  file and line, and the first action `next` lists.
+- Commands run at the same moment no longer corrupt each other. Eight
+  parallel `doctrina work` opened three changes numbered 0003, and one
+  stopped on a half-written `index.json` ("Unexpected end of JSON input"):
+  the number is now read and the folder created under a lock, and the index
+  is written whole (temp file, then rename).
+- `doctrina hooks install` works in a git worktree and a submodule (it
+  crashed with `ENOTDIR` after writing `.gitattributes`) and for a project
+  below its repository's root, where it used to answer "run git init" while
+  `doctor` kept sending the project back to it. The hook enters the
+  project's folder, and the staged-index check reads that project's index.
+- `workspace tool --only` with no value is a usage error; it silently
+  removed a strict tool's list.
+- `change renumber` rewrites the id as a whole: renumbering `0001-fix`
+  turned a mention of `0001-fix-login` into `0002-fix-login`.
+- The Release workflow refuses a manual run from a branch other than `main`
+  and a tag on a commit that is not on `main`.
 - An `index.json` carrying git's conflict markers is reported as that, with
   `doctrina index rebuild` as the way out, instead of a JSON parse position.
 

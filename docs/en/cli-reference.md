@@ -1228,6 +1228,13 @@ branch into yours locally and push. A shadowed repository keeps its
 
 **The hook.**
 
+The hooks directory is asked of git, so the command works in a worktree and
+in a submodule (where `.git` is a file) and follows `core.hooksPath`. A
+project that lives **below** its repository's root — `services/api/` of a
+monorepo — is installed from its own folder: `.gitattributes` goes beside
+its `.doctrina/`, and the hook enters that folder first, because git runs
+hooks from the root.
+
 The hook pins the CLI that installed it — `.git/hooks/` is local to the
 clone, so it names that CLI's entrypoint by absolute path and reads
 `DOCTRINA=` from the environment as the override. A bare `doctrina` on the
@@ -1263,6 +1270,18 @@ or run it; wire it into your dev setup by hand.
 ## `doctrina validate`
 
 Run schema and structural checks against `.doctrina/`.
+
+**A merge that stopped inside an artifact** is an error. When `AGENTS.md`,
+`product.md`, a spec, a decision, a skill, a contract or an open change
+holds git's conflict markers (`<<<<<<<` … `>>>>>>>` at the start of a line,
+outside a code fence), `validate` names the file and the line and exits
+`1`, and `doctrina next` lists it first: every other check, and the agent,
+would read the file with both halves in it.
+
+**Line endings.** A checkout that stores CRLF (Windows with
+`core.autocrlf`) validates exactly as its LF twin. The CLI reads every
+artifact with LF and writes a file back with the ending it already has, so
+a rewrite never mixes endings and never turns every line into a diff.
 
 **At a workspace root** it checks the workspace itself — every registered
 project's path and dependencies, every shadow's links, every delivery's

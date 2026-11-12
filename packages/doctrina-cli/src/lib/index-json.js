@@ -48,7 +48,10 @@ export function save(projectRoot, index) {
   index.framework_version = newestVersion(index.framework_version, cliVersion());
   const p = indexPath(projectRoot);
   const text = JSON.stringify(index, null, 2) + "\n";
-  write(p, text, { force: true });
+  // Atomic (change 0250): every command reads this file, and one that read
+  // it while another was half-way through writing it stopped with
+  // "Unexpected end of JSON input".
+  write(p, text, { force: true, atomic: true });
 }
 
 export function blank(projectName, date) {

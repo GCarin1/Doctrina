@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline}.js`
+**Source:** `packages/doctrina-cli/src/commands/validate.js`, `packages/doctrina-cli/src/lib/{ears,pipeline,conflict-markers}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.7.1
+**Version:** 0.8.0
 
 ## Purpose
 
@@ -126,6 +126,7 @@ those stays there, with the cross-cutting claim it belongs to.
 - The system shall not write a `framework_version` stamp lower than the one the index already carries; an older CLI that rebuilds the index keeps the newer stamp, `validate` reports a stamp ahead of the running CLI as a reason to upgrade the CLI rather than to rebuild, and `index rebuild --check` does not count a stamp ahead as index drift.
 - The system shall not read an open change's `Affects specs:` header of "none" or "n/a" — including the `(none — chore)` a chore is scaffolded with — or a parenthesised aside beside real names, as capability names, so the ghost-capability warning fires only on a name the author meant.
 - If `.doctrina/index.json` carries the conflict markers of a git merge, then the system shall not report it as a JSON parse position: it shall name the markers and `doctrina index rebuild` as what writes the index again.
+- If `AGENTS.md`, `product.md`, a spec, a decision, a skill, a contract or an open change holds the conflict markers of a git merge at the start of a line outside a code fence, then the system shall not validate it: `validate` shall report an error naming the file and the line, and `next` shall list it first.
 
 ## Acceptance criteria
 
@@ -147,6 +148,7 @@ those stays there, with the cross-cutting claim it belongs to.
 14. [verified] `validate` at a workspace root exits 1 for a missing shadow link and a delivery routed to an unregistered project, and 0 once both are fixed — verified by `packages/doctrina-cli/test/a-orientacao-funciona-na-raiz-do-workspace.test.js`.
 15. [verified] The merge of two indexes keeps what each side added, drops what each side removed, takes 0.10.0 over 0.2.0 and the later date, never lowers the stamp, and is ordered as a rebuild orders it; an index with conflict markers is named as one and a rebuild heals it; `index merge` with fewer than three files exits 2 and with a side that is not JSON exits 1 — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
 16. [verified] `tsconfig.json` matches the file at the root and not one a dependency ships, `src/*.js` stays in one directory, `src/**/*.js` and `src/lib/` span directories, `pkg/*/src/main.js` matches under each package although `pkg/src` exists, and a bounded walk returns the levels asked for while following a linked directory — verified by `packages/doctrina-cli/test/o-validate-nao-varre-o-repositorio-inteiro.test.js`.
+17. [verified] A spec with conflict markers fails `validate` with the file and line and heads `next`; a setext underline and markers inside a code fence are not a conflict — verified by `packages/doctrina-cli/test/a-setima-auditoria-fecha-fim-de-linha-conflito-e-concorrencia.test.js`.
 
 ## Out of scope for this spec
 

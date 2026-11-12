@@ -535,7 +535,10 @@ export function collectStagedIndexDrift(projectRoot) {
   const nothing = { ok: true, applicable: false, missing: [], unindexed: [], reason: null };
   if (!isRepo(projectRoot)) return { ...nothing, reason: "not a git repository" };
 
-  const blob = git(projectRoot, ["show", ":.doctrina/index.json"]);
+  // `:./` reads the path from the current directory. A bare `:.doctrina/…`
+  // is read from the top of the repository, so for a project in a subfolder
+  // the check answered "no staged index" for every commit (change 0250).
+  const blob = git(projectRoot, ["show", ":./.doctrina/index.json"]);
   if (blob.state !== GIT_STATE.OK || !blob.stdout.trim()) {
     // Not staged at all — this commit does not carry an index, so it cannot
     // carry one that disagrees with itself.

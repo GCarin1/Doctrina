@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js`, `packages/doctrina-cli/src/lib/{change-ops,change-numbers,applied-deltas,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.37.0
+**Version:** 0.37.1
 
 ## Purpose
 
@@ -53,7 +53,7 @@ keep the checks and the read path.
 - The system shall let a MODIFIED delta take a requirement or an acceptance criterion out — `remove-requirement <section> <n>` and `remove-criterion <n>`, the criteria after a removed one renumbered — and every op that replaces or removes an item shall take it whole, continuation lines included.
 - The system shall keep the line ending a change file already uses when `change tick` ticks its boxes or `work` writes its Why, its pinned capability or its `Delivery:` line, so a CRLF checkout does not see every line of the file change.
 - The system shall print, in the bootstrap and absorb playbooks, the rules that keep a spec to what its source states — no requirement without the intake sentence or the code that does it, numbers and messages verbatim, a contradiction or a missing value as a question — and a step that checks the facts before the gates: the bootstrap rereads the intake sentence by sentence, the absorb hands each spec to a reader that did not write it.
-- The system shall number a new change past every id the ledger records, abandoned ones included.
+- The system shall number a new change past every id the ledger records, abandoned ones included, and past every number another `doctrina work` running at the same moment takes.
 - The system shall number a new change past every change another branch added in the last 180 days, as far as the git history of the clone records one.
 
 ### Event-driven
@@ -376,7 +376,7 @@ The authoring commands are v0 spec-compliant when:
 55. [verified] The bootstrap playbook prints the no-invention rules and the sentence-by-sentence check before the gates — verified by `packages/doctrina-cli/test/playbooks.test.js`.
 56. [verified] `change card` renders the card the delivery spec states — the story, what the delta does, the spec as it stands, the binding decisions — and a plain change's card unchanged — verified by `packages/doctrina-cli/test/o-cartao-leva-o-que-a-change-faz.test.js`.
 57. [verified] `change check` prints the clarify warnings for the spec a delta writes — verified by `packages/doctrina-cli/test/o-change-delta-escreve-as-ops.test.js`.
-58. [verified] a watching script is listed as not seeded, and the flags that make a runner return are seeded — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
+58. [verified] a watching script is listed as not seeded, and the flags that make a runner return are seeded; a Python unit is seeded with the linter and the type checker it declares and with nothing it does not; `change renumber` leaves a longer id that starts the same untouched — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js` and `packages/doctrina-cli/test/a-setima-auditoria-fecha-fim-de-linha-conflito-e-concorrencia.test.js`.
 59. [verified] a bare `intake` reprints the absorb playbook for a stored inventory, its workspace step numbered after step 9 — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 60. [verified] a delivery's story ranks the capability its title does not name — verified by `packages/doctrina-cli/test/a-segunda-auditoria-fecha-o-fluxo-multi-repo.test.js`.
 61. [verified] the ledger keeps the abandoned change's delivery and its number is not reused — verified by `packages/doctrina-cli/test/a-terceira-auditoria-fecha-os-caminhos-de-falha.test.js`.

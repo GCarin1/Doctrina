@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.21.0",
-  "last_updated": "2026-11-11",
+  "last_updated": "2026-11-12",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,7 +15,7 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.37.0",
+        "version": "0.37.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -44,7 +44,7 @@
         "id": "core",
         "path": ".doctrina/specs/core/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "realizes": [
@@ -52,7 +52,7 @@
           "SC4"
         ],
         "source": [
-          "packages/doctrina-cli/src/lib/{dates,fs-ops}.js"
+          "packages/doctrina-cli/src/lib/{dates,fs-ops,lock}.js"
         ]
       },
       {
@@ -125,7 +125,7 @@
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.15.0",
+        "version": "0.16.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -155,12 +155,12 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.7.1",
+        "version": "0.8.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/validate.js",
-          "packages/doctrina-cli/src/lib/{ears,pipeline}.js"
+          "packages/doctrina-cli/src/lib/{ears,pipeline,conflict-markers}.js"
         ]
       },
       {
@@ -196,7 +196,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.10.0",
+        "version": "0.10.1",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -4313,6 +4313,36 @@
           }
         ],
         "lane": "product (uncertain)"
+      },
+      {
+        "id": "0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e",
+        "title": "a setima auditoria fecha fim de linha conflito e concorrencia",
+        "path": ".doctrina/changes/archive/2026-11-12-0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "core",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: spec)"
       }
     ],
     "skills": [

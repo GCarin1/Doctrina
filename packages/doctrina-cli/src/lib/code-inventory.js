@@ -57,6 +57,7 @@ const JS_SIGNALS = {
 const PY_SIGNALS = {
   django: "Django", djangorestframework: "Django REST framework", flask: "Flask", fastapi: "FastAPI",
   sqlmodel: "SQLModel", pydantic: "Pydantic", pytest: "pytest", behave: "Behave", robotframework: "Robot Framework",
+  ruff: "Ruff", mypy: "mypy",
   selenium: "Selenium", playwright: "Playwright", requests: "requests", httpx: "HTTPX", sqlalchemy: "SQLAlchemy",
   alembic: "Alembic", pandas: "pandas", pyspark: "PySpark", locust: "Locust", celery: "Celery", grpcio: "gRPC",
   streamlit: "Streamlit", langchain: "LangChain", openai: "OpenAI SDK", anthropic: "Anthropic SDK", uvicorn: "Uvicorn",
@@ -396,6 +397,22 @@ function unitCommands(root, unit, units, workspaces, files) {
       }
     } else if (kind === "python") {
       const own = files.filter((f) => unitOf(units, f) === unit);
+      const from = `${unit.dir ? unit.dir + "/" : ""}${unit.manifests.join(", ")}`;
+      const pyproject = readText(root, unit.dir ? `${unit.dir}/pyproject.toml` : "pyproject.toml");
+      const setupCfg = readText(root, unit.dir ? `${unit.dir}/setup.cfg` : "setup.cfg");
+      const locked = (/** @type {string} */ f) => at(f) || isFile(path.join(root, f));
+      const via = locked("uv.lock") ? "uv run " : locked("poetry.lock") ? "poetry run " : locked("Pipfile.lock") ? "pipenv run " : "";
+      // The linter and the type checker the project DECLARES (seventh audit,
+      // change 0250): a Python project was seeded with its tests and nothing
+      // else, where a Node one gets `lint` and `typecheck` from its scripts.
+      // Python has no scripts table, so the declaration is the dependency or
+      // the tool's own configuration.
+      if (unit.signals.includes("Ruff") || at("ruff.toml") || at(".ruff.toml") || /\[tool\.ruff/.test(pyproject)) {
+        out.push({ name: `lint${tag}`, command: `${via}ruff check .`, cwd, from, seed: true });
+      }
+      if (unit.signals.includes("mypy") || at("mypy.ini") || /\[tool\.mypy/.test(pyproject) || /^\[mypy\]/m.test(setupCfg)) {
+        out.push({ name: `typecheck${tag}`, command: `${via}mypy .`, cwd, from, seed: true });
+      }
       const hasTests = own.some((f) => /(^|\/)(test_[^/]*|[^/]*_test)\.py$/.test(f));
       if (!hasTests) continue; // pytest declared with nothing to run is not a gate
       // Seed the runner the project DECLARES. Test files alone say nothing

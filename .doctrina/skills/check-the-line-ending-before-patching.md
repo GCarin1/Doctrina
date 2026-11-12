@@ -39,6 +39,15 @@ This is not hypothetical: it is how six proposals reached the archive
 with `## Why` holding nothing but its scaffold comment, past every gate,
 in one session.
 
+## Inside the CLI there is nothing to do
+
+Since change 0250 the CLI's own `read` (`src/lib/fs-ops.js`) returns every
+file with LF, and `write` gives an existing file back the ending it had. New
+code under `packages/doctrina-cli/src/` writes its patterns for LF and calls
+`read`/`write` — never `readFileSync` on an artifact, and no `eolOf`/`withEol`
+bookkeeping. The procedure below is for a script OUTSIDE the CLI (a one-off
+Python or sed pass), which sees the bytes as they are on disk.
+
 ## Procedure
 
 1. **Prefer writing the file whole.** Read it, build the full new

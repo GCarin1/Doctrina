@@ -35,8 +35,11 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     steps:
+      # The whole history: the step below asks whether this commit is on main.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # The ACTIVE LTS the CI matrix already tests on three operating
       # systems. This job published from 20.12 — end of life since April
@@ -55,6 +58,17 @@ jobs:
         run: |
           version=$(node -p "require('./packages/doctrina-cli/package.json').version")
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+          # Only what is on main is released. `workflow_dispatch` can be run
+          # on any branch and a tag can be pushed on any commit: either would
+          # have published code no pull request had merged.
+          if [ "${GITHUB_REF_TYPE}" = "branch" ] && [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::the release runs from main, not from ${GITHUB_REF_NAME} — merge the version bump, and the release follows"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::${GITHUB_SHA} is not on main — a release is a version that reached main"
+            exit 1
+          fi
           if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
             echo "::error::tag ${GITHUB_REF_NAME} does not name packages/doctrina-cli/package.json's version (${version}) — the release publishes and tags a version by itself when it reaches main; delete this tag"
             exit 1

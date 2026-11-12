@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { exists, isDir, mkdirp, relPath, write } from "../lib/fs-ops.js";
-import { flagString } from "../lib/args.js";
+import { flagString, flagGivenWithoutValue } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { EXIT, PreconditionError } from "../lib/exit-codes.js";
@@ -289,6 +289,12 @@ function workspaceTool(wsDir, name, flags) {
     writeWorkspace(wsDir, ws);
     console.log(c.green("removed") + ` tool ${name}`);
     return EXIT.OK;
+  }
+  // `--only` with nothing after it is not "no list": taking it for one
+  // removed the list a strict tool had, with exit 0 (change 0250).
+  if (flagGivenWithoutValue(flags, "only")) {
+    console.error(c.red("error:") + " --only needs the calls it allows, e.g. --only \"getJiraIssue,search*\" — or --only none to take the list away");
+    return EXIT.USAGE;
   }
   let entry;
   try {

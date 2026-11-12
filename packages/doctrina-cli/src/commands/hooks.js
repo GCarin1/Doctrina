@@ -13,6 +13,7 @@ import { suggest } from "../lib/suggest.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { writeAttributes, configureDriver, configuredDriver } from "../lib/merge-setup.js";
 import { shadowRootOf } from "../lib/workspace.js";
+import { gitPathOf, repoPrefix } from "../lib/git.js";
 
 const SUBCOMMANDS = ["install"];
 
@@ -35,11 +36,19 @@ export async function run(positional, flags) {
   const force = flagBool(flags, "force", false);
   const projectRoot = process.cwd();
 
-  if (!exists(path.join(projectRoot, ".git"))) {
+  // Asked of git, not of `.git/` (seventh audit, change 0250). In a worktree
+  // and in a submodule `.git` is a file, so `mkdir .git/hooks` crashed with
+  // ENOTDIR after the attributes were already written; and a project in a
+  // subfolder of its repository has no `.git` beside it at all, so it was
+  // told to `git init` inside a repository — while `doctor` kept sending it
+  // back here.
+  const prefix = repoPrefix(projectRoot);
+  const hooksDir = prefix === null ? null : gitPathOf(projectRoot, "hooks");
+  if (prefix === null || hooksDir === null) {
     // A PRECONDITION, not a gate: nothing was measured and found wanting,
     // the place to put the hook simply does not exist yet. Class 1 told an
     // agent to fix its work and retry the same command, which never clears.
-    console.error(c.red("error:") + " not a git repository (no .git/ in cwd)");
+    console.error(c.red("error:") + " not a git repository — git does not answer for this folder");
     console.error(c.gray("hint: ") + "run `git init` here, then `doctrina hooks install`");
     return EXIT.PRECONDITION;
   }
@@ -70,7 +79,6 @@ export async function run(positional, flags) {
     }
   }
 
-  const hooksDir = path.join(projectRoot, ".git", "hooks");
   mkdirp(hooksDir);
 
   const target = path.join(hooksDir, "pre-commit");
@@ -81,7 +89,13 @@ export async function run(positional, flags) {
 
   const templatesDir = locateTemplatesDir();
   const tplPath = path.join(templatesDir, "hooks", "pre-commit.sample");
-  const body = substitute(read(tplPath), { DOCTRINA_BIN: bin });
+  let body = substitute(read(tplPath), { DOCTRINA_BIN: bin });
+  // git runs a hook from the top of the repository. A project that lives
+  // below it is entered first, or `validate` would answer for a folder that
+  // is not a Doctrina project.
+  if (prefix !== "") {
+    body = body.replace(/^DOCTRINA=/m, `# This Doctrina project lives below the repository root.\ncd "${prefix}" || exit 1\n\nDOCTRINA=`);
+  }
   write(target, body, { force: true });
   chmodSync(target, 0o755);
   console.log(c.green("installed") + ` ${relPath(projectRoot, target)}`);

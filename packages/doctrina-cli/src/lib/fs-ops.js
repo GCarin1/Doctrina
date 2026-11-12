@@ -42,17 +42,68 @@ export function withEol(text, eol) {
   return eol === "\n" ? lf : lf.replace(/\n/g, "\r\n");
 }
 
+// ...and so is the line ending (seventh audit, change 0250).
+//
+// A Windows checkout with `core.autocrlf` stores every artifact with CRLF,
+// and the grammar was read with patterns written for LF. `.*$` does not
+// cross a `\r`, so a header stamp matched nothing and reported success; a
+// placeholder bullet `-\r` read as an empty requirement, and a fresh spec
+// carried five EARS warnings an LF checkout never saw; a line diff showed
+// the whole file as changed. Each was fixed where it was found, one caller
+// at a time (`eolOf`/`withEol`), and the next caller forgot.
+//
+// So the rule is the door's: text is READ with LF, whatever the file holds,
+// and WRITTEN BACK with the ending the file already has. No parser
+// downstream has to know which checkout it is running in, and a rewrite
+// never mixes endings or turns a file's every line into a diff.
 export function read(p) {
   const text = readFileSync(p, "utf8");
-  return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const body = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  return body.includes("\r\n") ? body.replace(/\r\n/g, "\n") : body;
 }
 
-export function write(p, content, { force = false } = {}) {
-  if (existsSync(p) && !force) {
+/** Does the file at `p` end its lines with CRLF today? False when absent or unreadable. */
+function storedAsCrlf(p) {
+  try {
+    return readFileSync(p, "utf8").includes("\r\n");
+  } catch {
+    return false;
+  }
+}
+
+export function write(p, content, { force = false, atomic = false } = {}) {
+  const there = existsSync(p);
+  if (there && !force) {
     throw new Error(`refusing to overwrite existing file: ${p} (pass --force to allow)`);
   }
   mkdirSync(path.dirname(p), { recursive: true });
-  writeFileSync(p, content);
+  // A rewrite keeps the ending the file has; a new file is written as given.
+  const text = there && typeof content === "string" && storedAsCrlf(p)
+    ? content.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n")
+    : content;
+  if (!atomic) {
+    writeFileSync(p, text);
+    return;
+  }
+  // Whole or not at all: written beside the target and moved over it, so a
+  // command reading the file at that instant never sees half of it. Where the
+  // move is refused (a reader holding the file open on Windows) the plain
+  // write still lands.
+  const tmp = `${p}.${process.pid}.tmp`;
+  try {
+    writeFileSync(tmp, text);
+    renameSync(tmp, p);
+  } catch {
+    writeFileSync(p, text);
+    try {
+      unlinkSync(tmp);
+    } catch { /* never created, or already moved */ }
+  }
+}
+
+/** Append `line` to the text file at `p`, with the ending the file already uses. */
+export function appendLine(p, line) {
+  writeFileSync(p, `${line}${storedAsCrlf(p) ? "\r\n" : "\n"}`, { flag: "a" });
 }
 
 export function exists(p) {
