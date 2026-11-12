@@ -23,6 +23,7 @@ import { renumberChange } from "../lib/change-numbers.js";
 import { appliedDeltas, deltaFingerprint, deltaKey, pendingOps, recordAppliedDeltas } from "../lib/applied-deltas.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
+import { propertyShape } from "../lib/properties.js";
 import { scanText } from "../lib/clarify-scan.js";
 
 const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "renumber", "delta", "card"];
@@ -30,7 +31,7 @@ const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "ren
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason", "requirement", "criterion", "bump", "op"] };
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason", "requirement", "criterion", "property", "bump", "op"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -561,6 +562,9 @@ function changeDelta(args, flags) {
   const bump = flagString(flags, "bump");
   for (const r of flagAll(flags, "requirement")) lines.push(`append-requirement ${r}`);
   for (const r of flagAll(flags, "criterion")) lines.push(`append-criterion ${r}`);
+  // A criterion that claims something of every input (change 0254): the
+  // mark is what makes coverage ask the cited test to be a property.
+  for (const r of flagAll(flags, "property")) lines.push(`append-criterion [property] ${r.replace(/^\[property\]\s*/i, "")}`);
   lines.push(...raw);
   if (bump) lines.push(`bump-version ${bump}`);
 
@@ -573,6 +577,22 @@ function changeDelta(args, flags) {
   }
   console.log(c.green(r.created ? "created" : "updated") + ` ${r.deltaRel}` +
     c.gray(` — ${lines.length} op${lines.length === 1 ? "" : "s"} added; the block now holds ${(r.block ?? []).length} (${(r.block ?? []).join(", ")}), and applies cleanly`));
+  // The moment the requirement is written is the moment its proof is
+  // chosen (change 0254): one that claims something of every input is told
+  // so here, while the test for it does not exist yet.
+  if (flagAll(flags, "property").length === 0) {
+    let noted = 0;
+    for (const req of flagAll(flags, "requirement")) {
+      const shape = propertyShape(req.replace(/^[a-z-]+:\s*/i, ""));
+      if (!shape) continue;
+      noted++;
+      console.log(c.yellow("note: ") + `"${req.length > 70 ? req.slice(0, 69) + "…" : req}" reads as ${shape.id === "invariant" ? "an invariant" : shape.id} — ${shape.property}.`);
+    }
+    if (noted > 0) {
+      console.log(c.gray("  An example test proves the cases somebody thought of. If a failure here would be a bug, write a property test and claim it: ") +
+        c.cyan(`doctrina change delta ${id} ${capability} --property "<what holds for every input> — verified by \`<the property test>\`"`));
+    }
+  }
   console.log(c.gray("Preview the merge: ") + c.cyan(`doctrina change check ${id} --verbose`));
   return EXIT.OK;
 }
@@ -1027,14 +1047,18 @@ Subcommands:
                          the merge that brought together two changes opened
                          on two branches under one number — \`validate\` names it.
   delta <id> <capability> [--requirement "<section>: <text>"] [--criterion "<text>"]
-        [--bump major|minor|patch] [--op "<op line>" | <op line>]
+        [--property "<text>"] [--bump major|minor|patch] [--op "<op line>" | <op line>]
                          Write ops into the change's MODIFIED delta for the
                          capability — created from the template when absent —
                          parsed by the grammar apply reads and dry-run against
                          the spec first: nothing is written unless the whole
                          block applies. --requirement, --criterion and --op
                          repeat, one op each, in order; a second --bump
-                         replaces the first.
+                         replaces the first. --property writes a criterion
+                         marked [property]: a claim about every input, which
+                         coverage counts only when the test it cites is
+                         property-based (\`doctrina coverage --properties\`
+                         lists the requirements that read as one).
   card <id> [<n>]        Print task <n> (default: the next open one) as a
                          self-contained card for an executor: the task and the
                          lines indented under it (Files:, Requirement:, Verify:),

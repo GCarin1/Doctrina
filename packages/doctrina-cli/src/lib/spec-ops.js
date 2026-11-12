@@ -50,7 +50,7 @@ const HEADER_RE = (name) =>
 // see ADR 0007"): only the WORD is checked.
 export const STATUS_VALUES = ["draft", "active", "deprecated"];
 export const IMPLEMENTATION_VALUES = ["planned", "partial", "implemented", "verified"];
-export const CRITERION_MARKS = ["verified", "unverified", "orchestration"];
+export const CRITERION_MARKS = ["verified", "unverified", "orchestration", "property"];
 
 /** The state word of a header/mark value: the first token, note stripped. */
 export function stateWord(value) {

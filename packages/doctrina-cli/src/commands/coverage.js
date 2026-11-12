@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { exists, isFile, read, relPath } from "../lib/fs-ops.js";
+import { propertyCandidates, projectPropertyLibrary } from "../lib/properties.js";
 import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
@@ -39,7 +40,7 @@ export { collect, summarize, deriveImplementation, derivedImplementations, imple
 // wrap it in the generic envelope.
 export const jsonNative = true;
 
-export const flags = { boolean: ["json", "run", "strict"], string: ["only"] };
+export const flags = { boolean: ["json", "run", "strict", "properties"], string: ["only"] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -76,6 +77,11 @@ export async function run(_positional, flags) {
       return EXIT.USAGE;
     }
   }
+
+  // --properties: which requirements read as claims about EVERY input, and
+  // so ask for a property-based test (change 0254). A readout, exit 0: it
+  // proposes; the `[property]` mark on a criterion is what the gate enforces.
+  if (flagBool(flags, "properties", false)) return listProperties(projectRoot, only, json);
 
   const reports = collect(projectRoot, { only });
 
@@ -165,7 +171,7 @@ export async function run(_positional, flags) {
       } else if (r.kind === "conditional") {
         console.log(`    ${c.yellow("!")} #${r.n}  evidence is a skipped test (proves nothing): ${r.skipped.map((m) => `\`${m}\``).join(", ")}`);
       } else if (r.kind === "unguarded") {
-        console.log(`    ${c.red("✗")} #${r.n}  orchestration claim is not fail-closed: ${r.reason}`);
+        console.log(`    ${c.red("✗")} #${r.n}  ${r.label ?? "orchestration claim is not fail-closed"}: ${r.reason}`);
       } else {
         console.log(`    ${c.yellow("!")} #${r.n}  evidence not found on disk: ${(r.missing ?? []).map((m) => `\`${m}\``).join(", ")}`);
       }
@@ -250,8 +256,49 @@ function runEvidence(projectRoot, reports, strict) {
 }
 
 
+const CANDIDATES_SHOWN = 5;
+
+function listProperties(projectRoot, only, json) {
+  const caps = propertyCandidates(projectRoot, { only });
+  const lib = projectPropertyLibrary(projectRoot);
+  if (json) {
+    emitJson("coverage", { properties: caps, library: lib });
+    return 0;
+  }
+  const total = caps.reduce((n, cap) => n + cap.candidates.length, 0);
+  const proven = caps.reduce((n, cap) => n + cap.properties, 0);
+  console.log(c.bold("Property candidates") + c.gray(" — requirements that claim something of every input"));
+  console.log("");
+  if (total === 0) {
+    console.log(c.gray("no requirement here reads as an invariant (always/never, at most, unique, round trip, twice, in order)"));
+    return 0;
+  }
+  for (const cap of caps) {
+    if (cap.candidates.length === 0) continue;
+    console.log(`${c.cyan(cap.cap)}  ${cap.candidates.length} requirement${cap.candidates.length === 1 ? "" : "s"} read${cap.candidates.length === 1 ? "s" : ""} as invariant${cap.candidates.length === 1 ? "" : "s"}, ` +
+      `${cap.properties} criteri${cap.properties === 1 ? "on is a property" : "a are properties"}`);
+    for (const cand of cap.candidates.slice(0, CANDIDATES_SHOWN)) {
+      const text = cand.text.length > 110 ? `${cand.text.slice(0, 107)}…` : cand.text;
+      console.log(`    ${cand.ref.padEnd(13)} ${text}`);
+      console.log(c.gray(`    ${"".padEnd(13)} ${cand.shape}: ${cand.property}`));
+    }
+    if (cap.candidates.length > CANDIDATES_SHOWN) {
+      console.log(c.gray(`    … and ${cap.candidates.length - CANDIDATES_SHOWN} more — doctrina coverage --properties --only ${cap.cap} --json`));
+    }
+  }
+  console.log("");
+  console.log(`${total} candidate${total === 1 ? "" : "s"}, ${proven} propert${proven === 1 ? "y" : "ies"} claimed. A candidate is a reading of the words, not a verdict: choose the ones whose failure would be a bug.`);
+  const where = lib
+    ? `${lib.name}${lib.declared ? "" : " (not declared by this project yet — add it as a test dependency)"}`
+    : "the property library of the project's language";
+  console.log(`Write each as a test that generates its inputs with ${where}, then claim it:`);
+  console.log(c.cyan("  doctrina change delta <id> <capability> --property \"<what holds for every input> — verified by \`<the property test>\`\""));
+  console.log(c.gray("A criterion marked [property] counts as proven only when the test it cites is property-based."));
+  return 0;
+}
+
 export const help = `
-Usage: doctrina coverage [--strict] [--only <cap,cap>] [--run] [--json]
+Usage: doctrina coverage [--strict] [--only <cap,cap>] [--run] [--properties] [--json]
 
 Report how many acceptance criteria across .doctrina/specs/ cite an
 artifact or test that exists on disk. Each numbered criterion may cite
@@ -276,6 +323,22 @@ a verify check by name:
 That check must declare an "expect" guard (see \`doctrina verify --help\`).
 A cited check with no guard is reported UNGUARDED and fails --strict: a
 check that exits 0 having run nothing would otherwise satisfy the claim.
+
+PROPERTY criteria. A requirement that claims something of EVERY input —
+"never returns a code already in use", "at most 100 items", "decoding
+gives back what was encoded" — is not proven by three examples. Mark the
+criterion [property] and cite a property-based test:
+
+  4. [property] no two codes collide, whatever the URLs —
+     verified by \`tests/test_codes_property.py\`
+
+It counts as covered only when that test generates its inputs
+(Hypothesis @given, fast-check fc.property, jqwik @Property, proptest,
+rapid, FsCheck, ScalaCheck); cited to an example test it is reported and
+fails --strict. \`doctrina coverage --properties\` lists, per capability,
+the requirements whose words read as an invariant, the property each
+suggests and the library this project would write it with — a readout,
+never a gate.
 
 A spec that declares a deliberate deferral —
 \`Implementation: planned — <why>\`, the same escape hatch validate

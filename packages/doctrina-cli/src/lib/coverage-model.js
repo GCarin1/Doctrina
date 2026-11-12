@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import { PROPERTY_MARKER, propertyLibraryIn } from "./properties.js";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "./fs-ops.js";
 import { specHeader } from "./scan.js";
@@ -359,9 +360,22 @@ function classify(criterion, n, projectRoot, specDir, skippedOf = /** @type {Map
       if (!skippedOf.has(hit)) skippedOf.set(hit, testSuiteIsSkipped(read(hit)));
       skipped = skippedOf.get(hit) === true;
     }
-    resolved.push({ token, isTest, skipped });
+    resolved.push({ token, isTest, skipped, hit });
   }
   if (resolved.length === 0) return { kind: "dangling", n, missing };
+  // A `[property]` criterion claims something of EVERY input (change 0254):
+  // the test it cites must be one that generates its inputs. An example
+  // test proves three cases; calling that proof of a universal claim is the
+  // false confidence this gate exists against.
+  if (PROPERTY_MARKER.test(marker)) {
+    const generating = resolved.find((r) => r.isTest && !r.skipped && propertyLibraryIn(read(r.hit)) !== null);
+    if (!generating) {
+      return {
+        kind: "unguarded", n, label: "property claim is proven by no property",
+        reason: `${resolved.map((r) => `\`${r.token}\``).join(", ")} generates no input — a [property] criterion is proven by a property-based test (Hypothesis \`@given\`, fast-check \`fc.property\`, jqwik \`@Property\`, proptest), or it is an example and its mark is [verified]`,
+      };
+    }
+  }
   // Runnable evidence: the resolving test-shaped citations, recorded so
   // `coverage --run` can execute them (existence → passing proof).
   const evidence = resolved.filter((r) => r.isTest && !r.skipped).map((r) => r.token);

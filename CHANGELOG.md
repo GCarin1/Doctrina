@@ -19,6 +19,14 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A requirement that is an invariant asks for a property. `doctrina coverage
+  --properties` lists the EARS requirements that claim something of every
+  input (round-trip, idempotence, bound, uniqueness, order, `always`/`never`)
+  with the property each suggests and the library to write it with
+  (Hypothesis, fast-check, jqwik, proptest, rapid). A criterion marked
+  `[property]` — `doctrina change delta <id> <cap> --property "…"` — counts
+  as proven only when the test it cites generates its inputs; an example
+  test cited for it is reported unguarded and fails `coverage --strict`.
 - Two branches that each closed a change merge without a manual step.
   `doctrina hooks install` now also writes two lines into `.gitattributes`
   (commit them) and a merge driver into the clone's git config: `index.json`

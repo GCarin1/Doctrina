@@ -4,9 +4,9 @@
 **Status:** active
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
-**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache,install}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `scripts/release.mjs`, `action.yml`
+**Source:** `packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js`, `packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache,install,properties}.js`, `scripts/bench.js`, `scripts/e2e-packed.mjs`, `scripts/release.mjs`, `action.yml`
 **Last updated:** 2026-09-11
-**Version:** 1.55.1
+**Version:** 1.56.0
 
 ## Purpose
 
@@ -210,6 +210,8 @@ codes, zero-deps, no-network).
 - When `doctrina change check <id>` dry-runs a MODIFIED delta's ops, the system shall scan the spec the ops produce with the clarify lexicons and warn, naming the delta and the word, of every smell the merged spec would have that the current one does not — advisory, never a failure.
 - When `doctrina review` runs without `--change` and code changed under a capability that an open change carries a delta for, the system shall report a note naming that change instead of a break.
 - When `doctrina doctor` runs, the system shall report the install that is running and every other `doctrina` the PATH holds with its version, as a warning when the first one on the PATH is not the one running, when more than one is there, or when none is there while an agent hook of the project calls `doctrina` by name; and, in a git repository that owns its `.doctrina/`, whether `.gitattributes` and the merge driver of the clone are in place.
+- When `doctrina coverage --properties` runs, the system shall list, per capability, the requirements whose wording claims something of all inputs — round-trip, idempotence, bound, uniqueness, order or a plain invariant, in English and Portuguese — each with the property it suggests, together with the number of criteria already marked `[property]` and the property library the project's manifests point at, and exit 0.
+- When `doctrina change delta` appends a requirement that reads as an invariant and the same call claims no property, the system shall print one note per such requirement naming its shape, and the `--property` command once.
 
 ### State-driven
 
@@ -254,6 +256,7 @@ codes, zero-deps, no-network).
 - The system shall not accept a `Documented surface` declaration that lies inside an HTML comment, because annotation is not something a person wrote.
 - The system shall not print the full skill-candidate listing at the end of a close: once per run, it shall name the candidate a just-closed fix-shaped change produced and count every other one, printing nothing when there is none.
 - The system shall not count an UPPER_SNAKE name in a change's text as an environment-variable signal unless the text reads it as a variable (`process.env.X`, `$X`, `X=`, `getenv`), names it on a line about the environment, it carries a configuration suffix, or the project's env example file declares it.
+- The system shall not count a criterion marked `[property]` as covered when no test file it cites generates its inputs (Hypothesis, fast-check, jqwik, proptest, quickcheck, rapid, FsCheck, ScalaCheck); it is reported unguarded and fails `coverage --strict`.
 
 ### Optional
 
@@ -370,6 +373,8 @@ The gate surface is spec-compliant when:
 98. [verified] a bare review counts an open change's delta as the spec update — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 99. [verified] an error code or a constant cited by a change raises no environment signal, while a variable shown in each of those ways still does — verified by `packages/doctrina-cli/test/o-gate-de-docs-distingue-variavel-de-ambiente.test.js`.
 100. [verified] `doctor` reports a CLI run by path with no `doctrina` on the PATH as ok, names an older install found first on the PATH with its version as the one the hooks run, warns when a hook calls `doctrina` by name and the PATH holds none, and reports the merge setup as missing before `hooks install` and in place after it — verified by `packages/doctrina-cli/test/o-doctor-nomeia-o-binario-que-roda.test.js`.
+101. [verified] A `[property]` criterion citing an example test is reported unguarded and fails `coverage --strict`, the same criterion citing a Hypothesis test is covered, and `validate` accepts the mark while refusing an unknown one — verified by `packages/doctrina-cli/test/um-requisito-que-e-invariante-pede-uma-propriedade.test.js`.
+102. [verified] `coverage --properties` lists the requirements that read as invariants with the more specific shape first, leaves out a one-event requirement, names the library the project declares and exits 0; `change delta --property` writes an `append-criterion [property]` op, and `change delta --requirement` notes an invariant once — verified by `packages/doctrina-cli/test/um-requisito-que-e-invariante-pede-uma-propriedade.test.js`.
 
 ## Out of scope for this spec
 

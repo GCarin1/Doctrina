@@ -158,7 +158,7 @@ export function reindexChange(projectRoot, id, date = today()) {
 export function addDeltaOps(projectRoot, id, capability, lines) {
   if (lines.length === 0) {
     return { code: EXIT.USAGE, error: "nothing to add",
-      hint: "pass --requirement \"<section>: <text>\", --criterion \"<text>\", --bump <level> or an op line" };
+      hint: "pass --requirement \"<section>: <text>\", --criterion \"<text>\", --property \"<text>\", --bump <level> or an op line" };
   }
   const bad = lines.map((l) => ({ l, op: parseOp(l) })).filter((x) => x.op.error);
   if (bad.length > 0) {

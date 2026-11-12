@@ -395,7 +395,7 @@ de campo). Sem nenhuma flag de edição, sai com código 2.
 Os dois cabeçalhos e a marca do critério têm um **domínio**, imposto em
 toda porta: `Status` é `draft | active | deprecated`, `Implementation` é
 a escada de quatro degraus acima, e a marca de um critério é
-`[verified]`, `[unverified]` ou `[orchestration]`. O `spec set`, o bloco
+`[verified]`, `[unverified]`, `[orchestration]` ou `[property]`. O `spec set`, o bloco
 `ops` de um delta e o `validate` leem a mesma lista, então `--status
 bogus` é recusado com a spec intocada, e um valor digitado à mão fora da
 lista é um erro do `validate`, não um estado que o `prime` reporta. Uma
@@ -686,10 +686,12 @@ doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The 
 ```
 
 Cada flag vira uma linha de op — `--requirement` um `append-requirement`,
-`--criterion` um `append-criterion`, `--bump` um `bump-version`, e
-`--op "<linha>"` (ou as palavras depois da capability) qualquer verbo de op
-como escrito. `--requirement`, `--criterion` e `--op` se repetem: cada
-ocorrência é uma op, escrita na ordem dada. As linhas são lidas pela gramática que o `apply` lê, e o bloco
+`--criterion` um `append-criterion`, `--property` um `append-criterion`
+marcado `[property]` (veja [Critérios de propriedade](#critérios-de-propriedade)),
+`--bump` um `bump-version`, e `--op "<linha>"` (ou as palavras depois da
+capability) qualquer verbo de op como escrito. `--requirement`,
+`--criterion`, `--property` e `--op` se repetem: cada ocorrência é uma op,
+escrita na ordem dada. As linhas são lidas pela gramática que o `apply` lê, e o bloco
 inteiro — o que já havia mais o que entra — é executado em memória contra a
 spec antes de qualquer escrita: uma op que não aplicaria é recusada agora
 (saída `1`, nada escrito), não no close. O delta é criado a partir do
@@ -1508,6 +1510,7 @@ artefato ou teste que existe em disco — a rastreabilidade que o
 ```
 doctrina coverage
 doctrina coverage --strict
+doctrina coverage --properties
 ```
 
 Cada critério numerado pode citar sua evidência como um path em
@@ -1579,9 +1582,56 @@ reportada como **unguarded** e falha o `--strict`: uma checagem que sai 0
 sem ter rodado nada satisfaria a alegação. Uma checagem nomeada que não
 existe é **dangling**.
 
+### Critérios de propriedade
+
+Um requisito como *"o sistema nunca deve emitir um código já em uso"*
+afirma algo de **toda** entrada. Um teste de exemplo — três URLs em que
+alguém pensou — resolve como citação e prova três casos. A prova de uma
+afirmação universal é um teste baseado em propriedade: um que gera as
+próprias entradas e checa que a afirmação vale para todas.
+
+O `doctrina coverage --properties` lê os requisitos EARS e lista os que,
+pelas palavras, são invariantes, cada um com a propriedade que sugere:
+
+```
+codes  2 requirements read as invariants, 0 criteria are properties
+    ubiquitous 2  The system shall return at most 100 links per page.
+                  bound: for any input, the result stays inside the stated bound
+    ubiquitous 1  The system shall never issue a code that is already in use.
+                  uniqueness: for any sequence of inputs, no two results collide
+```
+
+As formas são ida e volta (round-trip), idempotência, limite (bound),
+unicidade, ordem e o invariante simples (`sempre`, `nunca`, `para
+qualquer`), em inglês e em português. A lista é uma leitura das palavras,
+nunca um veredito e nunca um gate (sai 0): escolha os candidatos cuja
+falha seria um bug. Ela também nomeia a biblioteca para escrevê-los — a
+que o manifesto do projeto já declara (Hypothesis, fast-check), ou a usual
+da stack (Hypothesis para Python, fast-check para JavaScript, jqwik para a
+JVM, proptest para Rust, rapid para Go). A mesma leitura roda quando o
+requisito é escrito: o `change delta --requirement` imprime uma nota para
+o que se lê como invariante, enquanto o teste dele ainda não existe.
+
+Escreva o teste e então reivindique-o com a marca `[property]`:
+
+```
+doctrina change delta 0042-unique-codes codes \
+  --property "No two codes collide, whatever the URLs — verified by \`tests/test_codes_property.py\`"
+```
+
+Um critério `[property]` só conta como provado quando um arquivo de teste
+que ele cita gera as próprias entradas — `@given` do Hypothesis,
+`fc.property` do fast-check, `@Property` do jqwik, `proptest!`, quickcheck,
+rapid, FsCheck ou ScalaCheck. Citar um teste de exemplo é reportado como
+**unguarded** (*property claim is proven by no property*) e falha o
+`--strict`; o mesmo teste de exemplo é prova honesta de um critério
+`[verified]`. Nada é gerado por modelo e nada é executado aqui: a CLI
+nomeia os candidatos e recusa a prova mais fraca.
+
 | Flag | Função |
 |------|--------|
-| `--strict` | Sai 1 quando algum critério é bare, dangling ou conditional (gate de CI). Deferred nunca falha. Sem ela, o comando sempre sai 0 (um relatório). |
+| `--properties` | Lista os requisitos que se leem como invariantes e quantos critérios já são propriedades, por capability (cinco de cada; o `--json` traz todos). Um relatório: sai 0. Respeita `--only`. |
+| `--strict` | Sai 1 quando algum critério é bare, dangling, conditional ou unguarded (gate de CI). Deferred nunca falha. Sem ela, o comando sempre sai 0 (um relatório). |
 | `--only <cap,cap>` | Escopa o relatório/gate a capabilities específicas (o `doctrina close` usa isto para uma spec adiada alheia não bloquear o close de uma change). Um nome sem spec é **erro de uso** (exit 2), nomeando as capabilities que existem: um filtro que não casava nada reportava «no acceptance criteria found» e saía 0, `--strict` incluído, então um job de CI continuava passando depois de a capability ser renomeada. |
 | `--run` | Executa a evidência citada via o `"evidence_runner"` declarado pelo projeto em `.doctrina/verify.json` (um template de comando com placeholder `{file}`, ex.: `"python -m pytest {file}"`). Sai 1 quando alguma execução falha — promove "o arquivo existe" para "a prova passa". |
 | `--json` | Emite as linhas de critério por spec + resumo como JSON. |
