@@ -353,7 +353,40 @@ const COMPACT_MOMENTS = new Set(["Orchestrate", "Maintain"]);
 // trigger: an agent scanning it learns WHEN to reach for a command, which
 // a name index never told it. Same shape `context` prints for skills —
 // description plus `when:`, body on demand.
-export function surfaceMarkdown() {
+// TWO PROFILES OF THE SAME CATALOG (change 0251).
+//
+// `full` names every command, by moment. It is what this block has always
+// been, and it costs 37 lines of a file capped at 150 that an agent reads
+// on every turn — for 39 commands, most of which a session never reaches
+// for. `core` names the loop a session actually runs and defers the rest to
+// `doctrina --help`, which is where the playbook a command prints already
+// sends the agent for the next step. A project chooses in
+// `.doctrina/config.json` ("surface"); `init` writes `core` for a new one.
+export const SURFACE_PROFILES = Object.freeze(["full", "core"]);
+export const CORE_SURFACE = Object.freeze(["prime", "work", "context", "close", "next", "validate", "doctor", "handoff"]);
+
+function coreSurfaceMarkdown() {
+  const lines = [
+    "## Doctrina command surface (generated — reach for these, don't hand-author)",
+    "",
+    "The loop a session runs. Each command prints the next step; the CLI",
+    "scaffolds from canonical templates and syncs `index.json`.",
+  ];
+  for (const cmd of CORE_SURFACE) {
+    const meta = COMMAND_META[cmd];
+    const hint = SURFACE_HINTS[cmd] ? ` ${SURFACE_HINTS[cmd]}` : "";
+    lines.push(`- \`doctrina ${cmd}${hint}\` — ${meta.purpose}. *When:* ${meta.when}.`);
+  }
+  lines.push("**Everything else** — specs, changes by hand, decisions, contracts, skills, the single gates, " +
+    "workspaces and deliveries: `doctrina --help` lists every command with its moment, and " +
+    "`doctrina <command> --help` its flags. (`\"surface\": \"full\"` in `.doctrina/config.json`, then " +
+    "`doctrina upgrade --write`, lists them all here.)");
+  return lines.join("\n");
+}
+
+/** @param {string} [profile] "full" (every command) or "core" (the session loop) */
+export function surfaceMarkdown(profile = "full") {
+  if (profile === "core") return coreSurfaceMarkdown();
   // A deprecated operation stays in the catalog — `--help` and the shell
   // completions must still know the name someone types — but leaves this
   // block: it is the list of commands to REACH FOR, and pointing an agent at
@@ -402,8 +435,8 @@ export function surfaceMarkdown() {
 }
 
 // The block as written to AGENTS.md: markers wrapping the generated section.
-export function surfaceBlock() {
-  return `${SURFACE_BEGIN}\n${surfaceMarkdown()}\n${SURFACE_END}`;
+export function surfaceBlock(profile = "full") {
+  return `${SURFACE_BEGIN}\n${surfaceMarkdown(profile)}\n${SURFACE_END}`;
 }
 
 // The block's CANONICAL POSITION, defined once — by the shipped template,

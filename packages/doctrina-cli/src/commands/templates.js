@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import { loadConfig } from "../lib/config.js";
 import process from "node:process";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, listResolvedTemplates } from "../lib/templates.js";
@@ -71,7 +72,7 @@ function updateTemplates(flags) {
   if (isFile(agentsMdPath)) {
     const text = read(agentsMdPath);
     const block = findSurfaceBlock(text);
-    const fresh = surfaceBlock();
+    const fresh = surfaceBlock(loadConfig(projectRoot).surface);
     if (block) {
       if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(fresh)) {
         plan.push({

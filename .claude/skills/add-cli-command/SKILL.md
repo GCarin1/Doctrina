@@ -68,10 +68,11 @@ or gate-checked from it. Touch the steps in this order:
   the Usage line, or declaring a flag the help never names
   (`delivery tick`, `work --delivery` in 0.20.0): the first line a
   reader sees describes a smaller command than the one that runs.
-- A command that rewrites a file the person owns (a tick, a header
-  stamp) writing LF into a CRLF file. Read the ending with `eolOf` and
-  write back with `withEol` (`lib/fs-ops.js`), and test it from a CRLF
-  fixture: a Linux run never sees the bug.
+- Reading an artifact with `readFileSync`. Go through `read`/`write`
+  (`lib/fs-ops.js`): `read` returns LF whatever the checkout stores and
+  `write` keeps the file's own ending, so a pattern written for LF works in
+  a CRLF checkout and a rewrite never mixes endings (change 0250). A Linux
+  run never sees the bug the raw read brings back.
 - Updating the EN docs and leaving PT for "later".
 
 ## Related material

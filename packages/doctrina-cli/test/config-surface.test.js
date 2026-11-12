@@ -48,19 +48,27 @@ test("init scaffolds the config, and it declares nothing", () => {
     // would make the file lie twice over: `doctor` could not tell a choice
     // from a default, and a written default would silently outrank a legacy
     // declaration in a file the project never edited.
-    assert.deepEqual(Object.keys(parsed), ["$comment"]);
-    for (const option of ["language", "context_budget", "rules"]) {
+    // One declaration, and it is a CHOICE, not a restated default (change
+    // 0251): a new project lists the session loop in AGENTS.md, where a
+    // project with no key keeps the full list it always had.
+    assert.deepEqual(Object.keys(parsed), ["$comment", "surface"]);
+    assert.equal(parsed.surface, "core");
+    for (const option of ["language", "context_budget", "rules", "surface"]) {
       assert.match(parsed.$comment, new RegExp(option), `the scaffold must name the "${option}" option`);
     }
     assert.match(parsed.$comment, new RegExp(String(DEFAULTS.context_budget)));
     // Written from the reader's own definition, so the two cannot drift.
-    assert.equal(readFileSync(file, "utf8"), scaffoldConfig());
+    assert.equal(readFileSync(file, "utf8"), scaffoldConfig({ surface: "core" }));
+    assert.deepEqual(Object.keys(JSON.parse(scaffoldConfig())), ["$comment"], "with nothing chosen, nothing is declared");
 
-    // A scaffolded project resolves exactly as one with no file at all.
+    // A scaffolded project resolves as one with no file at all — in every
+    // option but the one init chose.
     const withFile = loadConfig(dir);
     rmSync(file);
-    assert.deepEqual(withFile, loadConfig(dir));
+    const without = loadConfig(dir);
+    assert.deepEqual({ ...withFile, surface: "full", sources: { ...withFile.sources, surface: "default" } }, without);
     assert.equal(withFile.sources.context_budget, "default");
+    assert.equal(withFile.sources.surface, ".doctrina/config.json");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -155,8 +163,8 @@ test("doctor prints every option with its value and where it came from", () => {
   const dir = project();
   try {
     const clean = runCli(["doctor"], dir).stdout;
-    assert.match(clean, /config\s+all 3 options at their defaults/);
-    for (const option of ["language", "context_budget", "rules"]) {
+    assert.match(clean, /config\s+1 of 4 options configured/, "the surface init chose");
+    for (const option of ["language", "context_budget", "rules", "surface"]) {
       assert.match(clean, new RegExp(`· ${option}\\s`), `doctor must name the "${option}" option`);
     }
 

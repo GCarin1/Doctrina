@@ -20,6 +20,8 @@ import { isFile, read } from "./fs-ops.js";
 
 export const CONFIG_REL = ".doctrina/config.json";
 export const RULES_REL = ".doctrina/rules.json";
+/** The values `surface` takes — the profiles of lib/commands.js, named here so the config has no import to cycle on. */
+const SURFACE_VALUES = ["full", "core"];
 
 // The built-in default for every option. `language: null` means "detect per
 // file", which is what the absence of a declaration has always meant.
@@ -27,6 +29,7 @@ export const DEFAULTS = Object.freeze({
   language: null,
   context_budget: 15000,
   rules: [],
+  surface: "full",
 });
 
 // Where a value came from, most authoritative first. The strings are printed
@@ -53,8 +56,8 @@ export function configPath(projectRoot) {
  *
  * @param {string} projectRoot
  * @returns {{
- *   language: string|null, context_budget: number, rules: any[],
- *   sources: {language: string, context_budget: string, rules: string},
+ *   language: string|null, context_budget: number, rules: any[], surface: string,
+ *   sources: {language: string, context_budget: string, rules: string, surface: string},
  *   errors: string[],
  *   unknown: string[]
  * }}
@@ -65,12 +68,12 @@ export function loadConfig(projectRoot) {
   // Keys the CLI does not know (change 0115). `{"context_budjet": 10}` was
   // silence at every door, and the author believed the budget was set.
   // Reported, never rejected: the effective values are unchanged.
-  const KNOWN_KEYS = new Set(["language", "context_budget", "rules", "$comment", "$schema"]);
+  const KNOWN_KEYS = new Set(["language", "context_budget", "rules", "surface", "$comment", "$schema"]);
   const unknown = cfg && typeof cfg === "object" && !Array.isArray(cfg)
     ? Object.keys(cfg).filter((k) => !KNOWN_KEYS.has(k))
     : [];
-  /** @type {{language: string, context_budget: string, rules: string}} */
-  const sources = { language: SOURCES.default, context_budget: SOURCES.default, rules: SOURCES.default };
+  /** @type {{language: string, context_budget: string, rules: string, surface: string}} */
+  const sources = { language: SOURCES.default, context_budget: SOURCES.default, rules: SOURCES.default, surface: SOURCES.default };
 
   // language — config.json has always been its only home.
   //
@@ -131,7 +134,18 @@ export function loadConfig(projectRoot) {
     }
   }
 
-  return { language, context_budget, rules, sources, errors, unknown };
+  // surface — which commands AGENTS.md lists (change 0251).
+  let surface = DEFAULTS.surface;
+  if (cfg && "surface" in cfg) {
+    if (SURFACE_VALUES.includes(cfg.surface)) {
+      surface = cfg.surface;
+      sources.surface = SOURCES.config;
+    } else {
+      errors.push(`${CONFIG_REL}: unknown surface ${JSON.stringify(cfg.surface)} (use "core" or "full")`);
+    }
+  }
+
+  return { language, context_budget, rules, surface, sources, errors, unknown };
 }
 
 /**
@@ -149,6 +163,7 @@ export function configRows(projectRoot) {
     { option: "language", value: show(cfg.language), source: cfg.sources.language, configured: cfg.sources.language !== SOURCES.default },
     { option: "context_budget", value: `${cfg.context_budget} tokens`, source: cfg.sources.context_budget, configured: cfg.sources.context_budget !== SOURCES.default },
     { option: "rules", value: `${cfg.rules.length} rule${cfg.rules.length === 1 ? "" : "s"}`, source: cfg.sources.rules, configured: cfg.sources.rules !== SOURCES.default },
+    { option: "surface", value: cfg.surface === "core" ? "core (the session loop)" : "full (every command)", source: cfg.sources.surface, configured: cfg.sources.surface !== SOURCES.default },
   ];
 }
 
@@ -194,14 +209,17 @@ function readJson(file, rel, errors) {
  *
  * @returns {string} the file's contents, newline-terminated
  */
-export function scaffoldConfig() {
+export function scaffoldConfig({ surface = /** @type {string | null} */ (null) } = {}) {
   return JSON.stringify({
     $comment:
-      "Doctrina project configuration. Nothing is declared here yet — add a key to " +
+      "Doctrina project configuration — add a key to " +
       "change it. Options: \"language\" (\"en\" | \"pt\", or null to detect per file); " +
+      "\"surface\" (\"core\": AGENTS.md lists the session loop and defers the rest to `doctrina --help`; " +
+      "\"full\": it lists every command; then `doctrina upgrade --write`); " +
       `"context_budget" (positive integer, default ${DEFAULTS.context_budget}); ` +
       "\"rules\" (array of { id, forbid, paths, message } — permanent project " +
       "constraints enforced by `doctrina validate`). Run `doctrina doctor` to see the " +
       "effective value of each option and where it came from.",
+    ...(surface ? { surface } : {}),
   }, null, 2) + "\n";
 }

@@ -311,7 +311,7 @@ export async function run(_positional, _flags) {
       if (cfg.errors.length > 0) {
         row("fail", "config", cfg.errors[0], "fix .doctrina/config.json, then `doctrina validate`");
       } else if (cfg.unknown.length > 0) {
-        row("warn", "config", `${summary}; unknown key${cfg.unknown.length === 1 ? "" : "s"} ${cfg.unknown.map((k) => `"${k}"`).join(", ")} ignored`, "the keys are language, context_budget, rules");
+        row("warn", "config", `${summary}; unknown key${cfg.unknown.length === 1 ? "" : "s"} ${cfg.unknown.map((k) => `"${k}"`).join(", ")} ignored`, "the keys are language, context_budget, rules, surface");
         warningsTotal += 1;
       } else {
         row("ok", "config", summary);

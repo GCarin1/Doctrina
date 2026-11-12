@@ -2860,7 +2860,9 @@ test("the AGENTS.md template leads context-reading with doctrina context", () =>
 test("the AGENTS.md template carries the agent command surface, under the cap", () => {
   const tmp = makeTempProject();
   try {
-    runCli(["init", "--non-interactive", "--project-name", "Acme"], { cwd: tmp });
+    // The full profile: the hub names every command (change 0251 made the
+    // session loop the default for a new project; `--surface full` is this).
+    runCli(["init", "--non-interactive", "--project-name", "Acme", "--surface", "full"], { cwd: tmp });
     const agents = readFileSync(path.join(tmp, "AGENTS.md"), "utf8");
     assert.match(agents, /Doctrina command surface/);
     // A spread across the surface so an agent self-serves any task, not just `work`.

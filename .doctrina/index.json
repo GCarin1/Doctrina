@@ -167,7 +167,7 @@
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.32.0",
+        "version": "0.33.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -4343,6 +4343,20 @@
           }
         ],
         "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core",
+        "title": "o hub lista so o ciclo basico no perfil core",
+        "path": ".doctrina/changes/archive/2026-11-12-0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "chore (confident; signals: upgrade)"
       }
     ],
     "skills": [

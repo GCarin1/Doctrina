@@ -5,6 +5,7 @@
 // `commands/templates.js` (audit finding F7). Collecting is not rendering, so
 // the collection lives here and both surfaces read it.
 import path from "node:path";
+import { loadConfig } from "./config.js";
 import { exists, isDir, isFile, lineCount, read, relPath, walk, write } from "./fs-ops.js";
 import { adapterFiles, isHubPointer, listAdapterNames } from "./adapters.js";
 import { readTemplate } from "./templates.js";
@@ -28,7 +29,7 @@ import { agentsMdBudget } from "./validation-model.js";
  * @returns {{ used: number, budget: number, slack: number, declared: boolean }}
  */
 export function surfaceBudget(projectRoot = null) {
-  const used = surfaceMarkdown().split("\n").length;
+  const used = surfaceMarkdown(projectRoot ? loadConfig(projectRoot).surface : "full").split("\n").length;
   const { value: budget, declared } = projectRoot
     ? declaredBudget(projectRoot, "surface-block-lines", SURFACE_LINE_BUDGET)
     : { value: SURFACE_LINE_BUDGET, declared: false };
@@ -129,7 +130,7 @@ export function collectFindings(projectRoot) {
     const block = findSurfaceBlock(text);
     if (!block) {
       findings.push({ message: "AGENTS.md has no doctrina:surface block — agents discover commands through this file", remedy: "doctrina upgrade --write" });
-    } else if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(surfaceBlock())) {
+    } else if (normalizeBlock(text.slice(block.start, block.end)) !== normalizeBlock(surfaceBlock(loadConfig(projectRoot).surface))) {
       findings.push({ message: "AGENTS.md doctrina:surface block is stale vs the installed CLI", remedy: "doctrina upgrade --write" });
     } else {
       ok.push("AGENTS.md: doctrina:surface block current");

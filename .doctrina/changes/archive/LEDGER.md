@@ -261,3 +261,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-11 — 0248-a-politica-de-seguranca-descreve-o-cli-que — a politica de seguranca descreve o cli que existe
 - 2026-11-11 — 0249-o-validate-nao-varre-o-repositorio-inteiro-por — o validate nao varre o repositorio inteiro por padrao (specs: structure MODIFIED)
 - 2026-11-12 — 0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e — a setima auditoria fecha fim de linha conflito e concorrencia (specs: authoring MODIFIED, core MODIFIED, scaffolding MODIFIED, structure MODIFIED, workspace MODIFIED)
+- 2026-11-12 — 0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core — o hub lista so o ciclo basico no perfil core (specs: templates MODIFIED)

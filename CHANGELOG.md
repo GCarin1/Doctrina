@@ -43,6 +43,16 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is denied by the guard, instead of being judged by the verb in its name —
   a verb the guard has never seen used to pass as a read.
 
+- `AGENTS.md` can list the session loop instead of every command. The new
+  `"surface": "core"` option (`.doctrina/config.json`) names the eight
+  commands a session reaches for — `prime`, `work`, `context`, `close`,
+  `next`, `validate`, `doctor`, `handoff` — and defers the rest to
+  `doctrina --help`: the generated block goes from 37 lines to 13 of a file
+  read on every turn and capped at 150. `doctrina init` writes `core` for a
+  new project (`--surface full` keeps the full list); a project with no key
+  keeps the full list, and `doctrina upgrade --write` regenerates the block
+  after a change. This repository's own hub went from 149 lines to 125.
+
 ### Changed
 
 - A release is a version that reached `main`, not a tag pushed by hand. The

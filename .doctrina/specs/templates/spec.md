@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.32.0
+**Version:** 0.33.0
 
 ## Purpose
 
@@ -123,6 +123,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 - Where additional agents become relevant (Copilot, Gemini CLI, Windsurf),
   the system may add a new directory under `templates/adapters/<agent>/`
   without changing the substitution contract or existing adapters.
+- Where `.doctrina/config.json` declares `"surface": "core"`, the system shall generate the command block of `AGENTS.md` with the session loop only — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — and a line that defers every other command to `doctrina --help`; a project that declares no surface shall keep the full block, and `doctrina init` shall write `core` unless `--surface full` is given.
 
 ## Supported adapters (v0.1)
 
@@ -189,6 +190,7 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 36. [verified] The absorb playbook printed by `intake --from-code` prints no requirement without the code that does it and the fact check by a reader that did not write the spec, and the bootstrap playbook renders the no-invention step and the re-read before the gates — verified by `packages/doctrina-cli/test/o-codigo-existente-vira-intake.test.js` and `packages/doctrina-cli/test/playbooks.test.js`.
 37. [verified] the absorb's gate step heals the index — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 38. [verified] the cursor adapter installs the core loop as skills with the frontmatter Cursor requires — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
+39. [verified] The core block names eight real commands with their triggers in at most 14 lines; a new project stores `"surface": "core"`, validates with no omitted-command warning and needs no upgrade; switching the key and running `upgrade --write` regenerates the block either way; a project with no key keeps the full block; an unknown value is reported by `validate` and refused by `init` with exit 2 — verified by `packages/doctrina-cli/test/o-hub-lista-so-o-ciclo-basico.test.js`.
 
 ## Out of scope for this spec
 

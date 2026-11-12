@@ -126,6 +126,13 @@ Nada precisa se mover. As casas antigas continuam sendo lidas — o
 `.doctrina/rules.json` — e o arquivo declarado vence **por opção**, então dá
 para migrar uma de cada vez. A remoção será anunciada antes de acontecer.
 
+**Os comandos que o `AGENTS.md` lista** também são uma opção: `"surface":
+"core"` nomeia o ciclo que uma sessão roda e remete o resto ao `doctrina
+--help`, o que leva o bloco gerado de 37 para 13 linhas num arquivo lido a
+cada turno; `"surface": "full"` (o padrão de um projeto que não declara nada)
+lista todos os comandos. Um projeto criado pelo `doctrina init` nasce com
+`core`. Depois de mudar, o `doctrina upgrade --write` regenera o bloco.
+
 Tudo que não for declarado mantém o padrão. Para ver o que o seu projeto
 está de fato usando, e de qual arquivo cada valor veio:
 

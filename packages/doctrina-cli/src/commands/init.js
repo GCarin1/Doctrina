@@ -5,7 +5,7 @@ import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
 import {
-  surfaceBlock, findSurfaceBlock, agentChangelogBlock, findAgentChangelogBlock,
+  surfaceBlock, findSurfaceBlock, agentChangelogBlock, findAgentChangelogBlock, SURFACE_PROFILES,
 } from "../lib/commands.js";
 import * as idx from "../lib/index-json.js";
 import { scaffoldConfig } from "../lib/config.js";
@@ -35,7 +35,7 @@ const SUPPORTED_AGENTS = [
 
 export const flags = {
   boolean: ["json", "force", "non-interactive", "overwrite-content"],
-  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date"],
+  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date", "surface"],
 };
 
 export async function run(_positional, flags) {
@@ -142,6 +142,15 @@ export async function run(_positional, flags) {
     }
   }
 
+  // Which commands AGENTS.md lists (change 0251). A new project is born with
+  // the session loop only — `core` — and the rest one `--help` away; the
+  // choice is written into config.json, where `upgrade` reads it.
+  const surface = flagString(flags, "surface") ?? "core";
+  if (!SURFACE_PROFILES.includes(surface) || flagGivenWithoutValue(flags, "surface")) {
+    console.error(c.red("error:") + ` --surface takes ${SURFACE_PROFILES.join(" or ")}${flagGivenWithoutValue(flags, "surface") ? "" : ` (got "${surface}")`}`);
+    return 2;
+  }
+
   let agentSelector = flagString(flags, "agent");
   // Interactive wizard step: when no --agent was given and we are on a real
   // terminal, offer the adapter install instead of silently skipping it —
@@ -202,7 +211,7 @@ export async function run(_positional, flags) {
   // if the static template lags a release (ADR 0015).
   const agentsTemplatePath = path.join(templatesDir, "AGENTS.md.template");
   const agentsTemplateBody = read(agentsTemplatePath);
-  const projectAgents = refreshSurfaceBlock(substitute(agentsTemplateBody, tokens));
+  const projectAgents = refreshSurfaceBlock(substitute(agentsTemplateBody, tokens), surface);
 
   // --force used to mean "overwrite everything", which made it a content
   // shredder: the only way to add an adapter to an existing project was
@@ -285,7 +294,7 @@ export async function run(_positional, flags) {
   {
     const dest = path.join(doctrinaDir, "config.json");
     if (!isFile(dest) || force) {
-      write(dest, scaffoldConfig(), { force });
+      write(dest, scaffoldConfig({ surface }), { force });
       console.log(c.green("created") + ` ${relPath(projectRoot, dest)}`);
     }
   }
@@ -384,10 +393,10 @@ function normaliseScaffold(text) {
 // Replace the template's doctrina:surface span with the one generated from
 // the running CLI's catalog; pass the text through untouched when the
 // template carries no markers (older custom templates).
-function refreshSurfaceBlock(text) {
+function refreshSurfaceBlock(text, profile = "full") {
   const block = findSurfaceBlock(text);
   if (!block) return text;
-  let out = text.slice(0, block.start) + surfaceBlock() + text.slice(block.end);
+  let out = text.slice(0, block.start) + surfaceBlock(profile) + text.slice(block.end);
 
   // The agent-facing changelog is version-specific, so it is GENERATED at
   // init like the surface block — not carried in the template. Writing it
@@ -453,6 +462,9 @@ Scaffold AGENTS.md and the .doctrina/ skeleton in the current directory.
 Options:
   --project-name <name>          Override the project name (default: basename of cwd)
   --project-description <text>   One-sentence description
+  --surface core|full            Which commands AGENTS.md lists: core (default) is the session
+                                 loop, with the rest deferred to \`doctrina --help\`; full lists
+                                 every command. Stored in .doctrina/config.json.
   --agent <name>                 Install adapter for one agent
                                  (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|all)
   --intake <file>                Full project description; stored verbatim at .doctrina/intake.md,

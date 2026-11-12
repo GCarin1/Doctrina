@@ -1070,7 +1070,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   for (const line of ruleFindings.errors) errors.push(line);
   for (const line of ruleFindings.warnings) warnings.push(line);
   for (const key of loadConfig(projectRoot).unknown) {
-    warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules (a typo here is a setting that never applied)`);
+    warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules, surface (a typo here is a setting that never applied)`);
   }
 
   // 18. --runtime folds the RUNTIME gate into the structural one, so a
