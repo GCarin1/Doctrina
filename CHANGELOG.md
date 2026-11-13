@@ -46,6 +46,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a symlinked directory (macOS's `/var` is `/private/var`) the planner's
   console and its repositories' consoles opened two rooms and never saw
   each other. Rooms are now keyed by the real path.
+- On Windows, a command line the CLI prints (`cd <repo> && doctrina …`)
+  quotes a path with a space in double quotes again. A backslash counted as
+  unsafe inside double quotes, which holds for a POSIX shell but not for
+  PowerShell or cmd, so every such Windows path came out single-quoted, a
+  form cmd does not read as one argument.
 
 ## [0.22.0] — 2026-11-13
 
