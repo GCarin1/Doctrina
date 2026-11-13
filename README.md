@@ -30,8 +30,10 @@ it. Full walkthrough: [Getting started](./docs/en/getting-started.md).
 
 Prefer one window to forty commands? Run `doctrina` alone in a terminal:
 the console shows the gates and the open work, runs any command after `/`,
-and sends a request typed in your own words to the agent you already use
-([`doctrina ui`](./docs/en/cli-reference.md#doctrina-ui)).
+and sends a request typed in your own words to the agent you already use —
+Claude Code, Cursor, GitHub Copilot, Codex, Gemini, or your own — on the
+model you choose. Consoles open in several terminals see each other and
+hand one another requests ([`doctrina ui`](./docs/en/cli-reference.md#doctrina-ui)).
 
 ![The Doctrina console: gates across the top, the conversation with the agent, and the open work beside it](./docs/assets/console.png)
 
@@ -120,7 +122,7 @@ governs how a body of agents acts.
 - Adapters for 13 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules, Kiro).
-- 15 capability specs and the ADRs 0001–0032 that describe the framework
+- 15 capability specs and the ADRs 0001–0033 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as

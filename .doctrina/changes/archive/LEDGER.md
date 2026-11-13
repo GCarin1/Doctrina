@@ -269,3 +269,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-12 — 0256-onboarding-guiado — onboarding guiado (specs: cli MODIFIED, insight MODIFIED, scaffolding MODIFIED, templates MODIFIED)
 - 2026-11-13 — 0257-console-interativo — console interativo (specs: cli MODIFIED, console ADDED)
 - 2026-11-13 — 0258-qualquer-agente-e-modelo — qualquer agente e modelo (specs: console MODIFIED)
+- 2026-11-13 — 0259-consoles-que-se-comunicam — consoles que se comunicam (specs: console MODIFIED)

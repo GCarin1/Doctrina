@@ -44,7 +44,7 @@
         "id": "console",
         "path": ".doctrina/specs/console/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-11-13",
         "implementation": "implemented",
         "depends_on": [
@@ -53,7 +53,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/ui.js",
-          "packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,agent-bridge}.js"
+          "packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,console-room,agent-bridge}.js"
         ]
       },
       {
@@ -657,6 +657,17 @@
           "console"
         ],
         "summary": "The console sends a human's free-text request to the agent's own"
+      },
+      {
+        "id": "0033",
+        "path": ".doctrina/decisions/0033-consoles-talk-through-files-in-the-person-s-home.md",
+        "title": "Consoles talk through files in the person's home",
+        "status": "accepted",
+        "date": "2026-11-13",
+        "scope": [
+          "console"
+        ],
+        "summary": "Consoles opened for the same work share a room: the workspace when the"
       }
     ],
     "changes": [],
@@ -4514,6 +4525,20 @@
         "id": "0258-qualquer-agente-e-modelo",
         "title": "qualquer agente e modelo",
         "path": ".doctrina/changes/archive/2026-11-13-0258-qualquer-agente-e-modelo",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "console",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0259-consoles-que-se-comunicam",
+        "title": "consoles que se comunicam",
+        "path": ".doctrina/changes/archive/2026-11-13-0259-consoles-que-se-comunicam",
         "status": "applied",
         "applied": "2026-11-13",
         "specs_affected": [

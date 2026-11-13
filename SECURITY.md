@@ -46,7 +46,12 @@ reporting.
     the command reports) plus the lines in that repository's
     `.git/info/exclude` that hide them from its git.
   - `doctrina ui` keeps the agent and the model you chose in
-    `$DOCTRINA_HOME/console.json`, per directory.
+    `$DOCTRINA_HOME/console.json`, per directory, and meets the
+    other consoles you have open in `$DOCTRINA_HOME/rooms/`: one
+    small file saying it is alive, and an inbox other consoles
+    put requests in. The folder is created for your user alone,
+    no port is opened, and a console acts only on a request it
+    finds there — `/listen off` makes it refuse them.
   - `doctrina verify` writes one scratch file in the system's
     temporary directory (a copy of git's index, to fingerprint
     the tree) and removes it.

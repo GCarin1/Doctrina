@@ -236,6 +236,18 @@ function transcriptLines(transcript, width) {
       case "note":
         out.push(...wrap([{ t: e.text, s: "gray" }], width, { first: [{ t: "   " }], rest: [{ t: "   " }] }));
         break;
+      case "peer": {
+        // What crossed between consoles: who, then what.
+        const [head, ...body] = e.text.split("  ");
+        out.push(...wrap([{ t: head, s: "brandBold" }, { t: body.length ? `  ${body.join("  ")}` : "", s: "bold" }], width, { first: [{ t: " ↔ ", s: "brandBold" }], rest: [{ t: "   " }] }));
+        break;
+      }
+      case "quote":
+        for (const para of e.text.replace(/\s+$/, "").split("\n")) {
+          if (/^\s*```/.test(para)) continue;
+          out.push(...wrap(inline(para.replace(/^#+\s/, ""), undefined), width, { first: [{ t: "   │ ", s: "gray" }], rest: [{ t: "   │ ", s: "gray" }] }));
+        }
+        break;
       case "ok":
         out.push([{ t: "   ✓ ", s: "green" }, { t: e.text, s: "gray" }]);
         break;
@@ -312,6 +324,15 @@ function panelLines(s, width) {
       const [glyph, style] = pr.state === "ready" ? LIGHT.ok : (pr.state === "missing" ? LIGHT.fail : LIGHT.warn);
       out.push([{ t: ` ${glyph} `, s: style }, { t: pr.name, s: "bold" }, { t: `  ${pr.state === "ready" ? pr.reason : pr.state}`, s: "gray" }]);
     }
+    out.push([]);
+  }
+  // The consoles open in other terminals, when there are any.
+  if (s.peers.length > 0) {
+    head("CONSOLES");
+    for (const peer of s.peers.slice(0, 5)) {
+      out.push([{ t: " ↔ ", s: "brand" }, { t: peer.name, s: "bold" }, { t: `  ${peer.busy ? "busy" : "idle"}${peer.agent ? ` · ${peer.agent}` : " · no agent"}${peer.listening ? "" : " · deaf"}`, s: "gray" }]);
+    }
+    if (s.peers.length > 5) out.push([{ t: ` … and ${s.peers.length - 5} more — /peers`, s: "gray" }]);
     out.push([]);
   }
   if (p.kind !== "none") {
@@ -392,9 +413,11 @@ export function renderFrame(s, { cols, rows, color = true, now = Date.now() }) {
   const name = p?.project ? [{ t: "  │  ", s: "gray" }, { t: p.project, s: "bold" }, ...(p.kind === "workspace" ? [{ t: "  workspace", s: "gray" }] : [])] : [];
   // The model a person chose, or the one the agent said it is running.
   const model = agent ? (s.models[agent.id] ?? s.reported[agent.id] ?? "") : "";
+  // How many other consoles are in the room, when any is.
+  const room = s.peers.length > 0 ? [{ t: `↔ ${s.peers.length}   `, s: "brand" }] : [];
   const who = agent
-    ? [{ t: "● ", s: "green" }, { t: agent.id }, ...(model && cols >= 72 ? [{ t: ` · ${model}`, s: "gray" }] : []), { t: `   v${p?.cli ?? ""} `, s: "gray" }]
-    : [{ t: "○ no agent", s: "gray" }, { t: `   v${p?.cli ?? ""} `, s: "gray" }];
+    ? [...room, { t: "● ", s: "green" }, { t: agent.id }, ...(model && cols >= 72 ? [{ t: ` · ${model}`, s: "gray" }] : []), { t: `   v${p?.cli ?? ""} `, s: "gray" }]
+    : [...room, { t: "○ no agent", s: "gray" }, { t: `   v${p?.cli ?? ""} `, s: "gray" }];
   top.push(spread([{ t: " ◆ ", s: "brandBold" }, { t: "Doctrina", s: "bold" }, ...name], who, cols, color));
   const counts = countsText(p);
   top.push(spread(gateSegs(s, cols >= 72), cols >= 96 && counts ? [{ t: `${counts} `, s: "gray" }] : [], cols, color));
@@ -426,7 +449,8 @@ export function renderFrame(s, { cols, rows, color = true, now = Date.now() }) {
   // The box's top edge says what is running.
   const spin = SPINNER[Math.floor(now / 90) % SPINNER.length];
   const label = s.busy
-    ? [{ t: ` ${spin} `, s: "brand" }, { t: `${s.busy.label} `, s: "bold" }, { t: `${Math.max(0, Math.round((now - s.busy.since) / 1000))}s · esc interrupts `, s: "gray" }]
+    ? [{ t: ` ${spin} `, s: "brand" }, { t: `${s.busy.label} `, s: "bold" },
+      { t: `${Math.max(0, Math.round((now - s.busy.since) / 1000))}s${s.serving ? ` · for ${s.serving.from.name}` : ""} · esc interrupts `, s: "gray" }]
     : (agent
       ? [{ t: ` to ${agent.label}${model ? ` · ${model}` : ""}${s.session ? " · same conversation" : ""} `, s: "gray" }]
       : [{ t: " no agent — /agent chooses one ", s: "gray" }]);

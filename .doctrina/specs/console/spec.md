@@ -7,9 +7,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli, insight
-**Source:** `packages/doctrina-cli/src/commands/ui.js`, `packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,agent-bridge}.js`
+**Source:** `packages/doctrina-cli/src/commands/ui.js`, `packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,console-room,agent-bridge}.js`
 **Last updated:** 2026-11-13
-**Version:** 0.2.0
+**Version:** 0.3.0
 
 ## Purpose
 
@@ -33,6 +33,7 @@ an agent is found, started and relayed.
 - The system shall run each command typed after `/` as the same CLI in a process of its own, without colour, and show its output as printed.
 - The system shall choose the agent in this order: the one `DOCTRINA_AGENT` names, the one the person chose in this directory before while it is still installed, the one whose IDE terminal this is, the one the project has an adapter for, then the order of the catalog — Claude Code, Cursor, GitHub Copilot, Codex, Gemini CLI, opencode — and then the agents the person declared.
 - The system shall hand a request to an agent on its standard input where the agent reads one, and otherwise as a single argument, followed by the model the person chose — named the way that agent names one — and then the arguments `DOCTRINA_AGENT_ARGS` holds.
+- The system shall put the consoles opened for the same work in one room — the workspace when the directory is its root or one of its registered repositories, the directory itself otherwise — kept as files under `$DOCTRINA_HOME`, in a folder created for the person alone, opening no port and starting no daemon.
 
 ### Event-driven
 
@@ -52,10 +53,19 @@ an agent is found, started and relayed.
 - When `/model <name>` is run, the system shall pass that name on the command line of the agent in use from the next request, keeping one model per agent; `/model default` shall remove it, and `/model` alone shall show the model chosen or the one the agent reported, the names the agent is known to accept, and where the agent lists the models of the account.
 - When an agent or a model is chosen, the system shall keep the choice in `$DOCTRINA_HOME/console.json` under the directory the console was opened in.
 - When `$DOCTRINA_HOME/agents.json` declares an agent, the system shall offer it beside the catalog, passing the request where its arguments hold `{prompt}` and on standard input when they hold none, and shall name and skip a declaration that is wrong.
+- When a console opens, the system shall enter the room under the name of its repository — the workspace name, as the planner, at a workspace root; a number added when the name is taken — and rewrite its card while it runs; a console that closes shall leave the room, and one whose card is ten seconds old shall no longer be listed.
+- When `/send <name> <request>` is run, the system shall put the request in that console inbox, and with `all` in the inbox of every console that is listening, and name the consoles that are open when none has that name.
+- When a request from another console arrives and this console is listening with an agent selected, the system shall show which console sent it, hand it to the agent with the instruction to do the work here, and send the last message of the agent back as the report, with whether the turn succeeded and how long it took.
+- When a request arrives at a console that is not listening or has no agent, the system shall refuse it and send the reason to the console that asked.
+- When a report or a refusal arrives, the system shall show it in the conversation with the console it came from.
+- When `doctrina ui --send <name> "<request>"` runs, the system shall hand that console the request and wait for its report, exiting 0 when the agent finished, 1 when it failed, was refused or did not report within `--timeout` seconds, 2 when no request was given, and 3 when no such console is open or it is not listening.
+- When `doctrina ui --peers` runs, the system shall list the consoles open in the room with their role, agent, state and directory, and exit 0.
+- When a request typed in a console is handed to its agent while other consoles are listening, the system shall tell the agent which consoles are open and the command that hands one a task.
 
 ### State-driven
 
 - While a command or an agent is running, the system shall accept typing and hold the line until that process ends.
+- While a console is answering a request another console sent, the system shall keep any further request waiting in the order it arrived, and shall still run the commands of the console that start no process.
 
 ### Unwanted-behavior (must-not)
 
@@ -64,6 +74,8 @@ an agent is found, started and relayed.
 - The system shall not read which agent to use from a file of the project.
 - The system shall not take a binary named `agent` for Cursor's where neither Cursor's terminal nor a `.cursor/` directory is present.
 - The system shall not write the agent or the model a person chose into the project.
+- The system shall not hand on a request that was handed over: the agent serving it is not told of the other consoles, and `doctrina ui --send` refuses to run under it.
+- The system shall not act on a message found anywhere but in its own inbox, nor write a message to an inbox whose name is not a console id.
 
 ## Acceptance criteria
 
@@ -81,6 +93,10 @@ The console is v0 spec-compliant when:
 10. [verified] `/agent` lists the installed agents with their path and the others with the binaries looked for, switches to an installed one saving the choice, and refuses one that is unknown or not installed; `/model` shows, sets, keeps per agent and removes a model, names an agent that takes none, and both arguments are completed from a list — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
 11. [verified] The model reaches each agent's command line the way that agent names one, before the person's own flags; GitHub Copilot is started with write and `doctrina` allowed and no session, opencode with no model flag; the model an agent reports is shown until one is chosen — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
 12. [verified] An agent declared in `agents.json` is found, started with its arguments, session and model, and takes the request on stdin when its arguments hold no `{prompt}`; four wrong declarations are each named; the choice of agent and model is kept per directory, reaches a real session's agent, and a file broken by hand loses the choice without stopping the console — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
+13. [verified] A room is one folder per directory with cards and inboxes the person alone can read; two consoles in one directory get different names; a message is read once, oldest first, and a file that is not a message is dropped; a stale console is removed with its mail, and an id that is a path reaches no inbox — verified by `packages/doctrina-cli/test/os-consoles-se-comunicam.test.js`.
+14. [verified] `/peers` lists each console with its role, agent, model and state; `/send` keeps the request as typed, reaches one console or all, and names what is open when the name is wrong or the console is not listening; the name is completed from a list; the header counts the consoles and the panel lists them; the agent is told who is open unless the request came from one — verified by `packages/doctrina-cli/test/os-consoles-se-comunicam.test.js`.
+15. [verified] A request from another console starts the agent with its origin, a second one waits and starts when the first is reported, a failed turn is reported as failed and a long last message is cut; a console that is not listening or has no agent refuses with the reason, and stopping to listen sends back what was waiting; the commands of the console still answer while it works — verified by `packages/doctrina-cli/test/os-consoles-se-comunicam.test.js`.
+16. [verified] With a planner at a workspace root and a console in one of its repositories, each sees the other; a request sent by the planner runs in the repository and its report returns; `ui --send` waits for the report and speaks as its console, refuses under a served request, exits 3 for a console that is not open and 2 with no request; two requests are answered in order; leaving empties the room — verified by `packages/doctrina-cli/test/os-consoles-se-comunicam.test.js`.
 
 ## Out of scope for this spec
 

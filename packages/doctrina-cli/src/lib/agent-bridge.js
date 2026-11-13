@@ -368,17 +368,33 @@ export function agentInvocation(agent, prompt, { session = null, model = null, e
 }
 
 /**
- * The prompt an agent receives: what was typed, and where each mentioned
- * artifact lives, so `@spec:auth` is a file the agent opens and not a guess.
+ * The prompt an agent receives: what was typed, where each mentioned
+ * artifact lives — so `@spec:auth` is a file the agent opens and not a
+ * guess — and what it needs to know about the other consoles: that it may
+ * hand one a task, or that this request came from one and its last message
+ * is the report.
  * @param {string} text
  * @param {{ kind: string, id: string, path: string }[]} mentions
+ * @param {{ peers?: { name: string, busy: boolean, listening: boolean }[], origin?: string | null }} [room]
  */
-export function agentPrompt(text, mentions) {
+export function agentPrompt(text, mentions, { peers = [], origin = null } = {}) {
   const named = [];
   for (const m of String(text).matchAll(/(?<![\w@])@([a-z]+):([A-Za-z0-9._-]+)/g)) {
     const hit = mentions.find((x) => x.kind === m[1] && x.id === m[2]);
     if (hit && !named.includes(hit)) named.push(hit);
   }
-  if (named.length === 0) return text;
-  return `${text}\n\nDoctrina artifacts mentioned above:\n${named.map((m) => `- @${m.kind}:${m.id} — ${m.path}${m.kind === "skill" ? " (a project skill: follow its procedure)" : ""}`).join("\n")}`;
+  let out = text;
+  if (named.length > 0) {
+    out += `\n\nDoctrina artifacts mentioned above:\n${named.map((m) => `- @${m.kind}:${m.id} — ${m.path}${m.kind === "skill" ? " (a project skill: follow its procedure)" : ""}`).join("\n")}`;
+  }
+  if (origin) {
+    out += `\n\nThis request was sent by the Doctrina console "${origin}", open in another terminal. Do the work here, in this repository; do not hand it to another console. Your last message is sent back to "${origin}" as the report: make it say what you did and what is left.`;
+  } else {
+    const open = peers.filter((p) => p.listening);
+    if (open.length > 0) {
+      out += `\n\nOther Doctrina consoles are open in other terminals: ${open.map((p) => `${p.name} (${p.busy ? "busy" : "idle"})`).join(", ")}. `
+        + "To hand one a task and wait for its report, run: doctrina ui --send <name> \"<the task, self-contained>\". Its agent works in its own repository; only do that when the task belongs there.";
+    }
+  }
+  return out;
 }

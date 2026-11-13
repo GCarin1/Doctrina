@@ -9,7 +9,8 @@ import { EXIT } from "../lib/exit-codes.js";
 import { consoleState } from "../lib/console-state.js";
 import { agentById, agentCatalog, agentInvocation, agentPrompt, detectAgents } from "../lib/agent-bridge.js";
 import { consolePrefs, saveConsolePrefs } from "../lib/console-prefs.js";
-import { agentEvent, agentExit, commandDone, commandLine, initialState, parseKeys, pressKey } from "../lib/console-model.js";
+import { agentEvent, agentExit, commandDone, commandLine, initialState, messageReceived, parseKeys, peersSeen, pressKey, settle } from "../lib/console-model.js";
+import { beat, joinRoom, leaveRoom, listPeers, messageId, roomPeers, sendMessage, takeInbox } from "../lib/console-room.js";
 import { renderFrame } from "../lib/console-view.js";
 
 // `doctrina ui` — the console (change 0257, ADR 0032).
@@ -23,23 +24,36 @@ import { renderFrame } from "../lib/console-view.js";
 
 export const jsonNative = true;
 
-export const flags = { boolean: ["json", "frame"], string: ["cols", "rows"] };
+export const flags = { boolean: ["json", "frame", "peers"], string: ["cols", "rows", "send", "timeout"] };
 
 const CLI = fileURLToPath(new URL("../index.js", import.meta.url));
 const ENTER = "\x1b[?1049h\x1b[?2004h";
 const LEAVE = "\x1b[?2004l\x1b[?25h\x1b[?1049l";
 const SIGNALS = /** @type {const} */ (["SIGTERM", "SIGHUP"]);
 
-export async function run(_positional, cmdFlags) {
+const peerView = (/** @type {import("../lib/console-room.js").Peer} */ p) => ({ id: p.id, name: p.name, role: p.role, agent: p.agent, model: p.model, busy: p.busy, listening: p.listening });
+
+export async function run(positional, cmdFlags) {
   const cwd = process.cwd();
   if (flagBool(cmdFlags, "json", false)) {
     const prefs = consolePrefs(cwd);
     emitJson("ui", {
       ...consoleState(cwd),
       agents: agentCatalog({ cwd }).map((a) => ({ id: a.id, label: a.label, file: a.file, model: prefs.models[a.id] ?? null })),
+      peers: roomPeers(cwd).map(peerView),
     });
     return EXIT.OK;
   }
+  if (flagBool(cmdFlags, "peers", false)) {
+    const peers = roomPeers(cwd);
+    if (peers.length === 0) console.log("no console is open in this room — open one in a terminal: doctrina ui");
+    for (const p of peers) {
+      console.log(`${p.name.padEnd(16)} ${p.role === "planner" ? "planner" : "console"}  ${(p.agent ?? "no agent").padEnd(9)} ${p.busy ? "busy" : "idle"}${p.listening ? "" : "  not listening"}  ${p.cwd}`);
+    }
+    return EXIT.OK;
+  }
+  const to = flagString(cmdFlags, "send");
+  if (to !== undefined) return sendFromCli(cwd, to, positional.join(" ").trim(), Number(flagString(cmdFlags, "timeout")));
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY) && !flagBool(cmdFlags, "frame", false);
   if (!interactive) {
     const size = (/** @type {string} */ name, /** @type {number} */ fallback) => {
@@ -55,6 +69,74 @@ export async function run(_positional, cmdFlags) {
     return EXIT.OK;
   }
   return new Promise((resolve) => { session(cwd, resolve); });
+}
+
+/**
+ * `doctrina ui --send <name> "<request>"`: hand a console a request from
+ * outside one — what a planner's agent runs — and wait for its report.
+ * @param {string} cwd
+ * @param {string} to
+ * @param {string} text
+ * @param {number} seconds
+ */
+async function sendFromCli(cwd, to, text, seconds) {
+  const env = process.env;
+  if (to.trim() === "" || text === "") {
+    console.error(c.red("error:") + " ui --send takes the console's name and the request: doctrina ui --send <name> \"<request>\"");
+    return EXIT.USAGE;
+  }
+  // A request that was handed over is not handed on: two consoles waiting
+  // on each other would wait until both gave up.
+  if (env.DOCTRINA_CONSOLE_SERVING) {
+    console.error(c.red("error:") + ` this console is answering "${env.DOCTRINA_CONSOLE_SERVING}" — a request that was handed over is done here, not handed on`);
+    return EXIT.GATE;
+  }
+  const room = joinRoom(cwd, { env, role: "sender", name: env.DOCTRINA_CONSOLE_NAME || undefined });
+  try {
+    const peers = listPeers(room).filter((p) => p.name !== env.DOCTRINA_CONSOLE_NAME);
+    const target = peers.find((p) => p.name === to || p.id === to);
+    if (!target) {
+      console.error(c.red("error:") + ` no console named "${to}" is open in this room`);
+      console.error(c.gray("hint: ") + (peers.length ? `open: ${peers.map((p) => p.name).join(", ")}` : "open one in that repository's terminal: doctrina ui"));
+      return EXIT.PRECONDITION;
+    }
+    if (!target.listening) {
+      console.error(c.red("error:") + ` ${target.name} is not listening — /listen on in that console`);
+      return EXIT.PRECONDITION;
+    }
+    const id = messageId();
+    const card = { cwd, agent: null, model: null, busy: false, listening: false };
+    beat(room, card);
+    if (!sendMessage(room, target.id, { type: "request", id, from: { id: room.id, name: room.name }, text, at: Date.now() })) {
+      console.error(c.red("error:") + ` ${target.name} closed before the request reached it`);
+      return EXIT.PRECONDITION;
+    }
+    const limit = Number.isFinite(seconds) && seconds > 0 ? seconds : 600;
+    const end = Date.now() + limit * 1000;
+    while (Date.now() < end) {
+      await new Promise((r) => setTimeout(r, 300));
+      beat(room, card);
+      for (const m of takeInbox(room)) {
+        if (m.type === "result" && m.re === id) {
+          console.log(`${m.from.name} ${m.ok ? "finished" : "failed"}${m.detail ? ` — ${m.detail}` : ""}`);
+          if (m.summary) console.log(`\n${m.summary}`);
+          return m.ok ? EXIT.OK : EXIT.GATE;
+        }
+        if (m.type === "refused" && m.re === id) {
+          console.error(c.red("error:") + ` ${m.from.name} did not take the request: ${m.reason}`);
+          return EXIT.GATE;
+        }
+      }
+      if (!listPeers(room).some((p) => p.id === target.id)) {
+        console.error(c.red("error:") + ` ${target.name} closed before it reported`);
+        return EXIT.GATE;
+      }
+    }
+    console.error(c.red("error:") + ` no report from ${target.name} after ${limit}s — it may still be working; its console shows it`);
+    return EXIT.GATE;
+  } finally {
+    leaveRoom(room);
+  }
 }
 
 /** Lines out of a stream, whole. */
@@ -77,10 +159,21 @@ function byLine(stream, onLine) {
  * with streams of its own and reads the frames it paints.
  * @param {string} cwd
  * @param {(code: number) => void} done
- * @param {{ inp?: any, out?: any, env?: NodeJS.ProcessEnv, color?: boolean }} [io]
+ * @param {{ inp?: any, out?: any, env?: NodeJS.ProcessEnv, color?: boolean, poll?: number }} [io]
  */
-export function session(cwd, done, { inp = process.stdin, out = process.stdout, env = process.env, color = c.enabled } = {}) {
+export function session(cwd, done, { inp = process.stdin, out = process.stdout, env = process.env, color = c.enabled, poll = 700 } = {}) {
   let state = initialState({ agents: detectAgents({ cwd, env }), catalog: agentCatalog({ cwd, env }), prefs: consolePrefs(cwd, env) });
+  // The room: the other consoles opened for the same work. A home that
+  // cannot be written leaves this console alone, and working.
+  /** @type {import("../lib/console-room.js").Room | null} */
+  let room = null;
+  try {
+    room = joinRoom(cwd, { env });
+  } catch {
+    room = null;
+  }
+  /** @type {NodeJS.Timeout | null} */
+  let pulseTimer = null;
   /** @type {{ proc: import("node:child_process").ChildProcess, kind: "command" | "agent", finished: boolean } | null} */
   let running = null;
   let refreshing = false;
@@ -135,9 +228,35 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
     proc.on("close", settle);
   };
 
+  const card = () => ({ cwd, agent: state.agent, model: (state.agent ? state.models[state.agent] : null) ?? null, busy: Boolean(state.busy), listening: state.listening });
+
+  // Nothing runs any more: the console that asked gets its report, and the
+  // next request that was waiting starts.
+  const ended = () => {
+    const after = settle(state);
+    state = after.state;
+    perform(after.effects);
+    if (room) beat(room, card());
+    refresh();
+    schedule();
+  };
+
   const finish = (/** @type {{ proc: import("node:child_process").ChildProcess }} */ job) => {
     if (running === job) running = null;
-    refresh();
+    ended();
+  };
+
+  // One look at the room: say this console is alive, see who else is, and
+  // take what arrived.
+  const pulse = () => {
+    if (!room || closed) return;
+    beat(room, card());
+    state = peersSeen(state, { name: room.name, role: room.role, root: room.root }, listPeers(room).map(peerView));
+    for (const m of takeInbox(room)) {
+      const got = messageReceived(state, m);
+      state = got.state;
+      perform(got.effects);
+    }
     schedule();
   };
 
@@ -161,21 +280,25 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
     });
   };
 
-  const askAgent = (/** @type {string} */ prompt) => {
+  const askAgent = (/** @type {string} */ prompt, /** @type {string | null} */ origin) => {
     const agent = state.agents.find((a) => a.id === state.agent);
     const spec = agent ? agentById(agent.id, env) : null;
     if (!agent || !spec) {
       state = agentExit(state, 1, null, "no agent is selected");
-      schedule();
+      ended();
       return;
     }
-    const call = agentInvocation(agent, agentPrompt(prompt, state.panel?.mentions ?? []), { session: state.session, model: state.models[agent.id] ?? null, env });
+    const full = agentPrompt(prompt, state.panel?.mentions ?? [], { peers: state.peers, origin });
+    const call = agentInvocation(agent, full, { session: state.session, model: state.models[agent.id] ?? null, env });
     if (call.refused) {
       state = agentExit(state, 1, null, call.refused);
-      schedule();
+      ended();
       return;
     }
-    const proc = spawn(call.file, call.args, { cwd, env, stdio: [call.stdin === null ? "ignore" : "pipe", "pipe", "pipe"], shell: call.shell });
+    // The agent's own `doctrina ui --send` speaks as this console, and one
+    // answering a request another console sent may not hand it on.
+    const agentEnv = { ...env, DOCTRINA_CONSOLE_NAME: room?.name ?? "", DOCTRINA_CONSOLE_SERVING: origin ?? "" };
+    const proc = spawn(call.file, call.args, { cwd, env: agentEnv, stdio: [call.stdin === null ? "ignore" : "pipe", "pipe", "pipe"], shell: call.shell });
     const job = { proc, kind: /** @type {const} */ ("agent"), finished: false };
     running = job;
     let stderr = "";
@@ -221,6 +344,8 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
     if (closed) return;
     closed = true;
     if (ticker) clearInterval(ticker);
+    if (pulseTimer) clearInterval(pulseTimer);
+    if (room) leaveRoom(room);
     if (running) running.proc.kill("SIGTERM");
     inp.off("data", onData);
     out.off("resize", onResize);
@@ -236,7 +361,22 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
   const perform = (effects) => {
     for (const effect of effects) {
       if (effect.type === "run") runCommand(effect.argv);
-      else if (effect.type === "ask") askAgent(effect.prompt);
+      else if (effect.type === "ask") askAgent(effect.prompt, effect.origin ?? null);
+      else if (effect.type === "beat") {
+        if (room) beat(room, card());
+      } else if (effect.type === "send" && room) {
+        const from = { id: room.id, name: room.name };
+        for (const target of effect.to) {
+          if (!sendMessage(room, target.id, { type: "request", id: messageId(), from, text: effect.text, at: Date.now() })) {
+            state = commandLine(state, "stderr", `${target.name} closed before the request reached it`);
+          }
+        }
+      } else if (effect.type === "reply" && room) {
+        const from = { id: room.id, name: room.name };
+        sendMessage(room, effect.to, effect.refused
+          ? { type: "refused", re: effect.re, from, reason: effect.refused, at: Date.now() }
+          : { type: "result", re: effect.re, from, ok: effect.ok, summary: effect.summary, detail: effect.detail, at: Date.now() });
+      }
       else if (effect.type === "interrupt") interrupt();
       else if (effect.type === "refresh") refresh();
       else if (effect.type === "save") saveConsolePrefs(cwd, { agent: state.agent, models: state.models }, env);
@@ -275,10 +415,14 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
   out.on("resize", onResize);
   paint();
   refresh();
+  pulse();
+  pulseTimer = setInterval(pulse, poll);
 }
 
 export const help = `
 Usage: doctrina ui [--frame] [--cols <n>] [--rows <n>] [--json]
+       doctrina ui --peers
+       doctrina ui --send <name> "<request>" [--timeout <seconds>]
 
 The console: Doctrina with a face, for the human at the terminal. Running
 \`doctrina\` with no arguments in a terminal opens it too.
@@ -328,6 +472,26 @@ reported in the conversation. It is the same agent, account and rules as
 in your IDE, in a session of its own — it does not type into a chat pane
 that is already open.
 
+Several consoles (ADR 0033). Consoles opened for the same work — the
+repositories of one workspace and its root, or the same directory — share
+a room: each sees the others (the header counts them, the panel lists
+them, /peers says what each is doing) and can hand one a request:
+
+  /send <name> <request>    that console's agent does it there, in its own
+                            repository, and its last message comes back
+                            here as the report. /send all … asks every one.
+  /listen off               this console stops taking requests (on again
+                            with /listen on). It takes them by default.
+
+A request that arrives while something runs waits its turn, and is shown
+with the console it came from. The room is files under $DOCTRINA_HOME,
+yours alone to read and write: no port is opened and nothing leaves the
+machine. The agent of a console is told which consoles are open, and can
+hand one a task itself with \`doctrina ui --send <name> "<request>"\`,
+which waits for the report — so a planner's agent at the workspace root
+can give each repository its card. A request that was handed over is done
+where it lands: it is not handed on.
+
 Keys: enter send · tab complete · ↑↓ history (or the list) · pgup/pgdn
 scroll · esc interrupt or clear · ctrl+c twice (or /quit) to leave.
 
@@ -338,5 +502,11 @@ Options:
   --rows <n>    The frame's height, with --frame (default: the terminal's, or 30)
   --json        The panel's state — gates, open work, next steps, the
                 artifacts @ completes, every agent known and the model
-                chosen for it — as JSON
+                chosen for it, the consoles open in the room — as JSON
+  --peers       List the consoles open in this room and exit
+  --send <name> Hand the console <name> a request and wait for its report:
+                exit 0 when its agent finished, 1 when it failed, was
+                refused or did not report in time, 3 when no such console
+                is open
+  --timeout <s> How long --send waits for the report (default 600)
 `;

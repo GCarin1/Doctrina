@@ -13,13 +13,19 @@ import { splitArgs } from "./agent-bridge.js";
 
 /** @typedef {import("./console-state.js").ConsoleState} Panel */
 /** @typedef {import("./agent-bridge.js").AgentEvent} AgentEvent */
-/** @typedef {{ kind: "banner" | "user" | "out" | "err" | "agent" | "tool" | "note" | "ok" | "fail" | "blank", text: string }} Entry */
+/** @typedef {{ kind: "banner" | "user" | "out" | "err" | "agent" | "tool" | "note" | "ok" | "fail" | "blank" | "peer" | "quote", text: string }} Entry */
+/** @typedef {import("./console-room.js").Message} Message */
+/** @typedef {{ id: string, name: string, role: string, agent: string | null, model: string | null, busy: boolean, listening: boolean }} PeerView */
+/** @typedef {{ id: string, from: { id: string, name: string }, text: string }} PeerRequest */
 /** @typedef {{ name: string, summary: string, local: boolean, immediate: boolean }} PaletteCommand */
 /** @typedef {{ id: string, label: string, file: string | null, bins: string[], exercised: boolean, about: string, models: string[], listing: string, takesModel: boolean, custom: boolean }} CatalogAgent */
 /** @typedef {{ kind: "slash" | "mention", items: { value: string, label: string, immediate: boolean }[], from: number }} Palette */
 /**
  * @typedef {{ type: "run", argv: string[], label: string }
- *   | { type: "ask", prompt: string }
+ *   | { type: "ask", prompt: string, origin?: string }
+ *   | { type: "send", to: { id: string, name: string }[], text: string }
+ *   | { type: "reply", to: string, re: string, ok: boolean, summary: string, detail: string, refused: string }
+ *   | { type: "beat" }
  *   | { type: "save" }
  *   | { type: "interrupt" } | { type: "refresh" } | { type: "quit" }} Effect
  */
@@ -37,6 +43,8 @@ import { splitArgs } from "./agent-bridge.js";
  *   panel: Panel | null, showPanel: boolean,
  *   agents: { id: string, label: string, file: string, exercised: boolean }[], agent: string | null, session: string | null,
  *   catalog: CatalogAgent[], models: Record<string, string>, reported: Record<string, string>,
+ *   room: { name: string, role: string, root: string } | null, peers: PeerView[], listening: boolean,
+ *   queue: PeerRequest[], serving: PeerRequest | null, lastText: string, lastTurn: { ok: boolean, detail: string } | null,
  *   busy: { kind: "command" | "agent", label: string, since: number } | null,
  *   notice: string, armed: boolean, said: boolean,
  * }} State
@@ -48,6 +56,9 @@ const LOCAL = [
   ["agent", "Which agent answers: every one known, installed or not · /agent <name>"],
   ["model", "The model the agent runs: /model <name> · /model default"],
   ["new", "Start a new conversation with the agent"],
+  ["peers", "The other consoles open in this room"],
+  ["send", "Hand a request to another console: /send <name> <request> · /send all …"],
+  ["listen", "Take requests from other consoles, or stop: /listen off"],
   ["clear", "Clear the conversation"],
   ["panel", "Show or hide the project panel"],
   ["refresh", "Read the project's state again"],
@@ -57,7 +68,7 @@ const LOCAL = [
 // The operations that mean something with no argument: Enter on one runs it.
 const IMMEDIATE = new Set(["prime", "next", "status", "validate", "doctor", "handoff", "onboard", "coverage", "trace",
   "verify", "metrics", "spec list", "decision list", "skill list", "contract list", "intent list", "adapter list",
-  "templates list", "workspace list", "delivery list", "help", "agent", "model", "new", "clear", "panel", "refresh", "quit"]);
+  "templates list", "workspace list", "delivery list", "help", "agent", "model", "new", "peers", "listen", "clear", "panel", "refresh", "quit"]);
 
 /**
  * Every command `/` offers, in the order a person reaches for them: the
@@ -96,6 +107,7 @@ export function initialState({ agents = [], panel = null, catalog = [], prefs = 
     panel, showPanel: true,
     agents, agent: (kept ?? agents[0])?.id ?? null, session: null,
     catalog, models: { ...prefs.models }, reported: {},
+    room: null, peers: [], listening: true, queue: [], serving: null, lastText: "", lastTurn: null,
     busy: null, notice: "", armed: false, said: false,
   };
 }
@@ -126,18 +138,25 @@ export function paletteOf(s) {
     return { kind: "mention", from, items: hits.map((m) => ({ value: m.value, label: m.label, immediate: false })) };
   }
   if (!line.startsWith("/") || s.cursor !== s.input.length) return null;
-  // The argument of /agent and /model is chosen from a list too.
-  const arg = /^\/(agent|model) (\S*)$/.exec(line);
+  // The argument of /agent, /model and /send is chosen from a list too.
+  const arg = /^\/(agent|model|send) (\S*)$/.exec(line);
   if (arg) {
     const typed = arg[2].toLowerCase();
-    const options = arg[1] === "agent"
-      ? [...s.catalog.map((a) => ({ value: a.id, label: `${a.label} — ${a.file ? (a.id === s.agent ? "in use" : "installed") : "not installed"}` })),
-        { value: "off", label: "send requests nowhere" }]
-      : [...(s.catalog.find((a) => a.id === s.agent)?.models ?? []).map((m) => ({ value: m, label: "" })),
+    let options;
+    if (arg[1] === "agent") {
+      options = [...s.catalog.map((a) => ({ value: a.id, label: `${a.label} — ${a.file ? (a.id === s.agent ? "in use" : "installed") : "not installed"}` })),
+        { value: "off", label: "send requests nowhere" }];
+    } else if (arg[1] === "model") {
+      options = [...(s.catalog.find((a) => a.id === s.agent)?.models ?? []).map((m) => ({ value: m, label: "" })),
         { value: "default", label: "the agent's own default" }];
-    const hits = options.filter((o) => o.value.startsWith(typed));
-    if (hits.length === 0 || (hits.length === 1 && hits[0].value === typed)) return null;
-    return { kind: "slash", from: 0, items: hits.map((o) => ({ value: `/${arg[1]} ${o.value}`, label: o.label, immediate: true })) };
+    } else {
+      options = [...s.peers.map((p) => ({ value: p.name, label: peerLine(p) })),
+        ...(s.peers.length > 1 ? [{ value: "all", label: "every console that is listening" }] : [])];
+    }
+    const hits = options.filter((o) => o.value.toLowerCase().startsWith(typed));
+    if (hits.length === 0 || (hits.length === 1 && hits[0].value.toLowerCase() === typed)) return null;
+    // A request still has to be typed after the name of a console.
+    return { kind: "slash", from: 0, items: hits.map((o) => ({ value: `/${arg[1]} ${o.value}`, label: o.label, immediate: arg[1] !== "send" })) };
   }
   const q = line.slice(1).toLowerCase();
   // A command that is already whole, followed by its arguments, needs no list.
@@ -153,6 +172,8 @@ export function paletteOf(s) {
 const say = (/** @type {State} */ s, /** @type {Entry["kind"]} */ kind, /** @type {string} */ t) => ({ ...s, transcript: [...s.transcript, { kind, text: t }], scroll: 0 });
 const setInput = (/** @type {State} */ s, /** @type {string} */ t) => ({ ...s, input: Array.from(t), cursor: Array.from(t).length, paletteAt: 0, paletteOff: false });
 
+const WHILE_BUSY = /^(\?|\/(help|peers|listen|send|panel|clear|refresh|quit|exit)(\s|$))/;
+
 const HELP = [
   "Type a request in your own words and it goes to the agent, which works in this repository.",
   "",
@@ -160,6 +181,7 @@ const HELP = [
   "  @            mention an artifact — @spec:auth, @change:0001-login, @skill:…, @adr:0005",
   "  ↑ ↓          earlier inputs · pgup pgdn scroll the conversation",
   "  esc          interrupt what is running, or clear the line",
+  "  /peers       the consoles open in other terminals · /send <name> <request> hands one a request, and its report comes back",
   "  /agent       which agent answers — Claude Code, Cursor, GitHub Copilot, Codex, Gemini, opencode, or your own",
   "  /model       the model that agent runs · /new starts a new conversation with it",
   "  ctrl+c       twice to leave (or /quit)",
@@ -178,7 +200,9 @@ export function commandArgv(line) {
 function submit(s, line) {
   const trimmed = line.trim();
   if (trimmed === "") return { state: s, effects: [] };
-  if (s.busy) return { state: { ...s, notice: `${s.busy.label} is still running — esc interrupts it` }, effects: [] };
+  // While something runs, only what starts nothing of its own goes through:
+  // the console's own commands, and a request handed to another console.
+  if (s.busy && !WHILE_BUSY.test(trimmed)) return { state: { ...s, notice: `${s.busy.label} is still running — esc interrupts it` }, effects: [] };
   /** @type {State} */
   let next = { ...setInput(s, ""), history: s.history[s.history.length - 1] === trimmed ? s.history : [...s.history, trimmed], historyAt: null, draft: "", said: true };
   next = say(say(next, "blank", ""), "user", trimmed);
@@ -192,8 +216,11 @@ function submit(s, line) {
       next = say(next, "note", "Open the change yourself with /work \"<request>\", or install your agent's CLI and run /agent.");
       return { state: next, effects: [] };
     }
-    return { state: { ...next, busy: { kind: "agent", label: agent.label, since: Date.now() } }, effects: [{ type: "ask", prompt: trimmed }] };
+    return { state: { ...next, busy: { kind: "agent", label: agent.label, since: Date.now() }, lastText: "", lastTurn: null }, effects: [{ type: "ask", prompt: trimmed }] };
   }
+  // The raw line: a request handed to another console keeps its quotes.
+  const sending = /^\/send\s+(\S+)(?:\s+([\s\S]+))?$/.exec(trimmed);
+  if (sending) return sendTo(next, sending[1], (sending[2] ?? "").trim());
   const argv = commandArgv(trimmed);
   const [name, ...rest] = argv;
   switch (name) {
@@ -222,9 +249,130 @@ function submit(s, line) {
     }
     case "ui":
       return { state: say(next, "note", "this is the console already"), effects: [] };
+    case "send":
+      return { state: say(next, "note", "/send <name> <request> — /peers lists the consoles open in this room"), effects: [] };
+    case "peers":
+      return { state: listPeers(next), effects: [] };
+    case "listen": {
+      const on = rest[0] === undefined ? !next.listening : rest[0] !== "off";
+      const said = say({ ...next, listening: on }, "note", on
+        ? "listening: a request another console sends here goes to this console's agent"
+        : "not listening: requests from other consoles are refused until /listen on");
+      // Stopping sends back what was waiting, instead of leaving its sender to wait.
+      const refusals = on ? [] : next.queue.map((q) => refusal(q, `${next.room?.name ?? "that console"} stopped listening`));
+      return { state: { ...said, queue: on ? said.queue : [] }, effects: [{ type: "beat" }, ...refusals] };
+    }
     default:
       return { state: { ...next, busy: { kind: "command", label: `doctrina ${name}`, since: Date.now() } }, effects: [{ type: "run", argv, label: `doctrina ${argv.join(" ")}` }] };
   }
+}
+
+const peerLine = (/** @type {PeerView} */ p) => `${p.role === "planner" ? "planner" : "console"} · ${p.agent ?? "no agent"}${p.model ? ` · ${p.model}` : ""} · ${p.busy ? "busy" : "idle"}${p.listening ? "" : " · not listening"}`;
+
+/** @returns {Effect} */
+const refusal = (/** @type {PeerRequest} */ req, /** @type {string} */ reason) => ({ type: "reply", to: req.from.id, re: req.id, ok: false, summary: "", detail: "", refused: reason });
+
+/** `/peers`: who else is in the room. */
+function listPeers(s) {
+  if (!s.room) return say(s, "note", "this console is alone: it could not join a room under $DOCTRINA_HOME");
+  if (s.peers.length === 0) {
+    const out = say(s, "note", `No other console is open in this room (${s.room.root}).`);
+    return say(out, "note", "Open one in another terminal — `doctrina` in a repository of the same workspace, or in this directory — and it appears here.");
+  }
+  let out = say(s, "note", `This console is ${s.room.name}${s.room.role === "planner" ? " (the planner)" : ""}${s.listening ? "" : ", not listening"}. Also open:`);
+  for (const p of s.peers) out = say(out, "note", `↔ ${p.name.padEnd(14)} ${peerLine(p)}`);
+  return say(out, "note", "Hand one a request with /send <name> <request>; its agent works there and the report comes back here.");
+}
+
+/**
+ * `/send`: a request for another console's agent.
+ * @param {State} s
+ * @param {string} name
+ * @param {string} request
+ * @returns {{ state: State, effects: Effect[] }}
+ */
+function sendTo(s, name, request) {
+  if (request === "") return { state: say(s, "note", `/send ${name} <request> — say what that console's agent should do`), effects: [] };
+  const targets = name === "all" ? s.peers.filter((p) => p.listening) : s.peers.filter((p) => p.name === name || p.id === name);
+  if (targets.length === 0) {
+    const known = s.peers.map((p) => p.name).join(", ");
+    return { state: say(s, "note", name === "all" ? "no console is listening — /peers" : `no console named "${name}" is open in this room${known ? ` — open: ${known}` : " — /peers"}`), effects: [] };
+  }
+  const deaf = targets.filter((p) => !p.listening);
+  if (deaf.length > 0) return { state: say(s, "note", `${deaf.map((p) => p.name).join(", ")} is not listening — it takes requests again after /listen on there`), effects: [] };
+  const out = say(s, "peer", `to ${targets.map((p) => p.name).join(", ")}  ${request}`);
+  return { state: out, effects: [{ type: "send", to: targets.map((p) => ({ id: p.id, name: p.name })), text: request }] };
+}
+
+/** Start the agent on a request another console sent. */
+function serve(s, req) {
+  const agent = s.agents.find((a) => a.id === s.agent);
+  if (!agent) return { state: s, effects: [refusal(req, `${s.room?.name ?? "that console"} has no agent connected`)] };
+  const said = say(say(s, "blank", ""), "peer", `from ${req.from.name}  ${req.text}`);
+  return {
+    state: { ...said, said: true, serving: req, lastText: "", lastTurn: null, busy: { kind: /** @type {const} */ ("agent"), label: agent.label, since: Date.now() } },
+    effects: [/** @type {Effect} */ ({ type: "ask", prompt: req.text, origin: req.from.name })],
+  };
+}
+
+/**
+ * The consoles seen in the room, as the last look found them.
+ * @param {State} s
+ * @param {{ name: string, role: string, root: string } | null} room
+ * @param {PeerView[]} peers
+ * @returns {State}
+ */
+export function peersSeen(s, room, peers) {
+  const same = JSON.stringify(peers) === JSON.stringify(s.peers) && JSON.stringify(room) === JSON.stringify(s.room);
+  return same ? s : { ...s, room, peers };
+}
+
+/**
+ * A message from another console arrived.
+ * @param {State} s
+ * @param {Message} m
+ * @returns {{ state: State, effects: Effect[] }}
+ */
+export function messageReceived(s, m) {
+  if (m.type === "request") {
+    const req = { id: m.id, from: m.from, text: String(m.text ?? "") };
+    if (!s.listening) return { state: s, effects: [refusal(req, `${s.room?.name ?? "that console"} is not listening`)] };
+    if (s.busy || s.queue.length > 0) {
+      return { state: say({ ...s, queue: [...s.queue, req] }, "note", `↔ ${m.from.name} sent a request — it runs when what is running here ends (${s.queue.length + 1} waiting)`), effects: [] };
+    }
+    return serve(s, req);
+  }
+  if (m.type === "result") {
+    let out = say(say(s, "blank", ""), "peer", `${m.from.name} ${m.ok ? "finished" : "failed"}${m.detail ? `  ${m.detail}` : ""}`);
+    if (m.summary) out = say(out, "quote", m.summary);
+    return { state: { ...out, said: true }, effects: [] };
+  }
+  if (m.type === "refused") return { state: say(s, "note", `↔ ${m.from.name} did not take the request: ${m.reason}`), effects: [] };
+  return { state: s, effects: [] };
+}
+
+/**
+ * Nothing is running any more: report to the console that asked, and take
+ * the next request that was waiting.
+ * @param {State} s
+ * @returns {{ state: State, effects: Effect[] }}
+ */
+export function settle(s) {
+  if (s.busy) return { state: s, effects: [] };
+  /** @type {Effect[]} */
+  const effects = [];
+  let out = s;
+  if (s.serving) {
+    const turn = s.lastTurn ?? { ok: false, detail: "" };
+    effects.push({ type: "reply", to: s.serving.from.id, re: s.serving.id, ok: turn.ok, summary: s.lastText.length > 1500 ? `${s.lastText.slice(0, 1499)}…` : s.lastText, detail: turn.detail, refused: "" });
+    out = { ...out, serving: null, lastTurn: null };
+  }
+  if (out.queue.length > 0) {
+    const [next, ...rest] = out.queue;
+    const started = serve({ ...out, queue: rest }, next);
+    return { state: started.state, effects: [...effects, ...started.effects] };
+  }
+  return { state: out, effects };
 }
 
 /** `/agent`: every agent known, and the switch to one that is installed. */
@@ -405,7 +553,7 @@ export function agentEvent(s, ev) {
     case "model":
       return s.agent ? { ...s, reported: { ...s.reported, [s.agent]: ev.name } } : s;
     case "text":
-      return add("agent", ev.text);
+      return { ...add("agent", ev.text), lastText: ev.text };
     case "tool":
       return add("tool", ev.detail ? `${ev.name}  ${ev.detail}` : ev.name);
     case "raw":
@@ -423,7 +571,7 @@ export function agentEvent(s, ev) {
         out = { ...out, transcript: [...out.transcript, { kind: "note", text: `The agent runs only what its own settings allow${more} — add a rule there, or flags in DOCTRINA_AGENT_ARGS.` }] };
       }
       const summary = [turns, secs].filter(Boolean).join(" · ");
-      return { ...out, transcript: [...out.transcript, ev.ok ? { kind: "ok", text: summary } : { kind: "fail", text: [ev.error, summary].filter(Boolean).join(" · ") }] };
+      return { ...out, lastTurn: { ok: ev.ok, detail: summary }, transcript: [...out.transcript, ev.ok ? { kind: "ok", text: summary } : { kind: "fail", text: [ev.error, summary].filter(Boolean).join(" · ") }] };
     }
     default:
       return s;
@@ -434,7 +582,8 @@ export function agentEvent(s, ev) {
 export function agentExit(s, code, signal, stderr) {
   if (!s.busy) return s;
   const secs = `${((Date.now() - s.busy.since) / 1000).toFixed(1)}s`;
-  let out = { ...s, busy: null, notice: "" };
+  /** @type {State} */
+  let out = { ...s, busy: null, notice: "", lastTurn: { ok: code === 0 && !signal, detail: signal ? `interrupted · ${secs}` : (code === 0 ? secs : `exited ${code} · ${secs}`) } };
   if (signal) return { ...out, transcript: [...out.transcript, { kind: "fail", text: `interrupted · ${secs}` }] };
   if (code !== 0) {
     for (const l of String(stderr).split("\n").map((x) => x.trim()).filter(Boolean).slice(-4)) {

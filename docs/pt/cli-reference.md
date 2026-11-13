@@ -143,6 +143,8 @@ doctrina                 # num terminal: o console
 doctrina ui
 doctrina ui --frame --cols 100 --rows 30
 doctrina ui --json
+doctrina ui --peers
+doctrina ui --send api "add the coupon field to the order" --timeout 900
 ```
 
 <!-- illustrative -->
@@ -242,6 +244,44 @@ O agente e o modelo que você escolheu ficam em
 `$DOCTRINA_HOME/console.json`, por diretório em que o console foi aberto —
 escolha sua, nunca um arquivo do projeto.
 
+**Vários consoles** (ADR 0033). Consoles abertos para o mesmo trabalho — a
+raiz de um workspace e os repositórios registrados nele, ou o mesmo
+diretório — dividem uma sala. Cada um enxerga os outros: o cabeçalho os
+conta (`↔ 2`), o painel os lista em CONSOLES, e o `/peers` diz o que cada
+um está fazendo.
+
+| Você digita | O que acontece |
+|-------------|----------------|
+| `/send <nome> <pedido>` | O pedido vai para aquele console. Ele mostra quem enviou, entrega ao próprio agente no próprio repositório, e a última mensagem desse agente volta para cá como relatório. `/send all …` pede a todo console que está ouvindo. Uma lista completa o nome. |
+| `/peers` | Os consoles abertos na sala: nome, papel (a raiz do workspace é o planejador), agente e modelo, ocupado ou livre, ouvindo ou não. |
+| `/listen off` · `/listen on` | Para, ou volta, a aceitar pedidos de outros consoles. Um console ouve por padrão; o que não ouve recusa o pedido e quem enviou fica sabendo por quê. |
+
+Um pedido que chega enquanto algo roda espera a vez. Enquanto este console
+trabalha, os comandos dele (`/peers`, `/send`, `/listen`, `/panel`,
+`/clear`) continuam respondendo.
+
+O agente de um console é avisado de quais consoles estão abertos, e pode
+ele mesmo entregar uma tarefa a um deles:
+
+```
+doctrina ui --send <nome> "<a tarefa, autocontida>"
+```
+
+espera o relatório daquele console e o imprime — saída 0 quando o agente
+dele terminou, 1 quando falhou, foi recusado ou não relatou dentro do
+`--timeout` (600 segundos por padrão), 3 quando não há console aberto com
+esse nome. Assim o agente do planejador, na raiz do workspace, entrega a
+cada repositório o seu cartão, e você vê cada um trabalhar no próprio
+terminal. Um pedido que foi entregue é feito onde chega: o agente que o
+atende não é avisado dos outros consoles, e o `--send` se recusa a rodar
+sob ele.
+
+A sala é uma pasta em `$DOCTRINA_HOME` (`rooms/`), criada só para o seu
+usuário: um arquivo por console dizendo que está vivo, e uma caixa de
+entrada por console. Nenhuma porta é aberta e nada sai da máquina. Um
+console que fecha sai da sala; um que morre some da lista em até dez
+segundos.
+
 O console não guarda nada sobre o projeto. O painel e os gates são lidos da árvore quando
 ele abre e depois de cada comando e de cada resposta, por um processo
 próprio, e cada `/comando` roda como a mesma CLI que você rodaria à mão.
@@ -250,7 +290,10 @@ próprio, e cada `/comando` roda como a mesma CLI que você rodaria à mão.
 |------|--------|
 | `--frame` | Imprime um quadro e sai, em vez de abrir o console — o que um pipe recebe de qualquer forma. |
 | `--cols <n>`, `--rows <n>` | O tamanho do quadro, com `--frame` (padrão: o do terminal, ou 100×30). |
-| `--json` | O estado do painel em JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, as `mentions` que o `@` completa, e todo agente conhecido com o `file` em que foi achado (`null` se não instalado) e o `model` escolhido para ele. |
+| `--json` | O estado do painel em JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, as `mentions` que o `@` completa, todo agente conhecido com o `file` em que foi achado (`null` se não instalado) e o `model` escolhido para ele, e os `peers` abertos na sala. |
+| `--peers` | Lista os consoles abertos nesta sala — nome, papel, agente, ocupado ou livre, diretório — e sai. |
+| `--send <nome>` | Entrega ao console `<nome>` o pedido passado como argumento e espera o relatório dele. |
+| `--timeout <s>` | Quanto o `--send` espera (padrão 600). |
 
 ## `doctrina onboard`
 

@@ -19,6 +19,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Consoles open in several terminals talk to each other (ADR 0033).
+  Consoles opened for the same work — a workspace's root and its
+  repositories, or one directory — share a room: `/peers` lists them,
+  `/send <name> <request>` hands one a request for its own agent in its own
+  repository, and the report comes back; a request that arrives while
+  something runs waits its turn, and `/listen off` refuses them. A
+  console's agent is told which consoles are open and dispatches with
+  `doctrina ui --send <name> "<request>"`, which waits for the report — a
+  planner at the workspace root gives each repository its card. The room is
+  files under `$DOCTRINA_HOME`, the person's alone: no port, no daemon.
+  `doctrina ui --peers` lists the room from outside a console.
 - The console talks to any agent you have, and you choose its model. The
   catalog gains GitHub Copilot's CLI (the agent of VS Code) and opencode
   beside Claude Code, Cursor, Codex and Gemini; any other command-line
