@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import process from "node:process";
 import { mkdirSync, rmdirSync, statSync } from "node:fs";
 
 // ONE AT A TIME, FOR THE FEW STEPS THAT MUST BE (seventh audit, change 0250).
@@ -22,6 +23,16 @@ const HELD = new Set();
 const WAIT_MS = 25;
 const GIVE_UP_MS = 5000;
 const STALE_MS = 30000;
+
+// On Windows a directory another process just removed lingers as "delete
+// pending", and a mkdir on its path fails with EPERM (or EACCES/EBUSY), not
+// EEXIST. Read as "nothing to serialise", that ran the step unlocked: eight
+// parallel `work` on a Windows runner opened two changes numbered 0007.
+/** @param {string | undefined} code @param {NodeJS.Platform} [platform] */
+export function contended(code, platform = process.platform) {
+  if (code === "EEXIST") return true;
+  return platform === "win32" && (code === "EPERM" || code === "EACCES" || code === "EBUSY");
+}
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -46,7 +57,7 @@ export function withProjectLock(projectRoot, fn) {
       HELD.add(lock);
       break;
     } catch (err) {
-      if (/** @type {NodeJS.ErrnoException} */ (err).code !== "EEXIST") break; // no .doctrina/, read-only tree: nothing to serialise
+      if (!contended(/** @type {NodeJS.ErrnoException} */ (err).code)) break; // no .doctrina/, read-only tree: nothing to serialise
       try {
         if (Date.now() - statSync(lock).mtimeMs > STALE_MS) rmdirSync(lock);
       } catch { /* released between the two calls */ }

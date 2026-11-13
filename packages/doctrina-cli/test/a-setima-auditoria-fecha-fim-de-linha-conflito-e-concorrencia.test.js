@@ -8,6 +8,7 @@ import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { appendLine, read, write } from "../src/lib/fs-ops.js";
 import { conflictMarkerLine } from "../src/lib/conflict-markers.js";
+import { contended } from "../src/lib/lock.js";
 
 // THE SEVENTH AUDIT: LINE ENDINGS, A MERGE THAT STOPPED, AND TWO COMMANDS AT
 // ONCE (change 0250).
@@ -180,6 +181,16 @@ test("indexing a change waits for the lock another command holds, and a holder m
   } finally {
     s.done();
   }
+});
+
+test("a lock directory Windows is still deleting is contention, not a tree with nothing to serialise", () => {
+  assert.equal(contended("EEXIST", "linux"), true);
+  assert.equal(contended("EEXIST", "win32"), true);
+  for (const code of ["EPERM", "EACCES", "EBUSY"]) {
+    assert.equal(contended(code, "win32"), true, `${code} on Windows is a removal still pending: wait for it`);
+    assert.equal(contended(code, "linux"), false, `${code} on POSIX is a tree the lock cannot be written in`);
+  }
+  assert.equal(contended("ENOENT", "win32"), false, "no .doctrina/: nothing to serialise");
 });
 
 test("commands run at once number their changes apart and never read half an index", async () => {

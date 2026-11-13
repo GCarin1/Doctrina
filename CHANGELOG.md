@@ -51,6 +51,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unsafe inside double quotes, which holds for a POSIX shell but not for
   PowerShell or cmd, so every such Windows path came out single-quoted, a
   form cmd does not read as one argument.
+- On Windows, commands run at once wait for the project lock again. A lock
+  directory Windows was still deleting made `mkdir` fail with `EPERM`, which
+  the lock read as a tree with nothing to serialise, so the step ran
+  unlocked and two parallel `doctrina work` could open changes with one
+  number.
 
 ## [0.22.0] — 2026-11-13
 
