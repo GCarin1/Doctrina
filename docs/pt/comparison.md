@@ -129,7 +129,7 @@ Use **Doctrina** quando:
 - Você está adotando num codebase brownfield.
 - Você quer o protocolo A/B empírico shipped na caixa.
 - Documentação bilíngue EN + PT importa.
-- Sua superfície de agentes cabe nos doze agentes suportados.
+- Sua superfície de agentes cabe nos 13 agentes suportados.
 
 Use **Spec Kit** quando:
 

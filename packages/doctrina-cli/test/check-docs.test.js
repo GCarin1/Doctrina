@@ -131,6 +131,21 @@ test("docs gate: catches unmarked CLI output and accepts a marked block", async 
   }
 });
 
+test("docs gate: three backticks inside a sentence do not open a block", async () => {
+  // The inline ` ```ops ` of a list item paired with the next real fence, and
+  // forty lines of prose between them were read as a code block: a paragraph
+  // line beginning "applied twice" became unmarked CLI output (change 0247).
+  const prose = makeDocsFixture({
+    en: "# Page\n\n- **MODIFIED with an ` ```ops ` block:** runs the ops.\n\nThe ops are additive, so a change is not\napplied twice.\n\n```\ndoctrina validate\n```\n",
+  });
+  try {
+    const r = await runChecks(prose);
+    assert.deepEqual(failures(r, "output-block"), [], r.problems.join("\n"));
+  } finally {
+    rmSync(prose, { recursive: true, force: true });
+  }
+});
+
 test("docs gate: an invocation-only block needs no marker", async () => {
   const tmp = makeDocsFixture({
     en: "# Page\n\n```\ndoctrina validate --fix\n```\n",

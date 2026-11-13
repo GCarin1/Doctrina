@@ -11,6 +11,8 @@ Doctrina:
 
 - A request that changes behaviour is a change, opened BEFORE code is
   edited: `doctrina work "<request>"`. One change per activity asked for.
+- An edit that changes nothing a spec says (a typo, a comment, a fix
+  restoring what it states) needs none: edit, `doctrina verify`, commit.
 - The first sentence to the human names the change id.
 - Read with `doctrina context <cap> --for "<task>" --concat`; `doctrina
   prime` is the project's state, not the spec.

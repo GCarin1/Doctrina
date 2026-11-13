@@ -252,3 +252,23 @@ One line per archived change, newest last. Appended by
 - 2026-11-05 — 0239-o-gate-de-docs-distingue-variavel-de-ambiente-de — o gate de docs distingue variavel de ambiente de constante (specs: docs MODIFIED, gates MODIFIED)
 - 2026-11-05 — 0240-release-0-21-0 — release 0.21.0
 - 2026-11-05 — 0241-o-release-recarimba-os-exemplos — o release recarimba os exemplos
+- 2026-11-11 — 0242-branches-paralelas-se-juntam-sem-conflito-manual — branches paralelas se juntam sem conflito manual (specs: authoring MODIFIED, scaffolding MODIFIED, structure MODIFIED)
+- 2026-11-11 — 0243-o-doctor-nomeia-o-binario-que-roda-e-as-copias — o doctor nomeia o binario que roda e as copias no PATH (specs: gates MODIFIED)
+- 2026-11-11 — 0244-o-guard-aceita-uma-lista-de-chamadas-permitidas — o guard aceita uma lista de chamadas permitidas por ferramenta (specs: workspace MODIFIED)
+- 2026-11-11 — 0245-o-release-publica-sozinho-quando-a-versao-chega — o release publica sozinho quando a versao chega a main
+- 2026-11-11 — 0246-a-checagem-de-tipos-enxerga-o-nulo — a checagem de tipos enxerga o nulo (specs: gates MODIFIED)
+- 2026-11-11 — 0247-o-delta-que-chega-depois-do-apply-e-aplicado — o delta que chega depois do apply e aplicado (specs: authoring MODIFIED)
+- 2026-11-11 — 0248-a-politica-de-seguranca-descreve-o-cli-que — a politica de seguranca descreve o cli que existe
+- 2026-11-11 — 0249-o-validate-nao-varre-o-repositorio-inteiro-por — o validate nao varre o repositorio inteiro por padrao (specs: structure MODIFIED)
+- 2026-11-12 — 0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e — a setima auditoria fecha fim de linha conflito e concorrencia (specs: authoring MODIFIED, core MODIFIED, scaffolding MODIFIED, structure MODIFIED, workspace MODIFIED)
+- 2026-11-12 — 0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core — o hub lista so o ciclo basico no perfil core (specs: templates MODIFIED)
+- 2026-11-12 — 0252-o-kiro-entra-na-lista-de-agentes — o kiro entra na lista de agentes (specs: scaffolding MODIFIED, templates MODIFIED)
+- 2026-11-12 — 0253-um-preset-leva-a-casa-da-organizacao-para-o — um preset leva a casa da organizacao para o projeto (specs: scaffolding MODIFIED)
+- 2026-11-12 — 0254-um-requisito-que-e-invariante-pede-um-teste-de — um requisito que e invariante pede um teste de propriedade (specs: gates MODIFIED)
+- 2026-11-12 — 0255-tres-trilhas-por-tamanho — tres trilhas por tamanho (specs: authoring MODIFIED, triage ADDED)
+- 2026-11-12 — 0256-onboarding-guiado — onboarding guiado (specs: cli MODIFIED, insight MODIFIED, scaffolding MODIFIED, templates MODIFIED)
+- 2026-11-13 — 0257-console-interativo — console interativo (specs: cli MODIFIED, console ADDED)
+- 2026-11-13 — 0258-qualquer-agente-e-modelo — qualquer agente e modelo (specs: console MODIFIED)
+- 2026-11-13 — 0259-consoles-que-se-comunicam — consoles que se comunicam (specs: console MODIFIED)
+- 2026-11-13 — 0260-requisitos-condicionais-na-secao-certa — requisitos condicionais na secao certa (specs: scaffolding MODIFIED, templates MODIFIED)
+- 2026-11-13 — 0261-release-0-22-0 — release 0.22.0

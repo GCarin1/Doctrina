@@ -53,5 +53,5 @@ description: "Read checkboxes, headers, sections and comments of a .doctrina art
 - ADR 0021 — one document model owns the `.doctrina` on-disk grammar.
 - `packages/doctrina-cli/src/lib/doc-model.js` — the owner.
 - `packages/doctrina-cli/test/one-box-count.test.js` — the guard.
-- The `patch-doctrina-files-as-crlf` skill — the same discipline for
+- The `check-the-line-ending-before-patching` skill — the same discipline for
   edits made by hand or by script.

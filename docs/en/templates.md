@@ -65,3 +65,26 @@ An overridden template is **pinned**: a CLI upgrade that improves the
 bundled version will not reach your copy. `doctrina templates list` marks
 your overrides so you can review them after upgrading. There is no
 staleness check for overridden templates — if you override, you own it.
+
+## An organisation's preset
+
+Overriding a template fixes one file in one repository. A **preset** is the
+same idea for a whole company: a folder its repositories start from.
+
+```
+acme-preset/
+  preset.json      { "name": "acme", "description": "…", "config": { … } }
+  templates/       → .doctrina/templates/   (the overrides above)
+  decisions/       → .doctrina/decisions/   (decisions that bind every repository)
+  skills/          → .doctrina/skills/
+  verify.json      → .doctrina/verify.json  (only when the project has none)
+```
+
+`config` takes the keys of `.doctrina/config.json` — `language`,
+`context_budget`, `rules`, `surface`. `doctrina init --preset <dir>` lays it
+over a new project and `doctrina upgrade --preset <dir> [--write]` over one
+that exists. It is additive: a file the project has is kept, a config key
+it declares is kept, a decision whose number the project already uses is
+not copied, and the plan names each. A preset's `verify.json` declares
+commands `doctrina verify` will run, so they are printed when it is copied.
+The preset's name is recorded as `"preset"` in the project's config.

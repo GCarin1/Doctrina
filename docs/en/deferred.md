@@ -39,8 +39,8 @@ schema, and a documented retention policy.
 
 **Status:** deferred indefinitely.
 
-**Why:** Each additional language adds 13 docs (the current EN
-inventory) that must be kept in sync. PT was added because the
+**Why:** Each additional language adds a full copy of the EN docs
+that must be kept in sync. PT was added because the
 maintainer's primary working language is Portuguese; further
 languages need a contributor willing to own the ongoing parity
 work.
@@ -54,10 +54,10 @@ that justifies a new translation.
 
 **Status:** out of scope.
 
-**Why:** The AGENTS.md ecosystem and the twelve supported agents
-(seven with thin pointer adapters — Claude Code, Cursor, Copilot,
-Gemini CLI, Aider, Windsurf, Continue — and five AGENTS.md-native:
-Codex CLI, Amp, Devin, Factory, Jules) cover the major
+**Why:** The AGENTS.md ecosystem and the 13 supported agents
+(7 with thin pointer adapters — Claude Code, Cursor, Copilot,
+Gemini CLI, Aider, Windsurf, Continue — and 6 AGENTS.md-native:
+Codex CLI, Amp, Devin, Factory, Jules, Kiro) cover the major
 integration paths. A
 Doctrina-specific IDE extension would be a separate product with
 its own marketplace, build pipeline, and maintenance cycle —

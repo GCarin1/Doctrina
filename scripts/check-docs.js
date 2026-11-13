@@ -145,6 +145,13 @@ const known = new Set(COMMAND_NAMES);
 // A block of CLI output rather than a bare invocation: any line that opens
 // with a status marker the CLI prints. Invocation-only blocks (the common
 // case) are not output and need no marker.
+// A fence opens and closes at the START of a line. Pairing any two runs of
+// three backticks read the inline ` ```ops ` of a sentence as an opening
+// fence, and everything down to the next real one — forty lines of prose —
+// as a code block: a paragraph line that began with "applied" was then
+// "CLI output with no marker" (change 0247).
+const FENCE = /^[ \t]*```[\s\S]*?^[ \t]*```/gm;
+
 const OUTPUT_SIGNATURE =
   /^\s*(✓|✗|⚠|·|ok\s|fail\s|gap\s|error:|warn:|note:|hint:|created\s|applied|archived|indexed|ticked|fixed\s|rebuilt\s|removed\s|synced|would\s+|skip\s|update\s)/m;
 
@@ -157,7 +164,7 @@ for (const rel of factual) {
   //    inline backtick span) so prose like "the doctrina framework" is not
   //    mistaken for a command reference.
   const chunks = [];
-  const outsideFences = text.replace(/```[\s\S]*?```/g, (block) => {
+  const outsideFences = text.replace(FENCE, (block) => {
     chunks.push(block);
     return "\n";
   });
@@ -173,7 +180,7 @@ for (const rel of factual) {
 
   // 8. Output blocks carry an explicit marker. The marker may sit on the
   //    line before the fence or anywhere in the paragraph introducing it.
-  const fenceRe = /```[\s\S]*?```/g;
+  const fenceRe = new RegExp(FENCE.source, FENCE.flags);
   let fm;
   while ((fm = fenceRe.exec(text))) {
     if (!OUTPUT_SIGNATURE.test(fm[0])) continue;
@@ -283,12 +290,37 @@ for (const lang of ["en", "pt"]) {
 //     directory are the owners; every count in the prose is a copy, so
 //     every copy is checked, wherever it lives.
 const counts = { commands: COMMAND_NAMES.length, operations: OPERATION_NAMES.length };
+// The capability specs on disk own their count the same way (change 0248):
+// README.md said "Eleven capability specs" with thirteen in the tree, under
+// a paragraph promising that every count in the documentation is checked.
+const specsDir = path.join(root, ".doctrina", "specs");
+const specCount = existsSync(specsDir)
+  ? readdirSync(specsDir).filter((d) => existsSync(path.join(specsDir, d, "spec.md"))).length
+  : 0;
+const adaptersDir = path.join(root, ".doctrina", "templates", "adapters");
+const agentCount = existsSync(adaptersDir)
+  ? readdirSync(adaptersDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length
+  : 0;
+/** @type {[string, number][]} */
 const NOUNS = [
   ["commands", counts.commands],
   ["comandos", counts.commands],
   ["operations", counts.operations],
   ["opera\u00e7\u00f5es", counts.operations],
+  ["capability specs", specCount],
+  ["specs de capability", specCount],
+  // ...and the agents their count (change 0252): "twelve supported agents"
+  // was written as a word in twenty places, which is twenty counts nothing
+  // could check when the thirteenth arrived.
+  ["supported agents", agentCount],
+  ["agentes suportados", agentCount],
+  ["adapters into", agentCount],
+  ["adapters em", agentCount],
 ];
+// A count written as a word is a count nothing can check — which is how
+// "Eleven" outlived two capabilities.
+const NUMBER_WORDS = "two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty"
+  + "|dois|duas|tr\u00eas|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte";
 // Every ADR on disk, so a documented range can be held to the real one.
 const decisionsDir = path.join(root, ".doctrina", "decisions");
 const adrNumbers = existsSync(decisionsDir)
@@ -299,13 +331,25 @@ const adrNumbers = existsSync(decisionsDir)
   : [];
 const highestAdr = adrNumbers[adrNumbers.length - 1];
 
-const countedDocs = ["README.md", "README.pt.md",
+const countedDocs = ["README.md", "README.pt.md", "packages/doctrina-cli/README.md",
   ...markdownUnder(path.join(root, "docs")).map((f) => path.relative(root, f))];
 for (const rel of countedDocs) {
   const p = path.join(root, rel);
   if (!existsSync(p)) continue;
   const text = readFileSync(p, "utf8");
+  // Only where a number before the noun is always the TOTAL: "two commands"
+  // is ordinary prose about a pair of them, "eleven capability specs" is a
+  // count of the tree.
+  for (const noun of /^README(\.pt)?\.md$/.test(rel) ? ["capability specs", "specs de capability"] : []) {
+    for (const m of text.matchAll(new RegExp(`\\b(${NUMBER_WORDS})\\s+${noun}\\b`, "gi"))) {
+      problems.push(`count: ${rel} writes "${m[0]}" in words — write the number in digits, so it is checked against the tree`);
+    }
+  }
   for (const [noun, actual] of NOUNS) {
+    // The specs are counted where the claim is about THIS repository: the
+    // guides also describe other trees ("50 capability specs" is the
+    // benchmark's synthetic project).
+    if (/specs/.test(noun) && !/^README(\.pt)?\.md$/.test(rel)) continue;
     // A bare "<n> commands" is the claim form: a number immediately followed
     // by the noun. Prose that merely mentions a number near the word is not.
     for (const m of text.matchAll(new RegExp(`(\\d+)\\s+${noun}\\b`, "gi"))) {

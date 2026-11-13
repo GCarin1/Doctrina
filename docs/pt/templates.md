@@ -70,3 +70,28 @@ Um template sobrescrito fica **fixado**: uma atualização do CLI que melhore
 a versão empacotada não alcança a sua cópia. O `doctrina templates list`
 marca seus overrides para você revisar após atualizar. Não há checagem de
 obsolescência para templates sobrescritos — se você sobrescreve, ele é seu.
+
+## O preset de uma organização
+
+Sobrescrever um template resolve um arquivo num repositório. Um **preset** é
+a mesma ideia para a empresa inteira: uma pasta de onde os repositórios
+dela partem.
+
+```
+acme-preset/
+  preset.json      { "name": "acme", "description": "…", "config": { … } }
+  templates/       → .doctrina/templates/   (os overrides acima)
+  decisions/       → .doctrina/decisions/   (decisões que valem para todo repositório)
+  skills/          → .doctrina/skills/
+  verify.json      → .doctrina/verify.json  (só quando o projeto não tem um)
+```
+
+`config` aceita as chaves do `.doctrina/config.json` — `language`,
+`context_budget`, `rules`, `surface`. O `doctrina init --preset <dir>` o
+aplica sobre um projeto novo e o `doctrina upgrade --preset <dir> [--write]`
+sobre um que já existe. É aditivo: um arquivo que o projeto tem é mantido,
+uma chave de config que ele declara é mantida, uma decisão cujo número o
+projeto já usa não é copiada, e o plano nomeia cada caso. O `verify.json`
+de um preset declara comandos que o `doctrina verify` vai rodar, então eles
+são impressos quando ele é copiado. O nome do preset fica registrado como
+`"preset"` na config do projeto.

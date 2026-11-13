@@ -15,7 +15,7 @@ import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 // guessing; persist it with .doctrina/config.json { "language": "pt-BR" }.
 function forcedLang(flags) {
   const raw = flagString(flags, "lang");
-  if (!raw || raw === true) return null;
+  if (!raw) return null;
   const lang = String(raw).toLowerCase();
   if (lang.startsWith("pt")) return "pt";
   if (lang.startsWith("en")) return "en";
@@ -73,7 +73,7 @@ export async function run(positional, flags) {
 // and clarify each. ADRs are immutable and the archive is history, so
 // neither is included; AGENTS.md is dense command text, a different
 // register from prose specs.
-function clarifyAll(projectRoot, lang = null) {
+function clarifyAll(projectRoot, lang = /** @type {string | null} */ (null)) {
   if (!exists(path.join(projectRoot, ".doctrina"))) {
     throw notADoctrinaProject();
   }

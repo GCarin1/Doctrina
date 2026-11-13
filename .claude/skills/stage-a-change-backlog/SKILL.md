@@ -94,7 +94,7 @@ description: "Open two or more changes as a planned-but-not-started backlog that
    show 0 errors before the session ends.
 
 6. **Write the files whole, not with patches.** See
-   [[patch-doctrina-files-as-crlf]] — `.doctrina/` is CRLF and a
+   [[check-the-line-ending-before-patching]] — a `.doctrina/` file may be CRLF and a
    `\n\n`-anchored replacement silently no-ops, which is how six hollow
    proposals once reached the archive.
 

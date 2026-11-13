@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.21.0",
-  "last_updated": "2026-11-05",
+  "framework_version": "0.22.0",
+  "last_updated": "2026-11-13",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -15,22 +15,22 @@
         "id": "authoring",
         "path": ".doctrina/specs/authoring/spec.md",
         "status": "active",
-        "version": "0.35.2",
+        "version": "0.38.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
           "cli"
         ],
         "source": [
-          "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent,triage}.js",
-          "packages/doctrina-cli/src/lib/{change-ops,spec-ops,work-model,triage-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
+          "packages/doctrina-cli/src/commands/{intake,work,spec,change,decision,contract,skill,intent}.js",
+          "packages/doctrina-cli/src/lib/{change-ops,change-numbers,applied-deltas,spec-ops,work-model,intake-model,code-inventory,lexicon,adr-guard,criteria,names}.js"
         ]
       },
       {
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.63.0",
+        "version": "0.64.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -41,10 +41,26 @@
         ]
       },
       {
+        "id": "console",
+        "path": ".doctrina/specs/console/spec.md",
+        "status": "active",
+        "version": "0.3.0",
+        "last_updated": "2026-11-13",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli",
+          "insight"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/ui.js",
+          "packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,console-room,agent-bridge}.js"
+        ]
+      },
+      {
         "id": "core",
         "path": ".doctrina/specs/core/spec.md",
         "status": "active",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "last_updated": "2026-07-02",
         "implementation": "implemented",
         "realizes": [
@@ -52,7 +68,7 @@
           "SC4"
         ],
         "source": [
-          "packages/doctrina-cli/src/lib/{dates,fs-ops}.js"
+          "packages/doctrina-cli/src/lib/{dates,fs-ops,lock}.js"
         ]
       },
       {
@@ -97,14 +113,15 @@
         "id": "gates",
         "path": ".doctrina/specs/gates/spec.md",
         "status": "active",
-        "version": "1.54.0",
+        "version": "1.56.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/{coverage,trace,review,verify,analyze,clarify,close,doctor,ci}.js",
-          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache}.js",
+          "packages/doctrina-cli/src/lib/{gates,coverage-model,trace-model,analysis,clarity,clarify-scan,reproducibility,signoff,runtime,docs-impact,verify-cache,install,properties}.js",
           "scripts/bench.js",
           "scripts/e2e-packed.mjs",
+          "scripts/release.mjs",
           "action.yml"
         ]
       },
@@ -112,19 +129,19 @@
         "id": "insight",
         "path": ".doctrina/specs/insight/spec.md",
         "status": "active",
-        "version": "0.22.0",
+        "version": "0.23.0",
         "last_updated": "2026-09-07",
         "implementation": "implemented",
         "source": [
-          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why}.js",
-          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice}.js"
+          "packages/doctrina-cli/src/commands/{context,search,show,status,prime,handoff,report,why,onboard}.js",
+          "packages/doctrina-cli/src/lib/{snapshot,views,constitution-model,ledger,git,diff,context-slice,onboard}.js"
         ]
       },
       {
         "id": "scaffolding",
         "path": ".doctrina/specs/scaffolding/spec.md",
         "status": "active",
-        "version": "0.14.0",
+        "version": "0.18.1",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "depends_on": [
@@ -132,7 +149,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js",
-          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js"
+          "packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config,preset}.js"
         ]
       },
       {
@@ -154,25 +171,41 @@
         "id": "structure",
         "path": ".doctrina/specs/structure/spec.md",
         "status": "active",
-        "version": "0.6.0",
+        "version": "0.8.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/commands/validate.js",
-          "packages/doctrina-cli/src/lib/{ears,pipeline}.js"
+          "packages/doctrina-cli/src/lib/{ears,pipeline,conflict-markers}.js"
         ]
       },
       {
         "id": "templates",
         "path": ".doctrina/specs/templates/spec.md",
         "status": "active",
-        "version": "0.32.0",
+        "version": "0.34.2",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
           "packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js",
           "packages/doctrina-cli/scripts/copy-templates.js",
           ".doctrina/templates/**"
+        ]
+      },
+      {
+        "id": "triage",
+        "path": ".doctrina/specs/triage/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-11-12",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli",
+          "authoring"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/triage.js",
+          "packages/doctrina-cli/src/lib/triage-model.js"
         ]
       },
       {
@@ -195,7 +228,7 @@
         "id": "workspace",
         "path": ".doctrina/specs/workspace/spec.md",
         "status": "active",
-        "version": "0.9.0",
+        "version": "0.10.1",
         "last_updated": "2026-11-03",
         "implementation": "implemented",
         "source": [
@@ -260,7 +293,8 @@
           "docs",
           "gates",
           "authoring",
-          "insight"
+          "insight",
+          "triage"
         ],
         "summary": "The CLI does the deterministic half and prints a playbook for the"
       },
@@ -612,6 +646,28 @@
           "workspace"
         ],
         "summary": "O `workspace.json` DECLARA cada ferramenta: o nome do servidor MCP como"
+      },
+      {
+        "id": "0032",
+        "path": ".doctrina/decisions/0032-the-console-hands-a-request-to-the-agent-s-own-command-line.md",
+        "title": "The console hands a request to the agent's own command line",
+        "status": "accepted",
+        "date": "2026-11-13",
+        "scope": [
+          "console"
+        ],
+        "summary": "The console sends a human's free-text request to the agent's own"
+      },
+      {
+        "id": "0033",
+        "path": ".doctrina/decisions/0033-consoles-talk-through-files-in-the-person-s-home.md",
+        "title": "Consoles talk through files in the person's home",
+        "status": "accepted",
+        "date": "2026-11-13",
+        "scope": [
+          "console"
+        ],
+        "summary": "Consoles opened for the same work share a room: the workspace when the"
       }
     ],
     "changes": [],
@@ -4202,6 +4258,323 @@
         "applied": "2026-11-05",
         "specs_affected": [],
         "lane": "runtime (confident; signals: workflow) — opened as chore"
+      },
+      {
+        "id": "0242-branches-paralelas-se-juntam-sem-conflito-manual",
+        "title": "branches paralelas se juntam sem conflito manual",
+        "path": ".doctrina/changes/archive/2026-11-11-0242-branches-paralelas-se-juntam-sem-conflito-manual",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: change)"
+      },
+      {
+        "id": "0243-o-doctor-nomeia-o-binario-que-roda-e-as-copias",
+        "title": "o doctor nomeia o binario que roda e as copias no PATH",
+        "path": ".doctrina/changes/archive/2026-11-11-0243-o-doctor-nomeia-o-binario-que-roda-e-as-copias",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0244-o-guard-aceita-uma-lista-de-chamadas-permitidas",
+        "title": "o guard aceita uma lista de chamadas permitidas por ferramenta",
+        "path": ".doctrina/changes/archive/2026-11-11-0244-o-guard-aceita-uma-lista-de-chamadas-permitidas",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: declarar)"
+      },
+      {
+        "id": "0245-o-release-publica-sozinho-quando-a-versao-chega",
+        "title": "o release publica sozinho quando a versao chega a main",
+        "path": ".doctrina/changes/archive/2026-11-11-0245-o-release-publica-sozinho-quando-a-versao-chega",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [],
+        "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
+      },
+      {
+        "id": "0246-a-checagem-de-tipos-enxerga-o-nulo",
+        "title": "a checagem de tipos enxerga o nulo",
+        "path": ".doctrina/changes/archive/2026-11-11-0246-a-checagem-de-tipos-enxerga-o-nulo",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0247-o-delta-que-chega-depois-do-apply-e-aplicado",
+        "title": "o delta que chega depois do apply e aplicado",
+        "path": ".doctrina/changes/archive/2026-11-11-0247-o-delta-que-chega-depois-do-apply-e-aplicado",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "runtime (uncertain; signals: em silencio) — opened anyway (--force)"
+      },
+      {
+        "id": "0248-a-politica-de-seguranca-descreve-o-cli-que",
+        "title": "a politica de seguranca descreve o cli que existe",
+        "path": ".doctrina/changes/archive/2026-11-11-0248-a-politica-de-seguranca-descreve-o-cli-que",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0249-o-validate-nao-varre-o-repositorio-inteiro-por",
+        "title": "o validate nao varre o repositorio inteiro por padrao",
+        "path": ".doctrina/changes/archive/2026-11-11-0249-o-validate-nao-varre-o-repositorio-inteiro-por",
+        "status": "applied",
+        "applied": "2026-11-11",
+        "specs_affected": [
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e",
+        "title": "a setima auditoria fecha fim de linha conflito e concorrencia",
+        "path": ".doctrina/changes/archive/2026-11-12-0250-a-setima-auditoria-fecha-fim-de-linha-conflito-e",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "core",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "structure",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "workspace",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: spec)"
+      },
+      {
+        "id": "0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core",
+        "title": "o hub lista so o ciclo basico no perfil core",
+        "path": ".doctrina/changes/archive/2026-11-12-0251-o-hub-lista-so-o-ciclo-basico-no-perfil-core",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "chore (confident; signals: upgrade)"
+      },
+      {
+        "id": "0252-o-kiro-entra-na-lista-de-agentes",
+        "title": "o kiro entra na lista de agentes",
+        "path": ".doctrina/changes/archive/2026-11-12-0252-o-kiro-entra-na-lista-de-agentes",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0253-um-preset-leva-a-casa-da-organizacao-para-o",
+        "title": "um preset leva a casa da organizacao para o projeto",
+        "path": ".doctrina/changes/archive/2026-11-12-0253-um-preset-leva-a-casa-da-organizacao-para-o",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "chore (confident; signals: upgrade)"
+      },
+      {
+        "id": "0254-um-requisito-que-e-invariante-pede-um-teste-de",
+        "title": "um requisito que e invariante pede um teste de propriedade",
+        "path": ".doctrina/changes/archive/2026-11-12-0254-um-requisito-que-e-invariante-pede-um-teste-de",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "gates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: change, criterio)"
+      },
+      {
+        "id": "0255-tres-trilhas-por-tamanho",
+        "title": "tres trilhas por tamanho",
+        "path": ".doctrina/changes/archive/2026-11-12-0255-tres-trilhas-por-tamanho",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "authoring",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "triage",
+            "operation": "ADDED"
+          }
+        ],
+        "lane": "chore (uncertain; signals: typo, formatacao, comentario)"
+      },
+      {
+        "id": "0256-onboarding-guiado",
+        "title": "onboarding guiado",
+        "path": ".doctrina/changes/archive/2026-11-12-0256-onboarding-guiado",
+        "status": "applied",
+        "applied": "2026-11-12",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "insight",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (confident; signals: change, implementar)"
+      },
+      {
+        "id": "0257-console-interativo",
+        "title": "console interativo",
+        "path": ".doctrina/changes/archive/2026-11-13-0257-console-interativo",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "console",
+            "operation": "ADDED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0258-qualquer-agente-e-modelo",
+        "title": "qualquer agente e modelo",
+        "path": ".doctrina/changes/archive/2026-11-13-0258-qualquer-agente-e-modelo",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "console",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0259-consoles-que-se-comunicam",
+        "title": "consoles que se comunicam",
+        "path": ".doctrina/changes/archive/2026-11-13-0259-consoles-que-se-comunicam",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "console",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0260-requisitos-condicionais-na-secao-certa",
+        "title": "requisitos condicionais na secao certa",
+        "path": ".doctrina/changes/archive/2026-11-13-0260-requisitos-condicionais-na-secao-certa",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "scaffolding",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "templates",
+            "operation": "MODIFIED"
+          }
+        ],
+        "lane": "product (uncertain; signals: shall, spec)"
+      },
+      {
+        "id": "0261-release-0-22-0",
+        "title": "release 0.22.0",
+        "path": ".doctrina/changes/archive/2026-11-13-0261-release-0-22-0",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [
@@ -4210,6 +4583,12 @@
         "path": ".doctrina/skills/add-cli-command.md",
         "description": "Add or change a doctrina CLI command or subcommand without leaving any surface (help, hub, docs, tests) behind.",
         "last_updated": "2026-07-19"
+      },
+      {
+        "id": "check-the-line-ending-before-patching",
+        "path": ".doctrina/skills/check-the-line-ending-before-patching.md",
+        "description": "Patch a file under .doctrina/ with a script without assuming its line ending, so a regex cannot silently match nothing and report success.",
+        "last_updated": "2026-11-11"
       },
       {
         "id": "cut-a-release",
@@ -4228,12 +4607,6 @@
         "path": ".doctrina/skills/ledger-abandoned-entries-are-ledger-only.md",
         "description": "Two-source cross-checks must exempt entries that one source records by design and the other deletes — an abandoned change is ledger-only, never archived",
         "last_updated": "2026-07-19"
-      },
-      {
-        "id": "patch-doctrina-files-as-crlf",
-        "path": ".doctrina/skills/patch-doctrina-files-as-crlf.md",
-        "description": "Edit files under .doctrina/ knowing they are CRLF, so a regex or script patch cannot silently match nothing and report success.",
-        "last_updated": "2026-09-07"
       },
       {
         "id": "read-the-grammar-through-the-document-model",

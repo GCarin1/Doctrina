@@ -55,13 +55,16 @@ export function nextStepAfterInit(intakeFrom) {
       "Next: open your AI agent in this repository and tell it:",
       "    read AGENTS.md and run doctrina next",
       "It turns your description into product.md and specs; you review and approve.",
+      "New to Doctrina? `doctrina onboard` walks the whole cycle once, on this repository.",
     ];
   }
   return [
     "Next: give your AI agent the whole project description. It runs",
     "    doctrina intake --text \"<description>\"",
     "and turns it into product.md and specs (AGENTS.md, \"Working from intent\");",
-    "for an existing codebase, `doctrina work --from-diff` backfills them from the code.",
+    "for an existing codebase, `doctrina intake --from-code` takes its inventory as the intake",
+    "(`doctrina work --from-diff` backfills one change from code already written).",
+    "New to Doctrina? `doctrina onboard` walks the whole cycle once, on this repository.",
   ];
 }
 

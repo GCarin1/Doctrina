@@ -91,7 +91,9 @@ doctrina init [options]
 |------|---------|---------|
 | `--project-name <name>` | basename of cwd | Override the project name written into artifacts. |
 | `--project-description <text>` | empty (prompts) | One-sentence description for `product.md`, with no intake. Without it (and without `--intake`) on a terminal, `init` asks one question and stores the answer as the intake. |
-| `--agent <name>` | none | Install the adapter for one of the twelve supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or `all`. AGENTS.md-native agents (`codex`, `amp`, `devin`, `factory`, `jules`) install no file. |
+| `--surface core\|full` | `core` | Which commands `AGENTS.md` lists. `core` is the loop a session runs — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — with every other command deferred to `doctrina --help`; `full` lists them all, by moment. The choice is stored as `"surface"` in `.doctrina/config.json`; change it there and run `doctrina upgrade --write`. A project whose config has no `surface` key keeps the full list. |
+| `--preset <dir>` | none | Lay an organisation's preset over the scaffold: a folder with `preset.json` and optional `templates/`, `decisions/`, `skills/` and `verify.json`. Its `surface` is the default when `--surface` names none. For a project that already exists: `doctrina upgrade --preset <dir>`. A folder that is not a preset exits `2` with nothing scaffolded. |
+| `--agent <name>` | none | Install the adapter for one of the 13 supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) or `all`. AGENTS.md-native agents (`codex`, `amp`, `devin`, `factory`, `jules`) install no file. |
 | `--from <path>` | none | Local conventions directory; folds its `AGENTS.md` and `.doctrina/product.md` (when present) into the new project before scaffolding. Filesystem paths only — no URLs. |
 | `--intake <file>` | none | Full project description; stored verbatim at `.doctrina/intake.md`, used to derive the one-line description when `--project-description` is absent, and the bootstrap playbook is printed inline — no second command needed. The scaffolded `AGENTS.md` also tells any agent to run that playbook on its own when it sees a pending intake. |
 | `--intake-text "<text>"` | none | The same thing inline, with no file to write first. Mutually exclusive with `--intake`; either written without a value is a usage error, never a project scaffolded without the intake you asked for. |
@@ -122,6 +124,217 @@ refuses when either carries authored content.
 On an interactive terminal, `init` also offers the adapter install as
 a wizard step when `--agent` was not given (answer `none` to skip);
 in pipes, CI, or under `--non-interactive` the prompt never fires.
+
+## `doctrina ui`
+
+The console: Doctrina with a face, for the human at the terminal. Running
+`doctrina` with no arguments in a terminal opens it too; a pipe, a script
+or an agent still gets the help.
+
+```
+doctrina                 # in a terminal: the console
+doctrina ui
+doctrina ui --frame --cols 100 --rows 30
+doctrina ui --json
+doctrina ui --peers
+doctrina ui --send api "add the coupon field to the order" --timeout 900
+```
+
+<!-- illustrative -->
+
+```
+ ◆ Doctrina  │  encurtador                                    ● claude   v0.22.0
+ index ✓   coverage ✓ 100% (3/3)   trace · no anchors   verify ✓ 2 checks
+────────────────────────────────────────────────────────────────────────────────
+ › refuse an expired link with 410                 │ OPEN WORK
+   └ Bash  doctrina work "refuse an expired link"  │ 0002-expired-links
+   └ Edit  src/links.py                            │ ✓ plan ─ ● build ─ ○ close
+ ◆ Opened 0002-expired-links, wrote the delta and  │ ■■■■■□□□□□  2/4 tasks
+   the test; two tasks left.                       │
+   ✓ 9 turns · 48.2s                               │ NEXT
+                                                   │ 1 finish the open tasks
+                                                   │   /work --resume 0002-expired-links
+╭─ to claude · same conversation ──────────────────────────────────────────────╮
+│ › _                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ enter send · / commands · @ mention · ↑↓ history · pgup/pgdn scroll · ? help
+```
+
+The gates run across the top, the conversation is the body, the panel
+beside it is the tree — what is open and at which stage, the next step,
+what closed recently — and you type on the line at the bottom. Narrower
+than 84 columns the panel folds into one strip under the gates. At a
+workspace root the panel lists the projects and the open deliveries.
+
+| You type | What happens |
+|----------|--------------|
+| a request, in your own words | It goes to the AI agent you already use, and everything the agent says and does is shown as it happens: its words, each tool call, the calls it was refused, how long it took. The next request continues the same conversation; `/new` starts another. |
+| `/command` | A Doctrina command, as you would type it after `doctrina`: `/next`, `/status`, `/work "<request>"`, `/close <id>`. A list filters as you type — the session loop first — `tab` completes, and `enter` runs a command that means something with no argument. Its output is what the command prints anywhere. |
+| `@artifact` | A spec, an open change, a skill or a decision the index names: `@spec:auth`, `@change:0001-login`, `@skill:cut-a-release`, `@adr:0005`. In a command it becomes the id; in a request the agent is told the file it names (and, for a skill, to follow it). |
+| `?` or `/help` | What the console understands. `/agent` chooses the agent and `/model` its model, `/panel` hides the panel, `/clear` empties the conversation, `/quit` leaves. |
+
+Keys: `enter` send · `tab` complete · `↑ ↓` earlier inputs (or the list) ·
+`pgup pgdn` scroll · `esc` interrupt what is running, or clear the line ·
+`ctrl+c` twice to leave.
+
+**The agent** (ADR 0032). The CLI calls no model. A request is handed to
+your agent's own command-line tool through its documented non-interactive
+mode — the same binary, account, rules and hooks as in your IDE, in a
+session of its own (it does not type into a chat pane that is already
+open). The console looks on `PATH` for:
+
+| Agent | Command | How it is started |
+|-------|---------|-------------------|
+| Claude Code | `claude` | `claude -p --output-format stream-json`, the prompt on stdin, `--resume <session>` for the next request. Edits are accepted and `doctrina` may run; any other command is the agent's own settings' to allow. Exercised against the real binary. It is also the CLI the Claude extensions for VS Code and JetBrains run. |
+| Cursor | `cursor-agent` (or `agent`, where Cursor is in use) | `-p --output-format stream-json`, `--resume <chat>`. From Cursor's documentation; not exercised against the binary. |
+| GitHub Copilot (VS Code) | `copilot` | `copilot -p "<request>" -s --allow-tool='write, shell(doctrina:*)'`. Its programmatic mode documents no session to resume, so each request starts a conversation. From its documentation; not exercised. |
+| Codex | `codex` | `codex exec --json --sandbox workspace-write`, `codex exec resume <session>` for the next request. From its documentation; not exercised. |
+| Gemini CLI | `gemini` | the prompt on stdin, `--approval-mode auto_edit`, plain text out — each request starts a conversation. From its documentation; not exercised. |
+| opencode | `opencode` | `opencode run "<request>"`. From its documentation; not exercised. |
+
+`/agent` lists every one of them, installed or not, with the binary it
+looked for; `/agent <name>` switches (a list completes the name), and
+`/agent off` sends requests nowhere. The one used first is the one you
+chose here before, then the IDE whose terminal this is, then the one the
+project has an adapter for. `DOCTRINA_AGENT=<name>` pins one (`none`
+disables it) and `DOCTRINA_AGENT_ARGS` adds flags of your own to its
+command line. Doctrina never passes a flag that skips an agent's
+approvals: a call the agent may not make is refused by the agent and
+reported in the conversation. With no agent found, a request has nowhere
+to go and the console says so; every `/command` still works.
+
+**The model.** `/model` shows what the agent in use runs — the name you
+chose, or its own default and the model it reported — the names it is
+known to accept, and where the agent lists the models your account has
+(`agent models`, `codex debug models`). `/model <name>` passes that name
+on the agent's command line from the next request (`--model <name>`;
+`--model=<name>` for Copilot), `/model default` goes back, and any name
+the agent accepts may be typed — the agent itself refuses one it does not
+know. A model is kept per agent. opencode names no model flag on the page
+Doctrina was built from: pass it in `DOCTRINA_AGENT_ARGS`.
+
+**An agent of your own.** Any other command-line agent — or a wrapper of
+yours — is declared once in `$DOCTRINA_HOME/agents.json` (default
+`~/.doctrina/agents.json`) as the command line you would type:
+
+```json
+{ "agents": [ {
+    "id": "mine", "label": "My agent", "command": "mycli",
+    "args": ["run", "--quiet", "{prompt}"],
+    "model": ["--model", "{model}"],
+    "resume": ["--session", "{session}"],
+    "models": ["small", "large"]
+} ] }
+```
+
+`{prompt}` is where the request goes; with no `{prompt}` it goes in on
+stdin. Its output is shown as plain text, or read as events when
+`"output": "stream-json"`. `/agent` lists it beside the others and names
+whatever is wrong with the file.
+
+The agent and the model you chose are kept in
+`$DOCTRINA_HOME/console.json`, per directory the console was opened in —
+your choice, never a file of the project.
+
+**Several consoles** (ADR 0033). Consoles opened for the same work — the
+root of a workspace and its registered repositories, or the same directory
+— share a room. Each sees the others: the header counts them (`↔ 2`), the
+panel lists them under CONSOLES, and `/peers` says what each is doing.
+
+| You type | What happens |
+|----------|--------------|
+| `/send <name> <request>` | The request goes to that console. It shows who sent it, gives it to its own agent in its own repository, and that agent's last message comes back here as the report. `/send all …` asks every console that is listening. A list completes the name. |
+| `/peers` | The consoles open in the room: name, role (the workspace root is the planner), agent and model, busy or idle, listening or not. |
+| `/listen off` · `/listen on` | Stop, or start again, taking requests from other consoles. A console listens by default; one that does not refuses the request and the sender is told why. |
+
+A request that arrives while something runs waits its turn. While this
+console works, its own commands (`/peers`, `/send`, `/listen`, `/panel`,
+`/clear`) still answer.
+
+The agent of a console is told which consoles are open, and can hand one a
+task itself:
+
+```
+doctrina ui --send <name> "<the task, self-contained>"
+```
+
+waits for that console's report and prints it — exit 0 when its agent
+finished, 1 when it failed, was refused or did not report within
+`--timeout` (600 seconds by default), 3 when no such console is open. So a
+planner's agent at the workspace root gives each repository its card, and
+you watch each one work in its own terminal. A request that was handed
+over is done where it lands: the agent serving it is not told of the other
+consoles, and `--send` refuses to run under it.
+
+The room is a folder under `$DOCTRINA_HOME` (`rooms/`), created for your
+user alone: a file per console saying it is alive, and an inbox per
+console. No port is opened and nothing leaves the machine. A console that
+closes leaves the room; one that dies stops being listed within ten
+seconds.
+
+The console keeps nothing about the project. The panel and the gates are read from the tree
+when it opens and after every command and every answer, by a process of
+its own, and each `/command` runs as the same CLI you would run by hand.
+
+| Flag | Purpose |
+|------|---------|
+| `--frame` | Print one frame and exit instead of opening the console — what a pipe gets anyway. |
+| `--cols <n>`, `--rows <n>` | The frame's size, with `--frame` (default: the terminal's, or 100×30). |
+| `--json` | The panel's state as JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, the `mentions` that `@` completes, every agent known with the `file` it was found at (`null` when not installed) and the `model` chosen for it, and the `peers` open in the room. |
+| `--peers` | List the consoles open in this room — name, role, agent, busy or idle, directory — and exit. |
+| `--send <name>` | Hand the console `<name>` the request given as the argument and wait for its report. |
+| `--timeout <s>` | How long `--send` waits (default 600). |
+
+## `doctrina onboard`
+
+Walk the whole cycle once, on this repository. `next` names one action and
+assumes the reader knows why; `onboard` is for the first session in a
+project, or for showing it to someone new: it prints the six steps, marks
+the ones the tree already shows done, and for the first that is not, says
+what to tell the human, where to stop and **ASK**, and the commands to run.
+
+```
+doctrina onboard
+doctrina onboard --json
+```
+
+<!-- illustrative -->
+```
+  ✓ 1. Install                        .doctrina/ and AGENTS.md are here
+  ✓ 2. Describe the project           1 capability spec (codes)
+  → 3. Pick a first task and open it
+    4. Write the delta and the tasks
+    5. Implement and prove
+    6. Close
+
+Step 3 — Pick a first task and open it
+  Tell the human: A request that changes behaviour becomes a change before code is edited; …
+
+  Candidates read from this repository:
+    - codes #1                 no proof cited: Two URLs get two codes.
+    - app.py:2                 TODO handle expired links before returning the code
+  ASK the human to choose one of the candidates, or to name a small task of their own …
+  Then run:
+    doctrina work "<the task>"
+```
+
+Run it again after each step: it stores nothing and reads the tree every
+time, so a step is ticked when the tree shows it — a spec exists, a change
+is open, its tasks are written, they are ticked, a change is archived. The
+candidates for a first task are an acceptance criterion that cites no
+proof (or one whose proof is missing), then a `TODO`/`FIXME` left in a
+tracked code file; they are suggestions, and the human chooses. In a
+project that already closed a change every step is ticked and it prints
+the tour for a newcomer instead: the commands to read the project with,
+and the last closed change as a worked example.
+
+It works before `doctrina init` — the first step is the install — and
+writes nothing. The `claude` and `cursor` adapters install it as
+`/doctrina-onboard`.
+
+| Flag | Purpose |
+|------|---------|
+| `--json` | The steps with their state, the current step (`null` when all are done) and the first-task candidates. |
 
 ## `doctrina intake [<file>]`
 
@@ -195,6 +408,29 @@ matched — a hint, like the capability guess in `work` (ADR 0005). It
 never refuses. `work` consults it and **holds** a confidently
 runtime-shaped prompt with exit 3 (a precondition, not a bad prompt);
 `--force` opens the change anyway.
+
+### Tracks: how much ceremony a request earns
+
+The lane says what kind of request it is; the **track** says how much
+ceremony it earns. The measure is not the size of the diff — it is whether
+a sentence in a spec becomes false, or one is missing. A one-line change
+of a timeout the spec states is a change; a two-hundred-line reformat is
+not.
+
+| Track | What changes | The path |
+|-------|--------------|----------|
+| `direct` | nothing a spec says — a typo, a comment, formatting, a fix that makes the code do what the spec already says | edit · `doctrina verify` · commit |
+| `chore` | the build, the tooling or the docs, worth a record — no spec changes | `doctrina work --chore "<request>"` |
+| `change` | behaviour — a sentence in a spec becomes false, or one is missing | `doctrina work "<request>"` |
+
+`triage` prints `DIRECT` in place of the lane for a prompt whose words can
+only mean a direct edit — a typo, a misspelling, whitespace, a stale
+comment, dead code, an unused import, in English or Portuguese — and
+`--json` carries `track` (`direct`, `chore`, `change`, or `diagnosis` for
+a runtime problem). A prompt that also carries a product or a runtime
+signal is never direct. A fix that restores what the spec already says is
+direct too, and no word list can know that: it is the agent's call, by the
+rule `AGENTS.md`, the Cursor rule and the prompt hook all state.
 
 With or without a prompt, `triage` also runs the runtime checks over
 every contract — the same checks and the same verdict as `contract
@@ -295,6 +531,13 @@ ceremony is spent on a bug the YAML already explains. The classifier is
 deterministic term matching and can be wrong: `--force` opens the change
 anyway, and `--chore` is the lane for wiring the spec already covers.
 
+A prompt that reads as a **direct** edit — one that changes nothing a spec
+says (see [Tracks](#tracks-how-much-ceremony-a-request-earns)) — opens
+nothing: `work` prints the three tracks and exits 0, because there is no
+change to make a record of. `--force` opens the change anyway, `--chore`
+records it, and naming `--capability`, `--delivery` or `--id` skips the
+reading: the author already chose.
+
 ## `doctrina spec new <capability>`
 
 Create a new capability spec from the spec template.
@@ -381,7 +624,7 @@ papercut). With no edit flag it exits 2.
 The two headers and the criterion mark have a **domain**, enforced at
 every door: `Status` is `draft | active | deprecated`, `Implementation`
 is the four-rung ladder above, and a criterion mark is `[verified]`,
-`[unverified]` or `[orchestration]`. `spec set`, a delta's `ops` block
+`[unverified]`, `[orchestration]` or `[property]`. `spec set`, a delta's `ops` block
 and `validate` read the same list, so `--status bogus` is refused with
 the spec untouched, and a value typed by hand outside the list is a
 `validate` error rather than a state `prime` reports. A note after the
@@ -483,6 +726,18 @@ and at least one delta was written, the proposal's `Status:` header flips
 from `proposed` to `applied` and an `Applied:` line is added. A change
 whose merges stayed manual gets the stamp at `change archive` time
 instead, so the file never contradicts the ledger.
+
+**Applying again.** The ops are additive, so an applied change is not
+applied twice: `apply` answers "already applied — nothing to do". What it
+applied is on record — the last line of `proposal.md`, a comment naming
+each delta and each of its ops — because a change is not finished when it
+is stamped: a `close` that applied and then stopped at a later gate is
+often repaired with one more op (`doctrina change delta`) or one more
+delta. Those are applied on the next run, and only those; `close` says
+which. An op that was already applied and then edited or removed stops the
+apply (exit `1`): the spec holds what it wrote, so the correction goes in
+as a new op. A change applied by an older CLI carries no record and is left
+alone, as before; `--force` applies everything again.
 
 ## `doctrina change archive <id...>`
 
@@ -618,6 +873,26 @@ Without `--force`, `abandon` lists the files it would delete, states that
 the deletion cannot be undone, and asks. On a non-interactive stdin there
 is nobody to ask, so it refuses (exit `2`) rather than proceeding.
 
+## `doctrina change renumber <id>`
+
+Give an open change the next free number.
+
+```
+doctrina change renumber 0042-add-saml
+#   renumbered 0042-add-saml → 0044-add-saml
+```
+
+The next number is read from everywhere this clone can see one taken: the
+change folders, the ledger, and the changes other branches added in the last
+180 days — so a branch git already knows does not hand out its number twice.
+A branch nobody fetched is still invisible, and the merge that brings two
+such changes together holds both under one number. `doctrina validate` names
+the open one (`… shares its number with …`), and this command moves its
+folder and rewrites the id in its own files, then re-derives the index. An
+archived change keeps its number: history is not renumbered. The old number
+may still be written outside the change — in a commit message, a branch
+name, a task card already handed out.
+
 ## `doctrina change delta <id> <capability>`
 
 Add a requirement, a criterion or a version bump to a change's MODIFIED
@@ -632,10 +907,12 @@ doctrina change delta 0042-add-login auth replace-requirement ubiquitous 2: The 
 ```
 
 Each flag becomes one op line — `--requirement` an `append-requirement`,
-`--criterion` an `append-criterion`, `--bump` a `bump-version`, and
-`--op "<line>"` (or the words after the capability) any op verb as written.
-`--requirement`, `--criterion` and `--op` repeat: each occurrence is one
-op, written in the order given.
+`--criterion` an `append-criterion`, `--property` an `append-criterion`
+marked `[property]` (see [Property criteria](#property-criteria)),
+`--bump` a `bump-version`, and `--op "<line>"` (or the words after the
+capability) any op verb as written. `--requirement`, `--criterion`,
+`--property` and `--op` repeat: each occurrence is one op, written in the
+order given.
 The lines are parsed by the grammar `apply` reads, and the whole block —
 what was there plus what is added — is executed in memory against the spec
 before anything is written: an op that would not apply is refused now
@@ -924,7 +1201,7 @@ or writes `AGENTS.md`, `.doctrina/product.md`, or any other artifact.
 |-------|---------|
 | `installed` | The adapter's files are present in this project. |
 | `available` | It ships files and none are installed. |
-| `native` | The agent reads `AGENTS.md` directly and needs no file at all (`amp`, `codex`, `devin`, `factory`, `jules`). |
+| `native` | The agent reads `AGENTS.md` directly and needs no file at all (`amp`, `codex`, `devin`, `factory`, `jules`, `kiro`). |
 
 `adapter remove` deletes only the files that adapter created. A file you
 edited after install is yours — it is kept, and named, unless `--force`.
@@ -1167,11 +1444,41 @@ walking into another gate's refusal, silently.
 
 ## `doctrina hooks install`
 
-Install the Doctrina pre-commit hook into `.git/hooks/pre-commit`.
+Set a repository up for commits and merges: the pre-commit hook, and the
+way its artifacts merge.
 
 ```
 doctrina hooks install [--force]
 ```
+
+**Merges.** Every change rewrites `index.json` and the ledger, so two
+branches that each closed a change always met on the same lines. The command
+writes two lines into `.gitattributes` — commit them — and one entry into
+this clone's git config:
+
+```
+**/.doctrina/index.json merge=doctrina-index
+**/.doctrina/changes/archive/LEDGER.md merge=union
+```
+
+The ledger merges through git's own `union` (both branches' lines are kept),
+which needs nothing but the committed file. The index merges through
+`doctrina index merge`, a driver git keeps in each clone's config — so every
+clone runs `doctrina hooks install` once. Without it git merges the index as
+text and may stop on conflict markers; `doctrina index rebuild` then writes
+it again from the tree. A hosting service's merge button does not run merge
+drivers: when a pull request shows a conflict in either file, merge the base
+branch into yours locally and push. A shadowed repository keeps its
+`.doctrina/` out of its own git and gets the hook only.
+
+**The hook.**
+
+The hooks directory is asked of git, so the command works in a worktree and
+in a submodule (where `.git` is a file) and follows `core.hooksPath`. A
+project that lives **below** its repository's root — `services/api/` of a
+monorepo — is installed from its own folder: `.gitattributes` goes beside
+its `.doctrina/`, and the hook enters that folder first, because git runs
+hooks from the root.
 
 The hook pins the CLI that installed it — `.git/hooks/` is local to the
 clone, so it names that CLI's entrypoint by absolute path and reads
@@ -1208,6 +1515,18 @@ or run it; wire it into your dev setup by hand.
 ## `doctrina validate`
 
 Run schema and structural checks against `.doctrina/`.
+
+**A merge that stopped inside an artifact** is an error. When `AGENTS.md`,
+`product.md`, a spec, a decision, a skill, a contract or an open change
+holds git's conflict markers (`<<<<<<<` … `>>>>>>>` at the start of a line,
+outside a code fence), `validate` names the file and the line and exits
+`1`, and `doctrina next` lists it first: every other check, and the agent,
+would read the file with both halves in it.
+
+**Line endings.** A checkout that stores CRLF (Windows with
+`core.autocrlf`) validates exactly as its LF twin. The CLI reads every
+artifact with LF and writes a file back with the ending it already has, so
+a rewrite never mixes endings and never turns every line into a diff.
 
 **At a workspace root** it checks the workspace itself — every registered
 project's path and dependencies, every shadow's links, every delivery's
@@ -1394,6 +1713,7 @@ not check.
 ```
 doctrina coverage
 doctrina coverage --strict
+doctrina coverage --properties
 ```
 
 Each numbered criterion may cite its evidence as a backtick path span,
@@ -1462,8 +1782,54 @@ reported **unguarded** and fails `--strict`: a check that exits 0 having
 run nothing would otherwise satisfy the claim. A named check that does not
 exist is **dangling**.
 
+### Property criteria
+
+A requirement such as *"the system shall never issue a code that is
+already in use"* claims something of **every** input. An example test —
+three URLs somebody thought of — resolves as a citation and proves three
+cases. The proof of a universal claim is a property-based test: one that
+generates its inputs and checks that the claim holds for all of them.
+
+`doctrina coverage --properties` reads the EARS requirements and lists the
+ones whose words read as an invariant, each with the property it suggests:
+
+```
+codes  2 requirements read as invariants, 0 criteria are properties
+    ubiquitous 2  The system shall return at most 100 links per page.
+                  bound: for any input, the result stays inside the stated bound
+    ubiquitous 1  The system shall never issue a code that is already in use.
+                  uniqueness: for any sequence of inputs, no two results collide
+```
+
+The shapes are round-trip, idempotence, bound, uniqueness, order and the
+plain invariant (`always`, `never`, `for any`), in English and Portuguese.
+The list is a reading of the words, never a verdict and never a gate
+(exit 0): choose the candidates whose failure would be a bug. It also names
+the library to write them with — the one the project's manifest already
+declares (Hypothesis, fast-check), or the usual one for its stack
+(Hypothesis for Python, fast-check for JavaScript, jqwik for the JVM,
+proptest for Rust, rapid for Go). The same reading runs when the
+requirement is written: `change delta --requirement` prints a note for one
+that reads as an invariant, while its test does not exist yet.
+
+Write the test, then claim it with the `[property]` mark:
+
+```
+doctrina change delta 0042-unique-codes codes \
+  --property "No two codes collide, whatever the URLs — verified by \`tests/test_codes_property.py\`"
+```
+
+A `[property]` criterion counts as proven only when a test file it cites
+generates its inputs — Hypothesis `@given`, fast-check `fc.property`, jqwik
+`@Property`, `proptest!`, quickcheck, rapid, FsCheck or ScalaCheck. Citing
+an example test is reported **unguarded** (*property claim is proven by no
+property*) and fails `--strict`; the same example test is honest proof of
+a `[verified]` criterion. Nothing is generated by a model and nothing is
+executed here: the CLI names the candidates and refuses the weaker proof.
+
 | Flag | Purpose |
 |------|---------|
+| `--properties` | List the requirements that read as invariants and how many criteria are already properties, per capability (five shown each; `--json` carries all). A readout: exits 0. Honours `--only`. |
 | `--strict` | Exit 1 when any criterion is bare, dangling, conditional, or unguarded (CI gate). Deferred never fails. Without it, the command always exits 0 (a report). |
 | `--only <cap,cap>` | Scope the report/gate to specific capabilities (`doctrina close` uses this so an unrelated deferred spec cannot block a change's close). A name with no spec is a **usage error** (exit 2), naming the capabilities that exist: a filter matching nothing used to report "no acceptance criteria found" and exit 0, `--strict` included, so a CI job kept passing once the capability was renamed. |
 | `--run` | Execute the cited evidence via the project-declared `"evidence_runner"` in `.doctrina/verify.json` (a command template with a `{file}` placeholder, e.g. `"python -m pytest {file}"`). Exits 1 when any run fails — promotes "the file exists" to "the proof passes". |
@@ -1809,6 +2175,27 @@ not carry, while every other gate reads the working tree, where those
 folders are still present. The installed pre-commit hook runs it. It
 writes nothing (without `--check` it is a usage error) and exits 0 when
 nothing relevant is staged, or outside a git repository.
+
+## `doctrina index merge <base> <ours> <theirs>`
+
+The merge driver git runs for `.doctrina/index.json`, once `doctrina hooks
+install` has set it up. It is not a command to type.
+
+```
+# .git/config, written by `doctrina hooks install`
+[merge "doctrina-index"]
+    driver = node "/path/to/doctrina-cli/src/index.js" index merge %O %A %B
+```
+
+The index is merged as what it is — lists of artifacts. An entry one branch
+added is added, one a branch removed is removed, and where both branches
+changed the same field the newer value wins: the later version, the later
+date, the newer `framework_version`. The result is written over `<ours>`
+with exit `0`, which is how a driver tells git there is nothing to resolve.
+A side that is not JSON exits `1` and is left for git to report. What the
+driver cannot know — a header edited on both branches — the tree still
+decides: `doctrina index rebuild` derives the index from the files, and the
+commit hook runs it.
 
 ## `doctrina next`
 
@@ -2401,6 +2788,17 @@ Read-only, which here also means it never repairs: `validate --fix`
 heals a drifted index, `doctor` only reports one. Exits 1 when any area
 fails.
 
+Two rows read the machine and the clone, not the artifacts. `cli` names the
+install that is running and every other `doctrina` the PATH holds, each with
+its version: the hooks the adapters write call `doctrina` by name, so a
+second install ahead on the PATH — another Node version, an npm prefix that
+moved — is the one they run, and the one `doctrina --version` answers for.
+It warns when the first `doctrina` on the PATH is not the one running, when
+there is more than one, and when there is none while a hook calls it by
+name. `merges` says whether `doctrina hooks install` has set this clone up
+to merge `index.json` and the ledger without a manual step; outside a git
+repository, and in a shadowed one, the row is absent.
+
 The runtime row reports a project with contracts but no Wiring or
 Selectors rows as **unchecked**, never as ok: an undeclared surface is
 not a verified one.
@@ -2554,6 +2952,15 @@ blocks the agent. The hook goes into each shadow's own hook files too —
 an executor works inside the repository, where Cursor and Claude Code read
 that folder's hooks; an in-repo project owns its files, so `validate` at
 the root warns when they run no guard.
+
+**A list of the calls a tool may make.** Whether a call writes is read from
+its name and input, which is a guess: a verb the guard has never seen reads
+as a read. `doctrina workspace tool jira --only "getJiraIssue,search*"`
+turns the question around — the calls named (by MCP tool name, `*` for any
+run of characters, case ignored) go on to that judgment, and every other
+call through the tool's server is **denied**, with the command that would
+add it. Lists of several tools on one server add up; a tool without a list
+adds nothing to a server that has one. `--only none` takes the list away.
 
 The SQL is read wherever the input carries it — any key, a list, a nested
 object — and `CALL`, `EXEC`, `COPY` and `SELECT … INTO` count as writes; an
@@ -2711,6 +3118,13 @@ recommended sections — and no other command closed that gap.
 doctrina upgrade            # preview (exits 1 when steps are pending)
 doctrina upgrade --write    # apply
 ```
+
+**`--preset <dir>`** first lays an organisation's preset over the project —
+see [Templates](templates.md#an-organisations-preset). The plan names every
+file it would copy, every one it keeps because the project has its own, and
+every config key it sets or leaves; `--write` applies it. A preset is a
+folder on disk (a repository your team clones, a submodule): the CLI makes
+no network call to fetch one.
 
 An orchestrator over the pieces that already exist, in order:
 

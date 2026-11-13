@@ -67,7 +67,7 @@ export const GATES = {
     blockers(projectRoot, changeDir) {
       const out = [];
       // Same counter as every other surface (change 0067).
-      const countUnchecked = (text, section = null) =>
+      const countUnchecked = (text, section = /** @type {string | null} */ (null)) =>
         checklistProgress(text, { section }).total - checklistProgress(text, { section }).done;
 
       const tasksPath = path.join(changeDir, "tasks.md");
@@ -224,6 +224,12 @@ export const SEQUENCES = {
     // the CLI's source, which is how a pt-BR project sat red under `clarify`
     // with no clue why (change 0047). Advisory: a default is not a fault.
     { id: "config", label: "config", level: "advisory", argv: null, rerun: "edit .doctrina/config.json" },
+    // Which `doctrina` the terminal runs, and how the repository merges
+    // (changes 0242, 0243). Readouts of the machine and the clone, not of the
+    // artifacts: the hooks call `doctrina` by name, so a second install ahead
+    // on the PATH is the one they run.
+    { id: "cli", label: "cli", level: "advisory", argv: null, rerun: "doctrina --version" },
+    { id: "merges", label: "merges", level: "advisory", argv: null, rerun: "doctrina hooks install" },
     // Also a readout, and also advisory. It appears only when the operator
     // has switched the usage log on: an instrument that is off has nothing
     // to say, and a row saying so every run would train the reader to skip

@@ -25,10 +25,11 @@ export const TOOL_PRESETS = {
 };
 
 /** A tool entry from flags and an optional preset. Throws a message on bad input. */
-export function toolEntry(name, opts, existing = null) {
+export function toolEntry(name, opts, existing = /** @type {any} */ (null)) {
   if (!TOOL_NAME.test(name)) throw new Error(`tool name "${name}" must match ${TOOL_NAME}`);
   const preset = TOOL_PRESETS[name] ?? {};
   const base = existing ?? { name, server: preset.server ?? null, access: "read", for: preset.for ?? [], purpose: preset.purpose ?? "" };
+  /** @type {any} */
   const entry = { ...base };
   if (opts.server) entry.server = opts.server;
   if (opts.access) {
@@ -42,8 +43,38 @@ export function toolEntry(name, opts, existing = null) {
     entry.for = roles;
   }
   if (opts.purpose) entry.purpose = opts.purpose;
+  // The calls this tool may make, by name (change 0244). `none` takes the
+  // list away; a pattern is a tool name, `*` standing for any run of it.
+  if (opts.only !== undefined && opts.only !== null) {
+    const patterns = String(opts.only).split(",").map((s) => s.trim()).filter(Boolean);
+    if (patterns.length === 0 || (patterns.length === 1 && patterns[0].toLowerCase() === "none")) {
+      delete entry.only;
+    } else {
+      const bad = patterns.filter((p) => !CALL_PATTERN.test(p));
+      if (bad.length) throw new Error(`--only takes MCP tool names, \`*\` for any run of characters (got ${bad.map((b) => `"${b}"`).join(", ")})`);
+      entry.only = patterns;
+    }
+  }
   if (!entry.server) throw new Error(`tool "${name}" has no preset — pass --server <the MCP server's name in your agent's config>`);
   return entry;
+}
+
+// A LIST OF THE CALLS A TOOL MAY MAKE (change 0244).
+//
+// "Does this call write?" is answered from the call's name and input, which
+// is a guess: a verb the list below has never seen reads as a read, and the
+// call goes through. A tool that declares `only` turns the question around —
+// the calls named pass on to that judgment, and every other call through
+// its server is denied, whatever its name suggests.
+const CALL_PATTERN = /^[A-Za-z0-9_.*:-]+$/;
+
+/** Does `tool` match one of the patterns (case-insensitive, `*` = any run)? */
+export function matchesCall(patterns, tool) {
+  const name = String(tool).toLowerCase();
+  return patterns.some((p) => {
+    const re = new RegExp("^" + String(p).toLowerCase().split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$");
+    return re.test(name);
+  });
 }
 
 // Verbs that change state in the system a tool talks to. Matched on the
@@ -140,6 +171,15 @@ function sqlIn(input) {
 export function guardDecision(tools, server, tool, input) {
   const declared = tools.filter((t) => t.server === server && t.enabled !== false);
   if (declared.length === 0) return { decision: "none", reason: `server "${server}" is not declared in the workspace` };
+  // A list on any tool of this server is the server's list: a call outside
+  // it is denied before its name is read for a verb.
+  const listed = declared.filter((t) => Array.isArray(t.only) && t.only.length > 0);
+  if (listed.length > 0 && !listed.some((t) => matchesCall(t.only, tool))) {
+    return {
+      decision: "deny",
+      reason: `${tool} is not among the calls the workspace allows through "${server}" (${listed.map((t) => `${t.name}: ${t.only.join(", ")}`).join("; ")}). Ask the human; to allow it: doctrina workspace tool ${listed[0].name} --only "${[...listed[0].only, tool].join(",")}"`,
+    };
+  }
   const write = isWriteCall(tool, input);
   if (!write) return { decision: "allow", reason: `${tool} reads` };
   const writable = declared.some((t) => t.access === "write");

@@ -54,5 +54,9 @@ test("one line per command, and deprecated names only in the last group", () => 
     const count = body.filter((l) => new RegExp(`^  ${cmd}( |$)`).test(l)).length;
     assert.equal(count, 1, `${cmd} has ${count} lines`);
   }
-  assert.ok(lines.length < 77, `the help is ${lines.length} lines; the flat list was 77`);
+  // The flat list was one line per operation and sixteen of frame: 77 lines
+  // at sixty-one operations. The grouped help stays under what that list
+  // would be today, whatever the catalog grows to.
+  const flat = OPERATIONS.length + 16;
+  assert.ok(lines.length < flat, `the help is ${lines.length} lines; the flat list would be ${flat}`);
 });

@@ -17,6 +17,226 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-11-13
+
+### Upgrading from 0.21
+
+- Run `doctrina upgrade --write` in each project: it rewrites AGENTS.md's
+  generated blocks for 0.22.0 and adds the adapter files this version
+  ships (`/doctrina-onboard` for Claude Code and Cursor).
+- Run `doctrina hooks install` once in each clone and commit the
+  `.gitattributes` it writes: two branches that each closed a change then
+  merge `index.json` and the ledger without a conflict.
+- `doctrina` with no arguments in a terminal now opens the console. A
+  script, a pipe or an agent still gets the help.
+- A project created by `doctrina init` now writes `"surface": "core"`: its
+  AGENTS.md lists the eight commands of the session loop. Existing projects
+  keep the full list until they set `surface` themselves.
+- The console's choices and rooms live under `$DOCTRINA_HOME` (default
+  `~/.doctrina`): `console.json`, `agents.json` (your own agents) and
+  `rooms/`. Nothing is written into the repository.
+
+### Added
+
+- Consoles open in several terminals talk to each other (ADR 0033).
+  Consoles opened for the same work — a workspace's root and its
+  repositories, or one directory — share a room: `/peers` lists them,
+  `/send <name> <request>` hands one a request for its own agent in its own
+  repository, and the report comes back; a request that arrives while
+  something runs waits its turn, and `/listen off` refuses them. A
+  console's agent is told which consoles are open and dispatches with
+  `doctrina ui --send <name> "<request>"`, which waits for the report — a
+  planner at the workspace root gives each repository its card. The room is
+  files under `$DOCTRINA_HOME`, the person's alone: no port, no daemon.
+  `doctrina ui --peers` lists the room from outside a console.
+- The console talks to any agent you have, and you choose its model. The
+  catalog gains GitHub Copilot's CLI (the agent of VS Code) and opencode
+  beside Claude Code, Cursor, Codex and Gemini; any other command-line
+  agent is declared once in `$DOCTRINA_HOME/agents.json`. `/agent` lists
+  every agent known, installed or not, and completes the name; `/model
+  <name>` passes the model on the agent's command line, kept per agent,
+  with `/model default` to go back. The agent and the model in use are
+  shown in the header and on the input box, and the choice is kept per
+  directory in `$DOCTRINA_HOME/console.json`.
+- The console: Doctrina with a face. `doctrina ui` — and `doctrina` alone
+  in a terminal — opens one window with the gates across the top, the
+  conversation, a panel read from the tree (open work and its stage, the
+  next step, what closed recently) and a line to type on. `/` runs any
+  Doctrina command with a list that completes it, `@` mentions a spec, a
+  change, a skill or a decision, and a request typed in your own words goes
+  to the AI agent you already use — Claude Code, Cursor, Codex or Gemini —
+  through that agent's non-interactive mode, with what it says and does
+  shown as it happens and the conversation kept between requests
+  (ADR 0032). `DOCTRINA_AGENT` and `DOCTRINA_AGENT_ARGS` choose the agent
+  and add flags of your own; Doctrina passes none that skips an agent's
+  approvals. `doctrina ui --frame` prints one frame and `--json` the
+  panel's state. A pipe that runs `doctrina` alone still gets the help.
+- `doctrina onboard` walks the whole cycle once, on the real repository:
+  the six steps, each ticked when the tree shows it done, and for the
+  current one what to tell the human, where to stop and ask, and the
+  commands to run. At "pick a first task" it suggests candidates read from
+  the repository — a criterion with no proof, a TODO in the code. It works
+  before `init`, stores nothing, and the `claude` and `cursor` adapters
+  install it as `/doctrina-onboard`. `doctrina init` points at it.
+- `doctrina upgrade --write` gives an installed adapter the core-loop file
+  a newer CLI ships; a new slash command used to reach only the projects
+  that ran `adapter add` again.
+- The tracks, by what a request changes. An edit that changes nothing a
+  spec says — a typo, a comment, formatting, a fix that makes the code do
+  what the spec already says — opens no change: edit, `doctrina verify`,
+  commit. `doctrina work` answers a prompt whose words can only mean such
+  an edit with the three tracks (direct, chore, change) and exits 0 instead
+  of scaffolding a proposal; `--force` and `--chore` still open one.
+  `doctrina triage` prints the track and `--json` carries it, and
+  `AGENTS.md`, the Cursor rule and the prompt hook state the rule.
+- A requirement that is an invariant asks for a property. `doctrina coverage
+  --properties` lists the EARS requirements that claim something of every
+  input (round-trip, idempotence, bound, uniqueness, order, `always`/`never`)
+  with the property each suggests and the library to write it with
+  (Hypothesis, fast-check, jqwik, proptest, rapid). A criterion marked
+  `[property]` — `doctrina change delta <id> <cap> --property "…"` — counts
+  as proven only when the test it cites generates its inputs; an example
+  test cited for it is reported unguarded and fails `coverage --strict`.
+- Two branches that each closed a change merge without a manual step.
+  `doctrina hooks install` now also writes two lines into `.gitattributes`
+  (commit them) and a merge driver into the clone's git config: `index.json`
+  merges through the new `doctrina index merge`, as lists of artifacts, and
+  the ledger through git's `union`. Measured here over ninety days, the index
+  changed in 172 of 186 commits and the ledger in 158 — two branches always
+  met on them. Every clone runs `doctrina hooks install` once.
+- `doctrina change renumber <id>` gives an open change the next free number,
+  and `validate` names the open change that shares its number with another.
+  A new change is also numbered past the changes other branches added in the
+  last 180 days, as far as the clone's git history shows them.
+
+- `doctrina doctor` names the install that is running and every other
+  `doctrina` on the PATH, with versions, and warns when the first one found
+  is not the one running — the agent hooks call it by name. A maintainer
+  updated through npm and `doctrina --version` still answered the old
+  number: a second install, ahead on the PATH. A `merges` row says whether
+  the clone is set up to merge the index and the ledger by itself.
+
+- A workspace tool can list the calls it may make: `doctrina workspace tool
+  jira --only "getJiraIssue,search*"`. Every other call through its server
+  is denied by the guard, instead of being judged by the verb in its name —
+  a verb the guard has never seen used to pass as a read.
+
+- `AGENTS.md` can list the session loop instead of every command. The new
+  `"surface": "core"` option (`.doctrina/config.json`) names the eight
+  commands a session reaches for — `prime`, `work`, `context`, `close`,
+  `next`, `validate`, `doctor`, `handoff` — and defers the rest to
+  `doctrina --help`: the generated block goes from 37 lines to 13 of a file
+  read on every turn and capped at 150. `doctrina init` writes `core` for a
+  new project (`--surface full` keeps the full list); a project with no key
+  keeps the full list, and `doctrina upgrade --write` regenerates the block
+  after a change. This repository's own hub went from 149 lines to 125.
+
+- `--agent kiro`. Kiro (the IDE and the CLI) reads a root `AGENTS.md`
+  natively and always includes it, so the adapter installs no file, like
+  `codex`, `amp`, `devin`, `factory` and `jules`; its README says to keep
+  requirements in `.doctrina/specs/` and not in `.kiro/specs/`. That makes
+  13 supported agents — a count the docs gate now checks against the
+  adapter folders, where it had been written as "twelve" in twenty places.
+
+- An organisation's preset. `doctrina init --preset <dir>` and `doctrina
+  upgrade --preset <dir> [--write]` lay a folder over a project: its
+  `preset.json` (`name`, `config` — language, context budget, rules,
+  surface), and optional `templates/`, `decisions/`, `skills/` and
+  `verify.json`. Additive: a file the project has, a config key it declares
+  and an ADR number it uses are kept, and the plan names each. A preset is
+  a folder on disk — the CLI fetches nothing — and the commands a preset's
+  `verify.json` would run are printed when it is copied.
+
+### Changed
+
+- A release is a version that reached `main`, not a tag pushed by hand. The
+  Release workflow runs when a push to `main` changes the package's
+  `package.json`: a version npm does not have yet is gated, published and
+  tagged by the job itself; any other version ends the run at the first
+  step. Both failed releases of this month were a hand-made tag on the wrong
+  commit. `node scripts/release.mjs <X.Y.Z>` writes every stamp that quotes
+  the version (lockfile, READMEs, `SECURITY.md`, AGENTS.md, the root index
+  and each example's) and `--check` names the one that disagrees — the suite
+  and the workflow both run it. The publish moves from Node 20.12, end of
+  life, to Node 24.
+- The typecheck runs with `strictNullChecks`. The config's own comment
+  promised to catch "a function whose callers disagree about whether it
+  returns null", which the checker cannot see with the option off; turning
+  it on named 82 places, now annotated or guarded.
+- `SECURITY.md` describes the CLI that exists. It listed six read-only git
+  queries and a filesystem boundary of the working directory plus
+  `.git/hooks/`, while the workspace writes a registry under the home
+  directory, links into other repositories and their `.git/info/exclude`,
+  and runs `git init` — things the same document classed as security
+  issues. Every git subcommand, every write and read outside the project,
+  and what the MCP guard is and is not are now stated, and a test compares
+  the document with the code.
+- The docs gate counts the capability specs the root READMEs claim (they
+  said "Eleven" with thirteen in the tree) and refuses that count written
+  as a word.
+- Line endings are LF in every checkout (`.gitattributes`), and the
+  changelog merges through git's `union`. The skill that said `.doctrina/`
+  is CRLF is now `check-the-line-ending-before-patching`: it was true of one
+  Windows checkout, and false in the repository.
+- Dependabot opens one grouped pull request a month for the workflows'
+  actions and one for the two devDependencies.
+
+- `intake --from-code` seeds a Python project's linter and type checker
+  when it declares them (Ruff, mypy — as a dependency or by their own
+  configuration), run through the project's lock (`uv`, `poetry`,
+  `pipenv`). A Python project used to be seeded with its tests and nothing
+  else.
+
+### Fixed
+
+- A delta — or an op — added to a change after a `close` that stopped is
+  applied by the next one. The `applied` stamp is the change's, so a close
+  that applied and then failed a later gate answered "already applied —
+  nothing to do" to the repair, and the change was archived naming a spec
+  it never touched. The proposal now records each op the stamp covers;
+  what is not in the record is applied, once, and an applied op that was
+  edited stops the apply instead of landing twice.
+- `validate` no longer walks the whole repository for a `**Source:**`
+  pattern that names a file at the root. Each such pattern (`tsconfig.json`,
+  `CHANGELOG.md`) searched every directory, `node_modules` and `.git`
+  included; a pattern with no `**` now reads only the levels it names, the
+  tree walk asks the directory listing what each entry is instead of two
+  `stat` calls, and coverage reads each evidence file once instead of once
+  per criterion citing it. On this repository: `validate` ~700 → ~300 ms,
+  `prime` ~320 → ~250 ms.
+- A `Source` pattern with a literal segment after a wildcard
+  (`pkg/*/src/main.js`) matched nothing when a directory `pkg/src` existed:
+  the search started from it.
+- A checkout that stores CRLF (Windows with `core.autocrlf`) now answers
+  exactly as its LF twin. A fresh spec carried five EARS warnings there, a
+  `change check --verbose` preview showed the whole file as changed, and
+  every rewrite (`change delta`, the `applied` stamp) left LF lines inside a
+  CRLF file. The CLI now reads every artifact with LF and writes a file
+  back with the ending it has — one rule at the door instead of one fix per
+  caller. Found by running the same project in both endings and comparing
+  every command's output.
+- `validate` reports a merge that stopped inside an artifact: a spec holding
+  git's conflict markers passed with "0 errors". It is an error naming the
+  file and line, and the first action `next` lists.
+- Commands run at the same moment no longer corrupt each other. Eight
+  parallel `doctrina work` opened three changes numbered 0003, and one
+  stopped on a half-written `index.json` ("Unexpected end of JSON input"):
+  the number is now read and the folder created under a lock, and the index
+  is written whole (temp file, then rename).
+- `doctrina hooks install` works in a git worktree and a submodule (it
+  crashed with `ENOTDIR` after writing `.gitattributes`) and for a project
+  below its repository's root, where it used to answer "run git init" while
+  `doctor` kept sending the project back to it. The hook enters the
+  project's folder, and the staged-index check reads that project's index.
+- `workspace tool --only` with no value is a usage error; it silently
+  removed a strict tool's list.
+- `change renumber` rewrites the id as a whole: renumbering `0001-fix`
+  turned a mention of `0001-fix-login` into `0002-fix-login`.
+- The Release workflow refuses a manual run from a branch other than `main`
+  and a tag on a commit that is not on `main`.
+- An `index.json` carrying git's conflict markers is reported as that, with
+  `doctrina index rebuild` as the way out, instead of a JSON parse position.
+
 ## [0.21.0] — 2026-11-05
 
 ### Upgrading from 0.20

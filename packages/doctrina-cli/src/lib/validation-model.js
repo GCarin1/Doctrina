@@ -32,6 +32,8 @@ import { declaredBudget, collectRuntimeFindings, filesMatching } from "./runtime
 import { derivedImplementations, implementationMismatch } from "./coverage-model.js";
 import { headerValueError, criterionMarkError } from "./spec-ops.js";
 import { readLedger, ledgerPath as ledgerFile } from "./ledger.js";
+import { sharedNumbers } from "./change-numbers.js";
+import { conflictedArtifacts } from "./conflict-markers.js";
 import { loadConfig, SOURCES, CONFIG_REL, RULES_REL } from "./config.js";
 
 // AGENTS.md is treated as a maintained doctrina-command catalog only once it
@@ -77,6 +79,12 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   const fixes = [];
   const errors = [];
   const warnings = [];
+
+  // 0. A merge that stopped inside an artifact (change 0250). First, because
+  //    every check below would read the file with both halves in it.
+  for (const { file, line } of conflictedArtifacts(projectRoot)) {
+    errors.push(`${relPath(projectRoot, file)}:${line} carries git's merge conflict markers — a merge stopped here and the file was saved as it stood; keep what both branches meant, delete the three marker lines, then \`doctrina validate\``);
+  }
 
   // 1. AGENTS.md
   const agentsMd = path.join(projectRoot, "AGENTS.md");
@@ -526,7 +534,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         //     the order and the artifact each step hands on; the invariant is
         //     that a step may only require what an EARLIER step produced.
         //     Opt-in: a spec without the block is never checked.
-        for (const f of checkPipeline(parsePipeline(text))) {
+        for (const f of checkPipeline(parsePipeline(text) ?? [])) {
           errors.push(`${relPath(projectRoot, specPath)}:${f.line} ${f.message} [${f.code}] — ${f.remedy}`);
         }
 
@@ -608,9 +616,9 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
           //     gate proposes, a human or `spec set --implementation auto`
           //     applies. A note after the state word silences it, as it does
           //     the coverage gate itself.
-          const mismatch = implementationMismatch(implRaw, derived.get(cap)?.derived ?? null);
-          if (mismatch) {
-            const row = derived.get(cap);
+          const row = derived.get(cap);
+          const mismatch = implementationMismatch(implRaw, row?.derived ?? null);
+          if (mismatch && row) {
             const stillMarked = (row.unverified ?? 0) > 0
               ? ` and ${row.unverified} of them ${row.unverified === 1 ? "is" : "are"} still marked [unverified]`
               : "";
@@ -807,6 +815,15 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
         }
       }
     }
+  }
+
+  // 8l. An open change that shares its number (change 0242). Two branches
+  //     that each opened a change read the same disk and took the same
+  //     number; merged, one number answers for two changes — in a commit
+  //     message, on a task card, in `doctrina close 0042`. Open, it can
+  //     still be given its own.
+  for (const { id, shares } of sharedNumbers(projectRoot)) {
+    warnings.push(`.doctrina/changes/${id} shares its number with ${shares} — two branches opened them apart; \`doctrina change renumber ${id}\` gives it the next free number`);
   }
 
   // 8m. A spec that is not where the tree reads specs from (change 0113).
@@ -1053,7 +1070,7 @@ export function collectValidation(projectRoot, { fix = false, runtime = false } 
   for (const line of ruleFindings.errors) errors.push(line);
   for (const line of ruleFindings.warnings) warnings.push(line);
   for (const key of loadConfig(projectRoot).unknown) {
-    warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules (a typo here is a setting that never applied)`);
+    warnings.push(`${CONFIG_REL}: unknown key "${key}" is ignored — the keys are language, context_budget, rules, surface (a typo here is a setting that never applied)`);
   }
 
   // 18. --runtime folds the RUNTIME gate into the structural one, so a
@@ -1282,6 +1299,7 @@ function findNestedAgentsMd(projectRoot) {
     .filter(isDir);
   while (stack.length) {
     const dir = stack.pop();
+    if (dir === undefined) break;
     for (const entry of readdirSync(dir)) {
       const full = path.join(dir, entry);
       if (isDir(full)) {

@@ -50,7 +50,7 @@ const HEADER_RE = (name) =>
 // see ADR 0007"): only the WORD is checked.
 export const STATUS_VALUES = ["draft", "active", "deprecated"];
 export const IMPLEMENTATION_VALUES = ["planned", "partial", "implemented", "verified"];
-export const CRITERION_MARKS = ["verified", "unverified", "orchestration"];
+export const CRITERION_MARKS = ["verified", "unverified", "orchestration", "property"];
 
 /** The state word of a header/mark value: the first token, note stripped. */
 export function stateWord(value) {
@@ -440,7 +440,7 @@ function locateRequirements(text) {
     if (h) {
       if (current) current.endIndex = i;
       const token = SECTIONS[h[1].toLowerCase().replace(/[^a-z-]/g, "")] ?? null;
-      current = { headingIndex: i, endIndex: lines.length, bullets: [] };
+      current = { headingIndex: i, endIndex: lines.length, bullets: /** @type {number[]} */ ([]) };
       if (token) sections[token] = current;
       continue;
     }

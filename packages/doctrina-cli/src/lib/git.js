@@ -69,6 +69,24 @@ export function git(cwd, args, { env } = {}) {
   return { state: GIT_STATE.FAILED, stdout: "", lines: [], stderr, code: r.status };
 }
 
+/**
+ * Where git keeps `name` for the repository `cwd` is in — `hooks`,
+ * `info/exclude` — as an absolute path, or null outside a repository. Asked
+ * of git, never built from `.git/`: in a worktree and in a submodule `.git`
+ * is a FILE, and `core.hooksPath` moves the hooks anywhere (change 0250).
+ */
+export function gitPathOf(cwd, name) {
+  const r = git(cwd, ["rev-parse", "--git-path", name]);
+  if (r.state !== GIT_STATE.OK || r.stdout.trim() === "") return null;
+  return path.resolve(cwd, r.stdout.trim());
+}
+
+/** `cwd` relative to the top of its repository, with forward slashes ("" at the top), or null outside one. */
+export function repoPrefix(cwd) {
+  const r = git(cwd, ["rev-parse", "--show-prefix"]);
+  return r.state === GIT_STATE.OK ? r.stdout.trim().replace(/\/+$/, "") : null;
+}
+
 // Is this a git repository at all?
 export function isRepo(cwd) {
   return git(cwd, ["rev-parse", "--is-inside-work-tree"]).state === GIT_STATE.OK;

@@ -14,13 +14,14 @@ description: "Cut a doctrina-cli release with consistent version stamps, a Chang
 ## Procedure
 
 The canonical version lives in ONE place:
-`packages/doctrina-cli/package.json`. Everything else quotes it.
+`packages/doctrina-cli/package.json`. Everything else quotes it, and
+`scripts/release.mjs` writes every quote.
 
-1. Move the `## [Unreleased]` content of `CHANGELOG.md` under a new
-   `## [X.Y.Z] — YYYY-MM-DD` heading (Keep a Changelog format;
-   pre-1.0 minor bumps may change CLI surface and artifact shapes).
-2. Bump `version` in `packages/doctrina-cli/package.json`.
-2b. Draft the agent-facing changelog and edit it in by hand:
+1. Write the changelog. Everything since the last release sits under
+   `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog format; pre-1.0
+   minor bumps may change CLI surface and artifact shapes). Add an
+   `### Upgrading from <previous>` note when a user has something to run.
+2. Write the agent-facing changelog by hand:
    `doctrina status --view agent-changelog` proposes one candidate bullet per
    archived change that touched a documented surface, newest first, capped
    at the block's five bullets and windowed since the last tag. Paste the
@@ -29,27 +30,24 @@ The canonical version lives in ONE place:
    only knows which surface moved. Bullets that do not change an agent's
    behaviour belong in `CHANGELOG.md`, not here; if more than five survive,
    choose, do not raise the cap (it is AGENTS.md's line budget).
-3. Reconcile every stamp that quotes it — they have drifted to three
-   different values before (fixed in v0.10.0):
-   - root `AGENTS.md` (`Status: vX.Y.Z — released`)
-   - `README.md` + `README.pt.md` (`**Status:** vX.Y.Z — released.`)
-   - `packages/doctrina-cli/README.md`
-4. Re-stamp the index: `doctrina index rebuild` (migrates
-   `framework_version` to the new CLI version).
-   Every shipped example carries its own index: run `doctrina index rebuild`
-   in each `examples/*/` too. The release workflow validates them with
-   `--strict`, where a stamp behind the CLI fails one step before the
-   publish (0.21.0 did); `test/os-exemplos-acompanham-a-versao.test.js`
-   catches it in the suite.
-5. Run the full gate set from the repo root and require all green:
-   `doctrina verify` (tests + self-validate + index drift),
-   `doctrina coverage --strict`, `doctrina trace --strict`.
-6. `npm pack --dry-run` inside `packages/doctrina-cli/` — the tarball
+3. Open the release as a chore (`doctrina work --chore "release X.Y.Z"`),
+   then stamp: `node scripts/release.mjs X.Y.Z`. It moves the Unreleased
+   content under `## [X.Y.Z] — <today>`, bumps `package.json` and the
+   lockfile, regenerates AGENTS.md's blocks, and writes the status line of
+   the three READMEs, the supported minor in `SECURITY.md`, and the
+   `framework_version` of the root index and of every `examples/*/` index.
+   It refuses while step 2 is missing. `node scripts/release.mjs --check`
+   says which stamp still disagrees; the suite and the Release workflow
+   both run it.
+4. `npm pack --dry-run` inside `packages/doctrina-cli/` — the tarball
    must list only `src/`, `templates/`, `README.md`, `package.json`
    (the `prepack` script copies `.doctrina/templates/` in).
-7. Commit (Conventional Commits prefix; the release bump is a chore
-   change like any other, closed with `doctrina close <id>`), tag
-   `vX.Y.Z`, publish.
+5. Close the change (`doctrina close <id>` runs every gate), commit, open
+   the pull request and merge it. **Do not tag.** The Release workflow runs
+   when a push to `main` changes `packages/doctrina-cli/package.json`: if
+   npm does not have that version yet it runs the gates, publishes, and
+   tags the published commit `vX.Y.Z` itself. A version npm already has
+   ends the run at the first step with a notice.
 
 ## Anti-patterns
 
@@ -60,6 +58,13 @@ The canonical version lives in ONE place:
 - Publishing with `coverage --strict` red "because it's only docs".
   The gates are the product; a release that fails its own gates
   argues against itself.
+
+- Tagging by hand. Both failed releases of November 2026 were a tag on
+  the wrong commit: v0.20.0 on a merge made after 0.20.0 was on npm (a 403
+  after every gate passed), v0.21.0 on a commit whose examples were still
+  stamped 0.20.0. A version bump merged into `main` IS the release.
+- Bumping the version in a pull request that is not the release: the merge
+  publishes it.
 
 ## Related material
 

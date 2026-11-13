@@ -9,7 +9,13 @@
     "What this buys: the typos a test suite only catches when it happens to",
     "execute the branch — a misspelt property on an index.json entry, a",
     "helper called with the wrong arity, a function whose callers disagree",
-    "about whether it returns null."
+    "about whether it returns null.",
+    "",
+    "`strictNullChecks` is what makes that last claim true (change 0246): with",
+    "it off, null and undefined belong to every type and the checker cannot",
+    "see a caller that forgot one. `strict` and `noImplicitAny` stay off —",
+    "the source is JavaScript with JSDoc where it helps, not annotated",
+    "throughout."
   ],
   "compilerOptions": {
     "allowJs": true,
@@ -24,7 +30,7 @@
 
     "strict": false,
     "noImplicitAny": false,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
 
     "resolveJsonModule": true,
     "skipLibCheck": true,

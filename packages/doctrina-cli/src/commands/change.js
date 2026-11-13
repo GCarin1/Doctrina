@@ -19,16 +19,19 @@ import { confirm, isInteractive } from "../lib/prompt.js";
 import { taskCard } from "../lib/task-card.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { ensureDoctrinaProject, refuseChangeRef } from "../lib/project.js";
+import { renumberChange } from "../lib/change-numbers.js";
+import { appliedDeltas, deltaFingerprint, deltaKey, pendingOps, recordAppliedDeltas } from "../lib/applied-deltas.js";
 import { parseOperation, parseCapabilityFromDelta, isUntouchedScaffold } from "../lib/doc-model.js";
 import { changeNew, addDeltaOps } from "../lib/change-ops.js";
+import { propertyShape } from "../lib/properties.js";
 import { scanText } from "../lib/clarify-scan.js";
 
-const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "delta", "card"];
+const SUBCOMMANDS = ["new", "apply", "archive", "check", "tick", "abandon", "renumber", "delta", "card"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason", "requirement", "criterion", "bump", "op"] };
+export const flags = { boolean: ["json", "all", "chore", "design", "force", "no-spec", "verbose"], string: ["reason", "requirement", "criterion", "property", "bump", "op"] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
@@ -46,6 +49,8 @@ export async function run(positional, flags) {
       return changeTick(positional.slice(1), flags);
     case "abandon":
       return await changeAbandon(positional.slice(1), flags);
+    case "renumber":
+      return changeRenumber(positional.slice(1));
     case "delta":
       return changeDelta(positional.slice(1), flags);
     case "card":
@@ -89,7 +94,7 @@ function changeCard(args) {
   const { card, reason } = taskCard(projectRoot, id, ordinal);
   if (!card) {
     console.log(c.gray(reason));
-    return reason.startsWith("every task") ? EXIT.OK : EXIT.PRECONDITION;
+    return (reason ?? "").startsWith("every task") ? EXIT.OK : EXIT.PRECONDITION;
   }
   const L = [];
   L.push(`# Task card — ${card.change}, task ${card.ordinal} of ${card.total}` + (card.checked ? " (already ticked)" : ""));
@@ -242,21 +247,53 @@ function changeApply(args, flags) {
   const proposalPath = path.join(changeDir, "proposal.md");
   const alreadyApplied = isFile(proposalPath)
     && (getHeader(read(proposalPath), "Status") ?? "").trim().toLowerCase() === "applied";
+  const allDeltas = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  // WHICH deltas the stamp covers (change 0247). The stamp is the change's,
+  // and a change is not finished when it is stamped: a close that applied
+  // and then stopped at a later gate leaves it `applied`, and the fix for
+  // that gate is often one more delta. The stamp said "nothing to do", the
+  // close went on, and the change was archived naming a spec it had never
+  // touched. The record names each delta that was applied, with what it held.
+  /** @type {Map<string, Set<number> | null> | null} delta → the ops still to apply (null: the whole delta) */
+  let lateOnly = null;
   if (alreadyApplied && !flagBool(flags, "force", false)) {
-    console.log(c.gray("skip ") + `change "${id}" is already applied — nothing to do`);
-    console.log(c.gray("The ops verbs are additive: applying twice duplicates every"));
-    console.log(c.gray("requirement this delta carries. Re-apply anyway with --force"));
-    console.log(c.gray("only after reverting the specs to their pre-apply state."));
-    return 0;
+    const record = appliedDeltas(read(proposalPath));
+    const late = new Map();
+    const edited = [];
+    for (const p of record ? allDeltas : []) {
+      const recorded = record?.get(deltaKey(changeDir, p));
+      if (!recorded) {
+        late.set(p, null);
+        continue;
+      }
+      const { fresh, gone } = pendingOps(recorded, deltaFingerprint(read(p)));
+      if (gone) edited.push(p);
+      else if (fresh.length > 0) late.set(p, new Set(fresh));
+    }
+    if (edited.length > 0) {
+      console.error(c.red("error:") + ` ${edited.map((p) => relPath(changeDir, p)).join(", ")}: an op that was already applied changed or was removed — the spec holds what it wrote, and applying the delta again would add to that, not replace it`);
+      console.error(c.gray("hint: ") + "restore the op as it was applied and add the correction as a new op (`replace-requirement`, `replace-criterion`, `doctrina change delta`), or revert the spec to its pre-apply state and run `doctrina change apply " + id + " --force`");
+      return 1;
+    }
+    if (late.size === 0) {
+      console.log(c.gray("skip ") + `change "${id}" is already applied — nothing to do`);
+      console.log(c.gray("The ops verbs are additive: applying twice duplicates every"));
+      console.log(c.gray("requirement this delta carries. Re-apply anyway with --force"));
+      console.log(c.gray("only after reverting the specs to their pre-apply state."));
+      return 0;
+    }
+    const what = [...late].map(([p, ops]) => `${relPath(changeDir, p)}${ops ? ` (${ops.size} new op${ops.size === 1 ? "" : "s"})` : ""}`).join(", ");
+    console.log(c.gray("note: ") + `change "${id}" was applied before this was added — applying only ${what}`);
+    lateOnly = late;
   }
 
   // The skip above comes FIRST (change 0221): the apply gate is a pre-apply
   // question, and on an applied change its ADDED check reads the content the
   // apply wrote as a conflict — which refused the resume of a killed close.
-  const applyGate = enforceTransition(projectRoot, id, changeDir, "apply", flags);
+  const applyGate = lateOnly ? { ok: true, forced: null } : enforceTransition(projectRoot, id, changeDir, "apply", flags);
   if (!applyGate.ok) return 1;
 
-  const deltaFiles = walk(path.join(changeDir, "specs")).filter((p) => p.endsWith("delta.md"));
+  const deltaFiles = lateOnly ? [...lateOnly.keys()] : allDeltas;
   const date = today();
   let errors = 0;
   let writes = 0;
@@ -310,7 +347,8 @@ function changeApply(args, flags) {
       // `ops` block (set-header / bump-version / set-criterion / ...; F3);
       // otherwise it falls back to the historical manual-merge pointer, so
       // prose deltas keep working unchanged.
-      const ops = extractOps(text);
+      const only = lateOnly?.get(deltaPath) ?? null;
+      const ops = extractOps(text).filter((_op, i) => only === null || only.has(i));
       if (ops.length === 0) {
         console.log(c.yellow("manual[MODIFIED]") + ` merge ${relPath(projectRoot, deltaPath)} into ${relPath(projectRoot, targetPath)} by hand (no ops block)`);
         manual += 1;
@@ -353,6 +391,10 @@ function changeApply(args, flags) {
         console.log(c.green("status") + " proposal.md → applied");
         flippedToApplied = true;
       }
+      // Every delta the proposal's stamp now covers, with what it held.
+      const stamped = read(proposalPath);
+      const withRecord = recordAppliedDeltas(stamped, allDeltas.map((p) => [deltaKey(changeDir, p), deltaFingerprint(read(p))]));
+      if (withRecord !== stamped) write(proposalPath, withRecord, { force: true });
     }
   }
 
@@ -520,6 +562,9 @@ function changeDelta(args, flags) {
   const bump = flagString(flags, "bump");
   for (const r of flagAll(flags, "requirement")) lines.push(`append-requirement ${r}`);
   for (const r of flagAll(flags, "criterion")) lines.push(`append-criterion ${r}`);
+  // A criterion that claims something of every input (change 0254): the
+  // mark is what makes coverage ask the cited test to be a property.
+  for (const r of flagAll(flags, "property")) lines.push(`append-criterion [property] ${r.replace(/^\[property\]\s*/i, "")}`);
   lines.push(...raw);
   if (bump) lines.push(`bump-version ${bump}`);
 
@@ -531,7 +576,23 @@ function changeDelta(args, flags) {
     return r.code;
   }
   console.log(c.green(r.created ? "created" : "updated") + ` ${r.deltaRel}` +
-    c.gray(` — ${lines.length} op${lines.length === 1 ? "" : "s"} added; the block now holds ${r.block.length} (${r.block.join(", ")}), and applies cleanly`));
+    c.gray(` — ${lines.length} op${lines.length === 1 ? "" : "s"} added; the block now holds ${(r.block ?? []).length} (${(r.block ?? []).join(", ")}), and applies cleanly`));
+  // The moment the requirement is written is the moment its proof is
+  // chosen (change 0254): one that claims something of every input is told
+  // so here, while the test for it does not exist yet.
+  if (flagAll(flags, "property").length === 0) {
+    let noted = 0;
+    for (const req of flagAll(flags, "requirement")) {
+      const shape = propertyShape(req.replace(/^[a-z-]+:\s*/i, ""));
+      if (!shape) continue;
+      noted++;
+      console.log(c.yellow("note: ") + `"${req.length > 70 ? req.slice(0, 69) + "…" : req}" reads as ${shape.id === "invariant" ? "an invariant" : shape.id} — ${shape.property}.`);
+    }
+    if (noted > 0) {
+      console.log(c.gray("  An example test proves the cases somebody thought of. If a failure here would be a bug, write a property test and claim it: ") +
+        c.cyan(`doctrina change delta ${id} ${capability} --property "<what holds for every input> — verified by \`<the property test>\`"`));
+    }
+  }
   console.log(c.gray("Preview the merge: ") + c.cyan(`doctrina change check ${id} --verbose`));
   return EXIT.OK;
 }
@@ -827,6 +888,34 @@ async function changeAbandon(args, flags) {
   return 0;
 }
 
+// Give an open change the next free number (change 0242): two branches that
+// each opened a change took the same one, and the merge holds both.
+function changeRenumber(args) {
+  const id = args[0];
+  if (!id) {
+    console.error(c.red("error:") + " change renumber requires <id>");
+    return 2;
+  }
+  const refused = refuseChangeRef(id);
+  if (refused !== null) return refused;
+  const projectRoot = process.cwd();
+  ensureDoctrinaProject(projectRoot);
+  const changeDir = path.join(projectRoot, ".doctrina", "changes", id);
+  if (!isDir(changeDir)) {
+    console.error(c.red("error:") + ` change "${id}" is not an open change (${relPath(projectRoot, changeDir)} not found) — an archived change keeps its number`);
+    return EXIT.USAGE;
+  }
+  const { to, rewritten } = renumberChange(projectRoot, id);
+  console.log(c.green("renumbered") + ` ${id} → ${to}`);
+  if (rewritten.length > 0) console.log(c.gray(`  the id was rewritten in ${rewritten.join(", ")}`));
+  const derived = deriveIndex(projectRoot, idx.load(projectRoot));
+  derived.last_updated = today();
+  idx.save(projectRoot, derived);
+  console.log(c.green("indexed") + ` change "${to}" in index.json`);
+  console.log(c.gray("next: ") + `name ${to} wherever the old number was written outside the change — a commit message, a branch, a task card already handed out`);
+  return 0;
+}
+
 // The per-delta preview: what applying this delta would do to its target.
 // ADDED reports the body it would write, REMOVED the spec it would delete,
 // MODIFIED a line diff against the current spec.
@@ -953,15 +1042,23 @@ Subcommands:
                          or every one with --all. No args = list only.
   abandon <id>           Delete an open change folder and its index entry, and
                          record the abandonment in the ledger ([--reason "..."]).
+  renumber <id>          Give an open change the next free number: the folder
+                         moves and the id is rewritten in its own files. For
+                         the merge that brought together two changes opened
+                         on two branches under one number — \`validate\` names it.
   delta <id> <capability> [--requirement "<section>: <text>"] [--criterion "<text>"]
-        [--bump major|minor|patch] [--op "<op line>" | <op line>]
+        [--property "<text>"] [--bump major|minor|patch] [--op "<op line>" | <op line>]
                          Write ops into the change's MODIFIED delta for the
                          capability — created from the template when absent —
                          parsed by the grammar apply reads and dry-run against
                          the spec first: nothing is written unless the whole
                          block applies. --requirement, --criterion and --op
                          repeat, one op each, in order; a second --bump
-                         replaces the first.
+                         replaces the first. --property writes a criterion
+                         marked [property]: a claim about every input, which
+                         coverage counts only when the test it cites is
+                         property-based (\`doctrina coverage --properties\`
+                         lists the requirements that read as one).
   card <id> [<n>]        Print task <n> (default: the next open one) as a
                          self-contained card for an executor: the task and the
                          lines indented under it (Files:, Requirement:, Verify:),

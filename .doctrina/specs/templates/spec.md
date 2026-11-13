@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.32.0
+**Version:** 0.34.2
 
 ## Purpose
 
@@ -100,6 +100,7 @@ The CLI consumes this spec to drive `doctrina init` and the
   default, the system shall prompt the user and refuse to scaffold
   silently with an empty value.
 - While the generated surface block is written into AGENTS.md, the system shall treat the two size budgets as coupled and report the smaller of their two slacks as the remaining headroom.
+- While `.doctrina/config.json` declares `"surface": "core"`, the system shall generate the command block of `AGENTS.md` with the session loop only — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — and a line that defers every other command to `doctrina --help`; a project that declares no surface shall keep the full block, and `doctrina init` shall write `core` unless `--surface full` is given.
 
 ### Unwanted-behavior (must-not)
 
@@ -128,7 +129,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 
 | Agent | Files installed | Notes |
 |-------|-----------------|-------|
-| `claude` | `CLAUDE.md` + `.claude/commands/doctrina-{work,next,context,status,why}.md` | `@AGENTS.md` pointer plus native slash commands for the core loop. |
+| `claude` | `CLAUDE.md` + `.claude/commands/doctrina-{work,next,context,status,why,onboard}.md` | `@AGENTS.md` pointer plus native slash commands for the core loop. |
 | `codex` | none | OpenAI Codex CLI reads `AGENTS.md` natively. |
 | `cursor` | `.cursor/rules/00-doctrina.mdc` + `.cursor/skills/doctrina-*/SKILL.md` | `alwaysApply: true` rule plus the core loop as skills, invoked with `/`. |
 | `copilot` | `.github/copilot-instructions.md` | GitHub Copilot repository-level instructions; points at AGENTS.md. |
@@ -140,6 +141,7 @@ The CLI consumes this spec to drive `doctrina init` and the
 | `devin` | none | Cognition Devin reads `AGENTS.md` natively. |
 | `factory` | none | Factory AI reads `AGENTS.md` natively. |
 | `jules` | none | Google Jules reads `AGENTS.md` natively. |
+| `kiro` | none | Kiro (IDE and CLI) reads a root `AGENTS.md` natively, always included. |
 
 ## Acceptance criteria
 
@@ -189,6 +191,8 @@ A repository's `.doctrina/templates/` directory is spec-compliant when:
 36. [verified] The absorb playbook printed by `intake --from-code` prints no requirement without the code that does it and the fact check by a reader that did not write the spec, and the bootstrap playbook renders the no-invention step and the re-read before the gates — verified by `packages/doctrina-cli/test/o-codigo-existente-vira-intake.test.js` and `packages/doctrina-cli/test/playbooks.test.js`.
 37. [verified] the absorb's gate step heals the index — verified by `packages/doctrina-cli/test/a-quinta-auditoria-mede-a-escala.test.js`.
 38. [verified] the cursor adapter installs the core loop as skills with the frontmatter Cursor requires — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
+39. [verified] The core block names eight real commands with their triggers in at most 14 lines; a new project stores `"surface": "core"`, validates with no omitted-command warning and needs no upgrade; switching the key and running `upgrade --write` regenerates the block either way; a project with no key keeps the full block; an unknown value is reported by `validate` and refused by `init` with exit 2 — verified by `packages/doctrina-cli/test/o-hub-lista-so-o-ciclo-basico.test.js`.
+40. [verified] `init --agent kiro` installs no file, `kiro` is listed with the agents that read `AGENTS.md` natively, and the packed install drives it like the other twelve — verified by `packages/doctrina-cli/test/templates.test.js` and `scripts/e2e-packed.mjs`.
 
 ## Out of scope for this spec
 

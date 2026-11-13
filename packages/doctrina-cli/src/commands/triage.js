@@ -4,7 +4,7 @@ import process from "node:process";
 import { exists } from "../lib/fs-ops.js";
 import { flagBool } from "../lib/args.js";
 import { c } from "../lib/colors.js";
-import { classify } from "../lib/triage-model.js";
+import { classify, directSignals, trackOf } from "../lib/triage-model.js";
 
 // The classifier is shared with `work`; see lib/triage-model.js.
 export { classify } from "../lib/triage-model.js";
@@ -67,6 +67,7 @@ export async function run(positional, cmdFlags) {
     emitJson("triage", {
       lane: verdict?.lane ?? null,
       confident: verdict?.confident ?? null,
+      track: verdict ? trackOf(prompt, verdict) : null,
       contracts: runtime.contracts,
       declared: runtime.declared,
       findings,
@@ -87,6 +88,20 @@ function renderLane(prompt, verdict) {
     runtime: c.yellow("RUNTIME"),
     chore: c.cyan("CHORE"),
   };
+  // The track first (change 0255): an edit that changes nothing a spec says
+  // needs neither a lane's playbook nor a change.
+  const direct = directSignals(prompt, verdict);
+  if (direct.length > 0) {
+    console.log(c.bold("Track") + c.gray(" — deterministic term match; a hint, not a decision"));
+    console.log("");
+    console.log(`  ${c.green("DIRECT")}${c.gray("  nothing a spec says changes")}`);
+    console.log(c.gray(`  signals: ${[...new Set(direct)].slice(0, 6).join(", ")}`));
+    console.log("");
+    console.log(`Edit it, run ${c.cyan("doctrina verify")}, and commit: no change is opened.`);
+    console.log(c.gray("  If it does change behaviour: ") + c.cyan(`doctrina work --force "${truncate(prompt)}"`));
+    console.log("");
+    return;
+  }
   console.log(c.bold("Lane") + c.gray(" — deterministic term match; a hint, not a decision"));
   console.log("");
   console.log(`  ${LABEL[verdict.lane]}${verdict.confident ? "" : c.gray("  (weak signal — read the playbook and override if it is wrong)")}`);

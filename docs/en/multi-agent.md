@@ -199,6 +199,18 @@ You can hand off between agents at phase boundaries. Example flow:
 Each agent owns one phase. None overlaps with another. The artifacts
 in `.doctrina/` are the shared trace.
 
+## Several people, several branches
+
+One writer per repository is about a session, not about a team: two people
+on two branches each run their own planner. What they share is the two
+files every change rewrites — `index.json` and the ledger — and the counter
+behind a change's number. Run `doctrina hooks install` once per clone and
+commit the `.gitattributes` it writes: the index then merges as a list of
+artifacts and the ledger keeps both branches' lines, with no conflict
+markers in either. A number another branch already took is not handed out
+again, and a merge that still brought two open changes under one number is
+named by `validate` and separated by `doctrina change renumber <id>`.
+
 ## When the line gets blurry
 
 | Situation | Verdict |

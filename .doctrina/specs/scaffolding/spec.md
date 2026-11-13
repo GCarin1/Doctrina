@@ -5,9 +5,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli
-**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,metrics-model,usage,config}.js`
+**Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config,preset}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.14.0
+**Version:** 0.18.1
 
 ## Purpose
 
@@ -42,15 +42,7 @@ authoring commands, and the conventions every command shares.
   template at the project root and the .doctrina/ skeleton from the
   templates directory.
 
-- When `doctrina init --agent <name>` runs, the system shall additionally
-  install the matching adapter from the templates inventory. The
-  recognised values are `claude`, `codex`, `cursor`, `copilot`,
-  `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`,
-  `factory`, `jules`, or `all` (install every adapter present
-  under `templates/adapters/`). The last four (amp / devin /
-  factory / jules) are AGENTS.md-native and install no files;
-  the directory exists so the templates inventory is symmetric
-  across supported agents.
+- When `doctrina init --agent <name>` runs, the system shall additionally install the matching adapter from the templates inventory. The recognised values are `claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`, or `all` (install every adapter present under `templates/adapters/`). The last five (amp / devin / factory / jules / kiro) are AGENTS.md-native and install no files; the directory exists so the templates inventory is symmetric across supported agents.
 
 - When `doctrina init --intake <file>` runs and `<file>` resolves to
   a non-empty file, the system shall store the file content verbatim
@@ -194,6 +186,10 @@ authoring commands, and the conventions every command shares.
 - When `doctrina init` finishes with a description but no intake, the system shall name the step `doctrina next` names — `doctrina intake --text` with the whole description, or `doctrina work --from-diff` for an existing codebase — and never tell the person to edit AGENTS.md or product.md by hand.
 - When `adapter add claude` or `adapter add cursor` runs, the system shall install the agent's own hooks — the primer at session start and, where the agent can take context per prompt, the pulse beside every prompt — merging them into a settings file the project already has: objects recurse, arrays gain only missing entries, a value the user set stays theirs, and `adapter remove` takes back only its own entries, deleting the file only when nothing of the user's is left.
 - When `doctrina upgrade --write` or `doctrina adapter add <name>` runs where the adapter's retired files are installed, the system shall write each replacement where it is missing, remove each retired file still as the CLI wrote it, and keep and name each one edited since; in a shadowed repository it shall write in the shadow and re-link the repository.
+- When `doctrina hooks install` runs inside a git repository that owns its `.doctrina/`, the system shall add to `.gitattributes` — only where missing — the lines that merge `index.json` through the `doctrina-index` driver and the ledger through `union`, and set that driver in the git config of the clone to the installing CLI by path, before the hook is written and also when an existing hook refuses it.
+- When `doctrina hooks install` runs, the system shall ask git where the hooks of the repository are, so that it works in a worktree and a submodule, and for a project below the root of its repository it shall write the hook to enter the folder of the project first; a folder git does not answer for shall exit 3 with nothing written.
+- When `doctrina upgrade` finds an adapter with a core-loop file on disk and another the CLI ships missing, the system shall report the missing file, and with `--write` write it; an adapter with no core-loop file on disk gains nothing.
+- When `doctrina init` or `doctrina upgrade` runs with `--preset <dir>` naming a folder holding `preset.json`, the system shall lay it over the project additively — copying its `templates/`, `decisions/`, `skills/` and `verify.json` where the project has no such file, setting the config keys the project does not declare, never copying a decision whose number the project uses — naming each file and key copied, set or kept, printing the commands of a copied `verify.json`, and exiting 2 with nothing written when the folder is not a preset.
 
 ### State-driven
 
@@ -235,6 +231,10 @@ Project scaffolding is spec-compliant when:
 19. [verified] `init --help` describes `--overwrite-content` beside `--force`, which re-scaffolds only untouched files — verified by `packages/doctrina-cli/test/o-help-lista-todo-subcomando.test.js`.
 20. [verified] upgrade moves an older Cursor install to skills and keeps an edited command — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
 21. [verified] in a shadowed repository the skills go to the shadow and are linked in, with nothing showing in the repository's git — verified by `packages/doctrina-cli/test/o-cursor-recebe-skills-e-o-guard-falha-fechado.test.js`.
+22. [verified] `hooks install` writes the two `.gitattributes` lines once and the driver into the git config, and two branches that each closed a change then merge with no conflict in the index or the ledger, the merged index being the one a rebuild derives — verified by `packages/doctrina-cli/test/branches-paralelas-se-juntam.test.js`.
+23. [verified] `hooks install` succeeds in a worktree and for a project in a subfolder, whose hook enters that folder and whose commit passes the staged index check; a folder that only holds a directory named `.git` is refused before `.gitattributes` is written — verified by `packages/doctrina-cli/test/a-setima-auditoria-fecha-fim-de-linha-conflito-e-concorrencia.test.js`.
+24. [verified] `init --preset` scaffolds a project carrying the decision, skill, template, checks and config of the preset, with the hub generated from its surface and the index in step; `upgrade --preset` previews with exit 1, keeps the file, config key and ADR number the project has, writes the rest with `--write` and adds nothing the second time; a folder with no `preset.json`, a bad name or an unknown config key is refused — verified by `packages/doctrina-cli/test/um-preset-leva-a-casa-da-organizacao.test.js`.
+25. [verified] `upgrade` previews and `upgrade --write` writes the `doctrina-onboard` skill a cursor install lacks, writes nothing for an adapter the project never added, and `init` points at `doctrina onboard` — verified by `packages/doctrina-cli/test/o-onboarding-conduz-o-ciclo-uma-vez.test.js`.
 
 ## Out of scope for this spec
 

@@ -57,6 +57,7 @@ const JS_SIGNALS = {
 const PY_SIGNALS = {
   django: "Django", djangorestframework: "Django REST framework", flask: "Flask", fastapi: "FastAPI",
   sqlmodel: "SQLModel", pydantic: "Pydantic", pytest: "pytest", behave: "Behave", robotframework: "Robot Framework",
+  ruff: "Ruff", mypy: "mypy",
   selenium: "Selenium", playwright: "Playwright", requests: "requests", httpx: "HTTPX", sqlalchemy: "SQLAlchemy",
   alembic: "Alembic", pandas: "pandas", pyspark: "PySpark", locust: "Locust", celery: "Celery", grpcio: "gRPC",
   streamlit: "Streamlit", langchain: "LangChain", openai: "OpenAI SDK", anthropic: "Anthropic SDK", uvicorn: "Uvicorn",
@@ -144,7 +145,7 @@ function walk(root) {
   let truncated = false;
   const stack = [""];
   while (stack.length && !truncated) {
-    const rel = stack.pop();
+    const rel = stack.pop() ?? "";
     let entries;
     try {
       entries = readdirSync(path.join(root, rel), { withFileTypes: true });
@@ -300,14 +301,14 @@ function readUnits(root, files) {
     const kind = MANIFESTS.find(([re]) => re.test(baseOf(f)))?.[1];
     if (!kind) continue;
     if (!byDir.has(dir)) byDir.set(dir, new Set());
-    byDir.get(dir).add(kind);
+    byDir.get(dir)?.add(kind);
     manifestsOf.set(dir, [...(manifestsOf.get(dir) ?? []), baseOf(f)]);
   }
   const rootPkg = isFile(path.join(root, "package.json")) ? readJson(path.join(root, "package.json")) : null;
   const units = [];
   for (const dir of [...byDir.keys()].sort((a, b) => depth(a) - depth(b) || a.localeCompare(b))) {
-    const kinds = [...byDir.get(dir)].sort();
-    const manifests = manifestsOf.get(dir).sort();
+    const kinds = [...(byDir.get(dir) ?? [])].sort();
+    const manifests = (manifestsOf.get(dir) ?? []).sort();
     const signals = new Set();
     let runner = null;
     let scripts = {};
@@ -396,6 +397,22 @@ function unitCommands(root, unit, units, workspaces, files) {
       }
     } else if (kind === "python") {
       const own = files.filter((f) => unitOf(units, f) === unit);
+      const from = `${unit.dir ? unit.dir + "/" : ""}${unit.manifests.join(", ")}`;
+      const pyproject = readText(root, unit.dir ? `${unit.dir}/pyproject.toml` : "pyproject.toml");
+      const setupCfg = readText(root, unit.dir ? `${unit.dir}/setup.cfg` : "setup.cfg");
+      const locked = (/** @type {string} */ f) => at(f) || isFile(path.join(root, f));
+      const via = locked("uv.lock") ? "uv run " : locked("poetry.lock") ? "poetry run " : locked("Pipfile.lock") ? "pipenv run " : "";
+      // The linter and the type checker the project DECLARES (seventh audit,
+      // change 0250): a Python project was seeded with its tests and nothing
+      // else, where a Node one gets `lint` and `typecheck` from its scripts.
+      // Python has no scripts table, so the declaration is the dependency or
+      // the tool's own configuration.
+      if (unit.signals.includes("Ruff") || at("ruff.toml") || at(".ruff.toml") || /\[tool\.ruff/.test(pyproject)) {
+        out.push({ name: `lint${tag}`, command: `${via}ruff check .`, cwd, from, seed: true });
+      }
+      if (unit.signals.includes("mypy") || at("mypy.ini") || /\[tool\.mypy/.test(pyproject) || /^\[mypy\]/m.test(setupCfg)) {
+        out.push({ name: `typecheck${tag}`, command: `${via}mypy .`, cwd, from, seed: true });
+      }
       const hasTests = own.some((f) => /(^|\/)(test_[^/]*|[^/]*_test)\.py$/.test(f));
       if (!hasTests) continue; // pytest declared with nothing to run is not a gate
       // Seed the runner the project DECLARES. Test files alone say nothing
@@ -479,7 +496,7 @@ export function inventory(root) {
   // Languages, counted by file extension — what is actually written here.
   const languages = new Map();
   for (const f of files) {
-    const ext = baseOf(f).includes(".") ? baseOf(f).split(".").pop().toLowerCase() : "";
+    const ext = baseOf(f).includes(".") ? (baseOf(f).split(".").pop() ?? "").toLowerCase() : "";
     const lang = LANG_BY_EXT[ext];
     if (lang) languages.set(lang, (languages.get(lang) ?? 0) + 1);
   }

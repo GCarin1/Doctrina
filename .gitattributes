@@ -1,0 +1,12 @@
+# Line endings are LF in the repository and in every checkout. Without this
+# they depended on each clone's `core.autocrlf`: a Windows checkout turned the
+# templates and every `.doctrina/` file into CRLF, and a script that patched
+# them with `\n` matched nothing.
+* text=auto eol=lf
+
+# Every change adds an entry at the top of the changelog; two branches keep both.
+CHANGELOG.md merge=union
+
+# Doctrina: the derived index merges as data, the ledger as a list (`doctrina hooks install`)
+**/.doctrina/index.json merge=doctrina-index
+**/.doctrina/changes/archive/LEDGER.md merge=union

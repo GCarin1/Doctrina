@@ -54,14 +54,14 @@ para que o agente não precise "saber" que deve chamar a CLI:
 
 | Comando | Roda |
 |---------|------|
+| `/doctrina-onboard` | `doctrina onboard`: o ciclo inteiro uma vez, guiado, parando em cada ASK |
 | `/doctrina-work <prompt>` | `doctrina work` + conduz a mudança pelos gates |
 | `/doctrina-next` | `doctrina next` / `doctrina status` e age no item prioritário |
 | `/doctrina-context [cap]` | `doctrina context --concat` (o pacote de leitura) |
 | `/doctrina-status` | painel de saúde `doctrina status` |
 | `/doctrina-why <cap>` | cadeia de proveniência `doctrina why` |
 
-Cada um é um prompt fino que chama a CLI e repassa a saída — a CLI
-continua sendo a única fonte de verdade.
+Cada um é um prompt fino que chama a CLI e repassa a saída: a CLI é a fonte de verdade.
 
 ## OpenAI Codex CLI
 
@@ -94,6 +94,8 @@ Doctrina:
 
 - A request that changes behaviour is a change, opened BEFORE code is
   edited: `doctrina work "<request>"`. One change per activity asked for.
+- An edit that changes nothing a spec says (a typo, a comment, a fix
+  restoring what it states) needs none: edit, `doctrina verify`, commit.
 - The first sentence to the human names the change id.
 - Read with `doctrina context <cap> --for "<task>" --concat`; `doctrina
   prime` is the project's state, not the spec.
@@ -104,24 +106,22 @@ Do not add rules here: this file carries only the cycle, because Cursor's
 per-prompt hook cannot; everything else belongs in AGENTS.md.
 ```
 
-O `alwaysApply: true` faz o Cursor incluir esta regra em toda requisição.
-Ela era só um ponteiro; uma review de campo achou que, sem o nome do
-framework no pedido, o pedido de código vencia. Como o hook por prompt do
-Cursor não injeta contexto, a regra agora carrega o ciclo; o resto fica no
-AGENTS.md. O adapter também mescla um `sessionStart` no `.cursor/hooks.json`
-(`doctrina prime --hook cursor`), e o `index rebuild` exporta as skills para
-`.agents/skills/`, que o Cursor lista sozinho.
+O `alwaysApply: true` faz o Cursor incluir esta regra em toda requisição. Ela
+era só um ponteiro; uma review de campo achou que, sem o nome do framework no
+pedido, o pedido de código vencia. Como o hook por prompt do Cursor não injeta
+contexto, a regra agora carrega o ciclo; o resto fica no AGENTS.md. O adapter
+também mescla um `sessionStart` no `.cursor/hooks.json` (`doctrina prime --hook
+cursor`), e o `index rebuild` exporta as skills para `.agents/skills/`.
 
-O Cursor tem quatro modos de regra — Always Apply, Auto-Attached
-(globs), Agent-Requested (descrição) e Manual (`@nome`). O Doctrina usa
-só o Always Apply, porque o ciclo precisa alcançar toda requisição; os
-outros três servem a regras do projeto por cima dele — veja
-[context-engineering.md](context-engineering.md).
+O Cursor tem quatro modos de regra — Always Apply, Auto-Attached (globs),
+Agent-Requested (descrição) e Manual (`@nome`). O Doctrina usa só o Always
+Apply, porque o ciclo precisa alcançar toda requisição; os outros três servem
+a regras do projeto por cima dele — veja [context-engineering.md](context-engineering.md).
 
 ### Skills do core loop
 
 O adapter `cursor` instala também `.cursor/skills/doctrina-*/SKILL.md`: o core
-loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`) como skills que
+loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`, `-onboard`) como skills que
 chamam a CLI, com `disable-model-invocation: true` (rodam quando chamadas com
 `/`) — a doc do Cursor descreve skills, não `.cursor/commands/`. `doctrina
 upgrade --write` (ou `adapter add cursor`) grava as skills num projeto antigo e
@@ -166,13 +166,12 @@ pattern de pointer fino:
 | `windsurf` | `.windsurfrules` na raiz do projeto | Convenção do arquivo de regras do Windsurf |
 | `continue` | `.continue/rules/00-doctrina.md` | Diretório de regras do Continue.dev |
 
-Cada um tem menos de 30 linhas e só roteia o agente para o
-`AGENTS.md`. `doctrina init --agent <nome>` aceita qualquer dos
-doze slugs (`claude`, `codex`, `cursor`, `copilot`, `gemini`,
-`aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`,
-`jules`) ou `all` para instalar todos os adapters. Os últimos
-quatro, como o `codex`, são AGENTS.md-native e não instalam
-arquivo nenhum (veja a próxima seção).
+Cada um tem menos de 30 linhas e só roteia o agente para o `AGENTS.md`.
+`doctrina init --agent <nome>` aceita qualquer dos 13 slugs (`claude`,
+`codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`,
+`amp`, `devin`, `factory`, `jules`, `kiro`) ou `all` para instalar todos os
+adapters. Os últimos cinco, como o `codex`, são AGENTS.md-native e não
+instalam arquivo nenhum (veja a próxima seção).
 
 Para LLMs locais (LLaMA, Mistral, Qwen, DeepSeek) e endpoints
 cloud não-Anthropic, veja [local-llms.md](local-llms.md) com
@@ -195,6 +194,7 @@ simétrico e affordances futuras por-agente tenham casa óbvia.
 | `devin` | Cognition Devin |
 | `factory` | Factory AI |
 | `jules` | Google Jules |
+| `kiro` | Kiro (IDE e CLI) |
 
 Para esses cinco, AGENTS.md sozinho é suficiente. O diretório
 de adapter Doctrina existe só para marcar o contrato de

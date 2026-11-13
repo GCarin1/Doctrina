@@ -122,7 +122,7 @@ Use **Doctrina** when:
 - You are adopting into a brownfield codebase.
 - You want the empirical A/B protocol shipped in the box.
 - Bilingual EN + PT documentation matters.
-- Your agent surface fits the twelve supported agents.
+- Your agent surface fits the 13 supported agents.
 
 Use **Spec Kit** when:
 

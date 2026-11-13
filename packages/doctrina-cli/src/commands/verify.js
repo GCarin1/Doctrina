@@ -249,8 +249,8 @@ export async function run(_positional, flags) {
         results.push({ name, ok: true, kind: "manual", signoff: "fresh" });
       } else if (verdict.state === "expired") {
         console.log(c.yellow(`○ ${name} — sign-off expired`) +
-          c.gray(` (signed ${so.date} at ${short(so.sha)}; changed since: ${verdict.changed.slice(0, 3).join(", ")}` +
-            `${verdict.changed.length > 3 ? `, +${verdict.changed.length - 3} more` : ""})`) + resign);
+          c.gray(` (signed ${so.date} at ${short(so.sha)}; changed since: ${(verdict.changed ?? []).slice(0, 3).join(", ")}` +
+            `${(verdict.changed ?? []).length > 3 ? `, +${(verdict.changed ?? []).length - 3} more` : ""})`) + resign);
         results.push({ name, ok: false, kind: "manual", pending: true, signoff: "expired" });
       } else if (verdict.state === "unverifiable") {
         console.log(c.yellow(`○ ${name} — sign-off cannot be verified`) +
@@ -320,7 +320,7 @@ export async function run(_positional, flags) {
       const verdict = judgeOutput(expectation, output);
       if (!verdict.ok) {
         ok = false;
-        expectationNote = verdict.reason;
+        expectationNote = verdict.reason ?? null;
       }
     }
 

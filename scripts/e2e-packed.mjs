@@ -42,7 +42,7 @@ const quick = process.argv.includes("--quick");
 
 const ADAPTERS = [
   "claude", "codex", "cursor", "copilot", "gemini", "aider",
-  "windsurf", "continue", "amp", "devin", "factory", "jules",
+  "windsurf", "continue", "amp", "devin", "factory", "jules", "kiro",
 ];
 
 let failures = 0;
@@ -136,7 +136,7 @@ if (pack.status !== 0) {
   console.error("npm pack failed:\n" + pack.out);
   process.exit(1);
 }
-const tarball = pack.stdout.trim().split(/\r?\n/).filter(Boolean).pop();
+const tarball = pack.stdout.trim().split(/\r?\n/).filter(Boolean).pop() ?? "";
 const tarballPath = path.join(scratch, path.basename(tarball));
 assert(existsSync(tarballPath), `packed ${path.basename(tarballPath)}`);
 
@@ -281,6 +281,12 @@ for (const [label, args] of [
   const r = doctrina(args, proj);
   assert(r.status === 0, `${label} after the lifecycle`, r.out);
 }
+
+// The console is five modules that load each other: a packed install has to
+// carry every one, and a pipe gets its one frame (change 0257).
+const frame = doctrina(["ui", "--frame", "--cols", "96", "--rows", "20"], proj);
+assert(frame.status === 0 && /◆ Doctrina/.test(frame.out) && /RECENTLY CLOSED/.test(frame.out),
+  "ui --frame paints the console from a packed install", frame.out);
 
 // ---------------------------------------------------- C1: content safety
 

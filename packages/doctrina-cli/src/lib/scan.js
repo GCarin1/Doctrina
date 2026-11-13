@@ -24,6 +24,7 @@ export function listHeader(text, name) {
   return getHeader(text, name);
 }
 
+/** @returns {string[]} */
 export function parseDependsOn(text) {
   const raw = specHeader(text, "Depends on");
   if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
@@ -77,6 +78,7 @@ function dirEntries(dir) {
 // The capabilities an ADR governs, from its optional "Scope:" header
 // (M4). Returns [] when absent, "n/a", or "—" — an unscoped ADR is global
 // and belongs in every pack, which is what keeps this backward compatible.
+/** @returns {string[]} */
 export function parseAdrScope(text) {
   const raw = listHeader(text, "Scope");
   if (!raw || /^n\/a\b/i.test(raw.trim()) || raw.trim() === "—") return [];
@@ -175,7 +177,7 @@ export function changeEntry(proposal, id, prev, date) {
 // carried the lane: an archived change lost the lane it was born in, so the
 // report's "Lanes" section counted the whole history as unknown (change
 // 0192), which is the question change 0042 recorded the lane to answer.
-export function archivedChangeEntry(proposal, { id, archiveName, applied, specsAffected, prev = null, title = undefined }) {
+export function archivedChangeEntry(proposal, { id, archiveName, applied, specsAffected, prev = /** @type {any} */ (null), title = /** @type {string | null | undefined} */ (undefined) }) {
   return {
     id,
     title: (title === undefined ? parseChangeTitle(proposal) : title) ?? prev?.title ?? id,
@@ -213,12 +215,12 @@ export function deriveIndex(projectRoot, current) {
         version: "0.1.0",
         last_updated: date,
       },
-      specs: [],
-      decisions: [],
-      changes: [],
-      changes_archive: [],
-      skills: [],
-      contracts: [],
+      specs: /** @type {any[]} */ ([]),
+      decisions: /** @type {any[]} */ ([]),
+      changes: /** @type {any[]} */ ([]),
+      changes_archive: /** @type {any[]} */ ([]),
+      skills: /** @type {any[]} */ ([]),
+      contracts: /** @type {any[]} */ ([]),
     },
   };
 
@@ -533,7 +535,10 @@ export function collectStagedIndexDrift(projectRoot) {
   const nothing = { ok: true, applicable: false, missing: [], unindexed: [], reason: null };
   if (!isRepo(projectRoot)) return { ...nothing, reason: "not a git repository" };
 
-  const blob = git(projectRoot, ["show", ":.doctrina/index.json"]);
+  // `:./` reads the path from the current directory. A bare `:.doctrina/…`
+  // is read from the top of the repository, so for a project in a subfolder
+  // the check answered "no staged index" for every commit (change 0250).
+  const blob = git(projectRoot, ["show", ":./.doctrina/index.json"]);
   if (blob.state !== GIT_STATE.OK || !blob.stdout.trim()) {
     // Not staged at all — this commit does not carry an index, so it cannot
     // carry one that disagrees with itself.

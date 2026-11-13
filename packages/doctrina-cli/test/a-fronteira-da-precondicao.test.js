@@ -41,8 +41,9 @@ function runCli(args, cwd) {
 // from a tree: `next` names the door, `completion` emits a shell script,
 // `ci --emit` renders the gate sequence from its declaration, and
 // `templates list` shows what would be resolved. The spec used to name
-// three exceptions when there were seven.
-const EXEMPT = new Set(["init", "next", "completion", "ci", "templates"]);
+// three exceptions when there were seven. `onboard` walks a newcomer from
+// before the install: its first step IS `init` (change 0256).
+const EXEMPT = new Set(["init", "onboard", "ui", "next", "completion", "ci", "templates"]);
 
 // A subcommand each hub accepts, so the walk reaches the command's own body
 // instead of stopping at its usage error.

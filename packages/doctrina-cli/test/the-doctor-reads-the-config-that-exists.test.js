@@ -54,9 +54,9 @@ test("a misspelled key is a warning in validate and in doctor, naming the valid 
   const dir = project('{ "context_budjet": 10 }');
   const validate = run(dir, ["validate"]);
   assert.equal(validate.status, 0, "a warning, not an error");
-  assert.match(validate.stdout, /warn: .*config\.json: unknown key "context_budjet" .*language, context_budget, rules/);
+  assert.match(validate.stdout, /warn: .*config\.json: unknown key "context_budjet" .*language, context_budget, rules, surface/);
   const doctor = run(dir, ["doctor"]);
   assert.match(doctor.stdout, /warn\s+config\s+.*unknown key "context_budjet"/);
   const clean = run(project('{ "context_budget": 10 }'), ["doctor"]);
-  assert.match(clean.stdout, /ok\s+config\s+1 of 3 options configured/);
+  assert.match(clean.stdout, /ok\s+config\s+1 of 4 options configured/);
 });

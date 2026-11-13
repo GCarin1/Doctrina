@@ -51,7 +51,7 @@ const SPEC = [
 test("the domain is declared once and it is the ladder the docs describe", () => {
   assert.deepEqual(STATUS_VALUES, ["draft", "active", "deprecated"]);
   assert.deepEqual(IMPLEMENTATION_VALUES, ["planned", "partial", "implemented", "verified"]);
-  assert.deepEqual(CRITERION_MARKS, ["verified", "unverified", "orchestration"]);
+  assert.deepEqual(CRITERION_MARKS, ["verified", "unverified", "orchestration", "property"]);
 });
 
 test("set-header refuses a word outside the domain and accepts a note after a legal one", () => {

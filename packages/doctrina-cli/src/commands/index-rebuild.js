@@ -10,8 +10,10 @@ import { c } from "../lib/colors.js";
 import { suggest } from "../lib/suggest.js";
 import { notADoctrinaProject } from "../lib/exit-codes.js";
 import { planSkillExport, applySkillExport } from "../lib/skill-export.js";
+import { mergeIndex } from "../lib/index-merge.js";
+import { readFileSync, writeFileSync } from "node:fs";
 
-const SUBCOMMANDS = ["rebuild"];
+const SUBCOMMANDS = ["rebuild", "merge"];
 
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
@@ -20,6 +22,7 @@ export const flags = { boolean: ["json", "check", "staged"], string: [] };
 
 export async function run(positional, flags) {
   const sub = positional[0];
+  if (sub === "merge") return merge(positional.slice(1));
   if (sub !== "rebuild") {
     console.error(c.red("error:") + ` unknown index subcommand "${sub ?? ""}"`);
     const guess = suggest(sub, SUBCOMMANDS);
@@ -98,6 +101,43 @@ function rebuild(flags) {
   return 0;
 }
 
+// The merge driver git calls for `.doctrina/index.json` (change 0242):
+// `doctrina index merge %O %A %B`. It writes the merged index over <ours>
+// and exits 0, which is how a driver tells git there is nothing to resolve.
+// A side that is not JSON is the one case it leaves to git, with exit 1.
+function merge(args) {
+  const [basePath, oursPath, theirsPath] = args;
+  if (!basePath || !oursPath || !theirsPath) {
+    console.error(c.red("error:") + " index merge takes three files: <base> <ours> <theirs>");
+    console.error(c.gray("hint: ") + "git calls it as a merge driver — `doctrina hooks install` sets it up");
+    return 2;
+  }
+  const load = (/** @type {string} */ file, /** @type {string} */ side) => {
+    let text = "";
+    try {
+      text = readFileSync(file, "utf8");
+    } catch {
+      if (side === "base") return {};
+      throw new Error(`cannot read the ${side} index at ${file}`);
+    }
+    if (text.trim() === "") return {};
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      throw new Error(`the ${side} index is not valid JSON (${err.message})`);
+    }
+  };
+  let merged;
+  try {
+    merged = mergeIndex(load(basePath, "base"), load(oursPath, "ours"), load(theirsPath, "theirs"));
+  } catch (err) {
+    console.error(c.red("error:") + ` ${err.message} — left for a manual merge; \`doctrina index rebuild\` derives it from the tree afterwards`);
+    return 1;
+  }
+  writeFileSync(oursPath, JSON.stringify(merged, null, 2) + "\n");
+  return 0;
+}
+
 // The drift check, asked of what git will record. `index.json` is derived
 // from the WHOLE tree, so it cannot describe a subset of it: stage part of
 // `.doctrina/` and the index riding along names artifacts the commit does
@@ -135,6 +175,12 @@ export const help = `
 Usage: doctrina index <subcommand>
 
 Subcommands:
+  merge <base> <ours> <theirs>
+                    The merge driver git runs for index.json once
+                    \`doctrina hooks install\` has set it up: two branches
+                    that each closed a change merge as lists of artifacts,
+                    so the file never stops a merge with conflict markers.
+                    Writes the result over <ours>.
   rebuild           Regenerate .doctrina/index.json from the artifacts on
                     disk (spec headers, ADR headers, change proposals,
                     archive folders, skill frontmatter). The files are the

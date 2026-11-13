@@ -14,7 +14,7 @@
 
 > Spec-driven, AGENTS.md-native framework for multi-agent AI development.
 
-**Status:** v0.21.0 — released.
+**Status:** v0.22.0 — released.
 **Read this in [Portuguese](./README.pt.md).**
 
 ## Install
@@ -27,6 +27,15 @@ cd your-repo && doctrina init   # AGENTS.md + .doctrina/, asks for a project des
 From there your agent drives: `doctrina prime` at the start of a session,
 `doctrina work "<prompt>"` for each request, `doctrina close <id>` to finish
 it. Full walkthrough: [Getting started](./docs/en/getting-started.md).
+
+Prefer one window to forty commands? Run `doctrina` alone in a terminal:
+the console shows the gates and the open work, runs any command after `/`,
+and sends a request typed in your own words to the agent you already use —
+Claude Code, Cursor, GitHub Copilot, Codex, Gemini, or your own — on the
+model you choose. Consoles open in several terminals see each other and
+hand one another requests ([`doctrina ui`](./docs/en/cli-reference.md#doctrina-ui)).
+
+![The Doctrina console: gates across the top, the conversation with the agent, and the open work beside it](./docs/assets/console.png)
 
 ---
 
@@ -101,8 +110,8 @@ governs how a body of agents acts.
   the hub, so the hub can never lag the CLI.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 39 commands
-  and 75 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 41 commands
+  and 79 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
   change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,
@@ -110,10 +119,10 @@ governs how a body of agents acts.
   against the catalog by `scripts/check-docs.js` — as is every count
   stated anywhere in this repository's documentation — so no line here
   can drift.
-- Adapters for 12 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
+- Adapters for 13 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
-  Factory, Jules).
-- Eleven capability specs and the ADRs 0001–0031 that describe the framework
+  Factory, Jules, Kiro).
+- 15 capability specs and the ADRs 0001–0033 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as
@@ -163,7 +172,7 @@ User-facing documentation lives under [`docs/`](./docs/):
 - [Getting started](./docs/en/getting-started.md) — install, init, first feature.
 - [Workflow](./docs/en/workflow.md) — propose → apply → archive.
 - [CLI reference](./docs/en/cli-reference.md) — every command and flag.
-- [Adapters](./docs/en/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules.
+- [Adapters](./docs/en/adapters.md) — Claude Code, Codex CLI, Cursor, Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin, Factory, Jules, Kiro.
 - [Local LLMs](./docs/en/local-llms.md) — wire Doctrina to LLaMA, Mistral, Qwen, DeepSeek, or any OpenAI-compatible endpoint.
 - [Multi-agent model](./docs/en/multi-agent.md) — how Doctrina coordinates tools, phases, and humans without parallel writers.
 - [Skills](./docs/en/skills.md) — on-demand procedural memory: specialised "how to do X" knowledge loaded only when relevant.

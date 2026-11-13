@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import { conflictedArtifacts } from "./conflict-markers.js";
 import { readdirSync } from "node:fs";
 import { isDir, isFile, read, relPath, walk } from "./fs-ops.js";
 import * as idx from "./index-json.js";
@@ -97,6 +98,24 @@ function defaultText(command, args, why) {
 export function computeActions(projectRoot, gates = {}) {
   /** @type {Action[]} */
   const actions = [];
+
+  // A MERGE THAT STOPPED INSIDE AN ARTIFACT comes before everything (change
+  // 0250): every action below is computed from files that hold both halves
+  // of a conflict, and the next thing an agent does with a spec is read it.
+  try {
+    const conflicted = conflictedArtifacts(projectRoot);
+    if (conflicted.length > 0) {
+      const first = path.relative(projectRoot, conflicted[0].file).split(path.sep).join("/");
+      actions.push(action({
+        id: "merge-conflict",
+        command: "validate",
+        gate: "structure",
+        runnable: false,
+        why: `${conflicted.length} artifact${conflicted.length === 1 ? " carries" : "s carry"} git's merge conflict markers (first: ${first}:${conflicted[0].line})`,
+        text: `resolve the merge conflict in ${first} (line ${conflicted[0].line})${conflicted.length > 1 ? ` and ${conflicted.length - 1} more` : ""} — keep what both branches meant and delete the marker lines; \`doctrina validate\` names each file`,
+      }));
+    }
+  } catch { /* an unreadable tree is reported by the checks below */ }
 
   // RUNTIME FIRST (change 0029). A declared wiring that does not hold is
   // not a queue item — it is the reason the last run lied. After a job goes

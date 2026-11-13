@@ -126,11 +126,11 @@ export function deliveryChanges(wsDir, ws, delivery) {
   for (const name of delivery.projects) {
     const project = ws.projects.find((p) => p.name === name);
     if (!project) {
-      out.push({ project: name, missing: "not registered in the workspace", changes: [] });
+      out.push({ project: name, missing: "not registered in the workspace", changes: /** @type {any[]} */ ([]) });
       continue;
     }
     const changesDir = path.join(artifactRootOf(wsDir, project), ".doctrina", "changes");
-    const changes = [];
+    const changes = /** @type {any[]} */ ([]);
     for (const { dir, archived } of [{ dir: changesDir, archived: false }, { dir: path.join(changesDir, "archive"), archived: true }]) {
       if (!isDir(dir)) continue;
       for (const entry of readdirSync(dir).sort()) {

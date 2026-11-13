@@ -50,6 +50,7 @@ agent does not have to know to shell out to the CLI:
 
 | Command | Runs |
 |---------|------|
+| `/doctrina-onboard` | `doctrina onboard`: the whole cycle once, guided, stopping at each ASK |
 | `/doctrina-work <prompt>` | `doctrina work` + drives the change through the gates |
 | `/doctrina-next` | `doctrina next` / `doctrina status` and acts on the top item |
 | `/doctrina-context [cap]` | `doctrina context --concat` (the read pack) |
@@ -90,6 +91,8 @@ Doctrina:
 
 - A request that changes behaviour is a change, opened BEFORE code is
   edited: `doctrina work "<request>"`. One change per activity asked for.
+- An edit that changes nothing a spec says (a typo, a comment, a fix
+  restoring what it states) needs none: edit, `doctrina verify`, commit.
 - The first sentence to the human names the change id.
 - Read with `doctrina context <cap> --for "<task>" --concat`; `doctrina
   prime` is the project's state, not the spec.
@@ -119,7 +122,7 @@ serve project rules layered on top — see
 ### Skills for the core loop
 
 The `cursor` adapter also installs `.cursor/skills/doctrina-*/SKILL.md`: the
-core loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`) as skills
+core loop (`/doctrina-work`, `-next`, `-context`, `-status`, `-why`, `-onboard`) as skills
 that invoke the CLI, with `disable-model-invocation: true` (they run when
 invoked with `/`) — Cursor's documentation describes skills, not
 `.cursor/commands/`. `doctrina upgrade --write` (or `adapter add cursor`)
@@ -165,10 +168,10 @@ thin-pointer pattern:
 | `continue` | `.continue/rules/00-doctrina.md` | Continue.dev rules directory |
 
 Each is under 30 lines and only routes the agent at `AGENTS.md`.
-`doctrina init --agent <name>` accepts any of the twelve agent
+`doctrina init --agent <name>` accepts any of the 13 agent
 slugs (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`,
-`windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or
-`all` to install every adapter. The last four, like `codex`, are
+`windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) or
+`all` to install every adapter. The last five, like `codex`, are
 AGENTS.md-native and install no file (see the next section).
 
 For local LLMs (LLaMA, Mistral, Qwen, DeepSeek) and
@@ -192,6 +195,7 @@ have an obvious home.
 | `devin` | Cognition Devin |
 | `factory` | Factory AI |
 | `jules` | Google Jules |
+| `kiro` | Kiro (IDE and CLI) |
 
 For these five, AGENTS.md alone is sufficient. The Doctrina
 adapter directory only exists to mark the support contract

@@ -115,7 +115,7 @@ It packs the tarball, installs it into a scratch directory **outside** the
 repo, and drives a real project through the whole lifecycle — `init` →
 `spec new` → `work` → delta → `change check` → `close` → archive — with the
 installed binary, asserting `validate`, `upgrade` and `doctor` are
-green at each step. Then it installs every one of the twelve adapters into
+green at each step. Then it installs every one of the 13 adapters into
 its own project and checks each.
 
 `--repo <path>` points it at another checkout, which is how it was proved:

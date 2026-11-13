@@ -3,7 +3,7 @@
 > CLI for the Doctrina framework. The package is published as
 > `doctrina-cli`; the executable it installs is `doctrina`.
 
-**Status:** v0.21.0 — current release. Zero runtime dependencies
+**Status:** v0.22.0 — current release. Zero runtime dependencies
 (Node.js standard library only).
 
 ## Install
@@ -23,14 +23,14 @@ read `AGENTS.md` and run `doctrina next` — it drives the rest. The
 surface, by the moment you reach for it:
 
 ```
-Bootstrap   init · intake · adapter list|add|remove
+Bootstrap   init · ui · onboard · intake · adapter list|add|remove
 Orient      prime · next · status · context · show · search · why · handoff
-Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|delta|card
+Change      triage · work · spec new|list|set · change new|apply|archive|check|tick|abandon|renumber|delta|card
             contract new|list|check · decision new|accept|land|supersede|list|scope
             skill new|list|suggest · intent add|list
 Gate        clarify · validate · coverage · trace · review · verify · close · doctor
 Orchestrate workspace init|add|attach|detach|list|tool|guard · delivery new|route|list|status|tick|check|close
-Maintain    upgrade · index rebuild · hooks install · watch · metrics · completion · ci · templates list
+Maintain    upgrade · index rebuild|merge · hooks install · watch · metrics · completion · ci · templates list
 ```
 
 `doctrina --help` prints the same grouping with one line per command, and
@@ -44,7 +44,7 @@ code is in the
 |------|---------|
 | `--project-name <name>` | Override the project name (defaults to cwd basename) |
 | `--project-description <text>` | One-sentence description, with no intake. Without it on a terminal, `init` asks you to describe the project once and keeps the answer as the intake |
-| `--agent <name>` | Install the adapter for one of the twelve supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`) or `all` |
+| `--agent <name>` | Install the adapter for one of the 13 supported agents (`claude`, `codex`, `cursor`, `copilot`, `gemini`, `aider`, `windsurf`, `continue`, `amp`, `devin`, `factory`, `jules`, `kiro`) or `all` |
 | `--date <YYYY-MM-DD>` | Override the system date in artifacts |
 | `--force` | Overwrite existing files |
 | `--non-interactive` | Fail instead of prompting for missing required values |
@@ -57,7 +57,7 @@ code is in the
   `alwaysApply: true` pointing at `AGENTS.md`. `copilot`, `gemini`,
   `aider`, `windsurf`, and `continue` follow the same thin-pointer
   pattern at each agent's native path.
-- `--agent codex` (and `amp`, `devin`, `factory`, `jules`) installs
+- `--agent codex` (and `amp`, `devin`, `factory`, `jules`, `kiro`) installs
   nothing: these agents read `AGENTS.md` natively.
 - `--agent all` installs every adapter.
 

@@ -30,6 +30,12 @@ export function load(projectRoot) {
   try {
     return JSON.parse(raw);
   } catch (err) {
+    // Conflict markers are the one way this file usually stops parsing
+    // (change 0242): two branches closed a change each, and git merged the
+    // derived index as text. Said as what it is, with the two ways out.
+    if (/^(<{7}|={7}|>{7})( |$)/m.test(raw)) {
+      throw new Error(".doctrina/index.json carries git's merge conflict markers — it is derived, so `doctrina index rebuild` writes it again from the tree (and `doctrina hooks install` makes git merge it by itself)");
+    }
     throw new Error(`.doctrina/index.json is not valid JSON: ${err.message}`);
   }
 }
@@ -42,7 +48,10 @@ export function save(projectRoot, index) {
   index.framework_version = newestVersion(index.framework_version, cliVersion());
   const p = indexPath(projectRoot);
   const text = JSON.stringify(index, null, 2) + "\n";
-  write(p, text, { force: true });
+  // Atomic (change 0250): every command reads this file, and one that read
+  // it while another was half-way through writing it stopped with
+  // "Unexpected end of JSON input".
+  write(p, text, { force: true, atomic: true });
 }
 
 export function blank(projectName, date) {

@@ -19,8 +19,10 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
 - **Day-to-day.** `doctrina prime` opens the session (gates, rules, open
   work). A request that changes behaviour is a change opened BEFORE code is
   edited: `doctrina work "<request>"` — it classifies the lane itself; one
-  change per activity the human asked for. Name the change id in your first
-  sentence to the human. Read with `doctrina context <cap> --for "<task>"
+  change per activity the human asked for. An edit that changes nothing a
+  spec says (a typo, a comment, formatting, a fix restoring what the spec
+  states) needs none: edit, `doctrina verify`, commit. Name the change id in
+  your first sentence to the human. Read with `doctrina context <cap> --for "<task>"
   --concat` — `prime` is state, not the spec. Project skills are listed
   where your agent finds skills (`.agents/skills/`, `.claude/skills/`).
   Close with `doctrina close <id>` and repeat the archive path it prints.
@@ -29,51 +31,27 @@ prompt and approves; do not make them run the CLI or hand-author artifacts.
 <!-- doctrina:surface:begin — CLI-owned block, generated from the installed command catalog. Refreshed by `doctrina upgrade --write`; edits inside are overwritten. -->
 ## Doctrina command surface (generated — reach for these, don't hand-author)
 
-Every command, with the moment you reach for it. The CLI scaffolds from
-canonical templates and syncs `index.json`. Flags: `doctrina <cmd> --help`.
-**Bootstrap**
-- `doctrina init` — scaffold AGENTS.md and .doctrina/. *When:* starting a project that has no AGENTS.md yet.
-- `doctrina intake` — store the intent and print the bootstrap playbook. *When:* you have a full project description and no specs yet.
-- `doctrina adapter list|add|remove` — install/remove agent adapters (additive). *When:* adding or removing an agent's pointer files.
-**Orient**
+The loop a session runs. Each command prints the next step; the CLI
+scaffolds from canonical templates and syncs `index.json`.
 - `doctrina prime (session start)` — gates, open work and next steps in one read (--rules for the full standing rules). *When:* at the START of every session.
-- `doctrina context [<cap>] --for "<task>" --concat` — the read pack, assembled to fit a token budget. *When:* before working on any task, to load the right files.
-- `doctrina show` — point-read a single artifact by reference. *When:* you need one requirement, criterion, or ADR, not a file.
-- `doctrina search` — search the artifact tree, grouped by category. *When:* you do not know which artifact mentions a term.
-- `doctrina status` — index, coverage, trace, and artifact counts. *When:* you need the health of the tree at a glance.
-- `doctrina next` — the recommended next workflow action. *When:* you finished something and do not know what follows.
-- `doctrina why` — provenance: intent, proof, ADRs, and history. *When:* you need to justify or trace a capability's existence.
-- `doctrina handoff (before compaction/handover)` — a resume note: open work, task state, next command. *When:* BEFORE compaction or handing over to another session.
-**Change**
-- `doctrina triage` — classify the lane (product/runtime/chore) and check the declared runtime surface. *When:* diagnosing an incident or a runtime symptom — `work` classifies every other request itself.
 - `doctrina work "<prompt>" (--capability · --chore · --from-diff · --quiet)` — scaffold a change and print the playbook to execute. *When:* a request changes behaviour — BEFORE editing code; it classifies the lane itself.
-- `doctrina spec new|list|set` — create, list, and edit capability specs. *When:* a capability needs creating or its headers advancing.
-- `doctrina change new|apply|archive|check|tick|abandon|delta|card` — drive a change by hand — check --verbose previews every delta. *When:* driving a change through its lifecycle by hand.
-- `doctrina contract new|list|check` — own and verify the integration surface. *When:* the change touches ports, env vars, or public endpoints.
-- `doctrina decision new|accept|land|supersede|list|scope` — record, accept, land, scope, and supersede ADRs. *When:* the change decides something a later session must not relitigate.
-- `doctrina skill new|list|suggest` — capture on-demand procedural memory. *When:* a lesson is worth not relearning.
-- `doctrina intent add|list` — append and list product intent anchors. *When:* new product intent appears after the intake.
-**Gate**
-- `doctrina clarify --all (--lang pt|en)` — smell-test Markdown for ambiguity. *When:* before applying, or before opening a PR.
-- `doctrina validate (--fix)` — schema, structure, EARS, and index drift. *When:* after any artifact edit, and before considering work done.
-- `doctrina coverage --strict` — acceptance criteria against cited evidence. *When:* before claiming a capability is proven.
-- `doctrina trace --strict` — intent provenance across the tree. *When:* checking that product intent still maps to capabilities.
-- `doctrina review` — conformance of your changes vs specs/ADRs/contracts. *When:* before handing work back, to self-review it.
-- `doctrina verify` — the project's declared typecheck/test/build checks. *When:* the real build gate must run.
+- `doctrina context [<cap>] --for "<task>" --concat` — the read pack, assembled to fit a token budget. *When:* before working on any task, to load the right files.
 - `doctrina close <id...>` — the whole closing sequence in one attested pass. *When:* a change is implemented and ready to finish.
+- `doctrina next` — the recommended next workflow action. *When:* you finished something and do not know what follows.
+- `doctrina validate (--fix)` — schema, structure, EARS, and index drift. *When:* after any artifact edit, and before considering work done.
 - `doctrina doctor` — aggregate diagnostic with per-finding remedies. *When:* something looks wrong and you do not know which gate to ask.
-**Orchestrate** (triggers: `doctrina <command> --help`) — `doctrina workspace init|add|attach|detach|list|tool|guard` · `doctrina delivery new|route|list|status|tick|check|close`
-**Maintain** (triggers: `doctrina <command> --help`) — `doctrina templates list` · `doctrina hooks install` · `doctrina index rebuild` · `doctrina watch` · `doctrina metrics` · `doctrina completion` · `doctrina upgrade --write` · `doctrina ci --emit github`
+- `doctrina handoff (before compaction/handover)` — a resume note: open work, task state, next command. *When:* BEFORE compaction or handing over to another session.
+**Everything else** — specs, changes by hand, decisions, contracts, skills, the single gates, workspaces and deliveries: `doctrina --help` lists every command with its moment, and `doctrina <command> --help` its flags. (`"surface": "full"` in `.doctrina/config.json`, then `doctrina upgrade --write`, lists them all here.)
 <!-- doctrina:surface:end -->
 
 <!-- doctrina:changed:begin — CLI-owned. Regenerated by `doctrina upgrade --write`. -->
-## What changed in 0.21.0
+## What changed in 0.22.0
 
-- At a workspace root, `next`, `handoff`, `status`, `validate`, `context`, `doctor` and `metrics` answer for the workspace; never `doctrina init` there or in a shadowed repository's clone — the commands name `doctrina workspace attach` instead.
-- A task card carries the delta, the delivery's story and every binding decision, global ones included: as an executor, stop and report when the story or the task contradicts one; a card on placeholder tasks means the planner writes them first (`doctrina work --resume <id>`).
-- Run the command lines the CLI prints as printed: paths and titles are quoted for the shell, and tracker text stays data.
-- Cursor: the core loop is skills in `.cursor/skills/doctrina-*/`; run `doctrina upgrade --write` to move an older install. With a tool declared the guard fails closed — a refused call means fix the install or ask the human.
-- Absorb: after writing specs by hand run `doctrina validate --fix`; a stored code inventory resumes with a bare `doctrina intake`, never `--from-code` again.
+- An edit that changes nothing a spec says opens no change: `doctrina work` answers `direct` and exits 0 — edit, run `doctrina verify`, commit. `--force` only when a sentence of a spec does change.
+- Run `doctrina hooks install` once in each clone and commit the `.gitattributes` it writes: `index.json` and the ledger then merge across branches. Two open changes with one number: `doctrina change renumber <id>`.
+- A requirement that claims something of every input is proven by a property-based test: claim it with `doctrina change delta <id> <cap> --property "…"`; an example test cited for `[property]` fails `coverage --strict`. `doctrina coverage --properties` lists the candidates.
+- A request "sent by the Doctrina console <name>" is done in this repository and your last message is its report — never hand it on. Told other consoles are open, `doctrina ui --send <name> "<self-contained task>"` hands one a task and waits for the report.
+- A new project's AGENTS.md lists the session loop only (`surface: core`); `doctrina --help` has every command. `doctrina onboard` walks a newcomer through the cycle; `init --preset <dir>` lays an organisation's preset.
 <!-- doctrina:changed:end -->
 
 ## Stack

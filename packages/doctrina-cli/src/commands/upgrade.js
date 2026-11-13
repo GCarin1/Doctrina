@@ -5,10 +5,11 @@ import { exists } from "../lib/fs-ops.js";
 import * as idx from "../lib/index-json.js";
 import { deriveIndex, indexesMatch } from "../lib/scan.js";
 import { cliVersion } from "../lib/version.js";
-import { flagBool } from "../lib/args.js";
+import { flagBool, flagString } from "../lib/args.js";
 import { c } from "../lib/colors.js";
 import { today } from "../lib/dates.js";
-import { notADoctrinaProject } from "../lib/exit-codes.js";
+import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
+import { applyPreset, describePreset, planPreset, presetPending, readPreset } from "../lib/preset.js";
 import { planSkillExport, applySkillExport } from "../lib/skill-export.js";
 import { applyAdapterMigration, planAdapterMigration } from "../lib/adapters.js";
 import { projectName } from "../lib/project.js";
@@ -30,7 +31,7 @@ import * as validate from "./validate.js";
 // Flags this command accepts. Declared HERE, with the command, so
 // adding a command never requires editing the entrypoint — the gap that
 // let six flags ship undeclared and silently swallow a positional (C3).
-export const flags = { boolean: ["json", "write"], string: [] };
+export const flags = { boolean: ["json", "write"], string: ["preset"] };
 
 export async function run(_positional, flags) {
   const projectRoot = process.cwd();
@@ -57,6 +58,27 @@ export async function run(_positional, flags) {
   }
 
   let pending = 0;
+
+  // 0. The organisation's preset, when one is named (change 0253): laid
+  //    over the project before the scaffold is measured, so the steps below
+  //    check the project as it will be.
+  const presetDir = flagString(flags, "preset");
+  if (flags.has("preset")) {
+    let preset;
+    try {
+      if (!presetDir) throw new Error("--preset needs the preset's folder");
+      preset = readPreset(presetDir);
+    } catch (err) {
+      console.error(c.red("error:") + ` ${/** @type {Error} */ (err).message}`);
+      return EXIT.USAGE;
+    }
+    const plan = planPreset(projectRoot, preset);
+    if (writeMode) applyPreset(projectRoot, preset, plan);
+    else if (presetPending(plan) > 0) pending += 1;
+    console.log(c.gray("──── preset"));
+    for (const line of describePreset(preset, plan, writeMode)) console.log(line);
+    console.log("");
+  }
 
   // 2. Additive template updates (missing recommended sections in AGENTS.md /
   //    product.md, missing index.json fields). Reuses `templates update`
@@ -102,8 +124,18 @@ export async function run(_positional, flags) {
       }
     }
     const moves = movePlan.writes.length + movePlan.removes.length;
-    if (moves > 0) {
-      if (writeMode) {
+    // What the installed adapters gained since this project added them.
+    if (movePlan.added.length > 0) {
+      const names = movePlan.added.map((a) => a.relativePath).join(", ");
+      if (writeMode) console.log(c.green("added  ") + ` ${movePlan.added.length} adapter file${movePlan.added.length === 1 ? "" : "s"} this CLI ships now: ${names}`);
+      else {
+        console.log(c.yellow("would  ") + `add ${movePlan.added.length} adapter file${movePlan.added.length === 1 ? "" : "s"} this CLI ships now: ${names}`);
+        pending += 1;
+      }
+    }
+    if (moves > 0 || (writeMode && movePlan.added.length > 0)) {
+      if (writeMode && moves === 0) applyAdapterMigration(shadowRootOf(projectRoot) ?? projectRoot, movePlan);
+      else if (writeMode) {
         const gone = applyAdapterMigration(shadowRootOf(projectRoot) ?? projectRoot, movePlan);
         relinkShadow(projectRoot, gone);
         console.log(c.green("moved  ") + ` ${movePlan.writes.length} adapter file${movePlan.writes.length === 1 ? "" : "s"} to the skills the agent reads now` +
@@ -173,7 +205,7 @@ export async function run(_positional, flags) {
 }
 
 export const help = `
-Usage: doctrina upgrade [--write]
+Usage: doctrina upgrade [--write] [--preset <dir>]
 
 Bring an existing project up to the installed CLI after an npm update.
 The project keeps the scaffold of the version that init-ed it; this is
@@ -191,6 +223,14 @@ the one command that closes the gap, orchestrating the existing pieces:
                           the framework_version stamp to the running CLI
   3. validate (--fix)   — surface anything the upgrade cannot fix
                           (hand-authored drift, new validate checks)
+
+--preset <dir> first lays an organisation's preset over the project: a
+folder with preset.json ({ "name", "description", "config" }) and optional
+templates/, decisions/, skills/ and verify.json. Additive — a file the
+project has is kept, a config key it declares is kept, an ADR number it
+uses is not overwritten — and the plan names each one. A preset's
+verify.json is copied only when the project has none, and the commands it
+would run are printed.
 
 Preview by default (exits 1 when steps are pending or a manual repair is
 left); --write applies. The preview is what \`templates check\` reported

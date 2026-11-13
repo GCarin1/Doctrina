@@ -121,6 +121,14 @@ Nothing has to move. The old homes are still read — `context_budget` from
 declared file wins **per option**, so you can migrate one at a time.
 Removal will be announced before it happens.
 
+**The commands `AGENTS.md` lists** are an option too: `"surface": "core"`
+names the loop a session runs and defers the rest to `doctrina --help`,
+which takes the generated block from 37 lines to 13 of a file read on
+every turn; `"surface": "full"` (the default for a project that declares
+nothing) lists every command. A project created by `doctrina init` is born
+with `core`. After changing it, `doctrina upgrade --write` regenerates the
+block.
+
 Everything not declared keeps its default. To see what your project is
 actually using, and which file each value came from:
 

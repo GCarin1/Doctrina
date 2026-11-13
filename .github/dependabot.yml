@@ -1,0 +1,19 @@
+# The CLI ships zero runtime dependencies; what moves here is the toolchain
+# around it — the two devDependencies of the typecheck and the actions the
+# workflows run. Monthly and grouped: one pull request each, not one per bump.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      dev-dependencies:
+        patterns: ["*"]

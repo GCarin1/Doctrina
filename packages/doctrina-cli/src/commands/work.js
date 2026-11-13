@@ -1,7 +1,6 @@
 // @ts-check
 import path from "node:path";
 import process from "node:process";
-import { readdirSync } from "node:fs";
 import { eolOf, exists, isDir, isFile, mkdirp, read, relPath, withEol, write } from "../lib/fs-ops.js";
 import { flagString, flagBool } from "../lib/args.js";
 import * as idx from "../lib/index-json.js";
@@ -10,17 +9,18 @@ import { assessBrief } from "../lib/clarity.js";
 import { locateTemplatesDir, substitute } from "../lib/templates.js";
 import { findWorkspace, projectAt, readWorkspace } from "../lib/workspace.js";
 import { readDelivery, resolveDeliveryId, sectionText } from "../lib/delivery.js";
-import { parseLedger } from "../lib/ledger.js";
 import { EXIT, notADoctrinaProject } from "../lib/exit-codes.js";
 import { listHeader } from "../lib/scan.js";
 import { changeNew, reindexChange, addAffectedSpec } from "../lib/change-ops.js";
-import { classify } from "../lib/triage-model.js";
+import { classify, directSignals, trackLines } from "../lib/triage-model.js";
 import { printPlaybookTemplate } from "../lib/playbook.js";
 import { specShape } from "../lib/spec-ops.js";
 import { changedFiles } from "../lib/git.js";
 import { slugFromPrompt, fold, CONFIDENT_MARGIN } from "../lib/lexicon.js";
 import { rankCapabilities, rankCapabilitiesByDiff, similarChanges, SIMILAR_CHANGE_DAYS } from "../lib/work-model.js";
 import { isChangeId, refuseChangeRef } from "../lib/project.js";
+import { nextChangeNumber } from "../lib/change-numbers.js";
+import { withProjectLock } from "../lib/lock.js";
 export { rankCapabilities, rankCapabilitiesByDiff } from "../lib/work-model.js";
 
 // `work` is the second half of the no-ceremony path (ADR 0005): a brief
@@ -176,6 +176,26 @@ export async function run(positional, flags) {
     }
   }
 
+  // THE DIRECT TRACK (change 0255). An edit that changes nothing a spec says
+  // opens nothing: the answer is the three tracks and the two commands that
+  // remain. Only the words that cannot mean behaviour decide it, and naming
+  // a capability, a delivery or an id says the author already chose.
+  if (prompt && verdict && !fromDiff && !chore && !forced &&
+      !flags.has("capability") && !flags.has("delivery") && !flags.has("id")) {
+    const hits = directSignals(prompt, verdict);
+    if (hits.length > 0) {
+      console.log(c.green("direct:") + ` no change to open — this reads as an edit that changes nothing a spec says ${c.gray(`(signals: ${[...new Set(hits)].slice(0, 6).join(", ")})`)}`);
+      console.log(`  Edit it, run ${c.cyan("doctrina verify")}, and commit. No proposal, no delta, no close.`);
+      console.log("");
+      console.log("The tracks, by what the request changes:");
+      for (const line of trackLines()) console.log(line);
+      console.log("");
+      console.log(c.gray("If it does change behaviour, or deserves a record: ") +
+        c.cyan(`doctrina work --force "<request>"`) + c.gray("  ·  ") + c.cyan(`doctrina work --chore "<request>"`));
+      return EXIT.OK;
+    }
+  }
+
   const pinned = flagString(flags, "capability");
   if (pinned && !/^[a-z][a-z0-9-]*$/.test(pinned)) {
     console.error(c.red("error:") + ` invalid capability "${pinned}" (lowercase letters, digits, hyphens)`);
@@ -196,14 +216,19 @@ export async function run(positional, flags) {
   const slug = flags.has("title")
     ? slugify(title)
     : (prompt ? slugFromPrompt(prompt) : "backfill");
-  const id = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
-  if (!isChangeId(id)) {
+  // The number is read and the folder created under one lock (change 0250):
+  // read apart, eight parallel `work` opened three changes numbered 0003.
+  const opened = withProjectLock(projectRoot, () => {
+    const candidate = flagString(flags, "id") ?? `${nextChangeNumber(projectRoot)}-${slug}`;
+    if (!isChangeId(candidate)) return { id: candidate, code: null };
+    return { id: candidate, code: changeNew([candidate, title], flags) };
+  });
+  const id = opened.id;
+  if (opened.code === null) {
     console.error(c.red("error:") + ` invalid change id "${id}" (lowercase letters, digits, hyphens)`);
     return 2;
   }
-
-  const code = changeNew([id, title], flags);
-  if (code !== 0) return code;
+  if (opened.code !== 0) return opened.code;
 
   // The CLI reduces a prompt to an id deterministically; it cannot write a
   // good short name, and ADR 0005 says it must not try. So it says how to get
@@ -330,7 +355,7 @@ export async function run(positional, flags) {
 // see beats a missing file nothing reports.
 //
 // Returns what was written, or null when the file already exists.
-function scaffoldDelta(projectRoot, { id, capability, guess = null, runnerUp = null }) {
+function scaffoldDelta(projectRoot, { id, capability, guess = /** @type {any} */ (null), runnerUp = /** @type {any} */ (null) }) {
   const deltaPath = path.join(projectRoot, ".doctrina", "changes", id, "specs", capability, "delta.md");
   if (exists(deltaPath)) return null;
   const tpl = read(path.join(locateTemplatesDir(), "change", "spec-delta.md.template"));
@@ -415,8 +440,8 @@ function writeLane(projectRoot, id, verdict, opts) {
   const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
   if (!isFile(proposalPath)) return;
   const text = read(proposalPath);
-  // CRLF-safe: the scaffolded proposals are CRLF, and a `.*$` pattern
-  // silently matches nothing against them — the `patch-doctrina-files-as-crlf`
+  // CRLF-safe: a scaffolded proposal may be CRLF, and a `.*$` pattern
+  // silently matches nothing against one — the `check-the-line-ending-before-patching`
   // skill exists for exactly this mistake.
   const updated = text.replace(/^(-[ \t]+\*\*Lane:\*\*)[^\r\n]*/m, `$1 ${line}`);
   if (updated !== text) write(proposalPath, updated, { force: true });
@@ -424,34 +449,6 @@ function writeLane(projectRoot, id, verdict, opts) {
 
 // Next sequential NNNN across open changes and the archive, so work-driven
 // ids stay ordered no matter how earlier changes were named.
-function nextChangeNumber(projectRoot) {
-  const changesDir = path.join(projectRoot, ".doctrina", "changes");
-  let max = 0;
-  const harvest = (name) => {
-    const m = name.match(/^(\d{1,4})-/) ?? name.match(/^(\d{1,4})$/);
-    if (m) max = Math.max(max, Number(m[1]));
-  };
-  if (isDir(changesDir)) {
-    for (const entry of readdirSync(changesDir)) {
-      if (entry === "archive" || entry.startsWith(".")) continue;
-      if (isDir(path.join(changesDir, entry))) harvest(entry);
-    }
-  }
-  const archiveDir = path.join(changesDir, "archive");
-  if (isDir(archiveDir)) {
-    for (const entry of readdirSync(archiveDir)) {
-      if (!isDir(path.join(archiveDir, entry))) continue;
-      harvest(entry.replace(/^\d{4}-\d{2}-\d{2}-/, ""));
-    }
-  }
-  // An abandoned change leaves no folder, only its ledger line (third audit,
-  // change 0234): its number was handed out again, and the ledger then named
-  // two different changes by one id — the abandoned part of a delivery among them.
-  const ledger = path.join(archiveDir, "LEDGER.md");
-  if (isFile(ledger)) for (const e of parseLedger(read(ledger)).entries) harvest(e.id);
-  return String(max + 1).padStart(4, "0");
-}
-
 // Open (non-archived) changes from the index — the set `work --resume` and
 // the thin-prompt guard offer to continue.
 function openChanges(projectRoot) {
@@ -591,7 +588,7 @@ function printChorePlaybook(projectRoot, { id, prompt }) {
   printPlaybookTemplate(projectRoot, "chore", { CHANGE_ID: id, PROMPT: prompt });
 }
 
-function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, scaffolded = null, fromDiff = false, diffMatches = [] }) {
+function printPlaybook(projectRoot, { id, prompt, pinned, matches, capability, clarity, scaffolded = /** @type {any} */ (null), fromDiff = false, diffMatches = /** @type {any[]} */ ([]) }) {
   printPlaybookTemplate(projectRoot, "work", {
     TITLE: fromDiff ? "Backfill playbook" : "Work playbook",
     CHANGE_ID: id,
@@ -719,6 +716,22 @@ Options:
 A request that mostly repeats a change already open, or archived in the
 last 14 days, is HELD the same way (exit 3), naming it: the same work is
 resumed, or reported as done where it is archived; --force opens it anyway.
+
+TRACKS. How much ceremony a request earns is decided by what it changes,
+not by the size of the diff:
+
+  direct   nothing a spec says — a typo, a comment, formatting, a fix that
+           makes the code do what the spec already says
+           edit · doctrina verify · commit (no change is opened)
+  chore    the build, the tooling or the docs, worth a record — no spec
+           changes: doctrina work --chore "<request>"
+  change   behaviour — a sentence in a spec becomes false, or one is
+           missing: doctrina work "<request>"
+
+A prompt whose words can only mean a direct edit (a typo, whitespace, a
+stale comment, dead code) opens nothing: work prints the tracks and exits
+0. --force opens the change anyway, --chore records it, and naming
+--capability, --delivery or --id skips the reading.
 
 A prompt that reads as a RUNTIME problem — a workflow, an env value, a run
 that executed nothing — is HELD before anything is scaffolded, and pointed

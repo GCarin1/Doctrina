@@ -245,7 +245,8 @@ export function pulse(open, recent = []) {
     // done, archived at …" instead of done twice (change 0214).
     const last = recent[0] ? ` Last closed: ${recent[0].id} (${recent[0].date}, ${recent[0].path}).` : "";
     return ["Doctrina: no change is open in this project. A request that changes behaviour is opened as a change " +
-      "before code is edited — `doctrina work \"<request>\"` (it classifies the lane itself); a question or a read needs none." + last];
+      "before code is edited — `doctrina work \"<request>\"` (it classifies the lane itself); a question, a read, or an edit that changes nothing a spec says " +
+      "(a typo, a comment, formatting, a fix restoring what the spec states) needs none — edit, `doctrina verify`, commit." + last];
   }
   const named = open.slice(0, 3).map((ch) => `${ch.id}${ch.title ? ` — "${ch.title}"` : ""} (${ch.status}${ch.delivery ? `, part of delivery ${ch.delivery}` : ""})`).join("; ");
   const more = open.length > 3 ? ` and ${open.length - 3} more` : "";

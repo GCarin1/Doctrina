@@ -5,10 +5,12 @@ import process from "node:process";
 import { exists, isDir, isFile, read, relPath, write } from "../lib/fs-ops.js";
 import { locateTemplatesDir, loadTemplateTree, materialiseEntry, substitute } from "../lib/templates.js";
 import {
-  surfaceBlock, findSurfaceBlock, agentChangelogBlock, findAgentChangelogBlock,
+  surfaceBlock, findSurfaceBlock, agentChangelogBlock, findAgentChangelogBlock, SURFACE_PROFILES,
 } from "../lib/commands.js";
 import * as idx from "../lib/index-json.js";
 import { scaffoldConfig } from "../lib/config.js";
+import { applyPreset, describePreset, planPreset, readPreset } from "../lib/preset.js";
+import { deriveIndex } from "../lib/scan.js";
 import { today } from "../lib/dates.js";
 import { cliVersion } from "../lib/version.js";
 import { flagBool, flagString, flagGivenWithoutValue } from "../lib/args.js";
@@ -31,11 +33,12 @@ const SUPPORTED_AGENTS = [
   "devin",
   "factory",
   "jules",
+  "kiro",
 ];
 
 export const flags = {
   boolean: ["json", "force", "non-interactive", "overwrite-content"],
-  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date"],
+  string: ["project-name", "project-description", "agent", "intake", "intake-text", "from", "date", "surface", "preset"],
 };
 
 export async function run(_positional, flags) {
@@ -142,6 +145,30 @@ export async function run(_positional, flags) {
     }
   }
 
+  // Which commands AGENTS.md lists (change 0251). A new project is born with
+  // the session loop only — `core` — and the rest one `--help` away; the
+  // choice is written into config.json, where `upgrade` reads it.
+  // The organisation's preset (change 0253), read BEFORE anything is
+  // written: a folder that is not one stops the init with nothing scaffolded.
+  let preset = null;
+  if (flags.has("preset")) {
+    try {
+      const dir = flagString(flags, "preset");
+      if (!dir) throw new Error("--preset needs the preset's folder");
+      preset = readPreset(dir);
+    } catch (err) {
+      console.error(c.red("error:") + ` ${/** @type {Error} */ (err).message}`);
+      return 2;
+    }
+  }
+  // The preset's surface is the default when the flag names none: the block
+  // is generated once, from the profile the project will keep.
+  const surface = flagString(flags, "surface") ?? preset?.config.surface ?? "core";
+  if (!SURFACE_PROFILES.includes(surface) || flagGivenWithoutValue(flags, "surface")) {
+    console.error(c.red("error:") + ` --surface takes ${SURFACE_PROFILES.join(" or ")}${flagGivenWithoutValue(flags, "surface") ? "" : ` (got "${surface}")`}`);
+    return 2;
+  }
+
   let agentSelector = flagString(flags, "agent");
   // Interactive wizard step: when no --agent was given and we are on a real
   // terminal, offer the adapter install instead of silently skipping it —
@@ -202,7 +229,7 @@ export async function run(_positional, flags) {
   // if the static template lags a release (ADR 0015).
   const agentsTemplatePath = path.join(templatesDir, "AGENTS.md.template");
   const agentsTemplateBody = read(agentsTemplatePath);
-  const projectAgents = refreshSurfaceBlock(substitute(agentsTemplateBody, tokens));
+  const projectAgents = refreshSurfaceBlock(substitute(agentsTemplateBody, tokens), surface);
 
   // --force used to mean "overwrite everything", which made it a content
   // shredder: the only way to add an adapter to an existing project was
@@ -285,9 +312,19 @@ export async function run(_positional, flags) {
   {
     const dest = path.join(doctrinaDir, "config.json");
     if (!isFile(dest) || force) {
-      write(dest, scaffoldConfig(), { force });
+      write(dest, scaffoldConfig({ surface }), { force });
       console.log(c.green("created") + ` ${relPath(projectRoot, dest)}`);
     }
+  }
+
+  // The preset, over the scaffold: what it adds is indexed with the rest.
+  if (preset) {
+    const plan = planPreset(projectRoot, preset);
+    applyPreset(projectRoot, preset, plan);
+    for (const line of describePreset(preset, plan, true)) console.log(line);
+    const derived = deriveIndex(projectRoot, idx.load(projectRoot));
+    derived.last_updated = date;
+    idx.save(projectRoot, derived);
   }
 
   // Adapters
@@ -384,10 +421,10 @@ function normaliseScaffold(text) {
 // Replace the template's doctrina:surface span with the one generated from
 // the running CLI's catalog; pass the text through untouched when the
 // template carries no markers (older custom templates).
-function refreshSurfaceBlock(text) {
+function refreshSurfaceBlock(text, profile = "full") {
   const block = findSurfaceBlock(text);
   if (!block) return text;
-  let out = text.slice(0, block.start) + surfaceBlock() + text.slice(block.end);
+  let out = text.slice(0, block.start) + surfaceBlock(profile) + text.slice(block.end);
 
   // The agent-facing changelog is version-specific, so it is GENERATED at
   // init like the surface block — not carried in the template. Writing it
@@ -453,8 +490,15 @@ Scaffold AGENTS.md and the .doctrina/ skeleton in the current directory.
 Options:
   --project-name <name>          Override the project name (default: basename of cwd)
   --project-description <text>   One-sentence description
+  --surface core|full            Which commands AGENTS.md lists: core (default) is the session
+                                 loop, with the rest deferred to \`doctrina --help\`; full lists
+                                 every command. Stored in .doctrina/config.json.
+  --preset <dir>                 Lay an organisation's preset over the scaffold: a folder with
+                                 preset.json (name, config) and optional templates/, decisions/,
+                                 skills/ and verify.json. Additive — see \`doctrina upgrade --preset\`
+                                 for a project that already exists.
   --agent <name>                 Install adapter for one agent
-                                 (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|all)
+                                 (claude|codex|cursor|copilot|gemini|aider|windsurf|continue|amp|devin|factory|jules|kiro|all)
   --intake <file>                Full project description; stored verbatim at .doctrina/intake.md,
                                  used to derive the one-line description when absent, and the
                                  bootstrap playbook is printed inline — no second command

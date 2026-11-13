@@ -174,7 +174,7 @@ function whyAnchor(projectRoot, id, specsDir, known) {
   for (const capName of known.sort()) {
     const text = read(path.join(specsDir, capName, "spec.md"));
     const realizesRaw = specHeader(text, "Realizes");
-    const ids = realizesRaw ? (realizesRaw.match(/[A-Z]+\d+/g) ?? []) : [];
+    const ids = realizesRaw ? (realizesRaw.match(/[A-Z]+\d+/g) ?? /** @type {string[]} */ ([])) : /** @type {string[]} */ ([]);
     if (ids.includes(id)) realizing.push({ cap: capName, text });
   }
 

@@ -1,7 +1,7 @@
 # ADR 0005 — Agent-executed playbooks for `intake` and `work`
 
 - **Status:** accepted
-- **Scope:** cli, docs, gates, authoring, insight
+- **Scope:** cli, docs, gates, authoring, insight, triage
 - **Date:** 2026-06-12
 - **Deciders:** project owner
 - **Supersedes:** —

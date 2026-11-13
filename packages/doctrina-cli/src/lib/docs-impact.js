@@ -123,7 +123,7 @@ function withoutVerification(text) {
   return out.join("\n");
 }
 
-export function documentedSurfaceSignals(changeDir, projectRoot = null) {
+export function documentedSurfaceSignals(changeDir, projectRoot = /** @type {string | null} */ (null)) {
   const signals = [];
   const known = new Set(COMMAND_NAMES);
 

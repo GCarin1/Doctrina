@@ -123,7 +123,7 @@ export function flagAll(flags, name) {
   return typeof one === "string" ? [one] : [];
 }
 
-export function flagString(flags, name, fallback = undefined) {
+export function flagString(flags, name, fallback = /** @type {string | undefined} */ (undefined)) {
   const v = flags.get(name);
   if (v === undefined || v === true) return fallback;
   return String(v);

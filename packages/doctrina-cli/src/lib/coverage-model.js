@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import { PROPERTY_MARKER, propertyLibraryIn } from "./properties.js";
 import { readdirSync } from "node:fs";
 import { exists, isDir, isFile, read } from "./fs-ops.js";
 import { specHeader } from "./scan.js";
@@ -27,9 +28,11 @@ import { parseAcceptanceCriteria } from "./criteria.js";
 // never a --strict failure. Declared debt and hidden debt stop being punished
 // identically (0.11.0 field review item 4: one deferred capability poisoned
 // the close of every unrelated change).
-export function collect(projectRoot, { only = null } = {}) {
+export function collect(projectRoot, { only = /** @type {Set<string> | null} */ (null) } = {}) {
   const specsDir = path.join(projectRoot, ".doctrina", "specs");
   const reports = [];
+  /** @type {Map<string, boolean>} evidence file → is its suite skipped */
+  const skippedOf = new Map();
   if (isDir(specsDir)) {
     for (const cap of readdirSync(specsDir).sort()) {
       if (only && !only.has(cap)) continue;
@@ -40,7 +43,7 @@ export function collect(projectRoot, { only = null } = {}) {
       if (criteria.length === 0) continue;
       const deferred = isDeclaredDeferral(text);
       const rows = criteria.map((crit, i) => {
-        const row = classify(crit, i + 1, projectRoot, path.dirname(specPath));
+        const row = classify(crit, i + 1, projectRoot, path.dirname(specPath), skippedOf);
         if (deferred && row.kind !== "covered") {
           return { ...row, kind: "deferred", was: row.kind };
         }
@@ -145,7 +148,7 @@ export function deriveImplementation(row) {
  *
  * @returns {Map<string, {derived: string, covered: number, total: number, deferred: boolean, unverified: number}>}
  */
-export function derivedImplementations(projectRoot, { only = null } = {}) {
+export function derivedImplementations(projectRoot, { only = /** @type {Set<string> | null} */ (null) } = {}) {
   const out = new Map();
   for (const rep of collect(projectRoot, { only })) {
     const row = {
@@ -301,7 +304,7 @@ function evidenceClause(criterion) {
   return m ? criterion.slice(m.index) : null;
 }
 
-function classify(criterion, n, projectRoot, specDir) {
+function classify(criterion, n, projectRoot, specDir, skippedOf = /** @type {Map<string, boolean>} */ (new Map())) {
   // An orchestration criterion is judged on its GUARD, not on whether a
   // cited file exists — the whole point is that existence proves nothing here.
   const marker = criterion.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase() ?? "";
@@ -349,10 +352,30 @@ function classify(criterion, n, projectRoot, specDir) {
       continue;
     }
     const isTest = looksLikeTestFile(token);
-    const skipped = isTest && isFile(hit) ? testSuiteIsSkipped(read(hit)) : false;
-    resolved.push({ token, isTest, skipped });
+    // One read per evidence file, not one per criterion that cites it
+    // (change 0249): a suite that proves forty criteria was read and
+    // scanned forty times, on every `prime`, `status` and `validate`.
+    let skipped = false;
+    if (isTest && isFile(hit)) {
+      if (!skippedOf.has(hit)) skippedOf.set(hit, testSuiteIsSkipped(read(hit)));
+      skipped = skippedOf.get(hit) === true;
+    }
+    resolved.push({ token, isTest, skipped, hit });
   }
   if (resolved.length === 0) return { kind: "dangling", n, missing };
+  // A `[property]` criterion claims something of EVERY input (change 0254):
+  // the test it cites must be one that generates its inputs. An example
+  // test proves three cases; calling that proof of a universal claim is the
+  // false confidence this gate exists against.
+  if (PROPERTY_MARKER.test(marker)) {
+    const generating = resolved.find((r) => r.isTest && !r.skipped && propertyLibraryIn(read(r.hit)) !== null);
+    if (!generating) {
+      return {
+        kind: "unguarded", n, label: "property claim is proven by no property",
+        reason: `${resolved.map((r) => `\`${r.token}\``).join(", ")} generates no input — a [property] criterion is proven by a property-based test (Hypothesis \`@given\`, fast-check \`fc.property\`, jqwik \`@Property\`, proptest), or it is an example and its mark is [verified]`,
+      };
+    }
+  }
   // Runnable evidence: the resolving test-shaped citations, recorded so
   // `coverage --run` can execute them (existence → passing proof).
   const evidence = resolved.filter((r) => r.isTest && !r.skipped).map((r) => r.token);

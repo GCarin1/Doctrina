@@ -133,7 +133,7 @@ test("a fresh init passes templates check for every adapter", () => {
   // The C2 headline: a clean install failed its own gate. Cover every
   // adapter, not just the one that happened to be reported.
   const adapters = ["claude", "cursor", "gemini", "copilot", "aider", "windsurf",
-    "continue", "codex", "amp", "devin", "factory", "jules"];
+    "continue", "codex", "amp", "devin", "factory", "jules", "kiro"];
   for (const agent of adapters) {
     const tmp = initedProject(["--agent", agent]);
     try {

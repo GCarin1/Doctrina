@@ -119,3 +119,78 @@ export function classify(prompt) {
 
   return { lane, scores: lanes, confident: best > 0 && best - runnerUp >= 2 };
 }
+
+// THE TRACKS, BY WHAT THE REQUEST CHANGES (change 0255).
+//
+// The three lanes above say what KIND of request it is. They never said how
+// much ceremony it earns, and the default answer was all of it: "fix the
+// typo in the README" opened a proposal, three tasks and a thirteen-step
+// close. `metrics` already printed "a one-line fix may rightly need none"
+// under its adherence rate — the rule existed, in a footnote.
+//
+// The measure is not the size of the diff. It is whether a sentence in a
+// spec becomes false, or one is missing: a one-line change of a timeout the
+// spec states is a change, and a two-hundred-line reformat is not.
+export const TRACKS = [
+  { id: "direct",
+    changes: "nothing a spec says — a typo, a comment, formatting, a fix that makes the code do what the spec already says",
+    path: "edit · doctrina verify · commit" },
+  { id: "chore",
+    changes: "the build, the tooling or the docs, worth a record — no spec changes",
+    path: 'doctrina work --chore "<request>"' },
+  { id: "change",
+    changes: "behaviour — a sentence in a spec becomes false, or one is missing",
+    path: 'doctrina work "<request>"' },
+];
+
+// What the words alone can settle. Each phrase names an edit that cannot
+// change behaviour; a bare "comment" or "formatting" is also the name of a
+// feature ("comment moderation", "date formatting"), so those need the word
+// that says which one is meant. A fix that restores what the spec already
+// says is direct too, and no word list can know it: that one is the
+// agent's call, by the rule the standing instructions state.
+export const DIRECT_SIGNALS = [
+  /\b(typos?|misspell\w*|spelling|grammar|whitespace|indentation|trailing (spaces?|whitespace|commas?|newlines?))\b/,
+  /\b(formatting only|reformat\w*|fix(ing)? (the )?formatting|code formatting)\b/,
+  /\b((code|stale|outdated|old|wrong|misleading) comments?|comments? only|dead code|unused (imports?|variables?))\b/,
+  // pt
+  /\b(erros? de digitacao|ortografia|gramatica|espacos? em branco|indentacao)\b/,
+  /\b(so (a )?formatacao|reformatar|corrigir (a )?formatacao|formatacao do codigo)\b/,
+  /\b(comentarios? (de codigo|antig\w+|obsolet\w+|desatualizad\w+|errad\w+)|so (o |os )?comentarios?|codigo morto|imports? nao usad\w+|variave(l|is) nao usad\w+)\b/,
+];
+
+/**
+ * The signals that make a prompt a direct edit, or none. A prompt that also
+ * carries a product or a runtime signal is not direct: "add" or "should"
+ * says behaviour is in play, and the ceremony is the safe side to err on.
+ * @param {string} prompt
+ * @param {ReturnType<typeof classify>} [verdict]
+ * @returns {string[]}
+ */
+export function directSignals(prompt, verdict = classify(prompt)) {
+  if (verdict.scores.product.total > 0 || verdict.scores.runtime.total > 0) return [];
+  const text = fold(prompt);
+  const hits = [];
+  for (const re of DIRECT_SIGNALS) {
+    const m = text.match(re);
+    if (m) hits.push(m[0]);
+  }
+  return hits;
+}
+
+/** The track a prompt reads as: direct, chore, change — or diagnosis, for a runtime problem. */
+export function trackOf(prompt, verdict = classify(prompt)) {
+  if (directSignals(prompt, verdict).length > 0) return "direct";
+  if (verdict.lane === "runtime") return "diagnosis";
+  return verdict.lane === "chore" ? "chore" : "change";
+}
+
+/** The three tracks as plain lines, for the commands that print them. */
+export function trackLines() {
+  const out = [];
+  for (const t of TRACKS) {
+    out.push(`  ${t.id.padEnd(7)} ${t.changes}`);
+    out.push(`          ${t.path}`);
+  }
+  return out;
+}
