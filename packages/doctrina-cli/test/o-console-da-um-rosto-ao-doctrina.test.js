@@ -157,9 +157,9 @@ test("history, editing and the console's own commands", () => {
   let s = initialState({ agents: [claude, codex], catalog, panel });
   s = key(type(s, "/agent"), "enter").state;
   const listed = s.transcript.map((e) => e.text).join("\n");
-  assert.match(listed, /● claude {4}Claude Code — \/bin\/claude\n {12}Anthropic's Claude Code\n○ codex {5}Codex — \/bin\/codex\n {12}OpenAI's Codex CLI · started as its documentation says; not exercised/);
-  assert.match(listed, /· cursor {4}Cursor — not installed \(looked for `cursor-agent`, `agent` on PATH\)/, "what is known and not installed is listed, with what was looked for");
-  assert.match(listed, /One of your own goes in \$DOCTRINA_HOME\/agents\.json/);
+  assert.match(listed, /● claude {4}Claude Code, Anthropic's Claude Code — \/bin\/claude\n○ codex {5}Codex, OpenAI's Codex CLI — \/bin\/codex\n· cursor {4}Cursor, the Cursor CLI — not installed \(`cursor-agent` or `agent` on PATH\)/,
+    "one line each: in use, installed, and known but not installed with what was looked for");
+  assert.match(listed, /One of your own goes in \$DOCTRINA_HOME\/agents\.json[\s\S]*Claude Code is exercised against its real binary by Doctrina's tests; the others are started as their documentation says\./);
   const switched = key(type(s, "/agent codex"), "enter");
   s = switched.state;
   assert.equal(s.agent, "codex");

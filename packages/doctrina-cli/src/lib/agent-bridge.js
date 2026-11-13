@@ -143,7 +143,7 @@ const parseText = (/** @type {string} */ line) => (line.trim() === "" ? [] : [{ 
 /** @type {AgentSpec[]} */
 export const AGENTS = [
   { id: "claude", label: "Claude Code", bins: ["claude"], exercised: true, stdin: true,
-    about: "Anthropic's Claude Code — the CLI the Claude extensions for VS Code and JetBrains run",
+    about: "also what the Claude extensions for VS Code and JetBrains run",
     model: ["--model", "{model}"], models: ["opus", "sonnet", "haiku"], listing: "`/model` inside `claude`",
     // The prompt goes in on stdin: no length limit, and nothing a person
     // typed is ever an argument. Edits are accepted and `doctrina` may run —
@@ -154,32 +154,32 @@ export const AGENTS = [
       ...(session ? ["--resume", session] : []), ...extra],
     parse: parseStreamJson },
   { id: "cursor", label: "Cursor", bins: ["cursor-agent", "agent"], exercised: false, stdin: false,
-    about: "the Cursor CLI — the agent of the Cursor IDE, with its account and rules",
+    about: "the agent of the Cursor IDE",
     model: ["--model", "{model}"], models: [], listing: "`agent models`",
     args: (prompt, { session, extra }) => ["-p", "--output-format", "stream-json",
       ...(session ? ["--resume", session] : []), ...extra, prompt],
     parse: parseStreamJson },
   { id: "copilot", label: "GitHub Copilot", bins: ["copilot"], exercised: false, stdin: false,
-    about: "GitHub Copilot CLI — the agent of GitHub Copilot in VS Code, with its account",
+    about: "the agent of GitHub Copilot, as in VS Code",
     model: ["--model={model}"], models: [], listing: "`/model` inside `copilot`",
     // Its programmatic mode documents no session to resume: each request
     // starts a conversation. It may write files and run `doctrina`.
     args: (prompt, { extra }) => ["-p", prompt, "-s", "--allow-tool=write, shell(doctrina:*)", ...extra],
     parse: parseText },
   { id: "codex", label: "Codex", bins: ["codex"], exercised: false, stdin: false,
-    about: "OpenAI's Codex CLI — the CLI the Codex extension for VS Code runs",
+    about: "also what the Codex extension for VS Code runs",
     model: ["--model", "{model}"], models: [], listing: "`codex debug models`",
     args: (prompt, { session, extra }) => ["exec", ...(session ? ["resume", session] : []),
       "--json", "--sandbox", "workspace-write", ...extra, prompt],
     parse: parseCodex },
   { id: "gemini", label: "Gemini CLI", bins: ["gemini"], exercised: false, stdin: true,
-    about: "Google's Gemini CLI — the agent behind Gemini Code Assist's agent mode in VS Code",
+    about: "also behind Gemini Code Assist in VS Code",
     model: ["--model", "{model}"], models: ["auto", "pro", "flash", "flash-lite"], listing: "`/model` inside `gemini`",
     // Plain text out carries no session id, so each request starts a conversation.
     args: (_prompt, { extra }) => ["--approval-mode", "auto_edit", ...extra],
     parse: parseText },
   { id: "opencode", label: "opencode", bins: ["opencode"], exercised: false, stdin: false,
-    about: "the opencode CLI",
+    about: "",
     // Only `opencode run "<prompt>"` is on the page Doctrina was built from:
     // a model goes in DOCTRINA_AGENT_ARGS, as that CLI names it.
     model: null, models: [], listing: "",
@@ -241,7 +241,7 @@ export function customAgents(env = process.env) {
     return specs.push({
       id: a.id, label: typeof a.label === "string" && a.label.trim() !== "" ? a.label : a.id,
       bins: [a.command], exercised: false, stdin: !inArgs, custom: true,
-      about: `declared in ${file}`,
+      about: "your own, from agents.json",
       model: a.model ?? null, models: a.models ?? [], listing: "",
       args: (prompt, { session, extra }) => [
         ...args.map((x) => x.replaceAll("{prompt}", prompt)),

@@ -379,13 +379,14 @@ export function settle(s) {
 function chooseAgent(s, name) {
   if (name === "") {
     let out = s;
+    // One line each: in use ●, installed ○, known and not installed ·.
     for (const a of s.catalog) {
       const mark = a.id === s.agent ? "●" : (a.file ? "○" : "·");
-      const where = a.file ? a.file : `not installed (looked for ${a.bins.map((b) => `\`${b}\``).join(", ")} on PATH)`;
-      out = say(out, "note", `${mark} ${a.id.padEnd(9)} ${a.label} — ${where}`);
-      out = say(out, "note", `            ${a.about}${a.exercised || !a.file ? "" : " · started as its documentation says; not exercised against the real binary by Doctrina's tests"}`);
+      const where = a.file ? a.file : `not installed (${a.bins.map((b) => `\`${b}\``).join(" or ")} on PATH)`;
+      out = say(out, "note", `${mark} ${a.id.padEnd(9)} ${a.label}${a.about ? `, ${a.about}` : ""} — ${where}`);
     }
-    return say(out, "note", "Switch with /agent <name> · /agent off. One of your own goes in $DOCTRINA_HOME/agents.json. DOCTRINA_AGENT pins one; DOCTRINA_AGENT_ARGS adds flags.");
+    out = say(out, "note", "Switch with /agent <name> · /agent off. One of your own goes in $DOCTRINA_HOME/agents.json. DOCTRINA_AGENT pins one; DOCTRINA_AGENT_ARGS adds flags.");
+    return say(out, "note", "Claude Code is exercised against its real binary by Doctrina's tests; the others are started as their documentation says.");
   }
   if (name === "off" || name === "none") return say({ ...s, agent: null, session: null }, "note", "no agent: requests are not sent anywhere until /agent <name>");
   const known = s.catalog.find((a) => a.id === name);
