@@ -14,6 +14,11 @@ import { mkdirSync, rmdirSync, statSync } from "node:fs";
 // on every filesystem this runs on. It is held for milliseconds. A lock left
 // behind by a process that died is taken over once it is old.
 
+// Held by this process, so a step that already holds the lock and calls one
+// that takes it again — `work` opening a change, then indexing it — goes on
+// instead of waiting five seconds for itself.
+const HELD = new Set();
+
 const WAIT_MS = 25;
 const GIVE_UP_MS = 5000;
 const STALE_MS = 30000;
@@ -32,11 +37,13 @@ function sleep(ms) {
  */
 export function withProjectLock(projectRoot, fn) {
   const lock = path.join(projectRoot, ".doctrina", ".lock");
+  if (HELD.has(lock)) return fn();
   let held = false;
   for (let waited = 0; waited <= GIVE_UP_MS; waited += WAIT_MS) {
     try {
       mkdirSync(lock);
       held = true;
+      HELD.add(lock);
       break;
     } catch (err) {
       if (/** @type {NodeJS.ErrnoException} */ (err).code !== "EEXIST") break; // no .doctrina/, read-only tree: nothing to serialise
@@ -50,6 +57,7 @@ export function withProjectLock(projectRoot, fn) {
     return fn();
   } finally {
     if (held) {
+      HELD.delete(lock);
       try {
         rmdirSync(lock);
       } catch { /* already gone */ }

@@ -2,10 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, rmdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { appendLine, read, write } from "../src/lib/fs-ops.js";
 import { conflictMarkerLine } from "../src/lib/conflict-markers.js";
 
@@ -145,6 +145,38 @@ test("a spec a merge stopped in is an error, and the first thing next names", ()
     assert.match(s.run(dir, ["next"]).out, /1\. resolve the merge conflict in \.doctrina\/specs\/auth\/spec\.md \(line \d+\)/);
     writeFileSync(spec, clean);
     assert.doesNotMatch(s.run(dir, ["validate"]).out, /conflict markers/);
+  } finally {
+    s.done();
+  }
+});
+
+test("indexing a change waits for the lock another command holds, and a holder may take it again", async () => {
+  const s = sandbox("index-lock");
+  try {
+    const dir = s.project("p");
+    assert.equal(s.run(dir, ["work", "--chore", "first", "--title", "first", "--quiet"]).status, 0);
+    const indexFile = path.join(dir, ".doctrina", "index.json");
+    const before = readFileSync(indexFile, "utf8");
+    // Another command holds the lock; this one re-indexes the change under it.
+    const lockDir = path.join(dir, ".doctrina", ".lock");
+    mkdirSync(lockDir);
+    const lib = path.resolve(path.dirname(cliEntry), "lib");
+    const child = spawn(process.execPath, ["--input-type=module", "-e",
+      `const { reindexChange } = await import(${JSON.stringify(pathToFileURL(path.join(lib, "change-ops.js")).href)}); reindexChange(process.argv[1], "0001-first", "2099-01-01");`, dir], { env: s.env });
+    const ended = new Promise((resolve) => child.on("close", resolve));
+    await new Promise((r) => setTimeout(r, 600));
+    assert.equal(readFileSync(indexFile, "utf8"), before, "nothing is written while another command holds the lock");
+    rmdirSync(lockDir);
+    assert.equal(await ended, 0);
+    assert.match(readFileSync(indexFile, "utf8"), /"last_updated": "2099-01-01"/, "written once the lock is free");
+    assert.equal(existsSync(lockDir), false, "and released");
+
+    // Re-entered by its own holder: `work` opens a change under the lock and indexes it.
+    const { withProjectLock } = await import(pathToFileURL(path.join(lib, "lock.js")).href);
+    const started = Date.now();
+    assert.equal(withProjectLock(dir, () => withProjectLock(dir, () => "inner")), "inner");
+    assert.ok(Date.now() - started < 1000, "the holder does not wait for itself");
+    assert.equal(existsSync(lockDir), false);
   } finally {
     s.done();
   }
