@@ -15,6 +15,7 @@ import { flagBool, flagString } from "./args.js";
 import { c } from "./colors.js";
 import { ensureDoctrinaProject, isChangeId, resolveWithinProject } from "./project.js";
 import { changeEntry } from "./scan.js";
+import { withProjectLock } from "./lock.js";
 import { parseOp, insertOps, extractOps, applyOps } from "./spec-ops.js";
 import { parseOperation } from "./doc-model.js";
 import { substitute } from "./templates.js";
@@ -126,14 +127,20 @@ export function changeNew(args, flags) {
  * @param {string} [date] Fallback for a proposal carrying no Date header.
  */
 export function reindexChange(projectRoot, id, date = today()) {
-  const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
-  const proposal = isFile(proposalPath) ? read(proposalPath) : "";
-  const index = idx.load(projectRoot);
-  const prev = index.artifacts.changes.find((ch) => ch.id === id) ?? null;
-  index.artifacts.changes = index.artifacts.changes.filter((ch) => ch.id !== id);
-  index.artifacts.changes.push(changeEntry(proposal, id, prev, date));
-  idx.touch(index, date);
-  idx.save(projectRoot, index);
+  // Read, change, save: under the lock, or another command's entry written
+  // in between is saved over. `work` indexed its change after releasing the
+  // lock it opened it under, and one of eight parallel `work` vanished from
+  // the index on a loaded machine (the entry, not the folder).
+  withProjectLock(projectRoot, () => {
+    const proposalPath = path.join(projectRoot, ".doctrina", "changes", id, "proposal.md");
+    const proposal = isFile(proposalPath) ? read(proposalPath) : "";
+    const index = idx.load(projectRoot);
+    const prev = index.artifacts.changes.find((ch) => ch.id === id) ?? null;
+    index.artifacts.changes = index.artifacts.changes.filter((ch) => ch.id !== id);
+    index.artifacts.changes.push(changeEntry(proposal, id, prev, date));
+    idx.touch(index, date);
+    idx.save(projectRoot, index);
+  });
 }
 
 /**

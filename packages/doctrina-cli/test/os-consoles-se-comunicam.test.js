@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { PassThrough, Writable } from "node:stream";
 import path from "node:path";
 import os from "node:os";
@@ -47,7 +47,7 @@ test("a room is files the person alone can read: cards that go stale, inboxes re
     beat(a, card(), 1000);
     assert.equal(joinRoom(cwd, { env, now: 1000 }).name, "repo-2", "two consoles in one directory are told apart");
     if (process.platform !== "win32") assert.equal(statSync(path.join(a.dir, "inbox")).mode & 0o077, 0, "nobody else can drop a request there");
-    assert.equal(JSON.parse(readFileSync(path.join(a.dir, "room.json"), "utf8")).root, cwd);
+    assert.equal(JSON.parse(readFileSync(path.join(a.dir, "room.json"), "utf8")).root, realpathSync(cwd), "the room records the real path of its directory");
 
     beat(b, card({ busy: true, agent: "cursor", model: "gpt-5" }), 1000);
     assert.deepEqual(listPeers(a, 1500).map((p) => `${p.name} ${p.agent} ${p.model} ${p.busy}`), ["repo cursor gpt-5 true"]);

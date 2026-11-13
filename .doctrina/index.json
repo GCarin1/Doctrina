@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.22.0",
+  "framework_version": "0.22.1",
   "last_updated": "2026-11-13",
   "artifacts": {
     "product": {
@@ -4571,6 +4571,24 @@
         "id": "0261-release-0-22-0",
         "title": "release 0.22.0",
         "path": ".doctrina/changes/archive/2026-11-13-0261-release-0-22-0",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0262-release-com-versao-retida-pelo-npm",
+        "title": "release com versao retida pelo npm",
+        "path": ".doctrina/changes/archive/2026-11-13-0262-release-com-versao-retida-pelo-npm",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [],
+        "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
+      },
+      {
+        "id": "0263-release-0-22-1",
+        "title": "Release 0.22.1",
+        "path": ".doctrina/changes/archive/2026-11-13-0263-release-0-22-1",
         "status": "applied",
         "applied": "2026-11-13",
         "specs_affected": [],

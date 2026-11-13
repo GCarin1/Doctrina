@@ -1,7 +1,7 @@
 // @ts-check
 import path from "node:path";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { isDir, isFile, read } from "./fs-ops.js";
 import { doctrinaHome, findWorkspace, projectAt, readWorkspace } from "./workspace-locate.js";
 
@@ -41,7 +41,9 @@ const token = () => randomBytes(3).toString("hex");
  * @param {NodeJS.ProcessEnv} [env]
  */
 export function roomFor(cwd, env = process.env) {
-  const here = path.resolve(cwd);
+  // The real path, so a directory reached through a symlink (macOS's /var is
+  // /private/var) keys the same room as the path a workspace records.
+  const here = realDir(cwd);
   const found = findWorkspace(here, env);
   let root = here;
   let name = path.basename(here) || "console";
@@ -51,17 +53,22 @@ export function roomFor(cwd, env = process.env) {
     try {
       const ws = readWorkspace(found.dir);
       const member = projectAt(ws, here);
-      if (path.resolve(found.dir) === here) {
+      if (realDir(found.dir) === here) {
         root = here;
         name = ws.name || name;
         role = "planner";
       } else if (member) {
-        root = path.resolve(found.dir);
+        root = realDir(found.dir);
         name = member.name;
       }
     } catch { /* an unreadable workspace is no room: the directory is */ }
   }
   return { dir: path.join(doctrinaHome(env), "rooms", key(root)), root, name, role };
+}
+
+/** @param {string} dir */
+function realDir(dir) {
+  try { return realpathSync(dir); } catch { return path.resolve(dir); }
 }
 
 function writeJson(file, data) {

@@ -31,6 +31,8 @@ test("an argument is quoted so the shell reads it back verbatim", () => {
   assert.equal(qpath("/home/u/repo", "linux"), "/home/u/repo");
   assert.equal(qpath("/home/u/my api", "linux"), '"/home/u/my api"');
   assert.equal(qpath("C:\\work\\api", "win32"), "C:\\work\\api");
+  assert.equal(qpath("C:\\Users\\me\\my api", "win32"), '"C:\\Users\\me\\my api"', "a backslash is a literal to PowerShell and cmd: a Windows path keeps the double quotes");
+  assert.equal(qarg("a\\b c", "linux"), "'a\\b c'", "inside POSIX double quotes a backslash still escapes");
   if (process.platform !== "win32") {
     for (const title of ['Fix "login" $(touch PWNED) `id`', "it's; rm -rf x", "a\\b !x"]) {
       const r = spawnSync("sh", ["-c", `printf '%s' ${qarg(title)}`], { encoding: "utf8" });

@@ -1,5 +1,6 @@
 // @ts-check
 import path from "node:path";
+import process from "node:process";
 import { mkdirSync, rmdirSync, statSync } from "node:fs";
 
 // ONE AT A TIME, FOR THE FEW STEPS THAT MUST BE (seventh audit, change 0250).
@@ -14,9 +15,24 @@ import { mkdirSync, rmdirSync, statSync } from "node:fs";
 // on every filesystem this runs on. It is held for milliseconds. A lock left
 // behind by a process that died is taken over once it is old.
 
+// Held by this process, so a step that already holds the lock and calls one
+// that takes it again — `work` opening a change, then indexing it — goes on
+// instead of waiting five seconds for itself.
+const HELD = new Set();
+
 const WAIT_MS = 25;
 const GIVE_UP_MS = 5000;
 const STALE_MS = 30000;
+
+// On Windows a directory another process just removed lingers as "delete
+// pending", and a mkdir on its path fails with EPERM (or EACCES/EBUSY), not
+// EEXIST. Read as "nothing to serialise", that ran the step unlocked: eight
+// parallel `work` on a Windows runner opened two changes numbered 0007.
+/** @param {string | undefined} code @param {NodeJS.Platform} [platform] */
+export function contended(code, platform = process.platform) {
+  if (code === "EEXIST") return true;
+  return platform === "win32" && (code === "EPERM" || code === "EACCES" || code === "EBUSY");
+}
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -32,14 +48,16 @@ function sleep(ms) {
  */
 export function withProjectLock(projectRoot, fn) {
   const lock = path.join(projectRoot, ".doctrina", ".lock");
+  if (HELD.has(lock)) return fn();
   let held = false;
   for (let waited = 0; waited <= GIVE_UP_MS; waited += WAIT_MS) {
     try {
       mkdirSync(lock);
       held = true;
+      HELD.add(lock);
       break;
     } catch (err) {
-      if (/** @type {NodeJS.ErrnoException} */ (err).code !== "EEXIST") break; // no .doctrina/, read-only tree: nothing to serialise
+      if (!contended(/** @type {NodeJS.ErrnoException} */ (err).code)) break; // no .doctrina/, read-only tree: nothing to serialise
       try {
         if (Date.now() - statSync(lock).mtimeMs > STALE_MS) rmdirSync(lock);
       } catch { /* released between the two calls */ }
@@ -50,6 +68,7 @@ export function withProjectLock(projectRoot, fn) {
     return fn();
   } finally {
     if (held) {
+      HELD.delete(lock);
       try {
         rmdirSync(lock);
       } catch { /* already gone */ }

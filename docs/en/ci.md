@@ -128,8 +128,9 @@ plausible failure the in-repo suite cannot see.
 A release is the last moment a defect is cheap, so the publish job runs
 **every gate a pull request already runs** — never a subset of it.
 
-This repository's own `release.yml` fires on a `v*` tag and, before
-`npm publish`, runs:
+This repository's own `release.yml` runs when a push to `main` changes
+`packages/doctrina-cli/package.json` to a version npm does not have yet,
+and, before `npm publish`, runs:
 
 ```
 npm ci
@@ -158,3 +159,19 @@ workflow run and the commit that produced it.
 The requirement is enforced, not merely written down:
 `test/the-release-gate-is-not-weaker.test.js` reads both workflows and
 fails when a gate the PR job runs has no counterpart in the release job.
+
+**Let the job write the tag, and let nothing else trigger it.** The job
+tags the commit it published. A tag is its output, never its trigger: a run
+started by that tag asks npm, seconds after the publish, whether the
+version is there, gets "not yet", and publishes again — which npm refuses
+with E409.
+
+**Expect npm to hold a version.** npm stages a publish made with a token
+that bypasses 2FA until a maintainer approves it with 2FA, and stops such
+tokens from publishing directly in 2027. The job then succeeds with a
+warning that the version is not public yet. Approve it on npmjs.com (your
+account → Staged Packages) or with `npm stage approve <stage-id>`. To skip
+the staging altogether, configure **trusted publishing** on npmjs.com for
+the package — the repository, the workflow file `release.yml`, `npm
+publish` allowed: npm then authenticates the job through OIDC (npm 11.5.1
+or later, `id-token: write`) and no token is involved.

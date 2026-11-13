@@ -10,8 +10,11 @@ import process from "node:process";
 // as it came: a story titled `Fix $(curl … | sh)` became a command the agent
 // ran, and a repository under `~/my api/` became a `cd` into `~/my`.
 
-// Inside double quotes a POSIX shell still expands these.
+// Inside double quotes a POSIX shell still expands these. PowerShell expands
+// only `$` and the backtick, and to it (and to cmd) a backslash is a literal:
+// every Windows path has one, so counting it single-quoted every path there.
 const DOUBLE_QUOTE_UNSAFE = /["`$\\!]/;
+const DOUBLE_QUOTE_UNSAFE_WIN32 = /["`$]/;
 const BARE_PATH = /^[A-Za-z0-9_./:\\~+@%=,-]+$/;
 
 /**
@@ -24,7 +27,8 @@ const BARE_PATH = /^[A-Za-z0-9_./:\\~+@%=,-]+$/;
  */
 export function qarg(value, platform = process.platform) {
   const s = String(value ?? "");
-  if (!DOUBLE_QUOTE_UNSAFE.test(s)) return `"${s}"`;
+  const unsafe = platform === "win32" ? DOUBLE_QUOTE_UNSAFE_WIN32 : DOUBLE_QUOTE_UNSAFE;
+  if (!unsafe.test(s)) return `"${s}"`;
   const inner = platform === "win32" ? s.replace(/'/g, "''") : s.replace(/'/g, "'\\''");
   return `'${inner}'`;
 }

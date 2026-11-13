@@ -17,3 +17,10 @@ updates:
     groups:
       dev-dependencies:
         patterns: ["*"]
+    # A TypeScript major is not a routine bump: 7.0 (the native compiler)
+    # reports 172 errors over the same checkJs tree that 5.9 accepts, and its
+    # grouped pull request turned every typecheck job red. Move to a new major
+    # in its own change, with the code made to pass it first.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]

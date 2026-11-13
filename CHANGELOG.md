@@ -17,6 +17,46 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.22.1] — 2026-11-13
+
+### Fixed
+
+- The Release workflow no longer runs on a tag. The tag is what the job
+  writes after it publishes; the run a tag push started asked npm, seconds
+  later, whether the version was out, heard "not yet", and published again,
+  which npm refused with E409 — the red run beside the 0.22.0 release.
+- A version npm holds staged, waiting for a maintainer's approval with 2FA,
+  is reported as a warning that names how to approve it (npmjs.com → Staged
+  Packages, or `npm stage approve <stage-id>`) instead of as a release that
+  nobody can install; publishing a version npm already holds staged is that
+  warning, not a failure. With trusted publishing configured on npmjs.com
+  for `release.yml`, the job authenticates through OIDC and nothing is
+  staged; it makes sure the runner's npm is 11.5.1 or later for that.
+- `doctrina work` writes its change's index entry under the project lock.
+  It opened the change under the lock and indexed it after releasing it, so
+  on a loaded machine one of eight parallel `work` could vanish from
+  `index.json` (the folder stayed; `index rebuild` brought it back).
+  `change delta` and every other caller of the same step are covered too.
+- The typecheck runs on TypeScript 5.9 again. The grouped dependabot bump
+  had moved it to 7.0, whose native compiler rejects the checkJs tree with
+  172 errors and turned every typecheck job on `main` red; dependabot now
+  leaves TypeScript majors to their own change.
+- The consoles of one workspace meet in one room on macOS too. A room was
+  keyed by the path as typed, and a workspace records real paths, so under
+  a symlinked directory (macOS's `/var` is `/private/var`) the planner's
+  console and its repositories' consoles opened two rooms and never saw
+  each other. Rooms are now keyed by the real path.
+- On Windows, a command line the CLI prints (`cd <repo> && doctrina …`)
+  quotes a path with a space in double quotes again. A backslash counted as
+  unsafe inside double quotes, which holds for a POSIX shell but not for
+  PowerShell or cmd, so every such Windows path came out single-quoted, a
+  form cmd does not read as one argument.
+- On Windows, commands run at once wait for the project lock again. A lock
+  directory Windows was still deleting made `mkdir` fail with `EPERM`, which
+  the lock read as a tree with nothing to serialise, so the step ran
+  unlocked and two parallel `doctrina work` could open changes with one
+  number.
+
 ## [0.22.0] — 2026-11-13
 
 ### Upgrading from 0.21

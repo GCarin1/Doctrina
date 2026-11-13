@@ -582,6 +582,9 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  // 0.22.1 fixes the release workflow, the typecheck toolchain and a lost
+  // index entry under parallel `work`: nothing an agent does differently.
+  "0.22.1": [],
   "0.22.0": [
     "An edit that changes nothing a spec says opens no change: `doctrina work` answers `direct` and exits 0 — edit, run `doctrina verify`, commit. `--force` only when a sentence of a spec does change.",
     "Run `doctrina hooks install` once in each clone and commit the `.gitattributes` it writes: `index.json` and the ledger then merge across branches. Two open changes with one number: `doctrina change renumber <id>`.",
