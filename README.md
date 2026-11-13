@@ -28,6 +28,13 @@ From there your agent drives: `doctrina prime` at the start of a session,
 `doctrina work "<prompt>"` for each request, `doctrina close <id>` to finish
 it. Full walkthrough: [Getting started](./docs/en/getting-started.md).
 
+Prefer one window to forty commands? Run `doctrina` alone in a terminal:
+the console shows the gates and the open work, runs any command after `/`,
+and sends a request typed in your own words to the agent you already use
+([`doctrina ui`](./docs/en/cli-reference.md#doctrina-ui)).
+
+![The Doctrina console: gates across the top, the conversation with the agent, and the open work beside it](./docs/assets/console.png)
+
 ---
 
 ## How it works
@@ -101,8 +108,8 @@ governs how a body of agents acts.
   the hub, so the hub can never lag the CLI.
 - A `.doctrina/` skeleton with `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/`, and `index.json`.
-- The `doctrina` CLI (Node.js, zero runtime dependencies) with 40 commands
-  and 78 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
+- The `doctrina` CLI (Node.js, zero runtime dependencies) with 41 commands
+  and 79 operations covering init, intake, adapter, workspace, delivery, work, prime, spec,
   change, decision, contract, skill, intent, clarify, context,
   show, search, validate, coverage, trace, review, verify, close, doctor,
   status, why, handoff, watch, templates, hooks, index, next,
@@ -113,7 +120,7 @@ governs how a body of agents acts.
 - Adapters for 13 AGENTS.md-aware agents (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules, Kiro).
-- 14 capability specs and the ADRs 0001–0031 that describe the framework
+- 15 capability specs and the ADRs 0001–0032 that describe the framework
   (the range is checked against the decisions on disk)
   (including ADR 0006, intent provenance; ADR 0018, the exit-code contract;
   ADR 0021, the one document model; and ADR 0022, context assembly as

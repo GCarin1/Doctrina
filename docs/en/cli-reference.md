@@ -125,6 +125,87 @@ On an interactive terminal, `init` also offers the adapter install as
 a wizard step when `--agent` was not given (answer `none` to skip);
 in pipes, CI, or under `--non-interactive` the prompt never fires.
 
+## `doctrina ui`
+
+The console: Doctrina with a face, for the human at the terminal. Running
+`doctrina` with no arguments in a terminal opens it too; a pipe, a script
+or an agent still gets the help.
+
+```
+doctrina                 # in a terminal: the console
+doctrina ui
+doctrina ui --frame --cols 100 --rows 30
+doctrina ui --json
+```
+
+<!-- illustrative -->
+
+```
+ ◆ Doctrina  │  encurtador                                    ● claude   v0.22.0
+ index ✓   coverage ✓ 100% (3/3)   trace · no anchors   verify ✓ 2 checks
+────────────────────────────────────────────────────────────────────────────────
+ › refuse an expired link with 410                 │ OPEN WORK
+   └ Bash  doctrina work "refuse an expired link"  │ 0002-expired-links
+   └ Edit  src/links.py                            │ ✓ plan ─ ● build ─ ○ close
+ ◆ Opened 0002-expired-links, wrote the delta and  │ ■■■■■□□□□□  2/4 tasks
+   the test; two tasks left.                       │
+   ✓ 9 turns · 48.2s                               │ NEXT
+                                                   │ 1 finish the open tasks
+                                                   │   /work --resume 0002-expired-links
+╭─ to claude · same conversation ──────────────────────────────────────────────╮
+│ › _                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ enter send · / commands · @ mention · ↑↓ history · pgup/pgdn scroll · ? help
+```
+
+The gates run across the top, the conversation is the body, the panel
+beside it is the tree — what is open and at which stage, the next step,
+what closed recently — and you type on the line at the bottom. Narrower
+than 84 columns the panel folds into one strip under the gates. At a
+workspace root the panel lists the projects and the open deliveries.
+
+| You type | What happens |
+|----------|--------------|
+| a request, in your own words | It goes to the AI agent you already use, and everything the agent says and does is shown as it happens: its words, each tool call, the calls it was refused, how long it took. The next request continues the same conversation; `/new` starts another. |
+| `/command` | A Doctrina command, as you would type it after `doctrina`: `/next`, `/status`, `/work "<request>"`, `/close <id>`. A list filters as you type — the session loop first — `tab` completes, and `enter` runs a command that means something with no argument. Its output is what the command prints anywhere. |
+| `@artifact` | A spec, an open change, a skill or a decision the index names: `@spec:auth`, `@change:0001-login`, `@skill:cut-a-release`, `@adr:0005`. In a command it becomes the id; in a request the agent is told the file it names (and, for a skill, to follow it). |
+| `?` or `/help` | What the console understands. `/agent` shows the agents found and switches between them, `/panel` hides the panel, `/clear` empties the conversation, `/quit` leaves. |
+
+Keys: `enter` send · `tab` complete · `↑ ↓` earlier inputs (or the list) ·
+`pgup pgdn` scroll · `esc` interrupt what is running, or clear the line ·
+`ctrl+c` twice to leave.
+
+**The agent** (ADR 0032). The CLI calls no model. A request is handed to
+your agent's own command-line tool through its documented non-interactive
+mode — the same binary, account, rules and hooks as in your IDE, in a
+session of its own (it does not type into a chat pane that is already
+open). The console looks on `PATH` for:
+
+| Agent | Command | How it is started |
+|-------|---------|-------------------|
+| Claude Code | `claude` | `claude -p --output-format stream-json`, the prompt on stdin, `--resume <session>` for the next request. Edits are accepted and `doctrina` may run; any other command is the agent's own settings' to allow. Exercised against the real binary. |
+| Cursor | `cursor-agent` (or `agent`, where Cursor is in use) | `-p --output-format stream-json`, `--resume <chat>`. From Cursor's documentation; not exercised against the binary. |
+| Codex | `codex` | `codex exec --json --sandbox workspace-write`. From its documentation; not exercised. |
+| Gemini CLI | `gemini` | the prompt on stdin, `--approval-mode auto_edit`, plain text out. From its documentation; not exercised. |
+
+The one used first is the IDE whose terminal this is, then the one the
+project has an adapter for. `DOCTRINA_AGENT=<name>` pins one (`none`
+disables it) and `DOCTRINA_AGENT_ARGS` adds flags of your own to its
+command line. Doctrina never passes a flag that skips an agent's
+approvals: a call the agent may not make is refused by the agent and
+reported in the conversation. With no agent found, a request has nowhere
+to go and the console says so; every `/command` still works.
+
+The console stores nothing. The panel and the gates are read from the tree
+when it opens and after every command and every answer, by a process of
+its own, and each `/command` runs as the same CLI you would run by hand.
+
+| Flag | Purpose |
+|------|---------|
+| `--frame` | Print one frame and exit instead of opening the console — what a pipe gets anyway. |
+| `--cols <n>`, `--rows <n>` | The frame's size, with `--frame` (default: the terminal's, or 100×30). |
+| `--json` | The panel's state as JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, the `mentions` that `@` completes, and the `agents` found. |
+
 ## `doctrina onboard`
 
 Walk the whole cycle once, on this repository. `next` names one action and

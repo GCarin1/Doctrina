@@ -132,6 +132,87 @@ add <nome>`** — não `init --force`. O `adapter add` é aditivo e nunca
 toca em `AGENTS.md` ou `product.md`; o `init --force` re-esqueletiza e
 agora recusa quando qualquer um dos dois carrega conteúdo autorado.
 
+## `doctrina ui`
+
+O console: o Doctrina com um rosto, para o humano no terminal. Rodar
+`doctrina` sem argumentos num terminal também o abre; um pipe, um script
+ou um agente continuam recebendo a ajuda.
+
+```
+doctrina                 # num terminal: o console
+doctrina ui
+doctrina ui --frame --cols 100 --rows 30
+doctrina ui --json
+```
+
+<!-- illustrative -->
+
+```
+ ◆ Doctrina  │  encurtador                                    ● claude   v0.22.0
+ index ✓   coverage ✓ 100% (3/3)   trace · no anchors   verify ✓ 2 checks
+────────────────────────────────────────────────────────────────────────────────
+ › refuse an expired link with 410                 │ OPEN WORK
+   └ Bash  doctrina work "refuse an expired link"  │ 0002-expired-links
+   └ Edit  src/links.py                            │ ✓ plan ─ ● build ─ ○ close
+ ◆ Opened 0002-expired-links, wrote the delta and  │ ■■■■■□□□□□  2/4 tasks
+   the test; two tasks left.                       │
+   ✓ 9 turns · 48.2s                               │ NEXT
+                                                   │ 1 finish the open tasks
+                                                   │   /work --resume 0002-expired-links
+╭─ to claude · same conversation ──────────────────────────────────────────────╮
+│ › _                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ enter send · / commands · @ mention · ↑↓ history · pgup/pgdn scroll · ? help
+```
+
+Os gates ficam no topo, a conversa é o corpo, o painel ao lado é a árvore
+— o que está aberto e em que estágio, o próximo passo, o que fechou há
+pouco — e você digita na linha de baixo. Com menos de 84 colunas o painel
+vira uma faixa sob os gates. Na raiz de um workspace o painel lista os
+projetos e as entregas abertas.
+
+| Você digita | O que acontece |
+|-------------|----------------|
+| um pedido, com as suas palavras | Vai para o agente de IA que você já usa, e tudo o que o agente diz e faz aparece enquanto acontece: o texto, cada chamada de ferramenta, as chamadas que lhe foram recusadas, quanto tempo levou. O pedido seguinte continua a mesma conversa; `/new` começa outra. |
+| `/comando` | Um comando do Doctrina, como você digitaria depois de `doctrina`: `/next`, `/status`, `/work "<pedido>"`, `/close <id>`. Uma lista filtra enquanto você digita — o ciclo da sessão primeiro — `tab` completa, e `enter` roda um comando que faz sentido sem argumento. A saída é a que o comando imprime em qualquer lugar. |
+| `@artefato` | Uma spec, uma change aberta, uma skill ou uma decisão que o índice nomeia: `@spec:auth`, `@change:0001-login`, `@skill:cut-a-release`, `@adr:0005`. Num comando vira o id; num pedido o agente recebe o arquivo que ele nomeia (e, para uma skill, a instrução de segui-la). |
+| `?` ou `/help` | O que o console entende. `/agent` mostra os agentes encontrados e troca entre eles, `/panel` esconde o painel, `/clear` limpa a conversa, `/quit` sai. |
+
+Teclas: `enter` envia · `tab` completa · `↑ ↓` entradas anteriores (ou a
+lista) · `pgup pgdn` rolam · `esc` interrompe o que está rodando, ou limpa
+a linha · `ctrl+c` duas vezes para sair.
+
+**O agente** (ADR 0032). A CLI não chama modelo nenhum. O pedido é
+entregue à ferramenta de linha de comando do seu próprio agente, pelo modo
+não interativo documentado dela — o mesmo binário, conta, regras e hooks
+da sua IDE, numa sessão própria (ele não digita num painel de chat que já
+está aberto). O console procura no `PATH`:
+
+| Agente | Comando | Como é iniciado |
+|--------|---------|-----------------|
+| Claude Code | `claude` | `claude -p --output-format stream-json`, o prompt no stdin, `--resume <sessão>` no pedido seguinte. Edições são aceitas e o `doctrina` pode rodar; qualquer outro comando depende das configurações do próprio agente. Exercitado contra o binário real. |
+| Cursor | `cursor-agent` (ou `agent`, onde o Cursor está em uso) | `-p --output-format stream-json`, `--resume <chat>`. Pela documentação do Cursor; não exercitado contra o binário. |
+| Codex | `codex` | `codex exec --json --sandbox workspace-write`. Pela documentação; não exercitado. |
+| Gemini CLI | `gemini` | o prompt no stdin, `--approval-mode auto_edit`, saída em texto. Pela documentação; não exercitado. |
+
+O usado primeiro é o da IDE dona deste terminal, depois o que tem adapter
+no projeto. `DOCTRINA_AGENT=<nome>` fixa um (`none` desliga) e
+`DOCTRINA_AGENT_ARGS` acrescenta flags suas à linha de comando dele. O
+Doctrina nunca passa uma flag que pule as aprovações de um agente: uma
+chamada que o agente não pode fazer é recusada pelo agente e relatada na
+conversa. Sem agente encontrado, um pedido não tem para onde ir e o
+console diz isso; todo `/comando` continua funcionando.
+
+O console não guarda nada. O painel e os gates são lidos da árvore quando
+ele abre e depois de cada comando e de cada resposta, por um processo
+próprio, e cada `/comando` roda como a mesma CLI que você rodaria à mão.
+
+| Flag | Função |
+|------|--------|
+| `--frame` | Imprime um quadro e sai, em vez de abrir o console — o que um pipe recebe de qualquer forma. |
+| `--cols <n>`, `--rows <n>` | O tamanho do quadro, com `--frame` (padrão: o do terminal, ou 100×30). |
+| `--json` | O estado do painel em JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, as `mentions` que o `@` completa, e os `agents` encontrados. |
+
 ## `doctrina onboard`
 
 Percorre o ciclo inteiro uma vez, neste repositório. O `next` nomeia uma

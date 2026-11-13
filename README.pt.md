@@ -28,6 +28,13 @@ Daí em diante o seu agente conduz: `doctrina prime` no início da sessão,
 `doctrina work "<prompt>"` para cada pedido, `doctrina close <id>` para
 concluí-lo. Passo a passo completo: [Começando](./docs/pt/getting-started.md).
 
+Prefere uma janela a quarenta comandos? Rode `doctrina` sozinho num
+terminal: o console mostra os gates e o trabalho aberto, roda qualquer
+comando depois de `/`, e envia um pedido escrito com as suas palavras ao
+agente que você já usa ([`doctrina ui`](./docs/pt/cli-reference.md#doctrina-ui)).
+
+![O console do Doctrina: os gates no topo, a conversa com o agente e o trabalho aberto ao lado](./docs/assets/console.png)
+
 ---
 
 ## Como funciona
@@ -97,8 +104,8 @@ como um corpo de agentes age.
   comandos pelo hub, então o hub nunca fica atrás do CLI.
 - Um esqueleto `.doctrina/` com `product.md`, `specs/`, `changes/`, `decisions/`,
   `skills/`, `templates/` e `index.json`.
-- O CLI `doctrina` (Node.js, zero deps de runtime) com 40 comandos
-  e 78 operações cobrindo init, intake, workspace, delivery, work, prime, spec, change, decision, contract,
+- O CLI `doctrina` (Node.js, zero deps de runtime) com 41 comandos
+  e 79 operações cobrindo init, intake, workspace, delivery, work, prime, spec, change, decision, contract,
   skill, intent, clarify, context, show, search, validate, coverage,
   trace, review, verify, close, doctor, status, why, handoff,
   watch, templates, hooks, index, next, metrics, report, completion e
@@ -108,7 +115,7 @@ como um corpo de agentes age.
 - Adapters para 13 agentes AGENTS.md-aware (Claude Code, OpenAI Codex CLI,
   Cursor, GitHub Copilot, Gemini CLI, Aider, Windsurf, Continue, Amp, Devin,
   Factory, Jules, Kiro).
-- 14 specs de capability e os ADRs 0001–0031 que descrevem o framework
+- 15 specs de capability e os ADRs 0001–0032 que descrevem o framework
   (incluindo o ADR 0006, proveniência de intenção, e o ADR 0015, o bloco
   de superfície do AGENTS.md), mais skills on-demand capturando seus
   próprios procedimentos de manutenção.

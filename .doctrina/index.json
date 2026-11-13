@@ -2,7 +2,7 @@
   "$schema_version": "0.1.0",
   "project": "Doctrina",
   "framework_version": "0.21.0",
-  "last_updated": "2026-11-12",
+  "last_updated": "2026-11-13",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
@@ -30,7 +30,7 @@
         "id": "cli",
         "path": ".doctrina/specs/cli/spec.md",
         "status": "active",
-        "version": "0.63.1",
+        "version": "0.64.0",
         "last_updated": "2026-09-11",
         "implementation": "implemented",
         "source": [
@@ -38,6 +38,22 @@
           "packages/doctrina-cli/src/commands/next.js",
           "packages/doctrina-cli/src/lib/{commands,args,flag-catalog,exit-codes,json-out,colors,suggest,version,project,prompt,actions,shell}.js",
           "tsconfig.json"
+        ]
+      },
+      {
+        "id": "console",
+        "path": ".doctrina/specs/console/spec.md",
+        "status": "active",
+        "version": "0.1.0",
+        "last_updated": "2026-11-13",
+        "implementation": "implemented",
+        "depends_on": [
+          "cli",
+          "insight"
+        ],
+        "source": [
+          "packages/doctrina-cli/src/commands/ui.js",
+          "packages/doctrina-cli/src/lib/{console-model,console-view,console-state,agent-bridge}.js"
         ]
       },
       {
@@ -630,6 +646,17 @@
           "workspace"
         ],
         "summary": "O `workspace.json` DECLARA cada ferramenta: o nome do servidor MCP como"
+      },
+      {
+        "id": "0032",
+        "path": ".doctrina/decisions/0032-the-console-hands-a-request-to-the-agent-s-own-command-line.md",
+        "title": "The console hands a request to the agent's own command line",
+        "status": "accepted",
+        "date": "2026-11-13",
+        "scope": [
+          "console"
+        ],
+        "summary": "The console sends a human's free-text request to the agent's own"
       }
     ],
     "changes": [],
@@ -4464,6 +4491,24 @@
           }
         ],
         "lane": "product (confident; signals: change, implementar)"
+      },
+      {
+        "id": "0257-console-interativo",
+        "title": "console interativo",
+        "path": ".doctrina/changes/archive/2026-11-13-0257-console-interativo",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "cli",
+            "operation": "MODIFIED"
+          },
+          {
+            "capability": "console",
+            "operation": "ADDED"
+          }
+        ],
+        "lane": "product (uncertain)"
       }
     ],
     "skills": [

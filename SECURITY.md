@@ -24,7 +24,10 @@ reporting.
   pass.
 - **No network calls.** The CLI does not make HTTP requests, does
   not resolve DNS, does not contact any remote service at run
-  time. Templates are loaded from local disk only.
+  time. Templates are loaded from local disk only. The console
+  (`doctrina ui`) can start your AI agent's command-line tool
+  for a request you type; that tool talks to its own service,
+  under its own account and settings — the CLI does not.
 - **No telemetry, no analytics, no fingerprinting.** Doctrina
   does not collect usage, errors, install counts, machine
   identifiers, or any other signal. No metric leaves your
@@ -54,9 +57,11 @@ reporting.
   `.cursor/mcp.json`, `.mcp.json`, `~/.cursor/mcp.json` and
   `~/.claude.json`, to warn when a declared tool matches none;
   and, for `doctrina doctor`, the directories of the `PATH` and
-  the `package.json` of another `doctrina-cli` found there.
+  the `package.json` of another `doctrina-cli` found there; for
+  `doctrina ui`, the same directories, to find your agent's
+  command-line tool.
 - **Subprocesses are `git`, or commands the project declared.**
-  The CLI spawns exactly three kinds of process, and no others.
+  The CLI spawns exactly four kinds of process, and no others.
   `git`, always as an argument array and never through a shell —
   to read: `cat-file`, `diff`, `for-each-ref`, `log`, `ls-files`,
   `ls-tree`, `merge-base`, `remote`, `rev-parse`, `show`; to
@@ -68,6 +73,17 @@ reporting.
   `doctrina verify`. And that file's `evidence_runner`, run by
   `doctrina coverage --run`. `doctrina hooks install` writes a
   hook and a merge driver that git later runs; both run this CLI.
+  And, from the console only (`doctrina ui`): this CLI, once per
+  command you type there; and, for a request you type there,
+  your AI agent's command-line tool as found on `PATH` —
+  `claude`, `cursor-agent` (or `agent`), `codex`, `gemini` —
+  with the request on its standard input or as one argument,
+  never through a shell that could read it as commands, and
+  never with a flag that skips the agent's approvals. Which
+  agent, and any flag of your own, are `DOCTRINA_AGENT` and
+  `DOCTRINA_AGENT_ARGS` in your environment, not a file of the
+  project. No agent, command or hook starts it: a pipe that runs
+  `doctrina ui` gets one printed frame.
 
 ## The trust boundary: a project's own files
 

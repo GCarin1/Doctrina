@@ -43,7 +43,7 @@ function runCli(args, cwd) {
 // `templates list` shows what would be resolved. The spec used to name
 // three exceptions when there were seven. `onboard` walks a newcomer from
 // before the install: its first step IS `init` (change 0256).
-const EXEMPT = new Set(["init", "onboard", "next", "completion", "ci", "templates"]);
+const EXEMPT = new Set(["init", "onboard", "ui", "next", "completion", "ci", "templates"]);
 
 // A subcommand each hub accepts, so the walk reaches the command's own body
 // instead of stopping at its usage error.

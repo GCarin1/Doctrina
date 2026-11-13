@@ -282,6 +282,12 @@ for (const [label, args] of [
   assert(r.status === 0, `${label} after the lifecycle`, r.out);
 }
 
+// The console is five modules that load each other: a packed install has to
+// carry every one, and a pipe gets its one frame (change 0257).
+const frame = doctrina(["ui", "--frame", "--cols", "96", "--rows", "20"], proj);
+assert(frame.status === 0 && /◆ Doctrina/.test(frame.out) && /RECENTLY CLOSED/.test(frame.out),
+  "ui --frame paints the console from a packed install", frame.out);
+
 // ---------------------------------------------------- C1: content safety
 
 console.log("\n4. adapters never destroy project content (C1)");

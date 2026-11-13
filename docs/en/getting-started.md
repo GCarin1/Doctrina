@@ -107,8 +107,9 @@ orchestrate, and stay available when you want fine-grained control.
 Prefer to be walked through it? `doctrina onboard` (or `/doctrina-onboard`
 in Claude Code and Cursor) runs the whole cycle once on your repository:
 it shows which step the project is at, suggests a small real first task,
-and tells the agent what to explain and where to ask you. The sections
-below are the same steps, by hand.
+and tells the agent what to explain and where to ask you. Or open the
+console — `doctrina` alone in a terminal ([`doctrina ui`](cli-reference.md#doctrina-ui))
+— and type the request there. The sections below are the same steps, by hand.
 
 ## Your first capability spec
 

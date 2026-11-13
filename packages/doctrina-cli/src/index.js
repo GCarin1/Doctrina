@@ -35,6 +35,7 @@ const COMMANDS = {
   search: () => import("./commands/search.js"),
   intake: () => import("./commands/intake.js"),
   onboard: () => import("./commands/onboard.js"),
+  ui: () => import("./commands/ui.js"),
   work: () => import("./commands/work.js"),
   coverage: () => import("./commands/coverage.js"),
   verify: () => import("./commands/verify.js"),
@@ -111,6 +112,13 @@ async function main(argv) {
   }
 
   if (positional.length === 0) {
+    // In a terminal, `doctrina` alone opens the console (change 0257): a
+    // person who typed the name and nothing else is asking where to start.
+    // A pipe, a script or an agent still gets the help it always got.
+    if (argv.length === 0 && process.stdin.isTTY && process.stdout.isTTY) {
+      const ui = await COMMANDS.ui();
+      return ui.run([], new Map());
+    }
     process.stdout.write(TOP_HELP);
     return 0;
   }

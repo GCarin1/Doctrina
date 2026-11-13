@@ -19,6 +19,19 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The console: Doctrina with a face. `doctrina ui` — and `doctrina` alone
+  in a terminal — opens one window with the gates across the top, the
+  conversation, a panel read from the tree (open work and its stage, the
+  next step, what closed recently) and a line to type on. `/` runs any
+  Doctrina command with a list that completes it, `@` mentions a spec, a
+  change, a skill or a decision, and a request typed in your own words goes
+  to the AI agent you already use — Claude Code, Cursor, Codex or Gemini —
+  through that agent's non-interactive mode, with what it says and does
+  shown as it happens and the conversation kept between requests
+  (ADR 0032). `DOCTRINA_AGENT` and `DOCTRINA_AGENT_ARGS` choose the agent
+  and add flags of your own; Doctrina passes none that skips an agent's
+  approvals. `doctrina ui --frame` prints one frame and `--json` the
+  panel's state. A pipe that runs `doctrina` alone still gets the help.
 - `doctrina onboard` walks the whole cycle once, on the real repository:
   the six steps, each ticked when the tree shows it done, and for the
   current one what to tell the human, where to stop and ask, and the

@@ -35,6 +35,7 @@ const INVOCATION = {
   init: ["init", "--help"],
   intake: ["intake", "--help"],
   onboard: ["onboard"],
+  ui: ["ui"],
   triage: ["triage"],
   work: ["work", "--help"],
   spec: ["spec", "list"],
