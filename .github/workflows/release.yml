@@ -37,7 +37,7 @@ jobs:
     steps:
       # The whole history: the step below asks whether this commit is on main.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
       # systems. This job published from 20.12 — end of life since April
       # 2026 — which is the floor `engines` declares, not a release toolchain.
       - name: Set up Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
