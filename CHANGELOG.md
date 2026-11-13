@@ -19,6 +19,15 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The console talks to any agent you have, and you choose its model. The
+  catalog gains GitHub Copilot's CLI (the agent of VS Code) and opencode
+  beside Claude Code, Cursor, Codex and Gemini; any other command-line
+  agent is declared once in `$DOCTRINA_HOME/agents.json`. `/agent` lists
+  every agent known, installed or not, and completes the name; `/model
+  <name>` passes the model on the agent's command line, kept per agent,
+  with `/model default` to go back. The agent and the model in use are
+  shown in the header and on the input box, and the choice is kept per
+  directory in `$DOCTRINA_HOME/console.json`.
 - The console: Doctrina with a face. `doctrina ui` — and `doctrina` alone
   in a terminal — opens one window with the gates across the top, the
   conversation, a panel read from the tree (open work and its stage, the

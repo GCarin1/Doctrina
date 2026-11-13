@@ -7,9 +7,9 @@
 **Implementation:** implemented
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Depends on:** cli, insight
-**Source:** `packages/doctrina-cli/src/commands/ui.js`, `packages/doctrina-cli/src/lib/{console-model,console-view,console-state,agent-bridge}.js`
+**Source:** `packages/doctrina-cli/src/commands/ui.js`, `packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,agent-bridge}.js`
 **Last updated:** 2026-11-13
-**Version:** 0.1.0
+**Version:** 0.2.0
 
 ## Purpose
 
@@ -29,10 +29,10 @@ an agent is found, started and relayed.
 
 - The system shall derive every frame of the console from one state object, with exactly the rows and columns the terminal has, leaving the last cell of the last row empty.
 - The system shall show the gates across the top, the conversation as the body, a panel of the open work with its stage, the next step and the recently closed changes beside it, and the line being typed at the bottom.
-- The system shall read the panel and the gates from the tree through a process of its own, when the console opens and after every command and every answer, and shall store no state of its own.
+- The system shall read the panel and the gates from the tree through a process of its own, when the console opens and after every command and every answer, and shall keep nothing about the project between runs.
 - The system shall run each command typed after `/` as the same CLI in a process of its own, without colour, and show its output as printed.
-- The system shall choose the agent in this order: the one `DOCTRINA_AGENT` names, the one whose IDE terminal this is, the one the project has an adapter for, then the order of the catalog — Claude Code, Cursor, Codex, Gemini CLI.
-- The system shall hand a request to an agent on its standard input where the agent reads one, and otherwise as a single argument, and append the arguments `DOCTRINA_AGENT_ARGS` holds.
+- The system shall choose the agent in this order: the one `DOCTRINA_AGENT` names, the one the person chose in this directory before while it is still installed, the one whose IDE terminal this is, the one the project has an adapter for, then the order of the catalog — Claude Code, Cursor, GitHub Copilot, Codex, Gemini CLI, opencode — and then the agents the person declared.
+- The system shall hand a request to an agent on its standard input where the agent reads one, and otherwise as a single argument, followed by the model the person chose — named the way that agent names one — and then the arguments `DOCTRINA_AGENT_ARGS` holds.
 
 ### Event-driven
 
@@ -48,6 +48,10 @@ an agent is found, started and relayed.
 - When esc is pressed while a command or an agent runs, the system shall interrupt that process and say so in the conversation.
 - When the terminal is narrower than 84 columns, the system shall fold the panel into one strip under the gates.
 - When the console runs at a workspace root, the system shall show the projects with their state and the open deliveries in place of the open changes.
+- When `/agent` is run with no name, the system shall list every agent it knows, installed or not, each with the path it was found at or the binaries it looked for, and complete a name typed after `/agent` from that list.
+- When `/model <name>` is run, the system shall pass that name on the command line of the agent in use from the next request, keeping one model per agent; `/model default` shall remove it, and `/model` alone shall show the model chosen or the one the agent reported, the names the agent is known to accept, and where the agent lists the models of the account.
+- When an agent or a model is chosen, the system shall keep the choice in `$DOCTRINA_HOME/console.json` under the directory the console was opened in.
+- When `$DOCTRINA_HOME/agents.json` declares an agent, the system shall offer it beside the catalog, passing the request where its arguments hold `{prompt}` and on standard input when they hold none, and shall name and skip a declaration that is wrong.
 
 ### State-driven
 
@@ -59,6 +63,7 @@ an agent is found, started and relayed.
 - The system shall not start an agent for anything but a request a person typed into the console.
 - The system shall not read which agent to use from a file of the project.
 - The system shall not take a binary named `agent` for Cursor's where neither Cursor's terminal nor a `.cursor/` directory is present.
+- The system shall not write the agent or the model a person chose into the project.
 
 ## Acceptance criteria
 
@@ -73,6 +78,9 @@ The console is v0 spec-compliant when:
 7. [verified] The agent found first follows `DOCTRINA_AGENT`, then the IDE's terminal, then the project's adapter; `none` finds no agent; a bare `agent` binary is Cursor's only where Cursor is in use; a file that cannot be executed is not an agent — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
 8. [verified] `ui --json` reports the kind, gates, open work with its stage, next steps, mentions and agents; `ui --frame` prints exactly the rows asked for; `ui` in a pipe prints one frame and a note; `doctrina` alone in a pipe prints the help; a directory with no project yields a frame that names `/init` — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
 9. [verified] In a terminal the console runs `/next` and shows what it prints, sends two requests in one conversation with the session resumed on the second, starts a new one after `/new`, interrupts an agent that never ends, and on `/quit` exits 0 having restored the terminal — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
+10. [verified] `/agent` lists the installed agents with their path and the others with the binaries looked for, switches to an installed one saving the choice, and refuses one that is unknown or not installed; `/model` shows, sets, keeps per agent and removes a model, names an agent that takes none, and both arguments are completed from a list — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
+11. [verified] The model reaches each agent's command line the way that agent names one, before the person's own flags; GitHub Copilot is started with write and `doctrina` allowed and no session, opencode with no model flag; the model an agent reports is shown until one is chosen — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
+12. [verified] An agent declared in `agents.json` is found, started with its arguments, session and model, and takes the request on stdin when its arguments hold no `{prompt}`; four wrong declarations are each named; the choice of agent and model is kept per directory, reaches a real session's agent, and a file broken by hand loses the choice without stopping the console — verified by `packages/doctrina-cli/test/o-console-da-um-rosto-ao-doctrina.test.js`.
 
 ## Out of scope for this spec
 

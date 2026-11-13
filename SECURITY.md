@@ -45,6 +45,8 @@ reporting.
     files (a symlink or junction, else a hard link, else a copy
     the command reports) plus the lines in that repository's
     `.git/info/exclude` that hide them from its git.
+  - `doctrina ui` keeps the agent and the model you chose in
+    `$DOCTRINA_HOME/console.json`, per directory.
   - `doctrina verify` writes one scratch file in the system's
     temporary directory (a copy of git's index, to fingerprint
     the tree) and removes it.
@@ -59,7 +61,8 @@ reporting.
   and, for `doctrina doctor`, the directories of the `PATH` and
   the `package.json` of another `doctrina-cli` found there; for
   `doctrina ui`, the same directories, to find your agent's
-  command-line tool.
+  command-line tool, and `$DOCTRINA_HOME/agents.json`, where
+  you may declare an agent of your own.
 - **Subprocesses are `git`, or commands the project declared.**
   The CLI spawns exactly four kinds of process, and no others.
   `git`, always as an argument array and never through a shell —
@@ -76,7 +79,9 @@ reporting.
   And, from the console only (`doctrina ui`): this CLI, once per
   command you type there; and, for a request you type there,
   your AI agent's command-line tool as found on `PATH` —
-  `claude`, `cursor-agent` (or `agent`), `codex`, `gemini` —
+  `claude`, `cursor-agent` (or `agent`), `copilot`, `codex`,
+  `gemini`, `opencode`, or one you declared yourself in
+  `$DOCTRINA_HOME/agents.json` —
   with the request on its standard input or as one argument,
   never through a shell that could read it as commands, and
   never with a flag that skips the agent's approvals. Which

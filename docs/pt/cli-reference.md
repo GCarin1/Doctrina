@@ -176,7 +176,7 @@ projetos e as entregas abertas.
 | um pedido, com as suas palavras | Vai para o agente de IA que você já usa, e tudo o que o agente diz e faz aparece enquanto acontece: o texto, cada chamada de ferramenta, as chamadas que lhe foram recusadas, quanto tempo levou. O pedido seguinte continua a mesma conversa; `/new` começa outra. |
 | `/comando` | Um comando do Doctrina, como você digitaria depois de `doctrina`: `/next`, `/status`, `/work "<pedido>"`, `/close <id>`. Uma lista filtra enquanto você digita — o ciclo da sessão primeiro — `tab` completa, e `enter` roda um comando que faz sentido sem argumento. A saída é a que o comando imprime em qualquer lugar. |
 | `@artefato` | Uma spec, uma change aberta, uma skill ou uma decisão que o índice nomeia: `@spec:auth`, `@change:0001-login`, `@skill:cut-a-release`, `@adr:0005`. Num comando vira o id; num pedido o agente recebe o arquivo que ele nomeia (e, para uma skill, a instrução de segui-la). |
-| `?` ou `/help` | O que o console entende. `/agent` mostra os agentes encontrados e troca entre eles, `/panel` esconde o painel, `/clear` limpa a conversa, `/quit` sai. |
+| `?` ou `/help` | O que o console entende. `/agent` escolhe o agente e `/model` o modelo dele, `/panel` esconde o painel, `/clear` limpa a conversa, `/quit` sai. |
 
 Teclas: `enter` envia · `tab` completa · `↑ ↓` entradas anteriores (ou a
 lista) · `pgup pgdn` rolam · `esc` interrompe o que está rodando, ou limpa
@@ -190,20 +190,59 @@ está aberto). O console procura no `PATH`:
 
 | Agente | Comando | Como é iniciado |
 |--------|---------|-----------------|
-| Claude Code | `claude` | `claude -p --output-format stream-json`, o prompt no stdin, `--resume <sessão>` no pedido seguinte. Edições são aceitas e o `doctrina` pode rodar; qualquer outro comando depende das configurações do próprio agente. Exercitado contra o binário real. |
+| Claude Code | `claude` | `claude -p --output-format stream-json`, o prompt no stdin, `--resume <sessão>` no pedido seguinte. Edições são aceitas e o `doctrina` pode rodar; qualquer outro comando depende das configurações do próprio agente. Exercitado contra o binário real. É também a CLI que as extensões do Claude para VS Code e JetBrains rodam. |
 | Cursor | `cursor-agent` (ou `agent`, onde o Cursor está em uso) | `-p --output-format stream-json`, `--resume <chat>`. Pela documentação do Cursor; não exercitado contra o binário. |
-| Codex | `codex` | `codex exec --json --sandbox workspace-write`. Pela documentação; não exercitado. |
-| Gemini CLI | `gemini` | o prompt no stdin, `--approval-mode auto_edit`, saída em texto. Pela documentação; não exercitado. |
+| GitHub Copilot (VS Code) | `copilot` | `copilot -p "<pedido>" -s --allow-tool='write, shell(doctrina:*)'`. O modo programático dele não documenta sessão a retomar, então cada pedido começa uma conversa. Pela documentação; não exercitado. |
+| Codex | `codex` | `codex exec --json --sandbox workspace-write`, `codex exec resume <sessão>` no pedido seguinte. Pela documentação; não exercitado. |
+| Gemini CLI | `gemini` | o prompt no stdin, `--approval-mode auto_edit`, saída em texto — cada pedido começa uma conversa. Pela documentação; não exercitado. |
+| opencode | `opencode` | `opencode run "<pedido>"`. Pela documentação; não exercitado. |
 
-O usado primeiro é o da IDE dona deste terminal, depois o que tem adapter
-no projeto. `DOCTRINA_AGENT=<nome>` fixa um (`none` desliga) e
+O `/agent` lista todos, instalados ou não, com o binário que procurou;
+`/agent <nome>` troca (uma lista completa o nome), e `/agent off` não
+envia pedidos a lugar nenhum. O usado primeiro é o que você escolheu aqui
+antes, depois o da IDE dona deste terminal, depois o que tem adapter no
+projeto. `DOCTRINA_AGENT=<nome>` fixa um (`none` desliga) e
 `DOCTRINA_AGENT_ARGS` acrescenta flags suas à linha de comando dele. O
 Doctrina nunca passa uma flag que pule as aprovações de um agente: uma
 chamada que o agente não pode fazer é recusada pelo agente e relatada na
 conversa. Sem agente encontrado, um pedido não tem para onde ir e o
 console diz isso; todo `/comando` continua funcionando.
 
-O console não guarda nada. O painel e os gates são lidos da árvore quando
+**O modelo.** O `/model` mostra o que o agente em uso roda — o nome que
+você escolheu, ou o padrão dele e o modelo que ele relatou — os nomes que
+ele reconhecidamente aceita, e onde o agente lista os modelos da sua conta
+(`agent models`, `codex debug models`). `/model <nome>` passa esse nome
+na linha de comando do agente a partir do pedido seguinte (`--model
+<nome>`; `--model=<nome>` no Copilot), `/model default` volta ao padrão, e
+qualquer nome que o agente aceite pode ser digitado — o próprio agente
+recusa o que não conhece. O modelo é guardado por agente. O opencode não
+nomeia flag de modelo na página de que o Doctrina partiu: passe-a em
+`DOCTRINA_AGENT_ARGS`.
+
+**Um agente seu.** Qualquer outro agente de linha de comando — ou um
+wrapper seu — é declarado uma vez em `$DOCTRINA_HOME/agents.json` (padrão
+`~/.doctrina/agents.json`), como a linha de comando que você digitaria:
+
+```json
+{ "agents": [ {
+    "id": "mine", "label": "My agent", "command": "mycli",
+    "args": ["run", "--quiet", "{prompt}"],
+    "model": ["--model", "{model}"],
+    "resume": ["--session", "{session}"],
+    "models": ["small", "large"]
+} ] }
+```
+
+`{prompt}` é onde o pedido entra; sem `{prompt}` ele entra pelo stdin. A
+saída é mostrada como texto, ou lida como eventos com `"output":
+"stream-json"`. O `/agent` o lista ao lado dos outros e nomeia o que
+estiver errado no arquivo.
+
+O agente e o modelo que você escolheu ficam em
+`$DOCTRINA_HOME/console.json`, por diretório em que o console foi aberto —
+escolha sua, nunca um arquivo do projeto.
+
+O console não guarda nada sobre o projeto. O painel e os gates são lidos da árvore quando
 ele abre e depois de cada comando e de cada resposta, por um processo
 próprio, e cada `/comando` roda como a mesma CLI que você rodaria à mão.
 
@@ -211,7 +250,7 @@ próprio, e cada `/comando` roda como a mesma CLI que você rodaria à mão.
 |------|--------|
 | `--frame` | Imprime um quadro e sai, em vez de abrir o console — o que um pipe recebe de qualquer forma. |
 | `--cols <n>`, `--rows <n>` | O tamanho do quadro, com `--frame` (padrão: o do terminal, ou 100×30). |
-| `--json` | O estado do painel em JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, as `mentions` que o `@` completa, e os `agents` encontrados. |
+| `--json` | O estado do painel em JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, as `mentions` que o `@` completa, e todo agente conhecido com o `file` em que foi achado (`null` se não instalado) e o `model` escolhido para ele. |
 
 ## `doctrina onboard`
 

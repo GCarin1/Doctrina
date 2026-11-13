@@ -390,8 +390,10 @@ export function renderFrame(s, { cols, rows, color = true, now = Date.now() }) {
   /** @type {string[]} */
   const top = [];
   const name = p?.project ? [{ t: "  │  ", s: "gray" }, { t: p.project, s: "bold" }, ...(p.kind === "workspace" ? [{ t: "  workspace", s: "gray" }] : [])] : [];
+  // The model a person chose, or the one the agent said it is running.
+  const model = agent ? (s.models[agent.id] ?? s.reported[agent.id] ?? "") : "";
   const who = agent
-    ? [{ t: "● ", s: "green" }, { t: agent.id }, { t: `   v${p?.cli ?? ""} `, s: "gray" }]
+    ? [{ t: "● ", s: "green" }, { t: agent.id }, ...(model && cols >= 72 ? [{ t: ` · ${model}`, s: "gray" }] : []), { t: `   v${p?.cli ?? ""} `, s: "gray" }]
     : [{ t: "○ no agent", s: "gray" }, { t: `   v${p?.cli ?? ""} `, s: "gray" }];
   top.push(spread([{ t: " ◆ ", s: "brandBold" }, { t: "Doctrina", s: "bold" }, ...name], who, cols, color));
   const counts = countsText(p);
@@ -425,7 +427,9 @@ export function renderFrame(s, { cols, rows, color = true, now = Date.now() }) {
   const spin = SPINNER[Math.floor(now / 90) % SPINNER.length];
   const label = s.busy
     ? [{ t: ` ${spin} `, s: "brand" }, { t: `${s.busy.label} `, s: "bold" }, { t: `${Math.max(0, Math.round((now - s.busy.since) / 1000))}s · esc interrupts `, s: "gray" }]
-    : (agent ? [{ t: ` to ${agent.id}${s.session ? " · same conversation" : ""} `, s: "gray" }] : []);
+    : (agent
+      ? [{ t: ` to ${agent.label}${model ? ` · ${model}` : ""}${s.session ? " · same conversation" : ""} `, s: "gray" }]
+      : [{ t: " no agent — /agent chooses one ", s: "gray" }]);
   const edge = (/** @type {string} */ l, /** @type {string} */ r, /** @type {Seg[]} */ mid) => {
     const w = segsWidth(mid);
     const fill = Math.max(0, cols - 4 - w);

@@ -15,10 +15,12 @@ import { splitArgs } from "./agent-bridge.js";
 /** @typedef {import("./agent-bridge.js").AgentEvent} AgentEvent */
 /** @typedef {{ kind: "banner" | "user" | "out" | "err" | "agent" | "tool" | "note" | "ok" | "fail" | "blank", text: string }} Entry */
 /** @typedef {{ name: string, summary: string, local: boolean, immediate: boolean }} PaletteCommand */
+/** @typedef {{ id: string, label: string, file: string | null, bins: string[], exercised: boolean, about: string, models: string[], listing: string, takesModel: boolean, custom: boolean }} CatalogAgent */
 /** @typedef {{ kind: "slash" | "mention", items: { value: string, label: string, immediate: boolean }[], from: number }} Palette */
 /**
  * @typedef {{ type: "run", argv: string[], label: string }
  *   | { type: "ask", prompt: string }
+ *   | { type: "save" }
  *   | { type: "interrupt" } | { type: "refresh" } | { type: "quit" }} Effect
  */
 /**
@@ -34,6 +36,7 @@ import { splitArgs } from "./agent-bridge.js";
  *   paletteAt: number, paletteOff: boolean,
  *   panel: Panel | null, showPanel: boolean,
  *   agents: { id: string, label: string, file: string, exercised: boolean }[], agent: string | null, session: string | null,
+ *   catalog: CatalogAgent[], models: Record<string, string>, reported: Record<string, string>,
  *   busy: { kind: "command" | "agent", label: string, since: number } | null,
  *   notice: string, armed: boolean, said: boolean,
  * }} State
@@ -42,7 +45,8 @@ import { splitArgs } from "./agent-bridge.js";
 // The commands that only exist inside the console.
 const LOCAL = [
   ["help", "What the console understands"],
-  ["agent", "Show the agents found, or switch: /agent <name> · /agent off"],
+  ["agent", "Which agent answers: every one known, installed or not · /agent <name>"],
+  ["model", "The model the agent runs: /model <name> · /model default"],
   ["new", "Start a new conversation with the agent"],
   ["clear", "Clear the conversation"],
   ["panel", "Show or hide the project panel"],
@@ -53,7 +57,7 @@ const LOCAL = [
 // The operations that mean something with no argument: Enter on one runs it.
 const IMMEDIATE = new Set(["prime", "next", "status", "validate", "doctor", "handoff", "onboard", "coverage", "trace",
   "verify", "metrics", "spec list", "decision list", "skill list", "contract list", "intent list", "adapter list",
-  "templates list", "workspace list", "delivery list", "help", "agent", "new", "clear", "panel", "refresh", "quit"]);
+  "templates list", "workspace list", "delivery list", "help", "agent", "model", "new", "clear", "panel", "refresh", "quit"]);
 
 /**
  * Every command `/` offers, in the order a person reaches for them: the
@@ -77,14 +81,21 @@ export function paletteCommands() {
 
 const COMMANDS = paletteCommands();
 
-/** @returns {State} */
-export function initialState({ agents = /** @type {State["agents"]} */ ([]), panel = /** @type {Panel | null} */ (null) } = {}) {
+/**
+ * @param {{ agents?: State["agents"], panel?: Panel | null, catalog?: CatalogAgent[], prefs?: { agent: string | null, models: Record<string, string> } }} [opts]
+ * @returns {State}
+ */
+export function initialState({ agents = [], panel = null, catalog = [], prefs = { agent: null, models: {} } } = {}) {
+  // The agent a person chose here before, while it is still installed;
+  // otherwise the one this terminal and this project point at.
+  const kept = agents.find((a) => a.id === prefs.agent);
   return {
     input: [], cursor: 0, history: [], historyAt: null, draft: "",
     transcript: [{ kind: "banner", text: "" }], scroll: 0,
     paletteAt: 0, paletteOff: false,
     panel, showPanel: true,
-    agents, agent: agents[0]?.id ?? null, session: null,
+    agents, agent: (kept ?? agents[0])?.id ?? null, session: null,
+    catalog, models: { ...prefs.models }, reported: {},
     busy: null, notice: "", armed: false, said: false,
   };
 }
@@ -115,6 +126,19 @@ export function paletteOf(s) {
     return { kind: "mention", from, items: hits.map((m) => ({ value: m.value, label: m.label, immediate: false })) };
   }
   if (!line.startsWith("/") || s.cursor !== s.input.length) return null;
+  // The argument of /agent and /model is chosen from a list too.
+  const arg = /^\/(agent|model) (\S*)$/.exec(line);
+  if (arg) {
+    const typed = arg[2].toLowerCase();
+    const options = arg[1] === "agent"
+      ? [...s.catalog.map((a) => ({ value: a.id, label: `${a.label} — ${a.file ? (a.id === s.agent ? "in use" : "installed") : "not installed"}` })),
+        { value: "off", label: "send requests nowhere" }]
+      : [...(s.catalog.find((a) => a.id === s.agent)?.models ?? []).map((m) => ({ value: m, label: "" })),
+        { value: "default", label: "the agent's own default" }];
+    const hits = options.filter((o) => o.value.startsWith(typed));
+    if (hits.length === 0 || (hits.length === 1 && hits[0].value === typed)) return null;
+    return { kind: "slash", from: 0, items: hits.map((o) => ({ value: `/${arg[1]} ${o.value}`, label: o.label, immediate: true })) };
+  }
   const q = line.slice(1).toLowerCase();
   // A command that is already whole, followed by its arguments, needs no list.
   // What the name starts with first; then a later word of it (`/new` finds `spec new`).
@@ -136,7 +160,8 @@ const HELP = [
   "  @            mention an artifact — @spec:auth, @change:0001-login, @skill:…, @adr:0005",
   "  ↑ ↓          earlier inputs · pgup pgdn scroll the conversation",
   "  esc          interrupt what is running, or clear the line",
-  "  /agent       which agent answers · /new starts a new conversation with it",
+  "  /agent       which agent answers — Claude Code, Cursor, GitHub Copilot, Codex, Gemini, opencode, or your own",
+  "  /model       the model that agent runs · /new starts a new conversation with it",
   "  ctrl+c       twice to leave (or /quit)",
 ];
 
@@ -187,8 +212,14 @@ function submit(s, line) {
       return { state: say(next, "note", "reading the project's state again"), effects: [{ type: "refresh" }] };
     case "new":
       return { state: say({ ...next, session: null }, "note", "the next request starts a new conversation with the agent"), effects: [] };
-    case "agent":
-      return { state: chooseAgent(next, rest[0] ?? ""), effects: [] };
+    case "agent": {
+      const chosen = chooseAgent(next, rest[0] ?? "");
+      return { state: chosen, effects: chosen.agent !== next.agent ? [{ type: "save" }] : [] };
+    }
+    case "model": {
+      const chosen = chooseModel(next, rest.join(" "));
+      return { state: chosen, effects: chosen.models !== next.models ? [{ type: "save" }] : [] };
+    }
     case "ui":
       return { state: say(next, "note", "this is the console already"), effects: [] };
     default:
@@ -196,19 +227,53 @@ function submit(s, line) {
   }
 }
 
+/** `/agent`: every agent known, and the switch to one that is installed. */
 function chooseAgent(s, name) {
   if (name === "") {
-    if (s.agents.length === 0) return say(s, "note", "No agent CLI found on PATH. The console looks for: claude (Claude Code), cursor-agent (Cursor), codex, gemini.");
     let out = s;
-    for (const a of s.agents) {
-      out = say(out, "note", `${a.id === s.agent ? "●" : "○"} ${a.id.padEnd(7)} ${a.label} — ${a.file}${a.exercised ? "" : "  (driven from its documentation; not exercised by Doctrina's tests against the real binary)"}`);
+    for (const a of s.catalog) {
+      const mark = a.id === s.agent ? "●" : (a.file ? "○" : "·");
+      const where = a.file ? a.file : `not installed (looked for ${a.bins.map((b) => `\`${b}\``).join(", ")} on PATH)`;
+      out = say(out, "note", `${mark} ${a.id.padEnd(9)} ${a.label} — ${where}`);
+      out = say(out, "note", `            ${a.about}${a.exercised || !a.file ? "" : " · started as its documentation says; not exercised against the real binary by Doctrina's tests"}`);
     }
-    return say(out, "note", "Switch with /agent <name>, or /agent off. DOCTRINA_AGENT pins one; DOCTRINA_AGENT_ARGS adds flags of your own.");
+    return say(out, "note", "Switch with /agent <name> · /agent off. One of your own goes in $DOCTRINA_HOME/agents.json. DOCTRINA_AGENT pins one; DOCTRINA_AGENT_ARGS adds flags.");
   }
   if (name === "off" || name === "none") return say({ ...s, agent: null, session: null }, "note", "no agent: requests are not sent anywhere until /agent <name>");
+  const known = s.catalog.find((a) => a.id === name);
   const hit = s.agents.find((a) => a.id === name);
-  if (!hit) return say(s, "note", `no agent "${name}" here — found: ${s.agents.map((a) => a.id).join(", ") || "none"}`);
-  return say({ ...s, agent: hit.id, session: null }, "note", `requests now go to ${hit.label}`);
+  if (!hit) {
+    return say(s, "note", known
+      ? `${known.label} is not installed here — the console looked for ${known.bins.map((b) => `\`${b}\``).join(", ")} on PATH. Install its command-line tool and open the console again.`
+      : `no agent "${name}" — known: ${s.catalog.map((a) => a.id).join(", ") || "none"}`);
+  }
+  if (hit.id === s.agent) return say(s, "note", `${hit.label} already answers`);
+  const model = s.models[hit.id];
+  return say({ ...s, agent: hit.id, session: null }, "note", `requests now go to ${hit.label}${model ? ` · ${model}` : ""} — a new conversation`);
+}
+
+/** `/model`: what the agent in use runs, and the change of it. */
+function chooseModel(s, name) {
+  const agent = s.catalog.find((a) => a.id === s.agent);
+  if (!agent) return say(s, "note", "no agent is selected — /agent <name> first, then /model");
+  const current = s.models[agent.id];
+  if (name === "") {
+    let out = say(s, "note", current
+      ? `${agent.label} runs ${current} (chosen here)`
+      : `${agent.label} runs its own default${s.reported[agent.id] ? ` — it reported ${s.reported[agent.id]}` : ""}`);
+    if (!agent.takesModel) return say(out, "note", `${agent.label} takes no model on its command line here — name it in the agent's own settings, or in DOCTRINA_AGENT_ARGS`);
+    if (agent.models.length > 0) out = say(out, "note", `Names it accepts include: ${agent.models.join(", ")}`);
+    if (agent.listing) out = say(out, "note", `The models your account has: ${agent.listing}`);
+    return say(out, "note", "Choose with /model <name> — any name the agent accepts — or /model default.");
+  }
+  if (!agent.takesModel) return say(s, "note", `${agent.label} takes no model on its command line here — name it in the agent's own settings, or in DOCTRINA_AGENT_ARGS`);
+  if (name === "default") {
+    if (!current) return say(s, "note", `${agent.label} already runs its own default`);
+    const { [agent.id]: _dropped, ...rest } = s.models;
+    return say({ ...s, models: rest }, "note", `${agent.label} goes back to its own default from the next request`);
+  }
+  if (name === current) return say(s, "note", `${agent.label} already runs ${name}`);
+  return say({ ...s, models: { ...s.models, [agent.id]: name } }, "note", `${agent.label} runs ${name} from the next request — the agent refuses a name it does not know`);
 }
 
 /**
@@ -337,6 +402,8 @@ export function agentEvent(s, ev) {
   switch (ev.type) {
     case "session":
       return { ...s, session: ev.id };
+    case "model":
+      return s.agent ? { ...s, reported: { ...s.reported, [s.agent]: ev.name } } : s;
     case "text":
       return add("agent", ev.text);
     case "tool":

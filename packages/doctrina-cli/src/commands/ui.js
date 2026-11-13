@@ -7,7 +7,8 @@ import { c } from "../lib/colors.js";
 import { emitJson } from "../lib/json-out.js";
 import { EXIT } from "../lib/exit-codes.js";
 import { consoleState } from "../lib/console-state.js";
-import { agentById, agentInvocation, agentPrompt, detectAgents } from "../lib/agent-bridge.js";
+import { agentById, agentCatalog, agentInvocation, agentPrompt, detectAgents } from "../lib/agent-bridge.js";
+import { consolePrefs, saveConsolePrefs } from "../lib/console-prefs.js";
 import { agentEvent, agentExit, commandDone, commandLine, initialState, parseKeys, pressKey } from "../lib/console-model.js";
 import { renderFrame } from "../lib/console-view.js";
 
@@ -32,7 +33,11 @@ const SIGNALS = /** @type {const} */ (["SIGTERM", "SIGHUP"]);
 export async function run(_positional, cmdFlags) {
   const cwd = process.cwd();
   if (flagBool(cmdFlags, "json", false)) {
-    emitJson("ui", { ...consoleState(cwd), agents: detectAgents({ cwd }).map((a) => ({ id: a.id, label: a.label, file: a.file })) });
+    const prefs = consolePrefs(cwd);
+    emitJson("ui", {
+      ...consoleState(cwd),
+      agents: agentCatalog({ cwd }).map((a) => ({ id: a.id, label: a.label, file: a.file, model: prefs.models[a.id] ?? null })),
+    });
     return EXIT.OK;
   }
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY) && !flagBool(cmdFlags, "frame", false);
@@ -41,7 +46,7 @@ export async function run(_positional, cmdFlags) {
       const n = Number(flagString(cmdFlags, name));
       return Number.isInteger(n) && n > 0 ? n : fallback;
     };
-    const state = initialState({ agents: detectAgents({ cwd }), panel: consoleState(cwd) });
+    const state = initialState({ agents: detectAgents({ cwd }), catalog: agentCatalog({ cwd }), prefs: consolePrefs(cwd), panel: consoleState(cwd) });
     const frame = renderFrame(state, { cols: size("cols", process.stdout.columns || 100), rows: size("rows", process.stdout.rows || 30), color: c.enabled });
     console.log(frame.lines.join("\n"));
     if (!flagBool(cmdFlags, "frame", false)) {
@@ -75,7 +80,7 @@ function byLine(stream, onLine) {
  * @param {{ inp?: any, out?: any, env?: NodeJS.ProcessEnv, color?: boolean }} [io]
  */
 export function session(cwd, done, { inp = process.stdin, out = process.stdout, env = process.env, color = c.enabled } = {}) {
-  let state = initialState({ agents: detectAgents({ cwd, env }) });
+  let state = initialState({ agents: detectAgents({ cwd, env }), catalog: agentCatalog({ cwd, env }), prefs: consolePrefs(cwd, env) });
   /** @type {{ proc: import("node:child_process").ChildProcess, kind: "command" | "agent", finished: boolean } | null} */
   let running = null;
   let refreshing = false;
@@ -158,13 +163,13 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
 
   const askAgent = (/** @type {string} */ prompt) => {
     const agent = state.agents.find((a) => a.id === state.agent);
-    const spec = agent ? agentById(agent.id) : null;
+    const spec = agent ? agentById(agent.id, env) : null;
     if (!agent || !spec) {
       state = agentExit(state, 1, null, "no agent is selected");
       schedule();
       return;
     }
-    const call = agentInvocation(agent, agentPrompt(prompt, state.panel?.mentions ?? []), { session: state.session, env });
+    const call = agentInvocation(agent, agentPrompt(prompt, state.panel?.mentions ?? []), { session: state.session, model: state.models[agent.id] ?? null, env });
     if (call.refused) {
       state = agentExit(state, 1, null, call.refused);
       schedule();
@@ -234,6 +239,7 @@ export function session(cwd, done, { inp = process.stdin, out = process.stdout, 
       else if (effect.type === "ask") askAgent(effect.prompt);
       else if (effect.type === "interrupt") interrupt();
       else if (effect.type === "refresh") refresh();
+      else if (effect.type === "save") saveConsolePrefs(cwd, { agent: state.agent, models: state.models }, env);
       else if (effect.type === "quit") leave();
     }
   };
@@ -303,17 +309,24 @@ What you type:
   ?             What the console understands.
 
 The panel and the gates are read from the tree when the console opens and
-after every command and every answer; the console stores nothing.
+after every command and every answer; the console keeps nothing about the
+project.
 
 The agent is found on PATH: claude (Claude Code), cursor-agent (Cursor),
-codex, gemini — the one whose IDE terminal this is first, then the one the
+copilot (GitHub Copilot, VS Code), codex, gemini, opencode — or one of
+your own, declared in $DOCTRINA_HOME/agents.json. /agent lists them all,
+installed or not, and switches; /model names the model the agent in use
+runs (/model default goes back). The one used first is the one you chose
+here before, then the IDE whose terminal this is, then the one the
 project has an adapter for. DOCTRINA_AGENT=<name> pins one (none disables
-it), /agent switches inside the console, and DOCTRINA_AGENT_ARGS adds
-flags of your own to its command line. Doctrina passes no flag that skips
-an agent's approvals: what the agent may edit or run is its own settings'
-to say, and a call it refuses is reported in the conversation. It is the
-same agent, account and rules as in your IDE, in a session of its own — it
-does not type into a chat pane that is already open.
+it) and DOCTRINA_AGENT_ARGS adds flags of your own to its command line.
+The choice is kept per directory in $DOCTRINA_HOME/console.json.
+
+Doctrina passes no flag that skips an agent's approvals: what the agent
+may edit or run is its own settings' to say, and a call it refuses is
+reported in the conversation. It is the same agent, account and rules as
+in your IDE, in a session of its own — it does not type into a chat pane
+that is already open.
 
 Keys: enter send · tab complete · ↑↓ history (or the list) · pgup/pgdn
 scroll · esc interrupt or clear · ctrl+c twice (or /quit) to leave.
@@ -324,5 +337,6 @@ Options:
   --cols <n>    The frame's width, with --frame (default: the terminal's, or 100)
   --rows <n>    The frame's height, with --frame (default: the terminal's, or 30)
   --json        The panel's state — gates, open work, next steps, the
-                artifacts @ completes, the agents found — as JSON
+                artifacts @ completes, every agent known and the model
+                chosen for it — as JSON
 `;

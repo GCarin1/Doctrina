@@ -169,7 +169,7 @@ workspace root the panel lists the projects and the open deliveries.
 | a request, in your own words | It goes to the AI agent you already use, and everything the agent says and does is shown as it happens: its words, each tool call, the calls it was refused, how long it took. The next request continues the same conversation; `/new` starts another. |
 | `/command` | A Doctrina command, as you would type it after `doctrina`: `/next`, `/status`, `/work "<request>"`, `/close <id>`. A list filters as you type — the session loop first — `tab` completes, and `enter` runs a command that means something with no argument. Its output is what the command prints anywhere. |
 | `@artifact` | A spec, an open change, a skill or a decision the index names: `@spec:auth`, `@change:0001-login`, `@skill:cut-a-release`, `@adr:0005`. In a command it becomes the id; in a request the agent is told the file it names (and, for a skill, to follow it). |
-| `?` or `/help` | What the console understands. `/agent` shows the agents found and switches between them, `/panel` hides the panel, `/clear` empties the conversation, `/quit` leaves. |
+| `?` or `/help` | What the console understands. `/agent` chooses the agent and `/model` its model, `/panel` hides the panel, `/clear` empties the conversation, `/quit` leaves. |
 
 Keys: `enter` send · `tab` complete · `↑ ↓` earlier inputs (or the list) ·
 `pgup pgdn` scroll · `esc` interrupt what is running, or clear the line ·
@@ -183,12 +183,17 @@ open). The console looks on `PATH` for:
 
 | Agent | Command | How it is started |
 |-------|---------|-------------------|
-| Claude Code | `claude` | `claude -p --output-format stream-json`, the prompt on stdin, `--resume <session>` for the next request. Edits are accepted and `doctrina` may run; any other command is the agent's own settings' to allow. Exercised against the real binary. |
+| Claude Code | `claude` | `claude -p --output-format stream-json`, the prompt on stdin, `--resume <session>` for the next request. Edits are accepted and `doctrina` may run; any other command is the agent's own settings' to allow. Exercised against the real binary. It is also the CLI the Claude extensions for VS Code and JetBrains run. |
 | Cursor | `cursor-agent` (or `agent`, where Cursor is in use) | `-p --output-format stream-json`, `--resume <chat>`. From Cursor's documentation; not exercised against the binary. |
-| Codex | `codex` | `codex exec --json --sandbox workspace-write`. From its documentation; not exercised. |
-| Gemini CLI | `gemini` | the prompt on stdin, `--approval-mode auto_edit`, plain text out. From its documentation; not exercised. |
+| GitHub Copilot (VS Code) | `copilot` | `copilot -p "<request>" -s --allow-tool='write, shell(doctrina:*)'`. Its programmatic mode documents no session to resume, so each request starts a conversation. From its documentation; not exercised. |
+| Codex | `codex` | `codex exec --json --sandbox workspace-write`, `codex exec resume <session>` for the next request. From its documentation; not exercised. |
+| Gemini CLI | `gemini` | the prompt on stdin, `--approval-mode auto_edit`, plain text out — each request starts a conversation. From its documentation; not exercised. |
+| opencode | `opencode` | `opencode run "<request>"`. From its documentation; not exercised. |
 
-The one used first is the IDE whose terminal this is, then the one the
+`/agent` lists every one of them, installed or not, with the binary it
+looked for; `/agent <name>` switches (a list completes the name), and
+`/agent off` sends requests nowhere. The one used first is the one you
+chose here before, then the IDE whose terminal this is, then the one the
 project has an adapter for. `DOCTRINA_AGENT=<name>` pins one (`none`
 disables it) and `DOCTRINA_AGENT_ARGS` adds flags of your own to its
 command line. Doctrina never passes a flag that skips an agent's
@@ -196,7 +201,40 @@ approvals: a call the agent may not make is refused by the agent and
 reported in the conversation. With no agent found, a request has nowhere
 to go and the console says so; every `/command` still works.
 
-The console stores nothing. The panel and the gates are read from the tree
+**The model.** `/model` shows what the agent in use runs — the name you
+chose, or its own default and the model it reported — the names it is
+known to accept, and where the agent lists the models your account has
+(`agent models`, `codex debug models`). `/model <name>` passes that name
+on the agent's command line from the next request (`--model <name>`;
+`--model=<name>` for Copilot), `/model default` goes back, and any name
+the agent accepts may be typed — the agent itself refuses one it does not
+know. A model is kept per agent. opencode names no model flag on the page
+Doctrina was built from: pass it in `DOCTRINA_AGENT_ARGS`.
+
+**An agent of your own.** Any other command-line agent — or a wrapper of
+yours — is declared once in `$DOCTRINA_HOME/agents.json` (default
+`~/.doctrina/agents.json`) as the command line you would type:
+
+```json
+{ "agents": [ {
+    "id": "mine", "label": "My agent", "command": "mycli",
+    "args": ["run", "--quiet", "{prompt}"],
+    "model": ["--model", "{model}"],
+    "resume": ["--session", "{session}"],
+    "models": ["small", "large"]
+} ] }
+```
+
+`{prompt}` is where the request goes; with no `{prompt}` it goes in on
+stdin. Its output is shown as plain text, or read as events when
+`"output": "stream-json"`. `/agent` lists it beside the others and names
+whatever is wrong with the file.
+
+The agent and the model you chose are kept in
+`$DOCTRINA_HOME/console.json`, per directory the console was opened in —
+your choice, never a file of the project.
+
+The console keeps nothing about the project. The panel and the gates are read from the tree
 when it opens and after every command and every answer, by a process of
 its own, and each `/command` runs as the same CLI you would run by hand.
 
@@ -204,7 +242,7 @@ its own, and each `/command` runs as the same CLI you would run by hand.
 |------|---------|
 | `--frame` | Print one frame and exit instead of opening the console — what a pipe gets anyway. |
 | `--cols <n>`, `--rows <n>` | The frame's size, with `--frame` (default: the terminal's, or 100×30). |
-| `--json` | The panel's state as JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, the `mentions` that `@` completes, and the `agents` found. |
+| `--json` | The panel's state as JSON: `kind` (`project`, `workspace`, `none`), `gates`, `open`, `next`, `recent`, the `mentions` that `@` completes, and every agent known with the `file` it was found at (`null` when not installed) and the `model` chosen for it. |
 
 ## `doctrina onboard`
 

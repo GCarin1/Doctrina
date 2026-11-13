@@ -44,7 +44,7 @@
         "id": "console",
         "path": ".doctrina/specs/console/spec.md",
         "status": "active",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "last_updated": "2026-11-13",
         "implementation": "implemented",
         "depends_on": [
@@ -53,7 +53,7 @@
         ],
         "source": [
           "packages/doctrina-cli/src/commands/ui.js",
-          "packages/doctrina-cli/src/lib/{console-model,console-view,console-state,agent-bridge}.js"
+          "packages/doctrina-cli/src/lib/{console-model,console-view,console-state,console-prefs,agent-bridge}.js"
         ]
       },
       {
@@ -4506,6 +4506,20 @@
           {
             "capability": "console",
             "operation": "ADDED"
+          }
+        ],
+        "lane": "product (uncertain)"
+      },
+      {
+        "id": "0258-qualquer-agente-e-modelo",
+        "title": "qualquer agente e modelo",
+        "path": ".doctrina/changes/archive/2026-11-13-0258-qualquer-agente-e-modelo",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [
+          {
+            "capability": "console",
+            "operation": "MODIFIED"
           }
         ],
         "lane": "product (uncertain)"
