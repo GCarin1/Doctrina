@@ -6,7 +6,7 @@
 **Realizes:** n/a — internal framework capability; product success criteria measure adopting-team outcomes, not the tool's own surface
 **Source:** `packages/doctrina-cli/src/lib/{templates,templates-model,playbook,agent-changelog}.js`, `packages/doctrina-cli/scripts/copy-templates.js`, `.doctrina/templates/**`
 **Last updated:** 2026-09-11
-**Version:** 0.34.1
+**Version:** 0.34.2
 
 ## Purpose
 
@@ -100,6 +100,7 @@ The CLI consumes this spec to drive `doctrina init` and the
   default, the system shall prompt the user and refuse to scaffold
   silently with an empty value.
 - While the generated surface block is written into AGENTS.md, the system shall treat the two size budgets as coupled and report the smaller of their two slacks as the remaining headroom.
+- While `.doctrina/config.json` declares `"surface": "core"`, the system shall generate the command block of `AGENTS.md` with the session loop only — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — and a line that defers every other command to `doctrina --help`; a project that declares no surface shall keep the full block, and `doctrina init` shall write `core` unless `--surface full` is given.
 
 ### Unwanted-behavior (must-not)
 
@@ -123,7 +124,6 @@ The CLI consumes this spec to drive `doctrina init` and the
 - Where additional agents become relevant (Copilot, Gemini CLI, Windsurf),
   the system may add a new directory under `templates/adapters/<agent>/`
   without changing the substitution contract or existing adapters.
-- Where `.doctrina/config.json` declares `"surface": "core"`, the system shall generate the command block of `AGENTS.md` with the session loop only — `prime`, `work`, `context`, `close`, `next`, `validate`, `doctor`, `handoff` — and a line that defers every other command to `doctrina --help`; a project that declares no surface shall keep the full block, and `doctrina init` shall write `core` unless `--surface full` is given.
 
 ## Supported adapters (v0.1)
 

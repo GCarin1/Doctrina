@@ -7,7 +7,7 @@
 **Depends on:** cli
 **Source:** `packages/doctrina-cli/src/commands/{init,adapter,templates,hooks,index-rebuild,upgrade,watch,metrics,completion}.js`, `packages/doctrina-cli/src/lib/{adapters,scan,index-json,index-merge,merge-setup,metrics-model,usage,config,preset}.js`
 **Last updated:** 2026-09-11
-**Version:** 0.18.0
+**Version:** 0.18.1
 
 ## Purpose
 
@@ -189,6 +189,7 @@ authoring commands, and the conventions every command shares.
 - When `doctrina hooks install` runs inside a git repository that owns its `.doctrina/`, the system shall add to `.gitattributes` — only where missing — the lines that merge `index.json` through the `doctrina-index` driver and the ledger through `union`, and set that driver in the git config of the clone to the installing CLI by path, before the hook is written and also when an existing hook refuses it.
 - When `doctrina hooks install` runs, the system shall ask git where the hooks of the repository are, so that it works in a worktree and a submodule, and for a project below the root of its repository it shall write the hook to enter the folder of the project first; a folder git does not answer for shall exit 3 with nothing written.
 - When `doctrina upgrade` finds an adapter with a core-loop file on disk and another the CLI ships missing, the system shall report the missing file, and with `--write` write it; an adapter with no core-loop file on disk gains nothing.
+- When `doctrina init` or `doctrina upgrade` runs with `--preset <dir>` naming a folder holding `preset.json`, the system shall lay it over the project additively — copying its `templates/`, `decisions/`, `skills/` and `verify.json` where the project has no such file, setting the config keys the project does not declare, never copying a decision whose number the project uses — naming each file and key copied, set or kept, printing the commands of a copied `verify.json`, and exiting 2 with nothing written when the folder is not a preset.
 
 ### State-driven
 
@@ -205,7 +206,6 @@ authoring commands, and the conventions every command shares.
 
 ### Optional
 
-- Where `--preset <dir>` names a folder holding `preset.json`, `doctrina init` and `doctrina upgrade` shall lay it over the project additively — copying its `templates/`, `decisions/`, `skills/` and `verify.json` where the project has no such file, setting the config keys the project does not declare, never copying a decision whose number the project uses — naming each file and key copied, set or kept, printing the commands of a copied `verify.json`, and exiting 2 with nothing written when the folder is not a preset.
 ## Acceptance criteria
 
 Project scaffolding is spec-compliant when:
