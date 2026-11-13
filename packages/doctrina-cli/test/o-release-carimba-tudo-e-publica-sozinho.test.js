@@ -52,3 +52,20 @@ test("the workflow publishes a version that reached main, and tags it itself", (
   assert.match(release, /fetch-depth: 0/, "which needs the history");
   assert.ok(release.indexOf("is-ancestor") < release.indexOf("npm view"), "asked before anything else is decided");
 });
+
+// THE TAG IS THE JOB'S OUTPUT, AND NPM MAY HOLD A VERSION (change 0262).
+// 0.22.0: the run on main published and tagged; the run the tag started asked
+// npm whether the version was out seconds later, heard "not yet" — npm had
+// staged it, waiting for a maintainer's 2FA approval — and published again:
+// E409, a red run beside a release that had gone out.
+test("a tag does not start a release, and a version npm holds is a warning that says how to approve it", () => {
+  const release = readFileSync(path.join(repo, ".github", "workflows", "release.yml"), "utf8");
+  const on = release.slice(release.indexOf("\non:"), release.indexOf("\npermissions:"));
+  assert.doesNotMatch(on, /tags:/, "the job writes the tag; it is never what starts it");
+  assert.match(release, /if \[ "\$\{GITHUB_REF_TYPE\}" = "tag" \]; then[\s\S]{0,400}publish=false/, "a manual run on a tag publishes nothing");
+  assert.match(release, /grep -q "previously staged version"[\s\S]{0,400}exit 0/, "publishing a version npm already holds staged is not a failure");
+  assert.match(release, /- name: Is the published version public\?[\s\S]*npm view "doctrina-cli@\$\{version\}" version[\s\S]*::warning::[^\n]*npm stage approve/, "a version accepted and not public says how to approve it");
+  assert.ok(release.indexOf("Is the published version public?") < release.indexOf("git tag"), "asked before the tag");
+  assert.match(release, /npm can publish through trusted publishing[\s\S]*11\.5\.1/, "trusted publishing needs npm 11.5.1 or later");
+  assert.match(release, /id-token: write/, "and the OIDC token");
+});

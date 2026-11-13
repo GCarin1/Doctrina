@@ -4575,6 +4575,15 @@
         "applied": "2026-11-13",
         "specs_affected": [],
         "lane": "product (uncertain) — opened as chore"
+      },
+      {
+        "id": "0262-release-com-versao-retida-pelo-npm",
+        "title": "release com versao retida pelo npm",
+        "path": ".doctrina/changes/archive/2026-11-13-0262-release-com-versao-retida-pelo-npm",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [],
+        "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
       }
     ],
     "skills": [

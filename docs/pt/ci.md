@@ -133,8 +133,9 @@ Um release é o último momento em que um defeito ainda é barato, então o
 job de publicação roda **todo gate que um pull request já roda** — nunca
 um subconjunto dele.
 
-O `release.yml` deste repositório dispara numa tag `v*` e, antes do
-`npm publish`, roda:
+O `release.yml` deste repositório roda quando um push na `main` muda
+`packages/doctrina-cli/package.json` para uma versão que o npm ainda não
+tem e, antes do `npm publish`, roda:
 
 ```
 npm ci
@@ -165,3 +166,20 @@ O requisito é cobrado, não apenas escrito:
 `test/the-release-gate-is-not-weaker.test.js` lê os dois workflows e
 reprova quando um gate que o job de PR roda não tem contrapartida no job
 de release.
+
+**Deixe o job escrever a tag, e nada mais dispará-lo.** O job marca o
+commit que publicou. A tag é a saída dele, nunca o gatilho: uma execução
+disparada por essa tag pergunta ao npm, segundos depois do publish, se a
+versão está lá, ouve "ainda não", e publica de novo — o que o npm recusa
+com E409.
+
+**Conte com o npm retendo uma versão.** O npm deixa em staging uma
+publicação feita com token que contorna o 2FA até que um mantenedor a
+aprove com 2FA, e esses tokens deixam de publicar direto em 2027. O job
+então termina com sucesso e um aviso de que a versão ainda não está
+pública. Aprove no npmjs.com (sua conta → Staged Packages) ou com `npm
+stage approve <stage-id>`. Para pular o staging, configure **trusted
+publishing** no npmjs.com para o pacote — o repositório, o arquivo de
+workflow `release.yml`, `npm publish` permitido: o npm então autentica o
+job por OIDC (npm 11.5.1 ou mais novo, `id-token: write`) e nenhum token
+entra.

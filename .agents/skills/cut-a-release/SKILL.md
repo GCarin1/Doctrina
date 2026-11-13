@@ -48,6 +48,13 @@ The canonical version lives in ONE place:
    npm does not have that version yet it runs the gates, publishes, and
    tags the published commit `vX.Y.Z` itself. A version npm already has
    ends the run at the first step with a notice.
+6. Check the run's warnings. npm may hold the version **staged** until a
+   maintainer approves it with 2FA (a token that bypasses 2FA is staged, and
+   from 2027 cannot publish directly): the run says "not public after two
+   minutes". Approve it on npmjs.com (account → Staged Packages) or with
+   `npm stage list doctrina-cli` then `npm stage approve <stage-id>`. Never
+   re-run the publish for it: npm refuses a version it holds (E409). Trusted
+   publishing configured on npmjs.com for `release.yml` removes the step.
 
 ## Anti-patterns
 
@@ -65,6 +72,8 @@ The canonical version lives in ONE place:
   stamped 0.20.0. A version bump merged into `main` IS the release.
 - Bumping the version in a pull request that is not the release: the merge
   publishes it.
+- Pushing or creating a `v*` tag by hand, or a GitHub Release that creates
+  one: the job writes the tag, and a tag starts nothing.
 
 ## Related material
 

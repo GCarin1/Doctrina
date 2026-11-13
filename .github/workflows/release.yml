@@ -11,15 +11,24 @@ name: Release
 # The version is `packages/doctrina-cli/package.json`'s. When a push to main
 # carries one npm does not have yet, this job runs the gates, publishes it,
 # and tags that commit `vX.Y.Z` itself. Any other push to main ends at the
-# first step. A tag pushed by hand still runs the job — and finds the version
-# already published, which is a notice, not a failure.
+# first step.
+#
+# A TAG IS NOT A TRIGGER (change 0262). The tag is this job's output: the
+# run a tag push started asked npm, seconds after the publish, whether the
+# version was there — npm was still processing it — and published it again,
+# which npm refused with E409. 0.22.0 went out with a red run beside it.
+#
+# A VERSION NPM HOLDS IS NOT A FAILURE. npm now stages a publish made with a
+# token that bypasses 2FA until a maintainer approves it with 2FA, and stops
+# such tokens from publishing directly in 2027. The job says when the version
+# it published is not public yet, and how to approve it; with trusted
+# publishing configured on npmjs.com (this workflow file, `npm publish`
+# allowed) npm authenticates through OIDC and nothing is staged.
 on:
   push:
     branches: [main]
     paths:
       - packages/doctrina-cli/package.json
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -69,9 +78,12 @@ jobs:
             echo "::error::${GITHUB_SHA} is not on main — a release is a version that reached main"
             exit 1
           fi
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
-            echo "::error::tag ${GITHUB_REF_NAME} does not name packages/doctrina-cli/package.json's version (${version}) — the release publishes and tags a version by itself when it reaches main; delete this tag"
-            exit 1
+          # A manual run started on a tag publishes nothing: the tag is what a
+          # release leaves behind, never what makes one.
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "::notice::${GITHUB_REF_NAME} is a tag — a release is a version bump merged into main (node scripts/release.mjs <X.Y.Z>); nothing to publish"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           published=$(npm view "doctrina-cli@${version}" version 2>/dev/null || true)
           if [ -n "${published}" ]; then
@@ -80,6 +92,20 @@ jobs:
           else
             echo "::notice::doctrina-cli@${version} is not on npm yet — publishing it"
             echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Trusted publishing (OIDC) needs npm 11.5.1 or later. Node 24 ships a
+      # recent npm; this only acts on a runner image that does not.
+      - name: npm can publish through trusted publishing
+        if: steps.plan.outputs.publish == 'true'
+        shell: bash
+        run: |
+          have=$(npm --version)
+          if node -e "const [a,b,c]=process.argv[1].split('.').map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)" "${have}"; then
+            echo "npm ${have}"
+          else
+            echo "npm ${have} is older than 11.5.1 — upgrading for trusted publishing"
+            npm install -g npm@11
           fi
 
       # The CLI ships zero RUNTIME dependencies, so this job never installed
@@ -137,12 +163,46 @@ jobs:
       # publishes a signed attestation tying the tarball to this workflow run
       # and this commit, which is the supply-chain claim a zero-dependency
       # tool should be able to make.
+      #
+      # With a trusted publisher configured for this workflow on npmjs.com,
+      # npm authenticates through OIDC before it falls back to the token, and
+      # the version goes out at once. With the token alone npm may stage it.
       - name: Publish doctrina-cli
+        id: publish
         if: steps.plan.outputs.publish == 'true'
         working-directory: packages/doctrina-cli
-        run: npm publish --access public --provenance
+        shell: bash
+        run: |
+          set +e
+          npm publish --access public --provenance 2>&1 | tee "${RUNNER_TEMP}/publish.log"
+          code=${PIPESTATUS[0]}
+          set -e
+          # A version npm already holds, staged by an earlier attempt, is the
+          # maintainer's to approve — publishing it again cannot succeed.
+          if [ "${code}" -ne 0 ] && grep -q "previously staged version" "${RUNNER_TEMP}/publish.log"; then
+            echo "::warning::npm already holds doctrina-cli@${{ steps.plan.outputs.version }} staged, waiting for a maintainer's approval with 2FA: npmjs.com → your account → Staged Packages → Approve (or: npm stage list doctrina-cli, then npm stage approve <stage-id>)"
+            exit 0
+          fi
+          exit "${code}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # npm can accept a version and hold it (staged) until a maintainer
+      # approves it. The run says so, instead of reporting a release that
+      # nobody can install yet.
+      - name: Is the published version public?
+        if: steps.plan.outputs.publish == 'true'
+        shell: bash
+        run: |
+          version="${{ steps.plan.outputs.version }}"
+          for attempt in 1 2 3 4 5 6; do
+            if [ -n "$(npm view "doctrina-cli@${version}" version 2>/dev/null || true)" ]; then
+              echo "::notice::doctrina-cli@${version} is public on npm"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::warning::doctrina-cli@${version} was accepted but is not public after two minutes — npm may be holding it staged until a maintainer approves it with 2FA: npmjs.com → your account → Staged Packages → Approve (or: npm stage list doctrina-cli, then npm stage approve <stage-id>). Trusted publishing for this workflow, configured on npmjs.com, publishes without staging."
 
       # The tag names the commit that was published, because the job that
       # published it is the one that writes it. A tag that is already there
