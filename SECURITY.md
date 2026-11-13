@@ -4,8 +4,8 @@
 
 | Version  | Supported |
 |----------|-----------|
-| `0.21.x` | yes       |
-| `< 0.21` | no        |
+| `0.22.x` | yes       |
+| `< 0.22` | no        |
 
 Doctrina is pre-1.0 and ships from a single line of development: the
 current minor is the supported one, and a fix lands in the next minor

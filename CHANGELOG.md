@@ -17,6 +17,25 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-11-13
+
+### Upgrading from 0.21
+
+- Run `doctrina upgrade --write` in each project: it rewrites AGENTS.md's
+  generated blocks for 0.22.0 and adds the adapter files this version
+  ships (`/doctrina-onboard` for Claude Code and Cursor).
+- Run `doctrina hooks install` once in each clone and commit the
+  `.gitattributes` it writes: two branches that each closed a change then
+  merge `index.json` and the ledger without a conflict.
+- `doctrina` with no arguments in a terminal now opens the console. A
+  script, a pipe or an agent still gets the help.
+- A project created by `doctrina init` now writes `"surface": "core"`: its
+  AGENTS.md lists the eight commands of the session loop. Existing projects
+  keep the full list until they set `surface` themselves.
+- The console's choices and rooms live under `$DOCTRINA_HOME` (default
+  `~/.doctrina`): `console.json`, `agents.json` (your own agents) and
+  `rooms/`. Nothing is written into the repository.
+
 ### Added
 
 - Consoles open in several terminals talk to each other (ADR 0033).

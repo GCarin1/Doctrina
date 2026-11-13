@@ -582,6 +582,13 @@ export const AGENT_CHANGELOG = {
   // Each entry lists only ITS OWN delta. The series carries the rest
   // forward (see agentChangelogEntries), so a patch never has to restate
   // the minor that introduced the commands, and never silently erases it.
+  "0.22.0": [
+    "An edit that changes nothing a spec says opens no change: `doctrina work` answers `direct` and exits 0 — edit, run `doctrina verify`, commit. `--force` only when a sentence of a spec does change.",
+    "Run `doctrina hooks install` once in each clone and commit the `.gitattributes` it writes: `index.json` and the ledger then merge across branches. Two open changes with one number: `doctrina change renumber <id>`.",
+    "A requirement that claims something of every input is proven by a property-based test: claim it with `doctrina change delta <id> <cap> --property \"…\"`; an example test cited for `[property]` fails `coverage --strict`. `doctrina coverage --properties` lists the candidates.",
+    "A request \"sent by the Doctrina console <name>\" is done in this repository and your last message is its report — never hand it on. Told other consoles are open, `doctrina ui --send <name> \"<self-contained task>\"` hands one a task and waits for the report.",
+    "A new project's AGENTS.md lists the session loop only (`surface: core`); `doctrina --help` has every command. `doctrina onboard` walks a newcomer through the cycle; `init --preset <dir>` lays an organisation's preset.",
+  ],
   "0.21.0": [
     "At a workspace root, `next`, `handoff`, `status`, `validate`, `context`, `doctor` and `metrics` answer for the workspace; never `doctrina init` there or in a shadowed repository's clone — the commands name `doctrina workspace attach` instead.",
     "A task card carries the delta, the delivery's story and every binding decision, global ones included: as an executor, stop and report when the story or the task contradicts one; a card on placeholder tasks means the planner writes them first (`doctrina work --resume <id>`).",

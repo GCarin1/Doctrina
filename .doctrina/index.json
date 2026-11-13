@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.21.0",
+  "framework_version": "0.22.0",
   "last_updated": "2026-11-13",
   "artifacts": {
     "product": {
@@ -4566,6 +4566,15 @@
           }
         ],
         "lane": "product (uncertain; signals: shall, spec)"
+      },
+      {
+        "id": "0261-release-0-22-0",
+        "title": "release 0.22.0",
+        "path": ".doctrina/changes/archive/2026-11-13-0261-release-0-22-0",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [

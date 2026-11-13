@@ -1,8 +1,8 @@
 {
   "$schema_version": "0.1.0",
   "project": "doctrina-example-urls",
-  "framework_version": "0.21.0",
-  "last_updated": "2026-11-05",
+  "framework_version": "0.22.0",
+  "last_updated": "2026-11-13",
   "artifacts": {
     "product": {
       "path": ".doctrina/product.md",
