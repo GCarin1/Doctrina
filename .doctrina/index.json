@@ -1,7 +1,7 @@
 {
   "$schema_version": "0.1.0",
   "project": "Doctrina",
-  "framework_version": "0.22.0",
+  "framework_version": "0.22.1",
   "last_updated": "2026-11-13",
   "artifacts": {
     "product": {
@@ -4584,6 +4584,15 @@
         "applied": "2026-11-13",
         "specs_affected": [],
         "lane": "runtime (confident; signals: workflow, tag) — opened as chore"
+      },
+      {
+        "id": "0263-release-0-22-1",
+        "title": "Release 0.22.1",
+        "path": ".doctrina/changes/archive/2026-11-13-0263-release-0-22-1",
+        "status": "applied",
+        "applied": "2026-11-13",
+        "specs_affected": [],
+        "lane": "product (uncertain) — opened as chore"
       }
     ],
     "skills": [

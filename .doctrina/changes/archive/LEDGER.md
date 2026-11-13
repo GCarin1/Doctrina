@@ -273,3 +273,4 @@ One line per archived change, newest last. Appended by
 - 2026-11-13 — 0260-requisitos-condicionais-na-secao-certa — requisitos condicionais na secao certa (specs: scaffolding MODIFIED, templates MODIFIED)
 - 2026-11-13 — 0261-release-0-22-0 — release 0.22.0
 - 2026-11-13 — 0262-release-com-versao-retida-pelo-npm — release com versao retida pelo npm
+- 2026-11-13 — 0263-release-0-22-1 — Release 0.22.1

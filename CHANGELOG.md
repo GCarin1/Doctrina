@@ -17,6 +17,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.22.1] — 2026-11-13
+
 ### Fixed
 
 - The Release workflow no longer runs on a tag. The tag is what the job
