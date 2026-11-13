@@ -41,6 +41,11 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   had moved it to 7.0, whose native compiler rejects the checkJs tree with
   172 errors and turned every typecheck job on `main` red; dependabot now
   leaves TypeScript majors to their own change.
+- The consoles of one workspace meet in one room on macOS too. A room was
+  keyed by the path as typed, and a workspace records real paths, so under
+  a symlinked directory (macOS's `/var` is `/private/var`) the planner's
+  console and its repositories' consoles opened two rooms and never saw
+  each other. Rooms are now keyed by the real path.
 
 ## [0.22.0] — 2026-11-13
 
